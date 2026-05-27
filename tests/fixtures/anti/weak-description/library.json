@@ -1,0 +1,1 @@
+{ "name": "weak-description", "version": "0.1.0", "description": "Anti-fixture: its skill has a description that scores below the quality bar. Use only in the validation test suite.", "standard": "0.7", "tier": "universal" }

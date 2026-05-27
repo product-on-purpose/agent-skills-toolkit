@@ -1,0 +1,1 @@
+{ "name": "overclaim-advanced", "version": "0.1.0", "description": "Anti-fixture: declares tier advanced but is missing the required root AGENTS.md, so it fails the Universal tier. Use only in the validation test suite.", "standard": "0.7", "tier": "advanced" }

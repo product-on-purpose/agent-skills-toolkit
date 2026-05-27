@@ -1,0 +1,1 @@
+{ "name": "bad-frontmatter", "version": "0.1.0", "description": "Anti-fixture: its SKILL.md has unparseable YAML frontmatter. Use only in the validation test suite.", "standard": "0.7", "tier": "universal" }

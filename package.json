@@ -1,0 +1,15 @@
+{
+  "name": "agent-skills-toolkit",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "engines": { "node": ">=20" },
+  "scripts": {
+    "test": "node --test",
+    "check": "node scripts/check.mjs",
+    "tier-report": "node scripts/tier-report.mjs"
+  },
+  "dependencies": {
+    "yaml": "^2.5.0"
+  }
+}
