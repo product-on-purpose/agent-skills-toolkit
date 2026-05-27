@@ -1,0 +1,36 @@
+# CI for agent-skills-toolkit.
+#
+# Per Standard sec 4.1 and 4.4, this workflow contains NO validation logic of its
+# own: it only shells out to the portable Node scripts under scripts/. That keeps
+# local and CI runs identical (a contributor can reproduce any CI failure with the
+# same command locally) and keeps the plugin independent of any CI provider.
+#
+# Phase 0 STUB: the validation spine does not exist yet (it lands in Phase 1).
+# This stub establishes the trigger surface and the Node runtime; the placeholder
+# step is replaced by `node scripts/check.mjs` (the aggregate gate) in Phase 1.
+
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node (baseline >=20 LTS, per Standard sec 4.1)
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Conformance checks (placeholder until Phase 1)
+        run: |
+          echo "Phase 0 seed: no validation scripts yet."
+          echo "From Phase 1, this step runs: node scripts/check.mjs"
+          echo "CI invokes scripts only; it holds no validation logic of its own."

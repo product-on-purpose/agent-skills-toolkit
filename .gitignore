@@ -1,0 +1,13 @@
+# Gitignored working scratch (Standard sec 10.4): design drafts, session logs,
+# agent-context material. Both casings, since the on-disk folder is _local but
+# the Standard names the convention _LOCAL.
+_local/
+_LOCAL/
+
+# claude-mem local observation store (immutable session record, not source)
+.memsearch/
+
+# Node (validation spine lands in Phase 1)
+node_modules/
+npm-debug.log*
+.DS_Store
