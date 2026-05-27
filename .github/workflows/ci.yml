@@ -5,9 +5,9 @@
 # local and CI runs identical (a contributor can reproduce any CI failure with the
 # same command locally) and keeps the plugin independent of any CI provider.
 #
-# Phase 0 STUB: the validation spine does not exist yet (it lands in Phase 1).
-# This stub establishes the trigger surface and the Node runtime; the placeholder
-# step is replaced by `node scripts/check.mjs` (the aggregate gate) in Phase 1.
+# Phase 1: the validation spine is now live. This workflow runs the full unit test
+# suite and then the conformance gate (`node scripts/check.mjs`). Both steps are
+# pure script invocations - the YAML itself holds no validation logic.
 
 name: CI
 
@@ -29,8 +29,11 @@ jobs:
         with:
           node-version: "20"
 
-      - name: Conformance checks (placeholder until Phase 1)
-        run: |
-          echo "Phase 0 seed: no validation scripts yet."
-          echo "From Phase 1, this step runs: node scripts/check.mjs"
-          echo "CI invokes scripts only; it holds no validation logic of its own."
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Unit tests
+        run: npm test
+
+      - name: Conformance gate (self-validation)
+        run: node scripts/check.mjs
