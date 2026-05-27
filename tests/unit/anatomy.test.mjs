@@ -18,3 +18,10 @@ test("missing AGENTS.md is a U2 error", () => {
   const findings = check(ctx);
   assert.ok(findings.some((f) => f.reqId === "U2" && f.severity === "error"));
 });
+
+test("no skills emits a U8 WARN (not error)", () => {
+  const ctx = { root: ".", library: { data: { name: "x" }, parseError: null }, agentsMdPath: "/fake/AGENTS.md", skills: [] };
+  const w = check(ctx).find((f) => f.reqId === "U8");
+  assert.ok(w, "expected a U8 finding when there are no skills");
+  assert.equal(w.severity, "warn");
+});
