@@ -13,7 +13,12 @@ export function loadPlugin(root) {
 
   const skills = listSkillDirs(root).map((dir) => {
     const skillMdPath = path.join(dir, "SKILL.md");
-    const raw = readFileSync(skillMdPath, "utf8");
+    let raw;
+    try {
+      raw = readFileSync(skillMdPath, "utf8");
+    } catch (e) {
+      return { name: path.basename(dir), dir, skillMdPath, raw: null, frontmatter: null, body: "", parseError: e.message };
+    }
     const { frontmatter, body, parseError } = parseFrontmatter(raw);
     return { name: path.basename(dir), dir, skillMdPath, raw, frontmatter, body, parseError };
   });

@@ -1,10 +1,12 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import path from "node:path";
+import { fileURLToPath } from "node:url";
 import { loadPlugin } from "../../scripts/lib/load-plugin.mjs";
 
-const golden = path.resolve("tests/fixtures/golden/minimal-skill");
-const missing = path.resolve("tests/fixtures/anti/missing-library-json");
+const FIXTURES = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../fixtures");
+const golden = path.join(FIXTURES, "golden/minimal-skill");
+const missing = path.join(FIXTURES, "anti/missing-library-json");
 
 test("loads library.json, AGENTS.md, and skills", () => {
   const ctx = loadPlugin(golden);

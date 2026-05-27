@@ -1,1 +1,1 @@
-{ "name": "bad-frontmatter", "version": "0.1.0", "description": "A minimal conformant fixture plugin used to prove the Universal checks pass. Use it as the golden baseline in the validation suite.", "standard": "0.7", "tier": "universal" }
+{ "name": "bad-frontmatter", "version": "0.1.0", "description": "Anti-fixture: its SKILL.md has unparseable YAML frontmatter. Use only in the validation test suite.", "standard": "0.7", "tier": "universal" }

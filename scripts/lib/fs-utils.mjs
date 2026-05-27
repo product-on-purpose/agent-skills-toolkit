@@ -18,7 +18,7 @@ export function readJsonSafe(p) {
 /** Absolute paths of immediate subdirs of <root>/skills that contain a SKILL.md. */
 export function listSkillDirs(root) {
   const skillsRoot = path.join(root, "skills");
-  if (!existsSync(skillsRoot)) return [];
+  if (!existsSync(skillsRoot) || !statSync(skillsRoot).isDirectory()) return [];
   return readdirSync(skillsRoot)
     .map((name) => path.join(skillsRoot, name))
     .filter((dir) => statSync(dir).isDirectory() && fileExists(path.join(dir, "SKILL.md")));

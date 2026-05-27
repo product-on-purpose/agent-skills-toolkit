@@ -25,5 +25,5 @@ test("missing frontmatter fence is a parseError", () => {
 test("invalid YAML is a parseError", () => {
   const r = parseFrontmatter(`---\nname: [unclosed\n---\nbody`);
   assert.equal(r.frontmatter, null);
-  assert.match(r.parseError, /.+/);
+  assert.match(r.parseError, /flow|yaml|unexpected|parse|map|\]/i);
 });

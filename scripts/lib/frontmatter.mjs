@@ -1,6 +1,6 @@
 import { parse as parseYaml } from "yaml";
 
-const FENCE = /^---\r?\n([\s\S]*?)\r?\n---\r?\n?([\s\S]*)$/;
+const FENCE = /^---\r?\n([\s\S]*?)\r?\n---(?:\r?\n|$)([\s\S]*)$/;
 
 /**
  * @param {string} text full SKILL.md contents
