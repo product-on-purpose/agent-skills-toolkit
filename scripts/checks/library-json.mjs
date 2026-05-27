@@ -19,8 +19,10 @@ export function check(ctx) {
   for (const key of REQUIRED) {
     if (!(key in data)) out.push(finding(meta.id, SEVERITY.ERROR, `library.json is missing required field "${key}" (Standard sec 5.1).`, { file: rel, reqId: meta.reqId }));
   }
-  if (typeof data.version === "string" && !SEMVER.test(data.version)) {
-    out.push(finding(meta.id, SEVERITY.ERROR, `library.json "version" must be semver (got "${data.version}").`, { file: rel, reqId: meta.reqId }));
+  if ("version" in data) {
+    if (typeof data.version !== "string" || !SEMVER.test(data.version)) {
+      out.push(finding(meta.id, SEVERITY.ERROR, `library.json "version" must be a semver string (got ${JSON.stringify(data.version)}).`, { file: rel, reqId: meta.reqId }));
+    }
   }
   if ("tier" in data && !TIERS.includes(data.tier)) {
     out.push(finding(meta.id, SEVERITY.ERROR, `library.json "tier" must be one of ${TIERS.join(", ")} (got "${data.tier}").`, { file: rel, reqId: meta.reqId }));

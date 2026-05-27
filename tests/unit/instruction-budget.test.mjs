@@ -16,4 +16,6 @@ test("over-long skill is a U7 WARN (never error)", () => {
   const w = findings.find((f) => f.reqId === "U7");
   assert.ok(w);
   assert.equal(w.severity, "warn");
+  assert.equal(w.file, "skills/s/SKILL.md");
+  assert.ok(!w.file.includes("\\"));
 });

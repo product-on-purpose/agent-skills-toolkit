@@ -1,6 +1,11 @@
 import { readFileSync, existsSync, readdirSync, statSync } from "node:fs";
 import path from "node:path";
 
+/** Repo-relative, slash-normalized path. Falls back to abs if root is falsy. */
+export function relPath(root, abs) {
+  return root ? path.relative(root, abs).split(path.sep).join("/") : abs;
+}
+
 export function fileExists(p) {
   return existsSync(p) && statSync(p).isFile();
 }

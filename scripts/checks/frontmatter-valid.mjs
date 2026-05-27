@@ -1,5 +1,5 @@
 import { finding, SEVERITY } from "../lib/findings.mjs";
-import path from "node:path";
+import { relPath } from "../lib/fs-utils.mjs";
 
 export const meta = { id: "frontmatter-valid", tier: "universal", reqId: "U3" };
 
@@ -8,7 +8,7 @@ const NAME_RE = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 export function check(ctx) {
   const out = [];
   for (const s of ctx.skills) {
-    const file = relish(s.skillMdPath, ctx.root);
+    const file = relPath(ctx.root, s.skillMdPath);
     if (s.parseError) {
       out.push(finding(meta.id, SEVERITY.ERROR, `frontmatter does not parse: ${s.parseError}`, { file, reqId: "U3" }));
       continue;
@@ -20,8 +20,4 @@ export function check(ctx) {
     else if (fm.description.length < 1 || fm.description.length > 1024) out.push(finding(meta.id, SEVERITY.ERROR, `"description" must be 1-1024 chars (got ${fm.description.length}).`, { file, reqId: "U3" }));
   }
   return out;
-}
-
-function relish(abs, root) {
-  return root ? path.relative(root, abs).split(path.sep).join("/") : abs;
 }

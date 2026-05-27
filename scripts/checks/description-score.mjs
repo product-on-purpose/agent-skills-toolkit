@@ -1,5 +1,5 @@
 import { finding, SEVERITY } from "../lib/findings.mjs";
-import path from "node:path";
+import { relPath } from "../lib/fs-utils.mjs";
 
 export const meta = { id: "description-score", tier: "universal", reqId: "U5" };
 export const THRESHOLD = 0.7;
@@ -26,10 +26,10 @@ export function check(ctx) {
   const out = [];
   for (const s of ctx.skills) {
     const desc = s.frontmatter?.description;
-    if (typeof desc !== "string") continue;
+    if (typeof desc !== "string" || desc.length === 0) continue;
     const score = scoreDescription(desc);
     if (score < THRESHOLD) {
-      const file = path.relative(ctx.root, s.skillMdPath).split(path.sep).join("/");
+      const file = relPath(ctx.root, s.skillMdPath);
       out.push(finding(meta.id, SEVERITY.WARN, `description scores ${score.toFixed(2)} (< ${THRESHOLD}); state what it does AND when to use it, with concrete trigger keywords (Standard sec 8.1).`, { file, reqId: "U5" }));
     }
   }

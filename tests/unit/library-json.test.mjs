@@ -44,3 +44,9 @@ test("invalid tier enum is an error", () => {
   const findings = check(ctx);
   assert.ok(findings.some((f) => f.severity === "error" && /tier/.test(f.message)));
 });
+
+test("non-string version is an error", () => {
+  const ctx = { root: ".", library: { path: "library.json", data: { name: "x", version: 1, description: "d".repeat(40), standard: "0.7", tier: "universal" }, parseError: null }, agentsMdPath: null, skills: [] };
+  const findings = check(ctx);
+  assert.ok(findings.some((f) => f.severity === "error" && /version/.test(f.message)));
+});

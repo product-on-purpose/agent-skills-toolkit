@@ -9,6 +9,9 @@ import { check as budget } from "./instruction-budget.mjs";
  * Reimplemented (decision Q1.1); a real skills-ref can replace the body here
  * without changing callers.
  */
+// NOTE: this is a compositor, not an individual check. It intentionally does NOT
+// export `check` so the registry (which lists individual checks) cannot enumerate
+// it and double-count U3-U7. The seam is the swap point for a future real skills-ref.
 export function checkAgentskills(ctx) {
   return [...frontmatter(ctx), ...nameDir(ctx), ...description(ctx), ...refs(ctx), ...budget(ctx)];
 }
