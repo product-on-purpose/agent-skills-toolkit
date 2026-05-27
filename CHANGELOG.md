@@ -10,8 +10,12 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ## [Unreleased]
 
 ### Added
-- Nothing yet. The Phase 1 validation spine (Node checks, generators, the
-  aggregate gate, and CI wiring) is next.
+- Validation spine (Node, zero test-framework deps): `loadPlugin` context, `Finding` model, and a `yaml`-backed frontmatter parser.
+- Eight Universal (Bronze) conformance checks (U1-U8): library.json schema, AGENTS.md presence, skill frontmatter validity, name-equals-directory, description scoring (0.7 warn), reference-link resolution, instruction-budget warning, and native-manifest drift. Composed behind a `checkAgentskills` seam (reimplemented per decision Q1.1).
+- `tier-report` (machine JSON + human line; satisfied tier capped at the declared tier, blocked list keyed to requirement IDs) and an aggregate gate runner (`scripts/check.mjs`) that fails on error and surfaces warnings.
+- Generators: `gen-manifest`, `gen-index`, and `sync-agents-md` (render functions; AGENTS.md write-back deferred to Silver).
+- CI wired to run unit tests and the conformance gate via scripts only (local/CI parity).
+- The repository now self-validates: it declares `tier: universal` and passes its own Bronze checks (`tests/unit/seed-bronze.test.mjs`), retiring risk R1.
 
 ## [0.1.0] - 2026-05-26
 
