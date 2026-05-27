@@ -5,11 +5,12 @@ import * as nameMatchesDir from "../checks/name-matches-dir.mjs";
 import * as descriptionScore from "../checks/description-score.mjs";
 import * as referenceLinks from "../checks/reference-links.mjs";
 import * as instructionBudget from "../checks/instruction-budget.mjs";
+import * as manifestDrift from "../checks/manifest-drift.mjs";
 
 /** Ordered checks. Each exports { meta:{id,tier,reqId}, check(ctx)->Finding[] }. */
 export const CHECKS = [
   libraryJson, anatomy, frontmatterValid, nameMatchesDir,
-  descriptionScore, referenceLinks, instructionBudget,
+  descriptionScore, referenceLinks, instructionBudget, manifestDrift,
 ];
 
 export function runAllChecks(ctx) {

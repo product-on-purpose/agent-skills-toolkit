@@ -23,5 +23,7 @@ export function loadPlugin(root) {
     return { name: path.basename(dir), dir, skillMdPath, raw, frontmatter, body, parseError };
   });
 
-  return { root, library, agentsMdPath, skills };
+  const claude = readJsonSafe(path.join(root, ".claude-plugin", "plugin.json"));
+
+  return { root, library, agentsMdPath, skills, claudeManifest: claude.data };
 }
