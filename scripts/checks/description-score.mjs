@@ -6,7 +6,7 @@ export const THRESHOLD = 0.7;
 
 const ANTI = /\b(helps with|handles|deals with|manages stuff|various things)\b/i;
 const WHEN = /\b(use when|use this when|when the user|when you need|for when)\b/i;
-const ACTION = /\b(creates?|generates?|converts?|validates?|builds?|renders?|extracts?|summari[sz]es?|formats?|analy[sz]es?|produces?|writes?)\b/i;
+const ACTION = /\b(creates?|generates?|converts?|validates?|builds?|renders?|extracts?|summari[sz]es?|formats?|analy[sz]es?|produces?|writes?|evaluates?|assesses?|audits?|checks?|reports?)\b/i;
 const FIRST_PERSON = /\b(I |you should|you can|we )\b/;
 
 /** Heuristic 0-1 score per Standard sec 8.1. */

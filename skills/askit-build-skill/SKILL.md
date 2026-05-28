@@ -19,7 +19,7 @@ When the user asks to create, scaffold, write, or improve a skill.
 1. Brief interview: ask for the skill name (kebab-case), what it does, when to use it, and a few trigger keywords.
 2. Create `skills/<name>/` and copy `templates/SKILL.md` into `skills/<name>/SKILL.md`.
 3. Fill the frontmatter: `name` equal to the directory, and a `description` that states what AND when with concrete keywords (see [references/authoring-guide.md](references/authoring-guide.md) for the bar).
-4. Scaffold `references/` and `examples/` if the skill needs depth or samples. Do not assume the surrounding plugin anatomy exists - this skill works a la carte.
+4. Scaffold `references/` if the skill needs depth. Samples in `examples/` are optional at Bronze - add them only if useful. Do not assume the surrounding plugin anatomy exists - this skill works a la carte.
 5. Run `askit-evaluate` on the new skill and report the result; iterate until it passes.
 
 ## improve mode

@@ -1,6 +1,6 @@
 ---
 name: askit-evaluate
-description: Validates and analyzes a skill or plugin against the Advanced Skill Library Standard, producing per-rule findings, a tier result, and remediation steps. Use when you want to audit conformance, check a skill or plugin, or see what blocks the next tier.
+description: Evaluates a skill or plugin against the Advanced Skill Library Standard, producing per-rule findings, a tier result, and remediation steps. Use when you want to audit conformance, check a skill or plugin, or see what blocks the next tier.
 metadata:
   version: 0.1.0
   tier: universal
