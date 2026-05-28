@@ -16,6 +16,13 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Generators: `gen-manifest`, `gen-index`, and `sync-agents-md` (render functions; AGENTS.md write-back deferred to Silver).
 - CI wired to run unit tests and the conformance gate via scripts only (local/CI parity).
 - The repository now self-validates: it declares `tier: universal` and passes its own Bronze checks (`tests/unit/seed-bronze.test.mjs`), retiring risk R1.
+- `scripts/evaluate.mjs`: conformance-core assessment report (plugin and component scope) composed over the checks; scope auto-detection; CLI + `--json`; npm `evaluate` script.
+- `askit-evaluate` skill: natural-language front door that runs the assessment and presents per-rule findings, tier, and remediation.
+- `askit-build-skill` skill: `create` and `improve` modes that author conformant skills and consume the evaluate report to fix findings (Claude target; subagent delegation and multi-agent emission deferred to Phase 3).
+- `templates/SKILL.md` skeleton; `manifest.generated.json`; refreshed `INDEX.md` + `AGENTS.md` for the proof-loop skills.
+- Widened the U5 description heuristic to recognize evaluate/assess/audit/check/report as action verbs (surfaced by dogfooding the toolkit's own evaluate skill).
+- Dual documentation: per-skill `SKILL.md` + `README.md` + `references/`, and Diataxis `docs/how-to` + `docs/reference` + `docs/explanation` for the build/evaluate loop.
+- The toolkit now contains and self-validates its own skills at Bronze - the `build-skill` -> `evaluate` -> `improve` proof loop works end to end (verified by a recorded manual dogfood).
 
 ## [0.1.0] - 2026-05-26
 
