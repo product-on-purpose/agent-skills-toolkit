@@ -1,6 +1,7 @@
 # The Advanced Skill Library Standard
 
-> **Standard version 0.7**, promoted to the repository root on 2026-05-26. This is the normative Standard that every tool in `agent-skills-toolkit` enforces; the version-history notes below record how the frozen draft converged.
+> **Standard version 0.8**, promoted to the repository root on 2026-05-26. This is the normative Standard that every tool in `agent-skills-toolkit` enforces; the version-history notes below record how the frozen draft converged.
+> v0.8: Codex contract revised to the native plugin + marketplace model (sec 3.2/3.3/3.9/10.1 + Appendix A), per the 2026-05-27 spike against Codex CLI v0.133. Sec 12 marketplace updated to describe Codex's concrete native marketplace alongside Claude's (in a separate task).
 > v0.7: Codex-review judgment calls applied - a minimal `library.json` (name/version/tier) is now REQUIRED at every tier (5/2.1/2.5; "loose components" without it are not a plugin); added component specs for **MCP server** (3.9) and **AGENTS.md** (3.10).
 > v0.6: Second Codex review consistency fixes - `library.json` clarified as authored SoT not generated (2.6 G4); component-history rule made coherent (version all tiers; HISTORY required Silver+, recommended Bronze; match-when-present - 3.7/7.3/2.5); Codex emission paths reconciled to one contract (10.1; residual packaging note in Appendix A); chain-contract location pinned to `agents/_chain-permitted.yaml` (3.6/10.1); `_workflows/` added to layout (10.1); command parity note (3.2); 20+ trigger-eval SHOULD (8.3); "one plugin (release) version" wording (0).
 > v0.5: Final open items resolved (research-backed). Codex command target = a **skill** (custom prompts deprecated; 3.2); Codex subagents via `config.toml` `[agents.*]` + per-role `.toml` (3.3); **output styles are Claude-only**, statusline differs (2.3); Codex skills agentskills.io-compatible (3.1). **`library.json` field schema pinned** (5.1). **Chain contracts = conditional MUST** - required iff chaining is used (3.6, 2.2). Appendix A: all items resolved or deferred (badges).
@@ -144,14 +145,14 @@ Each component spec gives: purpose, required structure, fields, per-agent format
 ### 3.2 Slash command / invocation (Convergent)
 - **Purpose:** give a skill an explicit, user-invocable entry point.
 - **CC format:** `commands/<name>.md` with command frontmatter and `$ARGUMENTS`/named args.
-- **CX format:** a **skill with explicit invocation**. Codex's standalone custom prompts (`~/.codex/prompts/*.md`, invoked `/prompts:<name>`, frontmatter `description` + `argument-hint`, placeholders `$1`-`$9`/`$ARGUMENTS`/`$$`) are **deprecated in favor of skills** (per OpenAI Codex docs). Tooling MAY still emit the legacy prompt behind an explicit flag with a deprecation warning, but the default Codex target for a command is a skill.
+- **CX format:** the Codex target is a **skill packaged inside a Codex plugin** (`.codex-plugin/plugin.json` plus the skill at `skills/<name>/SKILL.md` within the plugin), explicitly invocable. Standalone custom prompts (`~/.codex/prompts/*.md`) remain deprecated in favor of skills; tooling MAY emit the legacy prompt behind an explicit flag with a deprecation warning, but the default Codex target is a skill within a plugin.
 - **Rules:** a command MUST map to exactly one skill or workflow; its description MUST match the skill's triggering intent. For multi-target plugins, a command MUST be emitted in each target's format (CC: `commands/<name>.md`; CX: the backing skill, explicitly invocable).
 - **Parity note:** on Codex a "command" is realized as an explicitly-invocable skill, not a distinct command artifact. This is **functional parity, not identical UX** - the same intent is invocable on both agents, but Codex users invoke a skill rather than a `/command`. Tooling and docs MUST set this expectation rather than implying byte-for-byte command equivalence.
 
 ### 3.3 Subagent (Convergent)
 - **Purpose:** a bounded delegate with its own tools and prompt.
 - **CC format:** `agents/<name>.md` (markdown + frontmatter; auto-discovered, @-mentionable).
-- **CX format:** declared in `config.toml` under `[agents.<name>]` (`description`, `config_file`, optional `nickname_candidates`) with the role defined in a per-agent TOML (e.g., `agents/<name>.toml`); built-in roles include default/worker/explorer.
+- **CX format:** Codex subagents are declared in `config.toml` `[agents.<name>]` (`description`, `config_file`, optional `nickname_candidates`) with the role defined in a per-agent TOML (e.g., `agents/<name>.toml`); distributed inside the emitted Codex plugin so the plugin's `config.toml` augments the user config when the plugin is loaded. Built-in roles include default/worker/explorer.
 - **Rules:** a subagent MUST declare its purpose and the narrowest tool set it needs. A subagent that may be invoked by skills MUST appear in a chain contract (3.6). Multi-target plugins MUST emit both formats.
 
 ### 3.4 Workflow (Convergent)
@@ -186,7 +187,7 @@ Only skills are governed by agentskills.io frontmatter (3.1). This Standard exte
 ### 3.9 MCP server (Universal)
 - **Purpose:** connect the plugin to external tools, data, or prompts via the Model Context Protocol. The server definition is portable; only its registration location differs per agent.
 - **Structure:** a server entry declaring `name`, `transport` (`stdio` | `http`), the `command`/`args` (or URL) that launches/reaches it, optional `env`, and the `tools`/`resources`/`prompts` it exposes.
-- **Per-agent format:** the server is the same; **registration differs** - Claude registers it in the plugin/settings manifest; Codex registers it in `config.toml`. Multi-target plugins MUST emit the registration for each declared target.
+- **Per-agent format:** the server is the same; **registration differs** - Claude registers it in the plugin/settings manifest; Codex registers the MCP server inside the distributed Codex plugin (the plugin's `config.toml` mcp_servers entries) rather than relying on the user's global `config.toml`. Multi-target plugins MUST emit the registration for each declared target.
 - **Validation rules:** the server entry MUST be present and well-formed; secrets MUST NOT be committed (use `env` indirection, Section 9); a referenced `command` SHOULD be resolvable.
 - **Tier:** Universal (the server is portable; only registration location varies).
 
@@ -346,7 +347,8 @@ A conformant plugin SHOULD follow this layout (components present per declared t
 <plugin>/
   library.json                   canonical cross-agent manifest (authored SoT)  [agent]
   .claude-plugin/plugin.json     Claude manifest (generated from library.json)  [agent]
-  plugin.json + config.toml      Codex emission (generated): native plugin.json; subagents as config.toml [agents.*] + agents/*.toml; skills surfaced for .agents/skills discovery (3.1/3.3)  [agent]
+  .codex-plugin/plugin.json      Codex native manifest (generated from library.json)  [agent]
+  .codex-plugin/config.toml      Codex subagent + MCP entries ([agents.*] + agents/*.toml inside plugin; mcp_servers entries) (3.3/3.9)  [agent]
   AGENTS.md                      agent navigation entrypoint           [agent]
   INDEX.md                       human map of all skills               [human]
   README.md                      overview / pitch                      [human]
@@ -452,3 +454,4 @@ A **marketplace** is a catalog that lists plugins for discovery and install. It 
 - RESOLVED (2026-05-25): description-scoring rubric pinned with a 0.7 warn threshold (Section 8.1).
 - RESOLVED (2026-05-24): per-component history = frontmatter `version` + co-located `HISTORY.md` (Section 7.3).
 - RESOLVED (2026-05-25): backlog = structured markdown in-repo under `docs/internal/backlog/` (Sections 7.1 + 10.1).
+- RESOLVED (2026-05-27, via spike): Codex CLI v0.133 ships a native plugin + marketplace system. A Codex plugin is a directory with `.codex-plugin/plugin.json` (native manifest, parallel to Claude's `.claude-plugin/plugin.json`) plus `skills/<name>/SKILL.md` within it. A Codex marketplace is `.agents/plugins/marketplace.json` (`{name, interface.displayName, plugins:[{name, source:{source,path}, policy, category}]}`). Round-trip locally testable via `codex plugin marketplace add --local <path>` + `codex plugin add <plugin>@<mp>`. F-04 closed. Build-time confirm remaining: exact distribution semantics for subagent + MCP `config.toml` augmentation when a plugin is loaded - to be verified by the 3B emitter against current Codex docs.
