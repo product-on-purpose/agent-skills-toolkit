@@ -29,9 +29,12 @@ skeleton, human-reviewed without tooling. See
 
 ## Components
 
-- **Skills:** none yet. `skills/` is an empty placeholder; skills arrive from Phase 2.
-- **Scripts:** none yet. `scripts/` is an empty placeholder; the Node validation spine arrives in Phase 1.
-- **Subagents / commands / hooks / workflows:** none (Silver/Gold components, later phases).
+- **Skills:**
+  - [`askit-build-skill`](skills/askit-build-skill/) - author and improve skills to the Standard (create + improve modes).
+  - [`askit-evaluate`](skills/askit-evaluate/) - assess a skill or plugin against the Standard (per-rule findings + tier + remediation).
+  - Core loop: `askit-build-skill` (create) -> `askit-evaluate` -> `askit-build-skill` (improve).
+- **Scripts:** the Node validation spine in [`scripts/`](scripts/) - conformance checks, generators, `tier-report.mjs`, the aggregate gate `check.mjs`, and `evaluate.mjs`.
+- **Subagents / commands / hooks / workflows:** none yet (Silver/Gold components, later phases).
 
 ## Governance
 
