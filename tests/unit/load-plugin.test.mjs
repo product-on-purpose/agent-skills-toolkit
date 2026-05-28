@@ -2,7 +2,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { loadPlugin } from "../../scripts/lib/load-plugin.mjs";
+import { loadPlugin, loadSkill } from "../../scripts/lib/load-plugin.mjs";
 
 const FIXTURES = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../fixtures");
 const golden = path.join(FIXTURES, "golden/minimal-skill");
@@ -22,4 +22,13 @@ test("missing library.json yields null data, not a throw", () => {
   const ctx = loadPlugin(missing);
   assert.equal(ctx.library.data, null);
   assert.equal(ctx.skills.length, 0);
+});
+
+test("loadSkill loads one skill dir into a SkillInfo", () => {
+  const dir = path.join(FIXTURES, "golden/minimal-skill/skills/do-thing");
+  const s = loadSkill(dir);
+  assert.equal(s.name, "do-thing");
+  assert.equal(s.frontmatter.name, "do-thing");
+  assert.equal(s.parseError, null);
+  assert.match(s.skillMdPath, /SKILL\.md$/);
 });

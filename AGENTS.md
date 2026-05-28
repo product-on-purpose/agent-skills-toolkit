@@ -17,18 +17,20 @@ design and decision record is [`docs/internal/DESIGN.md`](docs/internal/DESIGN.m
 
 ## Current state (read before assuming capabilities)
 
-This repository is at **Phase 0** (repo bootstrap). It is a hand-authored
-Universal (Bronze) seed: a minimal, conformant skeleton, human-reviewed without
-tooling because the tooling does not exist yet. See
-[`docs/internal/BOOTSTRAP.md`](docs/internal/BOOTSTRAP.md) for the bootstrap
-exemption and exactly when self-validation begins (Phase 1).
+This repository declares `tier: universal` (Bronze) and **self-validates against
+its own Standard in CI** - the deterministic validation spine lives in `scripts/`.
+See [`docs/internal/BOOTSTRAP.md`](docs/internal/BOOTSTRAP.md) for the one-time
+bootstrap exemption (it ended once the spine existed).
 
-Consequently, at this moment:
-- There are **no skills** yet (`skills/` is an empty placeholder).
-- There are **no validation scripts** yet (`scripts/` is an empty placeholder); the
-  Node validation spine arrives in Phase 1.
-- There are **no subagents, commands, hooks, or workflows** (those are Silver/Gold
-  components, later phases).
+Components present on disk:
+- **Skills:** `askit-build-skill` (author and improve skills) and `askit-evaluate`
+  (assess a skill or plugin against the Standard). Core loop: `askit-build-skill`
+  (create) -> `askit-evaluate` -> `askit-build-skill` (improve).
+- **Scripts:** the Node validation spine in `scripts/` - conformance checks,
+  generators (`gen-index`, `gen-manifest`, `sync-agents-md`), `tier-report.mjs`,
+  the aggregate gate `check.mjs`, and `evaluate.mjs`.
+- **Subagents, commands, hooks, workflows:** none yet (Silver/Gold components, and
+  the authoring/scanning subagents arrive in a later phase).
 
 Do not claim or invoke components that are not present on disk.
 
@@ -51,10 +53,15 @@ Do not claim or invoke components that are not present on disk.
 
 ## Build / test / lint
 
-No build or test commands exist yet (Phase 0). From Phase 1, the conformance
-checks, generators, and the aggregate gate will all run as Node scripts under
-`scripts/`, reproducible locally and in CI with identical results (Standard
-sec 4.4). This section will be updated when those scripts land.
+- `npm test` - run the unit suite (`node:test`, zero test-framework deps).
+- `node scripts/check.mjs` - the aggregate conformance gate over the repo (fails on
+  any `error`, surfaces `warn`). This is what CI runs.
+- `node scripts/evaluate.mjs <path>` - assess a single skill directory or a whole
+  plugin and print per-rule findings + tier + remediation (`--json` for the report
+  object).
+
+All checks run as portable Node scripts, reproducible locally and in CI with
+identical results (Standard sec 4.4). CI only shells out to these scripts.
 
 ## Where to look
 

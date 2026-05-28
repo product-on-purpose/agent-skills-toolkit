@@ -1,0 +1,18 @@
+{
+  "name": "agent-skills-toolkit",
+  "version": "0.1.0",
+  "tier": "universal",
+  "standard": "0.7",
+  "skills": [
+    {
+      "name": "askit-build-skill",
+      "path": "skills/askit-build-skill/SKILL.md",
+      "description": "Creates and improves agentskills.io skills to the Advanced Skill Library Standard. Use when you need to author a new SKILL.md, scaffold a skill directory, or raise an existing skill's conformance and description quality."
+    },
+    {
+      "name": "askit-evaluate",
+      "path": "skills/askit-evaluate/SKILL.md",
+      "description": "Evaluates a skill or plugin against the Advanced Skill Library Standard, producing per-rule findings, a tier result, and remediation steps. Use when you want to audit conformance, check a skill or plugin, or see what blocks the next tier."
+    }
+  ]
+}

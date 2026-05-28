@@ -3,8 +3,7 @@ import { runAllChecks } from "./lib/registry.mjs";
 
 const TIER_ORDER = ["universal", "convergent", "advanced"];
 
-export function computeTierReport(root, ctx = loadPlugin(root)) {
-  const findings = runAllChecks(ctx);
+export function computeTierReport(root, ctx = loadPlugin(root), findings = runAllChecks(ctx)) {
   const declaredTier = ctx.library?.data?.tier ?? null;
   const declaredIdx = declaredTier ? TIER_ORDER.indexOf(declaredTier) : -1;
 

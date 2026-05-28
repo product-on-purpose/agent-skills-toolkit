@@ -22,6 +22,11 @@ test("golden produces no warn for description", () => {
   assert.equal(check(loadPlugin(golden)).filter((f) => f.reqId === "U5").length, 0);
 });
 
+test("an evaluate-verb description scores >= 0.7", () => {
+  const s = scoreDescription("Evaluates a skill or plugin against the Standard. Use when you want to audit conformance or check what blocks the next tier.");
+  assert.ok(s >= 0.7, `score was ${s}`);
+});
+
 test("weak description is a WARN (never error) with U5", () => {
   const findings = check(loadPlugin(weak));
   const w = findings.find((f) => f.reqId === "U5");

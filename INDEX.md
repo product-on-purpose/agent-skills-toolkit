@@ -2,13 +2,16 @@
 
 Human map of this repository. The agent-facing counterpart is
 [`AGENTS.md`](AGENTS.md). At Gold this file is generated (`gen-index`) and
-drift-checked against on-disk components; in this Phase 0 seed it is hand-authored.
+drift-checked against on-disk components; at the current Bronze tier it is
+hand-authored.
 
 ## Repository state
 
-**Phase 0 - hand-authored Universal (Bronze) seed.** The minimal conformant
-skeleton, human-reviewed without tooling. See
-[`docs/internal/BOOTSTRAP.md`](docs/internal/BOOTSTRAP.md).
+**Universal (Bronze), self-validating.** The validation spine (`scripts/`) and the
+`askit-build-skill` -> `askit-evaluate` -> improve proof loop are in place; the
+toolkit passes its own Bronze checks in CI. See
+[`docs/internal/BOOTSTRAP.md`](docs/internal/BOOTSTRAP.md) for the one-time
+bootstrap exemption (now ended).
 
 ## Foundation documents
 
@@ -29,9 +32,12 @@ skeleton, human-reviewed without tooling. See
 
 ## Components
 
-- **Skills:** none yet. `skills/` is an empty placeholder; skills arrive from Phase 2.
-- **Scripts:** none yet. `scripts/` is an empty placeholder; the Node validation spine arrives in Phase 1.
-- **Subagents / commands / hooks / workflows:** none (Silver/Gold components, later phases).
+- **Skills:**
+  - [`askit-build-skill`](skills/askit-build-skill/) - author and improve skills to the Standard (create + improve modes).
+  - [`askit-evaluate`](skills/askit-evaluate/) - assess a skill or plugin against the Standard (per-rule findings + tier + remediation).
+  - Core loop: `askit-build-skill` (create) -> `askit-evaluate` -> `askit-build-skill` (improve).
+- **Scripts:** the Node validation spine in [`scripts/`](scripts/) - conformance checks, generators, `tier-report.mjs`, the aggregate gate `check.mjs`, and `evaluate.mjs`.
+- **Subagents / commands / hooks / workflows:** none yet (Silver/Gold components, later phases).
 
 ## Governance
 
@@ -40,4 +46,4 @@ skeleton, human-reviewed without tooling. See
 | [`docs/internal/decisions/`](docs/internal/decisions/) | ADRs (MADR). D1-D19 graduate here at Phase 4. |
 | [`docs/internal/rfcs/`](docs/internal/rfcs/) | Cross-cutting proposals. |
 | [`docs/internal/backlog/`](docs/internal/backlog/) | New-component and enhancement backlogs (local-first). |
-| [`templates/`](templates/) | Global templates consumed by scaffolders (populated from Phase 2). |
+| [`templates/`](templates/) | Global templates consumed by scaffolders. Contains the `SKILL.md` skeleton. |
