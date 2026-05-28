@@ -29,6 +29,7 @@ Components present on disk:
 - **Scripts:** the Node validation spine in `scripts/` - conformance checks,
   generators (`gen-index`, `gen-manifest`, `sync-agents-md`), `tier-report.mjs`,
   the aggregate gate `check.mjs`, and `evaluate.mjs`.
+- **Silver checks (Convergent, reqId S1-S5)** run alongside the Universal ones; they emit findings into the convergent tier. Convergent findings populate `tier-report`'s `blocked.convergent` (the visible climb to Silver) without failing the gate at the declared Universal tier.
 - **Subagents, commands, hooks, workflows:** none yet (Silver/Gold components, and
   the authoring/scanning subagents arrive in a later phase).
 
