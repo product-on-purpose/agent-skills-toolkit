@@ -4,6 +4,7 @@ import { loadPlugin, loadSkill } from "./lib/load-plugin.mjs";
 import { runAllChecks } from "./lib/registry.mjs";
 import { computeTierReport } from "./tier-report.mjs";
 import { checkAgentskills } from "./checks/agentskills.mjs";
+import { finding, SEVERITY } from "./lib/findings.mjs";
 
 function groupByRule(findings) {
   const byRule = {};
@@ -57,7 +58,7 @@ export function evaluate(target) {
     const t = computeTierReport(target, ctx, findings);
     return { ...baseReport("plugin", target, findings), tier: t.tier, satisfies: t.satisfies, blocked: t.blocked };
   }
-  const f = { check: "scope-detection", severity: "error", message: "not a plugin or skill: expected a library.json (plugin) or a SKILL.md (component) at " + target, file: null, reqId: null };
+  const f = finding("scope-detection", SEVERITY.ERROR, "not a plugin or skill: expected a library.json (plugin) or a SKILL.md (component) at " + target);
   return baseReport("unknown", target, [f]);
 }
 
