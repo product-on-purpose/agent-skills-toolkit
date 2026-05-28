@@ -11,8 +11,13 @@ test("the repository seed passes the Bronze gate", () => {
   assert.equal(r.exitCode, 0);
 });
 
-test("the repository reports tier universal with empty blocked", () => {
+test("the repository reports tier universal (S-checks in blocked.convergent do not affect the gate)", () => {
   const t = computeTierReport(REPO);
   assert.equal(t.tier, "universal");
-  assert.deepEqual(t.blocked, {});
+  // blocked.convergent now lists the Silver climb items (S1 + S3);
+  // the gate filter keeps exit 0 because declared tier is universal.
+  const conv = t.blocked.convergent ?? [];
+  assert.ok(conv.some((s) => s.startsWith("S1")), "S1 expected in blocked.convergent");
+  assert.ok(conv.some((s) => s.startsWith("S3")), "S3 expected in blocked.convergent");
+  assert.ok(!conv.some((s) => s.startsWith("S2")), "S2 must not block (prefix askit- is present)");
 });
