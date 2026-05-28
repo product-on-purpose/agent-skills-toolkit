@@ -7,7 +7,8 @@
   "scripts": {
     "test": "node --test",
     "check": "node scripts/check.mjs",
-    "tier-report": "node scripts/tier-report.mjs"
+    "tier-report": "node scripts/tier-report.mjs",
+    "evaluate": "node scripts/evaluate.mjs"
   },
   "dependencies": {
     "yaml": "^2.5.0"

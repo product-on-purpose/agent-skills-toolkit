@@ -3,6 +3,8 @@ import assert from "node:assert/strict";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { evaluate } from "../../scripts/evaluate.mjs";
+import { mkdtempSync } from "node:fs";
+import { tmpdir } from "node:os";
 
 const FIXTURES = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../fixtures");
 
@@ -36,4 +38,12 @@ test("component scope: weak description is a U5 warn, not an error", () => {
   assert.equal(r.scope, "component");
   assert.equal(r.summary.errors, 0);
   assert.ok(r.byRule.U5 && r.byRule.U5[0].severity === "warn");
+});
+
+test("neither plugin nor skill: returns an actionable error finding", () => {
+  const empty = mkdtempSync(path.join(tmpdir(), "ev-"));
+  const r = evaluate(empty);
+  assert.equal(r.scope, "unknown");
+  assert.ok(r.summary.errors >= 1);
+  assert.match(r.findings[0].message, /library\.json|SKILL\.md/);
 });
