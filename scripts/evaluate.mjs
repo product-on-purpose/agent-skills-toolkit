@@ -1,5 +1,5 @@
 import path from "node:path";
-import { existsSync } from "node:fs";
+import { existsSync, statSync } from "node:fs";
 import { loadPlugin, loadSkill } from "./lib/load-plugin.mjs";
 import { runAllChecks } from "./lib/registry.mjs";
 import { computeTierReport } from "./tier-report.mjs";
@@ -33,12 +33,14 @@ function evaluateComponent(target) {
   return baseReport("component", target, checkAgentskills(ctx));
 }
 
+function isDir(p) { return existsSync(p) && statSync(p).isDirectory(); }
+
 function looksLikePlugin(target) {
   // A directory looks like a plugin if it has library.json, AGENTS.md, or a skills/ subdir.
   return (
     existsSync(path.join(target, "library.json")) ||
     existsSync(path.join(target, "AGENTS.md")) ||
-    existsSync(path.join(target, "skills"))
+    isDir(path.join(target, "skills"))
   );
 }
 
@@ -52,10 +54,10 @@ export function evaluate(target) {
   if (looksLikePlugin(target)) {
     const ctx = loadPlugin(target);
     const findings = runAllChecks(ctx);
-    const t = computeTierReport(target, ctx);
+    const t = computeTierReport(target, ctx, findings);
     return { ...baseReport("plugin", target, findings), tier: t.tier, satisfies: t.satisfies, blocked: t.blocked };
   }
-  const f = { check: "evaluate", severity: "error", message: "not a plugin or skill: expected a library.json (plugin) or a SKILL.md (component) at " + target, file: null, reqId: null };
+  const f = { check: "scope-detection", severity: "error", message: "not a plugin or skill: expected a library.json (plugin) or a SKILL.md (component) at " + target, file: null, reqId: null };
   return baseReport("unknown", target, [f]);
 }
 
@@ -65,7 +67,7 @@ export function formatReport(r) {
   for (const f of r.findings) {
     lines.push(`  [${f.severity}] ${f.reqId ?? f.check}: ${f.message}${f.file ? "  -> " + f.file : ""}`);
   }
-  if (r.tier) lines.push(`Tier: ${r.tier}`);
+  if (r.tier !== undefined) lines.push(`Tier: ${r.tier}`);
   lines.push(`${r.summary.errors} error(s), ${r.summary.warns} warning(s).`);
   return lines.join("\n");
 }

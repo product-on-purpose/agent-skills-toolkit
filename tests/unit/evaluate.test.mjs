@@ -2,7 +2,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { evaluate } from "../../scripts/evaluate.mjs";
+import { evaluate, formatReport } from "../../scripts/evaluate.mjs";
 import { mkdtempSync } from "node:fs";
 import { tmpdir } from "node:os";
 
@@ -46,4 +46,12 @@ test("neither plugin nor skill: returns an actionable error finding", () => {
   assert.equal(r.scope, "unknown");
   assert.ok(r.summary.errors >= 1);
   assert.match(r.findings[0].message, /library\.json|SKILL\.md/);
+});
+
+test("formatReport renders tier for a plugin and omits it for a component", () => {
+  const plugin = formatReport(evaluate(path.join(FIXTURES, "golden/minimal-skill")));
+  assert.match(plugin, /Tier: universal/);
+  assert.match(plugin, /0 error\(s\)/);
+  const comp = formatReport(evaluate(path.join(FIXTURES, "golden/lone-skill")));
+  assert.ok(!/Tier:/.test(comp), "component report must not print a Tier line");
 });
