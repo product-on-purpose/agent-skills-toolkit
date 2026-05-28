@@ -1,7 +1,6 @@
 import { loadPlugin } from "./lib/load-plugin.mjs";
 import { runAllChecks } from "./lib/registry.mjs";
-
-const TIER_ORDER = ["universal", "convergent", "advanced"];
+import { TIER_ORDER, tierForReq } from "./lib/tier.mjs";
 
 export function computeTierReport(root, ctx = loadPlugin(root), findings = runAllChecks(ctx)) {
   const declaredTier = ctx.library?.data?.tier ?? null;
@@ -28,13 +27,6 @@ export function computeTierReport(root, ctx = loadPlugin(root), findings = runAl
   const next = TIER_ORDER[satisfies.length <= ceiling ? satisfies.length : ceiling + 1];
   if (next && errorsByTier[next]?.length > 0) blocked[next] = errorsByTier[next];
   return { tier, satisfies, blocked };
-}
-
-function tierForReq(reqId) {
-  if (!reqId) return "universal";
-  if (reqId.startsWith("U")) return "universal";
-  if (reqId.startsWith("S")) return "convergent";
-  return "advanced"; // A-prefix and anything else (e.g. Gold G-prefix) maps to advanced
 }
 
 export function humanLine(r) {
