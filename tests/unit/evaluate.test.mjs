@@ -21,3 +21,19 @@ test("plugin scope: missing library.json reports a U1 error grouped by rule", ()
   assert.ok(r.summary.errors >= 1);
   assert.ok(r.byRule.U1 && r.byRule.U1.length >= 1);
 });
+
+test("component scope: lone skill runs skill-level rules only, no tier", () => {
+  const r = evaluate(path.join(FIXTURES, "golden/lone-skill"));
+  assert.equal(r.scope, "component");
+  assert.equal(r.summary.errors, 0);
+  assert.equal(r.tier, undefined);
+  assert.equal(r.byRule.U1, undefined);
+  assert.equal(r.byRule.U2, undefined);
+});
+
+test("component scope: weak description is a U5 warn, not an error", () => {
+  const r = evaluate(path.join(FIXTURES, "anti/weak-description/skills/vague"));
+  assert.equal(r.scope, "component");
+  assert.equal(r.summary.errors, 0);
+  assert.ok(r.byRule.U5 && r.byRule.U5[0].severity === "warn");
+});
