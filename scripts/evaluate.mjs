@@ -5,6 +5,8 @@ import { runAllChecks } from "./lib/registry.mjs";
 import { computeTierReport } from "./tier-report.mjs";
 import { checkAgentskills } from "./checks/agentskills.mjs";
 import { finding, SEVERITY } from "./lib/findings.mjs";
+import { readJsonSafe } from "./lib/fs-utils.mjs";
+import { gateExitFromFindings } from "./check.mjs";
 
 function groupByRule(findings) {
   const byRule = {};
@@ -77,5 +79,9 @@ if (process.argv[1]?.endsWith("evaluate.mjs")) {
   const target = process.argv.find((a, i) => i >= 2 && !a.startsWith("--")) ?? process.cwd();
   const r = evaluate(target);
   console.log(process.argv.includes("--json") ? JSON.stringify(r, null, 2) : formatReport(r));
-  process.exit(r.summary.errors > 0 ? 1 : 0);
+  // Honor the same declared-tier ceiling as check.mjs, so the two CLIs agree on pass/fail.
+  // Plugin scope reads the declared tier from library.json; component/unknown have no ceiling.
+  const declared = r.scope === "plugin" ? readJsonSafe(path.join(target, "library.json")).data?.tier : undefined;
+  const { exitCode } = gateExitFromFindings(r.findings, declared);
+  process.exit(exitCode);
 }
