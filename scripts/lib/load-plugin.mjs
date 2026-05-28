@@ -3,6 +3,19 @@ import path from "node:path";
 import { readJsonSafe, fileExists, listSkillDirs } from "./fs-utils.mjs";
 import { parseFrontmatter } from "./frontmatter.mjs";
 
+/** Load one skill directory into a SkillInfo. Read failure becomes a parseError (fail-safe). */
+export function loadSkill(dir) {
+  const skillMdPath = path.join(dir, "SKILL.md");
+  let raw;
+  try {
+    raw = readFileSync(skillMdPath, "utf8");
+  } catch (e) {
+    return { name: path.basename(dir), dir, skillMdPath, raw: null, frontmatter: null, body: "", parseError: e.message };
+  }
+  const { frontmatter, body, parseError } = parseFrontmatter(raw);
+  return { name: path.basename(dir), dir, skillMdPath, raw, frontmatter, body, parseError };
+}
+
 /** @returns {PluginContext} */
 export function loadPlugin(root) {
   const libPath = path.join(root, "library.json");
@@ -11,17 +24,7 @@ export function loadPlugin(root) {
   const agentsMd = path.join(root, "AGENTS.md");
   const agentsMdPath = fileExists(agentsMd) ? agentsMd : null;
 
-  const skills = listSkillDirs(root).map((dir) => {
-    const skillMdPath = path.join(dir, "SKILL.md");
-    let raw;
-    try {
-      raw = readFileSync(skillMdPath, "utf8");
-    } catch (e) {
-      return { name: path.basename(dir), dir, skillMdPath, raw: null, frontmatter: null, body: "", parseError: e.message };
-    }
-    const { frontmatter, body, parseError } = parseFrontmatter(raw);
-    return { name: path.basename(dir), dir, skillMdPath, raw, frontmatter, body, parseError };
-  });
+  const skills = listSkillDirs(root).map((dir) => loadSkill(dir));
 
   const claude = readJsonSafe(path.join(root, ".claude-plugin", "plugin.json"));
 
