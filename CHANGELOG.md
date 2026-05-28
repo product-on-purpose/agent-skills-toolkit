@@ -23,6 +23,13 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Widened the U5 description heuristic to recognize evaluate/assess/audit/check/report as action verbs (surfaced by dogfooding the toolkit's own evaluate skill).
 - Dual documentation: per-skill `SKILL.md` + `README.md` + `references/`, and Diataxis `docs/how-to` + `docs/reference` + `docs/explanation` for the build/evaluate loop.
 - The toolkit now contains and self-validates its own skills at Bronze - the `build-skill` -> `evaluate` -> `improve` proof loop works end to end (verified by a recorded manual dogfood).
+- Standard revised to v0.8: Codex emission contract updated to Codex's native plugin + marketplace model (sec 3.2/3.3/3.9/10.1 + Appendix A, per 2026-05-27 spike against Codex CLI v0.133); sec 12 describes Codex's concrete native marketplace alongside Claude's.
+- Five Convergent (Silver) conformance checks (S1-S5): agent-targets, prefix, components-index drift, chain-contract integrity (phantom + workflows-without-contract), workflow skill-existence. Composed via the existing registry; tagged with the `S` reqId prefix so tier-report buckets them into the convergent tier automatically.
+- `scripts/lib/tier.mjs`: shared TIER_ORDER + tierForReq + ceilingIndex helpers used by tier-report and the gate runner.
+- Gate runner (`check.mjs`) filters errorCount by the declared-tier ceiling: convergent errors on a Bronze plugin appear in the printed findings + `tier-report.blocked.convergent`, but do not fail CI. This is the milestone-validity model on the gate side.
+- The repository's own `tier-report` now prints the Silver burndown - exactly the items 3B/3C must close to declare `tier: convergent`.
+- Documentation: `docs/reference/silver-checks.md` (per-rule reference), `docs/how-to/climb-from-bronze-to-silver.md` (walkthrough), `conformance-and-tiers.md` extended with Silver subsection + visible-burndown, `askit-evaluate.md` notes multi-tier findings, AGENTS.md updated.
+- library.json bumped to standard 0.8 with prefix askit- declared.
 
 ## [0.1.0] - 2026-05-26
 

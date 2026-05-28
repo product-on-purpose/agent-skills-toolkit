@@ -1,12 +1,25 @@
 import { loadPlugin } from "./lib/load-plugin.mjs";
 import { runAllChecks } from "./lib/registry.mjs";
 import { computeTierReport, humanLine } from "./tier-report.mjs";
+import { TIER_ORDER, tierForReq, ceilingIndex } from "./lib/tier.mjs";
+
+/** Filter error severity by declared-tier ceiling. Exported for unit testing. */
+export function gateExitFromFindings(findings, declaredTier) {
+  const ceiling = ceilingIndex(declaredTier);
+  const gatedErrors = findings.filter(
+    (f) => f.severity === "error" && TIER_ORDER.indexOf(tierForReq(f.reqId)) <= ceiling
+  );
+  return {
+    errorCount: gatedErrors.length,
+    exitCode: gatedErrors.length > 0 ? 1 : 0,
+  };
+}
 
 export function runGate(root, ctx = loadPlugin(root)) {
   const findings = runAllChecks(ctx);
-  const errorCount = findings.filter((f) => f.severity === "error").length;
+  const { errorCount, exitCode } = gateExitFromFindings(findings, ctx?.library?.data?.tier);
   const warnCount = findings.filter((f) => f.severity === "warn").length;
-  return { findings, errorCount, warnCount, exitCode: errorCount > 0 ? 1 : 0 };
+  return { findings, errorCount, warnCount, exitCode };
 }
 
 function format(findings) {

@@ -12,3 +12,7 @@ Assesses a known, local skill or plugin against the Standard.
 - **Exit code:** non-zero when there is at least one error.
 - **Out of scope (v1):** behavioral evaluation (running a skill against expected
   outputs) and qualitative review. Those arrive in a later phase.
+
+## Multi-tier findings
+
+Reports may include findings tagged at any tier (U-prefix universal, S-prefix convergent, A/G-prefix advanced). Findings ABOVE the plugin's declared tier do not fail the gate at the current ceiling - they appear in `blocked.<next-tier>` instead, as the visible burndown to the next tier. See [`../how-to/climb-from-bronze-to-silver.md`](../how-to/climb-from-bronze-to-silver.md).

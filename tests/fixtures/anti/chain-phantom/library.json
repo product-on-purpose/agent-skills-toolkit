@@ -1,0 +1,14 @@
+{
+  "name": "chain-phantom",
+  "version": "0.1.0",
+  "description": "Silver-shaped fixture plugin used to prove the Convergent checks pass. Use it as the golden baseline for S1-S5.",
+  "standard": "0.8",
+  "tier": "convergent",
+  "prefix": "sf-",
+  "agent-targets": ["claude", "codex"],
+  "components": {
+    "skills": [
+      { "name": "sf-do-thing", "path": "skills/sf-do-thing/SKILL.md", "version": "0.1.0", "tier": "universal", "status": "active" }
+    ]
+  }
+}

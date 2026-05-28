@@ -6,11 +6,17 @@ import * as descriptionScore from "../checks/description-score.mjs";
 import * as referenceLinks from "../checks/reference-links.mjs";
 import * as instructionBudget from "../checks/instruction-budget.mjs";
 import * as manifestDrift from "../checks/manifest-drift.mjs";
+import * as agentTargets from "../checks/agent-targets.mjs";
+import * as prefix from "../checks/prefix.mjs";
+import * as componentsIndex from "../checks/components-index.mjs";
+import * as chainContract from "../checks/chain-contract.mjs";
+import * as workflowSkills from "../checks/workflow-skills.mjs";
 
 /** Ordered checks. Each exports { meta:{id,tier,reqId}, check(ctx)->Finding[] }. */
 export const CHECKS = [
   libraryJson, anatomy, frontmatterValid, nameMatchesDir,
   descriptionScore, referenceLinks, instructionBudget, manifestDrift,
+  agentTargets, prefix, componentsIndex, chainContract, workflowSkills,
 ];
 
 export function runAllChecks(ctx) {
