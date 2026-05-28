@@ -437,6 +437,25 @@ A **marketplace** is a catalog that lists plugins for discovery and install. It 
 - Versioning: when both a marketplace entry and a plugin manifest declare a version, the plugin manifest wins; an omitted version may fall back to the git commit SHA for git sources.
 - A plugin SHOULD be registered in a marketplace at its first tagged release, not before.
 
+**Concrete marketplace formats.**
+- **Claude Code:** `.claude-plugin/marketplace.json` at the marketplace repository root catalogs plugins by source/version.
+- **Codex (v0.133+):** `.agents/plugins/marketplace.json` at the marketplace repository root. Example schema:
+  ```json
+  {
+    "name": "<marketplace-id>",
+    "interface": { "displayName": "<Display Name>" },
+    "plugins": [
+      { "name": "<plugin>",
+        "source": { "source": "local" | "git", "path": "./plugins/<plugin>" },
+        "policy": { "installation": "AVAILABLE", "authentication": "ON_INSTALL" },
+        "category": "<Engineering|Productivity|Research|...>" }
+    ]
+  }
+  ```
+  Codex installs via `codex plugin marketplace add <name> <local-path|git-url>` then `codex plugin add <plugin>@<marketplace>`.
+
+The separation rule applies to BOTH formats: a plugin MUST NOT embed a marketplace that lists itself, regardless of which agent's marketplace format is used.
+
 **Anti-pattern (named):** a plugin repository that also serves as its own marketplace. Tooling MUST warn when it detects a plugin embedding a self-listing marketplace, and SHOULD offer a decoupling path.
 
 ---
