@@ -29,6 +29,16 @@ export function listSkillDirs(root) {
     .filter((dir) => statSync(dir).isDirectory() && fileExists(path.join(dir, "SKILL.md")));
 }
 
+/** Absolute paths of agents/*.md subagent definitions, excluding _-prefixed control files (_chain-permitted.yaml, _pairing.yaml). */
+export function listAgentFiles(root) {
+  const agentsRoot = path.join(root, "agents");
+  if (!existsSync(agentsRoot) || !statSync(agentsRoot).isDirectory()) return [];
+  return readdirSync(agentsRoot)
+    .filter((name) => name.endsWith(".md") && !name.startsWith("_"))
+    .map((name) => path.join(agentsRoot, name))
+    .filter((p) => fileExists(p));
+}
+
 /** Recursively list file paths under dir (absolute). [] if dir missing. */
 export function walkFiles(dir) {
   if (!existsSync(dir)) return [];

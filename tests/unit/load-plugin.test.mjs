@@ -32,3 +32,17 @@ test("loadSkill loads one skill dir into a SkillInfo", () => {
   assert.equal(s.parseError, null);
   assert.match(s.skillMdPath, /SKILL\.md$/);
 });
+
+test("loads subagents from agents/*.md into ctx.subagents", () => {
+  const ctx = loadPlugin(path.join(FIXTURES, "golden/subagent-fixture"));
+  assert.equal(ctx.subagents.length, 1);
+  assert.equal(ctx.subagents[0].name, "sf-worker");
+  assert.equal(ctx.subagents[0].frontmatter.name, "sf-worker");
+  assert.deepEqual(ctx.subagents[0].frontmatter.chain ?? null, null);
+  assert.equal(ctx.subagents[0].parseError, null);
+});
+
+test("ctx.subagents excludes _chain-permitted.yaml and is empty when no agents/ dir", () => {
+  const ctx = loadPlugin(path.join(FIXTURES, "golden/minimal-skill"));
+  assert.deepEqual(ctx.subagents, []);
+});
