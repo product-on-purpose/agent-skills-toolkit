@@ -29,7 +29,7 @@ Components present on disk:
 - **Scripts:** the Node validation spine in `scripts/` - conformance checks,
   generators (`gen-index`, `gen-manifest`, `sync-agents-md`), `tier-report.mjs`,
   the aggregate gate `check.mjs`, and `evaluate.mjs`.
-- **Silver checks (Convergent, reqId S1-S5)** run alongside the Universal ones; they emit findings into the convergent tier. Convergent findings populate `tier-report`'s `blocked.convergent` (the visible climb to Silver) without failing the gate at the declared Universal tier.
+- **Silver checks (Convergent, reqId S1-S6)** run alongside the Universal ones; they emit findings into the convergent tier. S6 checks per-target manifest presence (each declared `agent-targets` entry must have its native manifest on disk). Convergent findings populate `tier-report`'s `blocked.convergent` (the visible climb to Silver) without failing the gate at the declared Universal tier.
 - **Subagents, commands, hooks, workflows:** none yet (Silver/Gold components, and
   the authoring/scanning subagents arrive in a later phase).
 
@@ -42,9 +42,10 @@ Do not claim or invoke components that are not present on disk.
 - **Skills:** agentskills.io `SKILL.md` format, portable across Claude Code and
   Codex unchanged (Standard sec 3.1).
 - **Manifests:** [`library.json`](library.json) is the authored, canonical
-  cross-agent manifest. Native manifests (`.claude-plugin/plugin.json`, and the
-  Codex `plugin.json` later) are generated from it at Gold; in this seed they are
-  hand-authored under the bootstrap exemption and MUST be kept consistent by hand.
+  cross-agent manifest. The native manifests (`.claude-plugin/plugin.json` and
+  `.codex-plugin/plugin.json`) are GENERATED from it via
+  `node scripts/generators/gen-manifest.mjs . --write --target=all`; do not hand-edit
+  them. S6 checks per-target presence; U8 warns on name/version drift.
 - **Terminology (two axes, strict):** *structure* - component (unit of reuse) <
   plugin (unit of release, holds the one version) < workspace; a marketplace
   catalogs plugins. *Quality* - "skill library" is the grade a plugin earns by

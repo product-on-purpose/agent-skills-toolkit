@@ -27,8 +27,9 @@ Convergent (Silver) reqIds carry the `S` prefix. The current set:
 | S3 | `library.json` `components` index matches disk | sec 5.1, sec 10.3 | no |
 | S4 | Chain-contract integrity (phantom; missing-when-chaining) | sec 3.6 | yes |
 | S5 | Workflow skill-existence | sec 3.4 | yes |
+| S6 | Per-target native-manifest presence | sec 5.1, sec 10.1 | yes |
 
-S6 (per-target format presence) is added in Phase 3B alongside emission.
+S6 (per-target native-manifest presence) fires only when `agent-targets` is declared; it checks that each declared target has its generated native manifest on disk. The repository now declares `agent-targets: ["claude", "codex"]` and emits both manifests, so its Silver burndown has shrunk from `[S1, S3]` to `[S3]` (only the components index remains).
 
 ## Visible burndown - reading `blocked.convergent` as the climb to Silver
 

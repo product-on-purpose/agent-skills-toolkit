@@ -1,0 +1,14 @@
+{
+  "name": "missing-codex-manifest",
+  "version": "0.1.0",
+  "description": "Anti fixture: declares claude+codex agent-targets but ships no .codex-plugin manifest, to trip S6.",
+  "standard": "0.8",
+  "tier": "convergent",
+  "prefix": "sf-",
+  "agent-targets": ["claude", "codex"],
+  "components": {
+    "skills": [
+      { "name": "sf-do-thing", "path": "skills/sf-do-thing/SKILL.md", "version": "0.1.0", "tier": "universal", "status": "active" }
+    ]
+  }
+}

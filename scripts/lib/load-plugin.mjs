@@ -27,6 +27,7 @@ export function loadPlugin(root) {
   const skills = listSkillDirs(root).map((dir) => loadSkill(dir));
 
   const claude = readJsonSafe(path.join(root, ".claude-plugin", "plugin.json"));
+  const codex = readJsonSafe(path.join(root, ".codex-plugin", "plugin.json"));
 
-  return { root, library, agentsMdPath, skills, claudeManifest: claude.data };
+  return { root, library, agentsMdPath, skills, claudeManifest: claude.data, codexManifest: codex.data };
 }

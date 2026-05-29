@@ -1,0 +1,9 @@
+{
+  "name": "missing-codex-manifest",
+  "version": "0.1.0",
+  "description": "Anti fixture: declares claude+codex agent-targets but ships no .codex-plugin manifest, to trip S6.",
+  "author": { "name": "product-on-purpose" },
+  "homepage": "https://example.com/missing-codex",
+  "repository": "https://example.com/missing-codex",
+  "keywords": ["fixture"]
+}

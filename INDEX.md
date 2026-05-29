@@ -28,7 +28,8 @@ bootstrap exemption (now ended).
 | File | Role |
 |---|---|
 | [`library.json`](library.json) | Authored canonical cross-agent manifest (source of truth). |
-| [`.claude-plugin/plugin.json`](.claude-plugin/plugin.json) | Claude Code native manifest (hand-authored in the seed; generated at Gold). |
+| [`.claude-plugin/plugin.json`](.claude-plugin/plugin.json) | Claude Code native manifest - generated from `library.json` via `gen-manifest.mjs --target=claude`. Do not hand-edit. |
+| [`.codex-plugin/plugin.json`](.codex-plugin/plugin.json) | Codex native manifest - generated from `library.json` via `gen-manifest.mjs --target=codex`. Do not hand-edit. |
 
 ## Components
 
