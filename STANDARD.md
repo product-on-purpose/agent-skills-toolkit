@@ -152,8 +152,8 @@ Each component spec gives: purpose, required structure, fields, per-agent format
 ### 3.3 Subagent (Convergent)
 - **Purpose:** a bounded delegate with its own tools and prompt.
 - **CC format:** `agents/<name>.md` (markdown + frontmatter; auto-discovered, @-mentionable).
-- **CX format:** Codex subagents are declared in `config.toml` `[agents.<name>]` (`description`, `config_file`, optional `nickname_candidates`) with the role defined in a per-agent TOML (e.g., `agents/<name>.toml`); distributed inside the emitted Codex plugin so the plugin's `config.toml` augments the user config when the plugin is loaded. Built-in roles include default/worker/explorer.
-- **Rules:** a subagent MUST declare its purpose and the narrowest tool set it needs. A subagent that may be invoked by skills MUST appear in a chain contract (3.6). Multi-target plugins MUST emit both formats.
+- **CX format:** Codex custom agents are declared in a `config.toml` `[agents.<name>]` table (`description`, `config_file`, optional `nickname_candidates`) with the role defined in a per-agent TOML (e.g., `agents/<name>.toml`). **As of Codex CLI v0.135 these are a USER/PROJECT `config.toml` concern, NOT a plugin-distributable component:** the Codex plugin manifest (`plugin.json`) has no `agents` field (its component pointers are `skills`/`hooks`/`mcpServers`/`apps`), and `[agents.*].config_file` resolves relative to the `config.toml` that defines it, with no plugin-to-config merge path. A distributed plugin therefore CANNOT ship Codex-ingested subagents; subagents are effectively a Claude-only component for plugin distribution until Codex adds an `agents` manifest field. Built-in Codex roles include default/worker/explorer.
+- **Rules:** a subagent MUST declare its purpose and the narrowest tool set it needs. A subagent that may be invoked by skills MUST appear in a chain contract (3.6). A subagent declares its target agents via `agent-targets` (3.7); because Codex does not ingest plugin-shipped subagents (above), a subagent distributed in a plugin targets Claude (`agent-targets: [claude]`). The "emit both formats" rule applies to components Codex CAN ingest as a plugin (skills, hooks, MCP); it does NOT apply to subagents under the current Codex plugin model.
 
 ### 3.4 Workflow (Convergent)
 - **Purpose:** an ordered arc chaining multiple skills toward an outcome.
@@ -348,7 +348,7 @@ A conformant plugin SHOULD follow this layout (components present per declared t
   library.json                   canonical cross-agent manifest (authored SoT)  [agent]
   .claude-plugin/plugin.json     Claude manifest (generated from library.json)  [agent]
   .codex-plugin/plugin.json      Codex native manifest (generated from library.json)  [agent]
-  .codex-plugin/config.toml      Codex subagent + MCP entries ([agents.*] + agents/*.toml inside plugin; mcp_servers entries) (3.3/3.9)  [agent]
+  .codex-plugin/config.toml      Codex MCP entries (mcp_servers) generated for the plugin (3.9). NOTE: Codex subagents ([agents.*]) are NOT plugin-shipped (3.3) - they are user/project config.toml only.  [agent]
   AGENTS.md                      agent navigation entrypoint           [agent]
   INDEX.md                       human map of all skills               [human]
   README.md                      overview / pitch                      [human]
