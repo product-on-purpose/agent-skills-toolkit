@@ -30,6 +30,13 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - The repository's own `tier-report` now prints the Silver burndown - exactly the items 3B/3C must close to declare `tier: convergent`.
 - Documentation: `docs/reference/silver-checks.md` (per-rule reference), `docs/how-to/climb-from-bronze-to-silver.md` (walkthrough), `conformance-and-tiers.md` extended with Silver subsection + visible-burndown, `askit-evaluate.md` notes multi-tier findings, AGENTS.md updated.
 - library.json bumped to standard 0.8 with prefix askit- declared.
+- Multi-agent emission spine (Phase 3B): `gen-manifest.mjs` now emits `.claude-plugin/plugin.json` and `.codex-plugin/plugin.json` from `library.json` via a `--target=resolved|claude|codex|all` flag; the Claude manifest is now generated rather than hand-authored.
+- `library.json` declares `agent-targets: ["claude", "codex"]` (closes S1) and carries canonical `author`/`keywords` for both native manifests.
+- S6 (per-target-presence) Convergent check: each declared `agent-targets` entry must have its native manifest on disk (conditional on `agent-targets`). U8 manifest-drift extended to cover the Codex manifest.
+- `askit-build-skill` documents `--agent-target` multi-agent emission.
+- Local Codex round-trip integration test (`tests/integration/codex-roundtrip.test.mjs`): installs the emitted manifest into a throwaway local marketplace against the real `codex` CLI and asserts the skill is ingested (not just listed); runs locally, skips in CI (set `CODEX_REQUIRED=1` to fail instead). Re-verified against Codex CLI v0.135.0.
+- Docs: `docs/how-to/emit-for-multiple-agents.md`; `silver-checks.md` and `conformance-and-tiers.md` add S6; AGENTS.md and INDEX.md note generated native manifests.
+- The repository's Silver burndown shrank from `[S1, S3]` to `[S3]` - only the components index remains before declaring `tier: convergent` (3C).
 
 ## [0.1.0] - 2026-05-26
 
