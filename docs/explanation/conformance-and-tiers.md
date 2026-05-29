@@ -13,7 +13,8 @@ why a Bronze plugin can grow into Silver and Gold without rework - the bar rises
 the earlier work still counts.
 
 The toolkit is itself built to this Standard and validates itself in CI: it declares
-`tier: universal` and passes its own Universal checks. See
+`tier: convergent` and satisfies Silver (S1-S6), so `node scripts/tier-report.mjs --json`
+reports `tier: convergent` with an empty `blocked`. See
 [`STANDARD.md`](../../STANDARD.md) for the normative rules.
 
 ## Silver checks (added in Phase 3A)
@@ -29,8 +30,8 @@ Convergent (Silver) reqIds carry the `S` prefix. The current set:
 | S5 | Workflow skill-existence | sec 3.4 | yes |
 | S6 | Per-target native-manifest presence | sec 5.1, sec 10.1 | yes |
 
-S6 (per-target native-manifest presence) fires only when `agent-targets` is declared; it checks that each declared target has its generated native manifest on disk. The repository now declares `agent-targets: ["claude", "codex"]` and emits both manifests, so its Silver burndown has shrunk from `[S1, S3]` to `[S3]` (only the components index remains).
+S6 (per-target native-manifest presence) fires only when `agent-targets` is declared; it checks that each declared target has its generated native manifest on disk. The repository declares `agent-targets: ["claude", "codex"]` and emits both manifests. The `components` index (S3) is now present in `library.json`, so the Silver burndown is empty and the toolkit declares `tier: convergent`.
 
 ## Visible burndown - reading `blocked.convergent` as the climb to Silver
 
-`tier-report` caps `satisfies` at the plugin's declared tier (so a Bronze plugin cannot accidentally claim Silver), and lists everything above the ceiling as `blocked.<next-tier>`. The gate-runner (`check.mjs`) follows the same model: only errors at-or-below the declared tier fail the gate. So a Bronze plugin that adds Silver requirements gradually sees its `blocked.convergent` list shrink, while CI stays green throughout the climb. The repository itself works this way - `node scripts/tier-report.mjs --json` prints the toolkit's remaining Silver gaps as a literal to-do list.
+`tier-report` caps `satisfies` at the plugin's declared tier (so a Bronze plugin cannot accidentally claim Silver), and lists everything above the ceiling as `blocked.<next-tier>`. The gate-runner (`check.mjs`) follows the same model: only errors at-or-below the declared tier fail the gate. So a Bronze plugin that adds Silver requirements gradually sees its `blocked.convergent` list shrink, while CI stays green throughout the climb. The repository completed that climb: the toolkit now declares `tier: convergent` and `blocked.convergent` is empty.

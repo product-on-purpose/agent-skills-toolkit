@@ -9,6 +9,11 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-05-28
+
+### Changed
+- The toolkit now declares and satisfies Silver: `library.json` `tier: convergent` with a `components` index (closes S3). All Convergent checks (S1-S6) gate green; `tier-report` reports `convergent` with an empty burndown. Version bumped to 0.2.0.
+
 ### Added
 - Validation spine (Node, zero test-framework deps): `loadPlugin` context, `Finding` model, and a `yaml`-backed frontmatter parser.
 - Eight Universal (Bronze) conformance checks (U1-U8): library.json schema, AGENTS.md presence, skill frontmatter validity, name-equals-directory, description scoring (0.7 warn), reference-link resolution, instruction-budget warning, and native-manifest drift. Composed behind a `checkAgentskills` seam (reimplemented per decision Q1.1).
@@ -58,5 +63,6 @@ promoted Standard. Not installable; not self-validating yet (see
 - `.github/workflows/ci.yml` - CI stub that will shell out only to scripts.
 - `skills/`, `scripts/`, `templates/` - placeholders for later phases.
 
-[Unreleased]: https://github.com/product-on-purpose/agent-skills-toolkit/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/product-on-purpose/agent-skills-toolkit/compare/v0.2.0...HEAD
+[0.2.0]: https://github.com/product-on-purpose/agent-skills-toolkit/releases/tag/v0.2.0
 [0.1.0]: https://github.com/product-on-purpose/agent-skills-toolkit/releases/tag/v0.1.0

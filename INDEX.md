@@ -2,15 +2,16 @@
 
 Human map of this repository. The agent-facing counterpart is
 [`AGENTS.md`](AGENTS.md). At Gold this file is generated (`gen-index`) and
-drift-checked against on-disk components; at the current Bronze tier it is
+drift-checked against on-disk components; at the current Silver tier it is
 hand-authored.
 
 ## Repository state
 
-**Universal (Bronze), self-validating.** The validation spine (`scripts/`) and the
+**Convergent (Silver), self-validating.** The validation spine (`scripts/`) and the
 `askit-build-skill` -> `askit-evaluate` -> improve proof loop are in place; the
-toolkit passes its own Bronze checks in CI. See
-[`docs/internal/BOOTSTRAP.md`](docs/internal/BOOTSTRAP.md) for the one-time
+toolkit declares `tier: convergent` and passes all Silver checks (S1-S6) in CI -
+`tier-report` reports `convergent` with an empty burndown. See
+[`docs/internal/BOOTSTRAP.md`](docs/internal/BOOTSTRAP.md) for the one-time Bronze
 bootstrap exemption (now ended).
 
 ## Foundation documents
