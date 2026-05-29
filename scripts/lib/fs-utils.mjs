@@ -36,6 +36,8 @@ export function listAgentFiles(root) {
   return readdirSync(agentsRoot)
     .filter((name) => name.endsWith(".md") && !name.startsWith("_"))
     .map((name) => path.join(agentsRoot, name))
+    // fileExists guards against a *directory* named "<x>.md" (it would pass the name
+    // filter but is not a subagent); mirrors the isDirectory guard in listSkillDirs.
     .filter((p) => fileExists(p));
 }
 
