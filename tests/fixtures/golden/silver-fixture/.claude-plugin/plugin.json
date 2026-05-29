@@ -1,0 +1,9 @@
+{
+  "name": "silver-fixture",
+  "version": "0.1.0",
+  "description": "Silver-shaped fixture plugin used to prove the Convergent checks pass.",
+  "author": { "name": "product-on-purpose" },
+  "homepage": "https://example.com/silver-fixture",
+  "repository": "https://example.com/silver-fixture",
+  "keywords": ["fixture"]
+}
