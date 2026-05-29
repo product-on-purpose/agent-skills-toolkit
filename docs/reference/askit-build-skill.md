@@ -10,6 +10,4 @@ Creates and improves skills to the Standard. Emits for Claude and Codex.
 - **A la carte:** works inside any plugin; does not require the full anatomy and
   does not impose surrounding scaffold.
 - **Authoring bar:** see the skill's `references/authoring-guide.md`.
-- **Multi-agent emission:** declare `agent-targets` in `library.json` and run
-  `gen-manifest.mjs --target=all`; `--agent-target claude|codex|both` selects targets
-  (both by default). A dedicated authoring subagent is still a later addition.
+- **Multi-agent emission:** declare `agent-targets` in `library.json` and run `gen-manifest.mjs --target=all` (or `--target=claude` / `--target=codex` for one). `agent-targets` is the declaration; there is no `--agent-target` flag. A dedicated authoring subagent is still a later addition.
