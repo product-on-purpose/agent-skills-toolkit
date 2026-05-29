@@ -1,7 +1,7 @@
 {
   "name": "agent-skills-toolkit",
-  "version": "0.1.0",
-  "tier": "universal",
+  "version": "0.2.0",
+  "tier": "convergent",
   "standard": "0.8",
   "skills": [
     {

@@ -39,24 +39,23 @@ a plugin actually satisfies and lists exactly what blocks the next one.
 
 ## Status
 
-**Phase 0 - private bootstrap.** This repository is currently a hand-authored
-Universal (Bronze) seed: the minimal conformant skeleton, reviewed by hand because
-the validators do not exist yet (see
-[`docs/internal/BOOTSTRAP.md`](docs/internal/BOOTSTRAP.md)). It is **not yet
-installable**. The plan: a public `0.x` preview at Silver (after Phase 3) and
-marketplace registration at the first Gold-tagged release (`v1.0.0`).
+**Public `0.x` preview (Silver).** This repository declares `tier: convergent`
+(Silver) and self-validates at Convergent in CI - S1-S6 gate green, `tier-report`
+reports `convergent` with an empty burndown. The Phase 0 Bronze bootstrap is
+historical context (see [`docs/internal/BOOTSTRAP.md`](docs/internal/BOOTSTRAP.md)).
+The toolkit is **not yet installable**. Marketplace registration is planned at the
+first Gold-tagged release (`v1.0.0`).
 
 ## Quickstart
 
-Not available yet (Phase 0). Once the validation spine lands (Phase 1), validating
-a plugin against the Standard will be a single Node command:
+The validation spine is live. Validate a plugin against the Standard with:
 
 ```
 node scripts/check.mjs
 ```
 
-This section will be replaced with real install and usage instructions as the
-toolkit becomes usable.
+Install and usage instructions will be fleshed out as the toolkit becomes
+installable as a plugin.
 
 ## Terminology (two axes)
 

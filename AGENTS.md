@@ -17,10 +17,12 @@ design and decision record is [`docs/internal/DESIGN.md`](docs/internal/DESIGN.m
 
 ## Current state (read before assuming capabilities)
 
-This repository declares `tier: universal` (Bronze) and **self-validates against
+This repository declares `tier: convergent` (Silver) and **self-validates against
 its own Standard in CI** - the deterministic validation spine lives in `scripts/`.
-See [`docs/internal/BOOTSTRAP.md`](docs/internal/BOOTSTRAP.md) for the one-time
-bootstrap exemption (it ended once the spine existed).
+The S1-S6 gate is green and `tier-report` reports `tier: convergent` with an empty
+`blocked.convergent` burndown. See
+[`docs/internal/BOOTSTRAP.md`](docs/internal/BOOTSTRAP.md) for historical context:
+the one-time Bronze bootstrap that ended once the spine existed.
 
 Components present on disk:
 - **Skills:** `askit-build-skill` (author and improve skills) and `askit-evaluate`
@@ -29,7 +31,10 @@ Components present on disk:
 - **Scripts:** the Node validation spine in `scripts/` - conformance checks,
   generators (`gen-index`, `gen-manifest`, `sync-agents-md`), `tier-report.mjs`,
   the aggregate gate `check.mjs`, and `evaluate.mjs`.
-- **Silver checks (Convergent, reqId S1-S6)** run alongside the Universal ones; they emit findings into the convergent tier. S6 checks per-target manifest presence (each declared `agent-targets` entry must have its native manifest on disk). Convergent findings populate `tier-report`'s `blocked.convergent` (the visible climb to Silver) without failing the gate at the declared Universal tier.
+- **Silver checks (Convergent, reqId S1-S6)** gate the declared `tier: convergent`
+  alongside the Universal ones. S6 checks per-target manifest presence (each
+  declared `agent-targets` entry must have its native manifest on disk). The toolkit
+  declares `tier: convergent` so S1-S6 now gate (and pass).
 - **Subagents, commands, hooks, workflows:** none yet (Silver/Gold components, and
   the authoring/scanning subagents arrive in a later phase).
 
