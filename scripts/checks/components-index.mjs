@@ -33,5 +33,23 @@ export function check(ctx) {
       out.push(finding(meta.id, SEVERITY.ERROR, `skills/${s.name} exists on disk but is not declared in library.json components.skills.`, { file: "library.json", reqId: meta.reqId }));
     }
   }
+  const declaredSubagents = Array.isArray(components.subagents) ? components.subagents : [];
+  const onDiskSubagentNames = new Set((ctx.subagents || []).map((s) => s.name));
+  const declaredSubagentNames = new Set();
+  for (const c of declaredSubagents) {
+    if (!c || typeof c.name !== "string") {
+      out.push(finding(meta.id, SEVERITY.ERROR, "library.json components.subagents entry is missing required string \"name\".", { file: "library.json", reqId: meta.reqId }));
+      continue;
+    }
+    declaredSubagentNames.add(c.name);
+    if (!onDiskSubagentNames.has(c.name)) {
+      out.push(finding(meta.id, SEVERITY.ERROR, `library.json components.subagents declares "${c.name}" but it is not on disk under agents/.`, { file: "library.json", reqId: meta.reqId }));
+    }
+  }
+  for (const s of (ctx.subagents || [])) {
+    if (!declaredSubagentNames.has(s.name)) {
+      out.push(finding(meta.id, SEVERITY.ERROR, `agents/${s.name}.md exists on disk but is not declared in library.json components.subagents.`, { file: "library.json", reqId: meta.reqId }));
+    }
+  }
   return out;
 }
