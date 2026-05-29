@@ -15,11 +15,21 @@ export function check(ctx) {
   const hasContract = isFile(contractPath);
   const hasWorkflows = isDir(workflowsDir);
 
-  // Conditional: only fires when chaining is in use.
-  if (!hasContract && !hasWorkflows) return [];
+  const components = [...(ctx.skills || []), ...(ctx.subagents || [])];
+  // A component "declares an invocation" via a frontmatter `chain:` list (Standard sec 3.6, 3.8).
+  const declaredChains = components
+    .map((c) => ({
+      name: c.name,
+      chain: Array.isArray(c.frontmatter?.chain) ? c.frontmatter.chain.filter((x) => typeof x === "string") : [],
+    }))
+    .filter((c) => c.chain.length > 0);
 
-  if (!hasContract && hasWorkflows) {
-    out.push(finding(meta.id, SEVERITY.ERROR, "workflows are present but agents/_chain-permitted.yaml is missing (chain contract is REQUIRED when chaining is used; Standard sec 3.6).", { file: "agents/_chain-permitted.yaml", reqId: meta.reqId }));
+  // Conditional: chaining is "in use" iff a contract OR workflows OR a frontmatter chain declaration exists.
+  const chainingInUse = hasContract || hasWorkflows || declaredChains.length > 0;
+  if (!chainingInUse) return [];
+
+  if (!hasContract) {
+    out.push(finding(meta.id, SEVERITY.ERROR, "chaining is used (a component declares a frontmatter `chain:` or _workflows/ is present) but agents/_chain-permitted.yaml is missing (chain contract is REQUIRED when chaining is used; Standard sec 3.6).", { file: "agents/_chain-permitted.yaml", reqId: meta.reqId }));
     return out;
   }
 
@@ -35,7 +45,8 @@ export function check(ctx) {
     return out;
   }
 
-  const known = new Set((ctx.skills || []).map((s) => s.name));
+  const known = new Set(components.map((c) => c.name));
+  // Phantom detection: contract names that match no on-disk component.
   for (const [caller, callees] of Object.entries(contract)) {
     if (!known.has(caller)) {
       out.push(finding(meta.id, SEVERITY.ERROR, `chain-permitted contract names caller "${caller}" but no on-disk component is known by that name (phantom; Standard sec 3.6).`, { file: "agents/_chain-permitted.yaml", reqId: meta.reqId }));
@@ -48,6 +59,14 @@ export function check(ctx) {
       }
     }
   }
-  // Orphan detection (workflow steps invoking skills not covered by the contract) is deferred to 3B.
+  // Orphan detection: a declared (frontmatter chain) invocation not permitted by the contract.
+  for (const { name, chain } of declaredChains) {
+    const permitted = new Set(Array.isArray(contract[name]) ? contract[name].filter((x) => typeof x === "string") : []);
+    for (const target of chain) {
+      if (!permitted.has(target)) {
+        out.push(finding(meta.id, SEVERITY.ERROR, `"${name}" declares (frontmatter chain) that it may invoke "${target}" but agents/_chain-permitted.yaml does not permit "${name}" -> "${target}" (orphan; Standard sec 3.6).`, { file: "agents/_chain-permitted.yaml", reqId: meta.reqId }));
+      }
+    }
+  }
   return out;
 }
