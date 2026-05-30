@@ -11,7 +11,8 @@
   "components": {
     "skills": [
       { "name": "askit-build-skill", "path": "skills/askit-build-skill/SKILL.md", "version": "0.1.0", "tier": "universal", "status": "active" },
-      { "name": "askit-evaluate", "path": "skills/askit-evaluate/SKILL.md", "version": "0.1.0", "tier": "universal", "status": "active" }
+      { "name": "askit-evaluate", "path": "skills/askit-evaluate/SKILL.md", "version": "0.1.0", "tier": "universal", "status": "active" },
+      { "name": "askit-build-subagent", "path": "skills/askit-build-subagent/SKILL.md", "version": "0.1.0", "tier": "universal", "status": "active" }
     ]
   },
   "engines": {
