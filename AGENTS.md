@@ -25,18 +25,26 @@ The S1-S6 gate is green and `tier-report` reports `tier: convergent` with an emp
 the one-time Bronze bootstrap that ended once the spine existed.
 
 Components present on disk:
-- **Skills:** `askit-build-skill` (author and improve skills) and `askit-evaluate`
-  (assess a skill or plugin against the Standard). Core loop: `askit-build-skill`
+- **Skills:** `askit-build-skill` (author and improve skills), `askit-evaluate`
+  (assess a skill or plugin against the Standard), and `askit-build-subagent`
+  (author and improve Claude subagents). Core loop: `askit-build-skill`
   (create) -> `askit-evaluate` -> `askit-build-skill` (improve).
+- **Subagents:** `skill-author` (the bounded authoring delegate behind
+  `askit-build-skill`) and `evaluator` (the read-only assessment delegate behind
+  `askit-evaluate`). Both are Claude-only (`agent-targets: [claude]`; Standard sec
+  3.3). The chain contract `agents/_chain-permitted.yaml` permits:
+  `askit-build-skill` -> `skill-author`, `askit-evaluate` -> `evaluator`, and
+  `skill-author` -> `evaluator`.
 - **Scripts:** the Node validation spine in `scripts/` - conformance checks,
   generators (`gen-index`, `gen-manifest`, `sync-agents-md`), `tier-report.mjs`,
   the aggregate gate `check.mjs`, and `evaluate.mjs`.
 - **Silver checks (Convergent, reqId S1-S6)** gate the declared `tier: convergent`
-  alongside the Universal ones. S6 checks per-target manifest presence (each
-  declared `agent-targets` entry must have its native manifest on disk). The toolkit
-  declares `tier: convergent` so S1-S6 now gate (and pass).
-- **Subagents, commands, hooks, workflows:** none yet (Silver/Gold components, and
-  the authoring/scanning subagents arrive in a later phase).
+  alongside the Universal ones. S3 now validates both `components.skills` and
+  `components.subagents` against disk. S4 orphan detection is complete: a
+  frontmatter `chain:` invocation not permitted by `agents/_chain-permitted.yaml`
+  is an orphan error; a contract entry naming a missing component is a phantom
+  error. S6 checks per-target manifest presence at the plugin level.
+- **Commands, hooks, workflows:** none yet (later phases).
 
 Do not claim or invoke components that are not present on disk.
 

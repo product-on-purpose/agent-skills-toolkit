@@ -37,9 +37,14 @@ bootstrap exemption (now ended).
 - **Skills:**
   - [`askit-build-skill`](skills/askit-build-skill/) - author and improve skills to the Standard (create + improve modes).
   - [`askit-evaluate`](skills/askit-evaluate/) - assess a skill or plugin against the Standard (per-rule findings + tier + remediation).
+  - [`askit-build-subagent`](skills/askit-build-subagent/) - author and improve Claude subagents (create + improve modes).
   - Core loop: `askit-build-skill` (create) -> `askit-evaluate` -> `askit-build-skill` (improve).
+- **Subagents (Claude-only):**
+  - [`skill-author`](agents/skill-author.md) - bounded authoring delegate behind `askit-build-skill`; carries `Read`/`Write`/`Edit`/`Bash`.
+  - [`evaluator`](agents/evaluator.md) - read-only assessment delegate behind `askit-evaluate`; carries `Read`/`Bash` only.
+  - Chain contract: [`agents/_chain-permitted.yaml`](agents/_chain-permitted.yaml) - permits `askit-build-skill` -> `skill-author`, `askit-evaluate` -> `evaluator`, and `skill-author` -> `evaluator`.
 - **Scripts:** the Node validation spine in [`scripts/`](scripts/) - conformance checks, generators, `tier-report.mjs`, the aggregate gate `check.mjs`, and `evaluate.mjs`.
-- **Subagents / commands / hooks / workflows:** none yet (Silver/Gold components, later phases).
+- **Commands / hooks / workflows:** none yet (later phases).
 
 ## Governance
 

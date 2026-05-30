@@ -9,6 +9,22 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Added
+- `askit-build-subagent` skill (Claude subagent authoring: create/improve).
+- The toolkit's own `skill-author` and `evaluator` subagents and its first chain
+  contract (`agents/_chain-permitted.yaml`), making the Silver claim non-vacuous.
+- S3 now validates `library.json components.subagents` against disk (each declared
+  subagent must exist on disk and each on-disk subagent must be declared).
+- S4 chain-contract orphan detection: a frontmatter `chain:` invocation not
+  permitted by `agents/_chain-permitted.yaml` is flagged as an orphan (S4 error).
+  Phantom detection (a contract entry naming a missing component) was already
+  present; both modes are now active.
+
+### Changed
+- STANDARD sec 3.3/10.1: Codex subagents are a user/project `config.toml` concern,
+  not a plugin-distributable component (Codex v0.135). Subagents are Claude-only for
+  plugin distribution; declare `agent-targets: [claude]` in the subagent frontmatter.
+
 ## [0.2.0] - 2026-05-28
 
 ### Changed
