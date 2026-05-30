@@ -30,7 +30,7 @@ S7 has three distinct failure modes, all errors:
   Fix: add `maps-to: <skill-or-workflow-name>` to the frontmatter.
 - **Unresolved maps-to:** the declared `maps-to` value names no on-disk skill or
   workflow. Fix: correct the name to match an existing `skills/<name>/SKILL.md` or
-  `_workflows/<name>.yaml`, or create the missing component first.
+  `_workflows/<name>.md`, or create the missing component first.
 
 S7 is conditional: it fires only when `commands/` contains at least one command. A
 plugin with no commands passes S7 automatically.
