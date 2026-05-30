@@ -20,3 +20,15 @@ test("chain-phantom fixture: contract names a callee that has no on-disk compone
   const r = check(loadPlugin(path.join(FIXTURES, "anti/chain-phantom")));
   assert.ok(r.some((f) => f.reqId === "S4" && /this-component-does-not-exist/.test(f.message) && /missing/.test(f.message)));
 });
+
+test("chain-orphan fixture: a frontmatter chain invocation not permitted by the contract is an S4 orphan", () => {
+  const r = check(loadPlugin(path.join(FIXTURES, "anti/chain-orphan")));
+  assert.ok(r.some((f) => f.reqId === "S4" && /co-caller/.test(f.message) && /co-worker/.test(f.message) && /orphan/.test(f.message)));
+});
+
+test("golden subagent-fixture: chain permitted + subagent in known set - no findings", () => {
+  // Empty result is the discriminating check: sf-caller -> sf-worker is permitted (no orphan),
+  // and sf-worker (a subagent named as a contract callee) is not flagged as a phantom - which
+  // it would be if subagents were absent from the known set. So [] proves both behaviors.
+  assert.deepEqual(check(loadPlugin(path.join(FIXTURES, "golden/subagent-fixture"))), []);
+});

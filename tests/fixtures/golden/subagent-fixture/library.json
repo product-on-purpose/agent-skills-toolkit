@@ -1,0 +1,15 @@
+{
+  "name": "subagent-fixture",
+  "version": "0.1.0",
+  "tier": "convergent",
+  "prefix": "sf-",
+  "agent-targets": ["claude"],
+  "components": {
+    "skills": [
+      { "name": "sf-caller", "path": "skills/sf-caller/SKILL.md", "version": "0.1.0", "tier": "universal", "status": "active" }
+    ],
+    "subagents": [
+      { "name": "sf-worker", "path": "agents/sf-worker.md", "version": "0.1.0", "tier": "convergent", "status": "active" }
+    ]
+  }
+}

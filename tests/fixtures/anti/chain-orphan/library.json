@@ -1,0 +1,7 @@
+{
+  "name": "chain-orphan",
+  "version": "0.1.0",
+  "tier": "convergent",
+  "agent-targets": ["claude"],
+  "components": { "skills": [{ "name": "co-caller", "path": "skills/co-caller/SKILL.md", "version": "0.1.0", "tier": "universal", "status": "active" }] }
+}
