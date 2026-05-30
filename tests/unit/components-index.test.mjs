@@ -43,3 +43,16 @@ test("S3 flags an on-disk subagent not declared", () => {
   const ctx = { library: { data: { components: { skills: [], subagents: [] } } }, skills: [], subagents: [{ name: "rogue" }] };
   assert.ok(check(ctx).some((f) => f.reqId === "S3" && /rogue/.test(f.message) && /not declared/.test(f.message)));
 });
+
+test("S3: golden command-fixture has matching commands index - no error", () => {
+  const r = check(loadPlugin(path.join(FIXTURES, "golden/command-fixture")));
+  assert.equal(r.filter((f) => f.severity === "error").length, 0);
+});
+test("S3 flags a declared command missing on disk", () => {
+  const ctx = { library: { data: { components: { skills: [], commands: [{ name: "ghostcmd" }] } } }, skills: [], subagents: [], commands: [] };
+  assert.ok(check(ctx).some((f) => f.reqId === "S3" && /ghostcmd/.test(f.message) && /not on disk/.test(f.message)));
+});
+test("S3 flags an on-disk command not declared", () => {
+  const ctx = { library: { data: { components: { skills: [], commands: [] } } }, skills: [], subagents: [], commands: [{ name: "roguecmd" }] };
+  assert.ok(check(ctx).some((f) => f.reqId === "S3" && /roguecmd/.test(f.message) && /not declared/.test(f.message)));
+});
