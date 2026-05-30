@@ -31,8 +31,8 @@ Components present on disk:
   (create) -> `askit-evaluate` -> `askit-build-skill` (improve).
 - **Subagents:** `skill-author` (the bounded authoring delegate behind
   `askit-build-skill`) and `evaluator` (the read-only assessment delegate behind
-  `askit-evaluate`). Both are Claude-only (`agent-targets: [claude]`; Standard sec
-  3.3). The chain contract `agents/_chain-permitted.yaml` permits:
+  `askit-evaluate`). Both are Claude-only (`agent-targets: [claude]`; Standard
+  sec 3.3). The chain contract `agents/_chain-permitted.yaml` permits:
   `askit-build-skill` -> `skill-author`, `askit-evaluate` -> `evaluator`, and
   `skill-author` -> `evaluator`.
 - **Scripts:** the Node validation spine in `scripts/` - conformance checks,
