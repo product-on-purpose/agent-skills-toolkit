@@ -1,0 +1,10 @@
+{
+  "name": "command-no-description",
+  "version": "0.1.0",
+  "tier": "convergent",
+  "agent-targets": ["claude"],
+  "components": {
+    "skills": [{ "name": "cd-skill", "path": "skills/cd-skill/SKILL.md", "version": "0.1.0", "tier": "universal", "status": "active" }],
+    "commands": [{ "name": "cd-cmd", "path": "commands/cd-cmd.md", "version": "0.1.0", "tier": "convergent", "status": "active" }]
+  }
+}

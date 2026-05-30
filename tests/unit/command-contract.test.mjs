@@ -25,3 +25,9 @@ test("command-no-mapsto: missing maps-to is an S7 error", () => {
   const r = check(loadPlugin(path.join(FIXTURES, "anti/command-no-mapsto")));
   assert.ok(r.some((f) => f.reqId === "S7" && /cn-cmd/.test(f.message) && /maps-to/.test(f.message)));
 });
+test("command-no-description: a command with a resolving maps-to but no description is an S7 error (isolates the description branch)", () => {
+  const r = check(loadPlugin(path.join(FIXTURES, "anti/command-no-description")));
+  assert.ok(r.some((f) => f.reqId === "S7" && /cd-cmd/.test(f.message) && /description/.test(f.message)));
+  // maps-to resolves to cd-skill, so no maps-to finding should fire - the description branch is isolated.
+  assert.ok(!r.some((f) => /maps-to/.test(f.message)));
+});
