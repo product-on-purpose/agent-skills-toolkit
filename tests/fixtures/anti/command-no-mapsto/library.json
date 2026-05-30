@@ -1,0 +1,1 @@
+{ "name": "command-no-mapsto", "version": "0.1.0", "tier": "convergent", "agent-targets": ["claude"], "components": { "commands": [{ "name": "cn-cmd", "path": "commands/cn-cmd.md", "version": "0.1.0", "tier": "convergent", "status": "active" }] } }

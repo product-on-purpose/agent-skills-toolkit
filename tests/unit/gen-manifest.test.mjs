@@ -56,3 +56,11 @@ test("renderCodexNativeManifest honors explicit displayName/category overrides",
   assert.equal(m.interface.displayName, "Custom Name");
   assert.equal(m.interface.category, "Productivity");
 });
+
+test("renderManifest indexes commands with name + maps-to", () => {
+  const ctx = loadPlugin(path.join(FIXTURES, "golden/command-fixture"));
+  const obj = JSON.parse(renderManifest(ctx));
+  assert.ok(Array.isArray(obj.commands));
+  assert.deepEqual(obj.commands.map((c) => c.name), ["cf-do-thing"]);
+  assert.equal(obj.commands[0].mapsTo, "cf-do-thing");
+});

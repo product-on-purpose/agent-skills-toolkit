@@ -10,6 +10,12 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ## [Unreleased]
 
 ### Added
+- `askit-build-command` skill (Claude slash-command authoring: create/improve).
+- `docs/reference/builder-pattern.md` - the shared builder-skill contract.
+- `/askit-evaluate` + `/askit-build-skill` commands (cross-agent invocation parity).
+- S3 now validates `library.json components.commands`.
+- S7 `command-contract` check: a command must map to exactly one on-disk skill/workflow and declare a non-empty description (conditional on commands existing).
+- `manifest.generated.json` now indexes commands.
 - `askit-build-subagent` skill (Claude subagent authoring: create/improve).
 - The toolkit's own `skill-author` and `evaluator` subagents and its first chain
   contract (`agents/_chain-permitted.yaml`), making the Silver claim non-vacuous.

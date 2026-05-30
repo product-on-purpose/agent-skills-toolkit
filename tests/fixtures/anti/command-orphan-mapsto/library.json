@@ -1,0 +1,1 @@
+{ "name": "command-orphan-mapsto", "version": "0.1.0", "tier": "convergent", "agent-targets": ["claude"], "components": { "commands": [{ "name": "co-cmd", "path": "commands/co-cmd.md", "version": "0.1.0", "tier": "convergent", "status": "active" }] } }

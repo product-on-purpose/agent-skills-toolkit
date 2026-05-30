@@ -15,6 +15,12 @@ export function renderManifest(ctx) {
       path: path.relative(ctx.root, s.skillMdPath).split(path.sep).join("/"),
       description: s.frontmatter?.description ?? null,
     })),
+    commands: (ctx.commands || []).map((c) => ({
+      name: c.name,
+      path: path.relative(ctx.root, c.file).split(path.sep).join("/"),
+      description: c.frontmatter?.description ?? null,
+      mapsTo: c.frontmatter?.["maps-to"] ?? null,
+    })),
   };
   return JSON.stringify(obj, null, 2) + "\n";
 }

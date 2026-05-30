@@ -41,6 +41,17 @@ export function listAgentFiles(root) {
     .filter((p) => fileExists(p));
 }
 
+/** Absolute paths of commands/*.md definitions, excluding _-prefixed control files. */
+export function listCommandFiles(root) {
+  const commandsRoot = path.join(root, "commands");
+  if (!existsSync(commandsRoot) || !statSync(commandsRoot).isDirectory()) return [];
+  return readdirSync(commandsRoot)
+    .filter((name) => name.endsWith(".md") && !name.startsWith("_"))
+    .map((name) => path.join(commandsRoot, name))
+    // fileExists guards against a directory named "<x>.md" (mirrors listAgentFiles).
+    .filter((p) => fileExists(p));
+}
+
 /** Recursively list file paths under dir (absolute). [] if dir missing. */
 export function walkFiles(dir) {
   if (!existsSync(dir)) return [];

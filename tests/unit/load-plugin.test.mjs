@@ -46,3 +46,15 @@ test("ctx.subagents is empty when no agents/ dir exists", () => {
   const ctx = loadPlugin(path.join(FIXTURES, "golden/minimal-skill"));
   assert.deepEqual(ctx.subagents, []);
 });
+
+test("loads commands from commands/*.md into ctx.commands", () => {
+  const ctx = loadPlugin(path.join(FIXTURES, "golden/command-fixture"));
+  assert.deepEqual(ctx.commands.map((c) => c.name), ["cf-do-thing"]);
+  assert.equal(ctx.commands[0].frontmatter["maps-to"], "cf-do-thing");
+  assert.equal(ctx.commands[0].parseError, null);
+});
+
+test("ctx.commands is empty when no commands/ dir exists", () => {
+  const ctx = loadPlugin(path.join(FIXTURES, "golden/minimal-skill"));
+  assert.deepEqual(ctx.commands, []);
+});
