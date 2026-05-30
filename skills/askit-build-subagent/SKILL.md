@@ -25,7 +25,7 @@ When the user asks to create, scaffold, write, or improve a subagent (an `agents
 
 ## improve mode
 1. Run `node scripts/evaluate.mjs . --json` and read the report.
-2. For each finding: an S3 error -> declare/undeclare the subagent in `components.subagents` to match disk; an S4 orphan -> add the missing `caller -> callee` to `agents/_chain-permitted.yaml`; an S4 phantom -> fix the contract entry or the component name. For any other finding, read its message and apply the fix it states.
+2. For each finding: an S3 error -> declare/undeclare the subagent in `components.subagents` to match disk; an S4 orphan -> add the missing `caller -> callee` to `agents/_chain-permitted.yaml`; an S4 phantom (the contract names a component not on disk) -> remove that contract entry, fix a misspelled name, or create the missing component. For any other finding, read its message and apply the fix it states.
 3. Re-run evaluate to confirm.
 
 ## Scope
