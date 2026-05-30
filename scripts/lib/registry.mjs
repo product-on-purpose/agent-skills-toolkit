@@ -10,6 +10,7 @@ import * as agentTargets from "../checks/agent-targets.mjs";
 import * as prefix from "../checks/prefix.mjs";
 import * as componentsIndex from "../checks/components-index.mjs";
 import * as chainContract from "../checks/chain-contract.mjs";
+import * as commandContract from "../checks/command-contract.mjs";
 import * as workflowSkills from "../checks/workflow-skills.mjs";
 import * as perTargetPresence from "../checks/per-target-presence.mjs";
 
@@ -17,7 +18,7 @@ import * as perTargetPresence from "../checks/per-target-presence.mjs";
 export const CHECKS = [
   libraryJson, anatomy, frontmatterValid, nameMatchesDir,
   descriptionScore, referenceLinks, instructionBudget, manifestDrift,
-  agentTargets, prefix, componentsIndex, chainContract, workflowSkills,
+  agentTargets, prefix, componentsIndex, chainContract, commandContract, workflowSkills,
   perTargetPresence,
 ];
 
