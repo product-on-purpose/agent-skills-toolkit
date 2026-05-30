@@ -25,7 +25,7 @@ The delegated authoring role behind `askit-build-skill`. Scaffolds `skills/<name
 `Read`/`Write`/`Edit` to scaffold and edit skill files; `Bash` to copy the template and run `node scripts/generators/gen-manifest.mjs` / `node scripts/evaluate.mjs`. No broader access.
 
 ## Steps
-1. Interview or read provided inputs (name, purpose, when-to-use, trigger keywords).
+1. Read the provided inputs (name, purpose, when-to-use, trigger keywords) from the invoking skill; the interview happens in the caller, not here.
 2. Scaffold `skills/<name>/` from `templates/SKILL.md`; fill frontmatter and body.
 3. Emit native manifests for the declared targets (`gen-manifest --write --target=all`).
 4. Delegate assessment to `evaluator`; apply its findings; iterate to 0 errors.
