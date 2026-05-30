@@ -1,0 +1,11 @@
+{
+  "name": "command-fixture",
+  "version": "0.1.0",
+  "tier": "convergent",
+  "prefix": "cf-",
+  "agent-targets": ["claude"],
+  "components": {
+    "skills": [{ "name": "cf-do-thing", "path": "skills/cf-do-thing/SKILL.md", "version": "0.1.0", "tier": "universal", "status": "active" }],
+    "commands": [{ "name": "cf-do-thing", "path": "commands/cf-do-thing.md", "version": "0.1.0", "tier": "convergent", "status": "active" }]
+  }
+}
