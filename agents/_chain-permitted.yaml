@@ -1,0 +1,6 @@
+askit-build-skill:
+  - skill-author
+askit-evaluate:
+  - evaluator
+skill-author:
+  - evaluator

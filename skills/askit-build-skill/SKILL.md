@@ -1,6 +1,8 @@
 ---
 name: askit-build-skill
 description: Creates and improves agentskills.io skills to the Advanced Skill Library Standard. Use when you need to author a new SKILL.md, scaffold a skill directory, or raise an existing skill's conformance and description quality.
+chain:
+  - skill-author
 metadata:
   version: 0.1.0
   tier: universal
@@ -29,4 +31,4 @@ When the user asks to create, scaffold, write, or improve a skill.
 3. Re-run evaluate to confirm the findings are resolved.
 
 ## Scope
-Emits for Claude and Codex: `library.json.agent-targets` declares which targets the plugin requires, and `gen-manifest.mjs --target=all|claude|codex` generates the matching native manifests. Authoring is performed inline by the running agent; a dedicated authoring subagent is a later addition.
+Emits for Claude and Codex: `library.json.agent-targets` declares which targets the plugin requires, and `gen-manifest.mjs --target=all|claude|codex` generates the matching native manifests. This skill delegates authoring to the `skill-author` subagent (the delegated path; permitted in `agents/_chain-permitted.yaml`), which in turn delegates assessment to `evaluator`.

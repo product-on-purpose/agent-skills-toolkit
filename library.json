@@ -13,6 +13,10 @@
       { "name": "askit-build-skill", "path": "skills/askit-build-skill/SKILL.md", "version": "0.1.0", "tier": "universal", "status": "active" },
       { "name": "askit-evaluate", "path": "skills/askit-evaluate/SKILL.md", "version": "0.1.0", "tier": "universal", "status": "active" },
       { "name": "askit-build-subagent", "path": "skills/askit-build-subagent/SKILL.md", "version": "0.1.0", "tier": "universal", "status": "active" }
+    ],
+    "subagents": [
+      { "name": "skill-author", "path": "agents/skill-author.md", "version": "0.1.0", "tier": "convergent", "status": "active" },
+      { "name": "evaluator", "path": "agents/evaluator.md", "version": "0.1.0", "tier": "convergent", "status": "active" }
     ]
   },
   "engines": {
