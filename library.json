@@ -18,6 +18,10 @@
     "subagents": [
       { "name": "skill-author", "path": "agents/skill-author.md", "version": "0.1.0", "tier": "convergent", "status": "active" },
       { "name": "evaluator", "path": "agents/evaluator.md", "version": "0.1.0", "tier": "convergent", "status": "active" }
+    ],
+    "commands": [
+      { "name": "askit-evaluate", "path": "commands/askit-evaluate.md", "version": "0.1.0", "tier": "convergent", "status": "active" },
+      { "name": "askit-build-skill", "path": "commands/askit-build-skill.md", "version": "0.1.0", "tier": "convergent", "status": "active" }
     ]
   },
   "engines": {

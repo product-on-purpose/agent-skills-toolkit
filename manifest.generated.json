@@ -25,5 +25,18 @@
       "description": "Evaluates a skill or plugin against the Advanced Skill Library Standard, producing per-rule findings, a tier result, and remediation steps. Use when you want to audit conformance, check a skill or plugin, or see what blocks the next tier."
     }
   ],
-  "commands": []
+  "commands": [
+    {
+      "name": "askit-build-skill",
+      "path": "commands/askit-build-skill.md",
+      "description": "Create or improve an agentskills.io skill to the Advanced Skill Library Standard. Use to scaffold a new SKILL.md or raise an existing skill's conformance and description quality.",
+      "mapsTo": "askit-build-skill"
+    },
+    {
+      "name": "askit-evaluate",
+      "path": "commands/askit-evaluate.md",
+      "description": "Evaluate a skill or plugin against the Advanced Skill Library Standard and report per-rule findings, the tier, and remediation. Use to audit conformance or see what blocks the next tier.",
+      "mapsTo": "askit-evaluate"
+    }
+  ]
 }
