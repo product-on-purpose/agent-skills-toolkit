@@ -19,5 +19,6 @@
       "path": "skills/askit-evaluate/SKILL.md",
       "description": "Evaluates a skill or plugin against the Advanced Skill Library Standard, producing per-rule findings, a tier result, and remediation steps. Use when you want to audit conformance, check a skill or plugin, or see what blocks the next tier."
     }
-  ]
+  ],
+  "commands": []
 }
