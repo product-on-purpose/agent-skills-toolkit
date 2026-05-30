@@ -1,6 +1,6 @@
 # Reference: Silver (Convergent) conformance checks
 
-Six checks (S1-S6) earn Silver tier. Each fires findings tagged `reqId: "S<n>"`; tier-report buckets them into the `convergent` tier and lists unmet ones in `blocked.convergent`.
+Seven checks (S1-S7) earn Silver tier. Each fires findings tagged `reqId: "S<n>"`; tier-report buckets them into the `convergent` tier and lists unmet ones in `blocked.convergent`.
 
 | reqId | Module | What it checks | Standard | Conditional? | Example fix |
 |---|---|---|---|---|---|
@@ -10,6 +10,7 @@ Six checks (S1-S6) earn Silver tier. Each fires findings tagged `reqId: "S<n>"`;
 | S4 | `scripts/checks/chain-contract.mjs` | `agents/_chain-permitted.yaml` has no orphan or phantom entries; contract is present when chaining is in use | sec 3.6 | yes (chaining-in-use) | Orphan: a frontmatter `chain:` invocation not listed under the caller in the contract - add the `<caller>: [<callee>]` entry. Phantom: a contract entry naming a caller or callee that matches no on-disk component - remove the stale entry or create the missing component. |
 | S5 | `scripts/checks/workflow-skills.mjs` | Workflows reference only on-disk skills | sec 3.4 | yes (workflows exist) | Fix the workflow's `steps:` list to reference an existing skill name. |
 | S6 | `scripts/checks/per-target-presence.mjs` | Each `agent-targets` entry has its native manifest on disk (`.claude-plugin/plugin.json` / `.codex-plugin/plugin.json`) | sec 5.1, sec 10.1 | yes (agent-targets declared) | Run `node scripts/generators/gen-manifest.mjs . --write --target=all` to generate the missing native manifest. |
+| S7 | `scripts/checks/command-contract.mjs` | Every `commands/<name>.md` declares a non-empty `description` and a `maps-to` that resolves to exactly one on-disk skill or workflow | sec 3.2, sec 8.1 | yes (commands exist) | Missing description: add a non-empty `description` to the frontmatter. Missing `maps-to`: add the key naming the backing skill or workflow. Unresolved `maps-to`: correct the name or create the missing component. |
 
 **Subagents are Claude-only for plugin distribution (Standard sec 3.3).** Codex v0.135
 plugins cannot ship subagents (`plugin.json` has no `agents` field;
