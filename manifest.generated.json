@@ -5,6 +5,11 @@
   "standard": "0.8",
   "skills": [
     {
+      "name": "askit-build-command",
+      "path": "skills/askit-build-command/SKILL.md",
+      "description": "Creates and improves Claude slash commands (commands/<name>.md) that map to a skill, to the Advanced Skill Library Standard. Use when you need to give a skill an explicit /command entry point or raise an existing command's conformance."
+    },
+    {
       "name": "askit-build-skill",
       "path": "skills/askit-build-skill/SKILL.md",
       "description": "Creates and improves agentskills.io skills to the Advanced Skill Library Standard. Use when you need to author a new SKILL.md, scaffold a skill directory, or raise an existing skill's conformance and description quality."
