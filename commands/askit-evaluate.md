@@ -7,5 +7,3 @@ metadata:
 ---
 
 Invoke the `askit-evaluate` skill to assess the target at: $ARGUMENTS
-
-Run the conformance core, then report the findings grouped by rule, the satisfied tier, and the remediation. Lead with errors, then warnings.
