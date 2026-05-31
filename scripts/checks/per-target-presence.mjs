@@ -30,5 +30,24 @@ export function check(ctx) {
       );
     }
   }
+  // Component-level: if the plugin ships MCP servers (.mcp.json), each declared
+  // target's native manifest MUST carry the "mcpServers" pointer (Standard sec 3.9).
+  if ((ctx.mcpServers || []).length > 0) {
+    const MANIFEST_OBJ = { claude: ctx.claudeManifest, codex: ctx.codexManifest };
+    for (const t of targets) {
+      if (!MANIFEST_FOR[t]) continue;
+      const m = MANIFEST_OBJ[t];
+      if (m && !m.mcpServers) {
+        out.push(
+          finding(
+            meta.id,
+            SEVERITY.ERROR,
+            `plugin ships MCP servers (.mcp.json) but ${MANIFEST_FOR[t]} lacks the "mcpServers" pointer for target "${t}" (Standard sec 3.9). Regenerate: node scripts/generators/gen-manifest.mjs . --write --target=all`,
+            { file: MANIFEST_FOR[t], reqId: meta.reqId }
+          )
+        );
+      }
+    }
+  }
   return out;
 }

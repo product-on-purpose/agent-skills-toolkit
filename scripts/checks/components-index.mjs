@@ -69,5 +69,23 @@ export function check(ctx) {
       out.push(finding(meta.id, SEVERITY.ERROR, `commands/${c.name}.md exists on disk but is not declared in library.json components.commands.`, { file: "library.json", reqId: meta.reqId }));
     }
   }
+  const declaredMcp = Array.isArray(components.mcpServers) ? components.mcpServers : [];
+  const onDiskMcpNames = new Set((ctx.mcpServers || []).map((s) => s.name));
+  const declaredMcpNames = new Set();
+  for (const c of declaredMcp) {
+    if (!c || typeof c.name !== "string") {
+      out.push(finding(meta.id, SEVERITY.ERROR, "library.json components.mcpServers entry is missing required string \"name\".", { file: "library.json", reqId: meta.reqId }));
+      continue;
+    }
+    declaredMcpNames.add(c.name);
+    if (!onDiskMcpNames.has(c.name)) {
+      out.push(finding(meta.id, SEVERITY.ERROR, `library.json components.mcpServers declares "${c.name}" but it is not a server in .mcp.json.`, { file: "library.json", reqId: meta.reqId }));
+    }
+  }
+  for (const s of (ctx.mcpServers || [])) {
+    if (!declaredMcpNames.has(s.name)) {
+      out.push(finding(meta.id, SEVERITY.ERROR, `.mcp.json server "${s.name}" is not declared in library.json components.mcpServers.`, { file: "library.json", reqId: meta.reqId }));
+    }
+  }
   return out;
 }

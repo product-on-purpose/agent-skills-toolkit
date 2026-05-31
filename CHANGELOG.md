@@ -10,6 +10,8 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ## [Unreleased]
 
 ### Added
+- `askit-build-mcp` skill (Phase 3C-2c): authors a plugin's MCP servers as one portable `.mcp.json` and wires the per-target `mcpServers` manifest pointer (create/improve modes); `templates/mcp.json` scaffold.
+- U11 `mcp-valid` check (Universal): each `.mcp.json` server is well-formed (stdio has `command`, http has `url`) and commits no inline secret. S3 now validates `components.mcpServers` against `.mcp.json`; S6 gains a component-level rule requiring the per-target `mcpServers` pointer when `.mcp.json` ships. `gen-manifest` emits the pointer + indexes servers (conditional, so the toolkit's own manifests are unaffected).
 - U9 `version-match` check: `package.json` version MUST equal `library.json` version (the version source of truth, Standard sec 5); reconciled `package.json` to 0.2.0 so the two manifests agree.
 - U10 `no-dashes` check: the no-em-dash / no-en-dash house style is now CI-enforced by a portable check (scans committed `.md`/`.mjs`, built from code points), not only a maintainer-local hook, so the rule travels with the repo for every contributor.
 - `license: Apache-2.0` declared in `library.json` and `package.json`, with a `LICENSE` file (canonical Apache-2.0 text).

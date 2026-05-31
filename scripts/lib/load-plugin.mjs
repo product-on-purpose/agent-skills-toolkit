@@ -55,5 +55,12 @@ export function loadPlugin(root) {
   const claude = readJsonSafe(path.join(root, ".claude-plugin", "plugin.json"));
   const codex = readJsonSafe(path.join(root, ".codex-plugin", "plugin.json"));
 
-  return { root, library, agentsMdPath, skills, subagents, commands, claudeManifest: claude.data, codexManifest: codex.data };
+  // One portable .mcp.json at the plugin root holds ALL servers (Standard sec 3.9).
+  // Parse its mcpServers map into a list of { name, def }; absent => [].
+  const mcp = readJsonSafe(path.join(root, ".mcp.json"));
+  const mcpMap = mcp.data && typeof mcp.data.mcpServers === "object" && mcp.data.mcpServers !== null ? mcp.data.mcpServers : null;
+  const mcpServers = mcpMap ? Object.entries(mcpMap).map(([name, def]) => ({ name, def })) : [];
+  const mcpPath = mcp.data ? ".mcp.json" : null;
+
+  return { root, library, agentsMdPath, skills, subagents, commands, claudeManifest: claude.data, codexManifest: codex.data, mcpServers, mcpPath };
 }

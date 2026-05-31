@@ -22,6 +22,12 @@ export function renderManifest(ctx) {
       mapsTo: c.frontmatter?.["maps-to"] ?? null,
     })),
   };
+  if ((ctx.mcpServers || []).length) {
+    obj.mcpServers = ctx.mcpServers.map((s) => ({
+      name: s.name,
+      transport: typeof s.def?.url === "string" ? "http" : "stdio",
+    }));
+  }
   return JSON.stringify(obj, null, 2) + "\n";
 }
 
@@ -41,7 +47,9 @@ function nativeSpine(lib) {
 /** .claude-plugin/plugin.json (Claude native manifest), generated from library.json. */
 export function renderClaudeNativeManifest(ctx) {
   const lib = ctx.library.data ?? {};
-  return JSON.stringify(nativeSpine(lib), null, 2) + "\n";
+  const obj = nativeSpine(lib);
+  if (ctx.mcpPath) obj.mcpServers = "./.mcp.json";
+  return JSON.stringify(obj, null, 2) + "\n";
 }
 
 /** Title-case a kebab name for the Codex marketplace displayName. */
@@ -71,6 +79,7 @@ export function renderCodexNativeManifest(ctx) {
       category: typeof lib.category === "string" && lib.category ? lib.category : "Engineering",
     },
   };
+  if (ctx.mcpPath) obj.mcpServers = "./.mcp.json";
   return JSON.stringify(obj, null, 2) + "\n";
 }
 

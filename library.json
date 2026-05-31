@@ -14,7 +14,8 @@
       { "name": "askit-build-skill", "path": "skills/askit-build-skill/SKILL.md", "version": "0.1.0", "tier": "universal", "status": "active" },
       { "name": "askit-evaluate", "path": "skills/askit-evaluate/SKILL.md", "version": "0.1.0", "tier": "universal", "status": "active" },
       { "name": "askit-build-subagent", "path": "skills/askit-build-subagent/SKILL.md", "version": "0.1.0", "tier": "universal", "status": "active" },
-      { "name": "askit-build-command", "path": "skills/askit-build-command/SKILL.md", "version": "0.1.0", "tier": "universal", "status": "active" }
+      { "name": "askit-build-command", "path": "skills/askit-build-command/SKILL.md", "version": "0.1.0", "tier": "universal", "status": "active" },
+      { "name": "askit-build-mcp", "path": "skills/askit-build-mcp/SKILL.md", "version": "0.1.0", "tier": "universal", "status": "active" }
     ],
     "subagents": [
       { "name": "askit-skill-author", "path": "agents/askit-skill-author.md", "version": "0.1.0", "tier": "convergent", "status": "active" },
