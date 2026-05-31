@@ -2,6 +2,14 @@
 
 A walkthrough of the core loop: create a skill, evaluate it, improve it.
 
+```mermaid
+flowchart LR
+  C["1. Create<br/>askit-build-skill (create)<br/>scaffolds SKILL.md from template"] --> E["2. Evaluate<br/>node scripts/evaluate.mjs<br/>per-rule findings + tier"]
+  E --> I["3. Improve<br/>askit-build-skill (improve)<br/>fixes what evaluate flagged"]
+  I --> E
+  E -->|0 errors| D["Done: a conformant skill"]
+```
+
 ## 1. Create
 
 Invoke `askit-build-skill` (create mode). It asks for the name, what the skill

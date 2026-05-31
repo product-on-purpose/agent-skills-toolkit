@@ -10,6 +10,10 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ## [Unreleased]
 
 ### Added
+- U9 `version-match` check: `package.json` version MUST equal `library.json` version (the version source of truth, Standard sec 5); reconciled `package.json` to 0.2.0 so the two manifests agree.
+- U10 `no-dashes` check: the no-em-dash / no-en-dash house style is now CI-enforced by a portable check (scans committed `.md`/`.mjs`, built from code points), not only a maintainer-local hook, so the rule travels with the repo for every contributor.
+- `license: Apache-2.0` declared in `library.json` and `package.json`, with a `LICENSE` file (canonical Apache-2.0 text).
+- S2 prefix check extended: it now enforces the `askit-` prefix on every component name (skills, commands, subagents), not only the `library.json` `prefix` field.
 - `askit-build-command` skill (Claude slash-command authoring: create/improve).
 - `docs/reference/builder-pattern.md` - the shared builder-skill contract.
 - `/askit-evaluate` + `/askit-build-skill` commands (cross-agent invocation parity).
@@ -27,6 +31,8 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   present; both modes are now active.
 
 ### Changed
+- Subagents renamed to carry the `askit-` prefix (`skill-author` -> `askit-skill-author`, `evaluator` -> `askit-evaluator`) for cross-agent future-proofing (ADR 0020 O-2: Gemini extensions ship subagents, so they will enter a cross-agent pool). The chain contract, `library.json` components index, skill `chain:` refs, native manifests, and docs were updated in lockstep.
+- STANDARD sec 3.9/10.1: corrected the Codex MCP registration mechanism. A distributed plugin registers MCP via a bundled `.mcp.json` at the plugin root (the portable `{ "mcpServers": {...} }` format) referenced by each native manifest's `mcpServers` pointer; the user-level `config.toml` `mcp_servers` table is a separate, non-plugin path. (Previously sec 3.9 wrongly said the plugin's `config.toml`.)
 - STANDARD sec 3.3/10.1: Codex subagents are a user/project `config.toml` concern,
   not a plugin-distributable component (Codex v0.135). Subagents are Claude-only for
   plugin distribution; declare `agent-targets: [claude]` in the subagent frontmatter.

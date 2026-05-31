@@ -12,8 +12,15 @@ Advanced, or Bronze / Silver / Gold) are cumulative: each includes the last. Tha
 why a Bronze plugin can grow into Silver and Gold without rework - the bar rises,
 the earlier work still counts.
 
+```mermaid
+flowchart LR
+  B["Bronze / Universal<br/>portable SKILL.md + library.json<br/>+ AGENTS.md + CI (U-checks)"] --> S["Silver / Convergent<br/>adds multi-agent emission,<br/>subagents, commands, chain contracts<br/>(S-checks)"] --> G["Gold / Advanced<br/>adds hooks, self-hosting CI,<br/>eval/regression, release notes,<br/>deprecation (A/G-checks)"]
+```
+
+Each tier is cumulative: Silver includes every Universal check, Gold includes every Silver check. `tier-report` reports the highest tier a plugin fully satisfies and lists what blocks the next.
+
 The toolkit is itself built to this Standard and validates itself in CI: it declares
-`tier: convergent` and satisfies Silver (S1-S6), so `node scripts/tier-report.mjs --json`
+`tier: convergent` and satisfies Silver (S1-S7), so `node scripts/tier-report.mjs --json`
 reports `tier: convergent` with an empty `blocked`. See
 [`STANDARD.md`](../../STANDARD.md) for the normative rules.
 
@@ -29,6 +36,9 @@ Convergent (Silver) reqIds carry the `S` prefix. The current set:
 | S4 | Chain-contract integrity (phantom; missing-when-chaining) | sec 3.6 | yes |
 | S5 | Workflow skill-existence | sec 3.4 | yes |
 | S6 | Per-target native-manifest presence | sec 5.1, sec 10.1 | yes |
+| S7 | Command-contract (maps-to resolves to one skill/workflow; description present) | sec 3.2 | yes |
+
+Two Universal checks were added in the v0.2 hardening: **U9** (`version-match`: `package.json` version must equal `library.json` version, the source of truth) and **U10** (`no-dashes`: the house no-em-dash / no-en-dash rule, now CI-enforced for every contributor, not only a local hook).
 
 S6 (per-target native-manifest presence) fires only when `agent-targets` is declared; it checks that each declared target has its generated native manifest on disk. The repository declares `agent-targets: ["claude", "codex"]` and emits both manifests. The `components` index (S3) is now present in `library.json`, so the Silver burndown is empty and the toolkit declares `tier: convergent`.
 

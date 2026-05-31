@@ -33,3 +33,26 @@ test("invalid prefix (uppercase) is an error", () => {
   const ctx = { library: { data: { prefix: "ASkit-" } } };
   assert.ok(check(ctx).some((f) => f.severity === "error"));
 });
+
+test("a component name without the prefix is an S2 error", () => {
+  const ctx = {
+    root: ".",
+    library: { data: { prefix: "askit-" } },
+    skills: [{ name: "build-skill", frontmatter: { name: "build-skill" }, skillMdPath: "skills/build-skill/SKILL.md" }],
+  };
+  const err = check(ctx).find((f) => f.severity === "error");
+  assert.ok(err);
+  assert.equal(err.reqId, "S2");
+  assert.ok(/must start with the plugin prefix/.test(err.message));
+});
+
+test("prefixed skill, command, and subagent names pass", () => {
+  const ctx = {
+    root: ".",
+    library: { data: { prefix: "askit-" } },
+    skills: [{ name: "askit-build-skill", frontmatter: { name: "askit-build-skill" }, skillMdPath: "skills/askit-build-skill/SKILL.md" }],
+    commands: [{ name: "askit-evaluate", frontmatter: {}, file: "commands/askit-evaluate.md" }],
+    subagents: [{ name: "askit-evaluator", frontmatter: { name: "askit-evaluator" }, file: "agents/askit-evaluator.md" }],
+  };
+  assert.equal(check(ctx).length, 0);
+});

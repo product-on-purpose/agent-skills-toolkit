@@ -7,6 +7,7 @@
   "prefix": "askit-",
   "agent-targets": ["claude", "codex"],
   "author": { "name": "product-on-purpose" },
+  "license": "Apache-2.0",
   "keywords": ["agent-skills", "skills", "claude-code", "codex", "plugin", "standard"],
   "components": {
     "skills": [
@@ -16,8 +17,8 @@
       { "name": "askit-build-command", "path": "skills/askit-build-command/SKILL.md", "version": "0.1.0", "tier": "universal", "status": "active" }
     ],
     "subagents": [
-      { "name": "skill-author", "path": "agents/skill-author.md", "version": "0.1.0", "tier": "convergent", "status": "active" },
-      { "name": "evaluator", "path": "agents/evaluator.md", "version": "0.1.0", "tier": "convergent", "status": "active" }
+      { "name": "askit-skill-author", "path": "agents/askit-skill-author.md", "version": "0.1.0", "tier": "convergent", "status": "active" },
+      { "name": "askit-evaluator", "path": "agents/askit-evaluator.md", "version": "0.1.0", "tier": "convergent", "status": "active" }
     ],
     "commands": [
       { "name": "askit-evaluate", "path": "commands/askit-evaluate.md", "version": "0.1.0", "tier": "convergent", "status": "active" },

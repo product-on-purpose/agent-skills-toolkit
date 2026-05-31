@@ -30,12 +30,13 @@ Components present on disk:
   (author and improve Claude subagents), and `askit-build-command` (author and
   improve Claude slash commands). Core loop: `askit-build-skill`
   (create) -> `askit-evaluate` -> `askit-build-skill` (improve).
-- **Subagents:** `skill-author` (the bounded authoring delegate behind
-  `askit-build-skill`) and `evaluator` (the read-only assessment delegate behind
+- **Subagents:** `askit-skill-author` (the bounded authoring delegate behind
+  `askit-build-skill`) and `askit-evaluator` (the read-only assessment delegate behind
   `askit-evaluate`). Both are Claude-only (`agent-targets: [claude]`; Standard
-  sec 3.3). The chain contract `agents/_chain-permitted.yaml` permits:
-  `askit-build-skill` -> `skill-author`, `askit-evaluate` -> `evaluator`, and
-  `skill-author` -> `evaluator`.
+  sec 3.3) and carry the `askit-` prefix like every other component (sec 8.2). The
+  chain contract `agents/_chain-permitted.yaml` permits:
+  `askit-build-skill` -> `askit-skill-author`, `askit-evaluate` -> `askit-evaluator`, and
+  `askit-skill-author` -> `askit-evaluator`.
 - **Commands:** `/askit-evaluate` (maps-to: `askit-evaluate`) and
   `/askit-build-skill` (maps-to: `askit-build-skill`). Commands are Claude-native;
   on Codex the backing skill is the invocable form (Standard sec 3.2).

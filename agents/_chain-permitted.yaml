@@ -1,6 +1,6 @@
 askit-build-skill:
-  - skill-author
+  - askit-skill-author
 askit-evaluate:
-  - evaluator
-skill-author:
-  - evaluator
+  - askit-evaluator
+askit-skill-author:
+  - askit-evaluator

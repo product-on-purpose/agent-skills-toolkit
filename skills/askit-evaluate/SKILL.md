@@ -2,7 +2,7 @@
 name: askit-evaluate
 description: Evaluates a skill or plugin against the Advanced Skill Library Standard, producing per-rule findings, a tier result, and remediation steps. Use when you want to audit conformance, check a skill or plugin, or see what blocks the next tier.
 chain:
-  - evaluator
+  - askit-evaluator
 metadata:
   version: 0.1.0
   tier: universal
@@ -24,4 +24,4 @@ When the user asks to evaluate, audit, or check a skill or plugin, or asks "what
 4. If there are warnings or errors, point the user at `askit-build-skill` in `improve` mode to fix them.
 
 ## Scope (v1)
-This skill is the conformance-core assessment. Behavioral evaluation (running a skill against expected outputs) and qualitative review are out of scope here and arrive in a later phase. See [references/report-format.md](references/report-format.md) for the report shape. Assessment is delegated to the `evaluator` subagent (permitted in `agents/_chain-permitted.yaml`).
+This skill is the conformance-core assessment. Behavioral evaluation (running a skill against expected outputs) and qualitative review are out of scope here and arrive in a later phase. See [references/report-format.md](references/report-format.md) for the report shape. Assessment is delegated to the `askit-evaluator` subagent (permitted in `agents/_chain-permitted.yaml`).

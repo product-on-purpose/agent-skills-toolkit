@@ -13,6 +13,8 @@ import * as chainContract from "../checks/chain-contract.mjs";
 import * as commandContract from "../checks/command-contract.mjs";
 import * as workflowSkills from "../checks/workflow-skills.mjs";
 import * as perTargetPresence from "../checks/per-target-presence.mjs";
+import * as versionMatch from "../checks/version-match.mjs";
+import * as noDashes from "../checks/no-dashes.mjs";
 
 /** Ordered checks. Each exports { meta:{id,tier,reqId}, check(ctx)->Finding[] }. */
 export const CHECKS = [
@@ -20,6 +22,7 @@ export const CHECKS = [
   descriptionScore, referenceLinks, instructionBudget, manifestDrift,
   agentTargets, prefix, componentsIndex, chainContract, commandContract, workflowSkills,
   perTargetPresence,
+  versionMatch, noDashes,
 ];
 
 export function runAllChecks(ctx) {

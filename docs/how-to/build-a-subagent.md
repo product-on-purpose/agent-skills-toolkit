@@ -12,8 +12,8 @@ tightly scoped tool set that differs from the caller's, when you want to enforce
 read-only or write-only boundary, or when the work is complex enough to benefit from
 a separate focus point.
 
-Examples from this toolkit: `skill-author` carries `Read`/`Write`/`Edit`/`Bash`
-for scaffolding; `evaluator` carries only `Read`/`Bash` and is intentionally
+Examples from this toolkit: `askit-skill-author` carries `Read`/`Write`/`Edit`/`Bash`
+for scaffolding; `askit-evaluator` carries only `Read`/`Bash` and is intentionally
 prevented from mutating what it grades.
 
 The Claude-only constraint (Standard sec 3.3) applies: Codex v0.135 plugins cannot

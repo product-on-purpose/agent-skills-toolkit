@@ -29,4 +29,4 @@ When the user asks to create, scaffold, write, or improve a subagent (an `agents
 3. Re-run evaluate to confirm.
 
 ## Scope
-Claude-only: a subagent is `agents/<name>.md` (Claude auto-discovers it). Codex does not ingest plugin-shipped subagents (Standard sec 3.3), so there is no Codex render. Authoring is performed inline by the running agent; the toolkit's own `skill-author` subagent is the delegated authoring role for skills.
+Claude-only: a subagent is `agents/<name>.md` (Claude auto-discovers it). Codex does not ingest plugin-shipped subagents (Standard sec 3.3), so there is no Codex render. Authoring is performed inline by the running agent; the toolkit's own `askit-skill-author` subagent is the delegated authoring role for skills.

@@ -41,9 +41,9 @@ bootstrap exemption (now ended).
   - [`askit-build-command`](skills/askit-build-command/) - author and improve Claude slash commands (create + improve modes).
   - Core loop: `askit-build-skill` (create) -> `askit-evaluate` -> `askit-build-skill` (improve).
 - **Subagents (Claude-only):**
-  - [`skill-author`](agents/skill-author.md) - bounded authoring delegate behind `askit-build-skill`; carries `Read`/`Write`/`Edit`/`Bash`.
-  - [`evaluator`](agents/evaluator.md) - read-only assessment delegate behind `askit-evaluate`; carries `Read`/`Bash` only.
-  - Chain contract: [`agents/_chain-permitted.yaml`](agents/_chain-permitted.yaml) - permits `askit-build-skill` -> `skill-author`, `askit-evaluate` -> `evaluator`, and `skill-author` -> `evaluator`.
+  - [`askit-skill-author`](agents/askit-skill-author.md) - bounded authoring delegate behind `askit-build-skill`; carries `Read`/`Write`/`Edit`/`Bash`.
+  - [`askit-evaluator`](agents/askit-evaluator.md) - read-only assessment delegate behind `askit-evaluate`; carries `Read`/`Bash` only.
+  - Chain contract: [`agents/_chain-permitted.yaml`](agents/_chain-permitted.yaml) - permits `askit-build-skill` -> `askit-skill-author`, `askit-evaluate` -> `askit-evaluator`, and `askit-skill-author` -> `askit-evaluator`.
 - **Commands (Claude-native):**
   - [`/askit-evaluate`](commands/askit-evaluate.md) - maps to `askit-evaluate`; assess a skill or plugin.
   - [`/askit-build-skill`](commands/askit-build-skill.md) - maps to `askit-build-skill`; create or improve a skill.
