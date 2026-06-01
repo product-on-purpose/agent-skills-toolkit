@@ -58,9 +58,13 @@ export function loadPlugin(root) {
   // One portable .mcp.json at the plugin root holds ALL servers (Standard sec 3.9).
   // Parse its mcpServers map into a list of { name, def }; absent => [].
   const mcp = readJsonSafe(path.join(root, ".mcp.json"));
+  const mcpPresent = mcp.data !== null || mcp.parseError !== null;
   const mcpMap = mcp.data && typeof mcp.data.mcpServers === "object" && mcp.data.mcpServers !== null ? mcp.data.mcpServers : null;
   const mcpServers = mcpMap ? Object.entries(mcpMap).map(([name, def]) => ({ name, def })) : [];
-  const mcpPath = mcp.data ? ".mcp.json" : null;
+  const mcpPath = mcpPresent ? ".mcp.json" : null;
+  const mcpParseError = mcp.parseError;
+  // Present + valid JSON but no usable mcpServers object => malformed (mcp-valid fails closed).
+  const mcpMalformed = mcpPresent && !mcp.parseError && mcpMap === null;
 
-  return { root, library, agentsMdPath, skills, subagents, commands, claudeManifest: claude.data, codexManifest: codex.data, mcpServers, mcpPath };
+  return { root, library, agentsMdPath, skills, subagents, commands, claudeManifest: claude.data, codexManifest: codex.data, mcpServers, mcpPath, mcpParseError, mcpMalformed };
 }

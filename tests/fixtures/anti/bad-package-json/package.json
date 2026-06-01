@@ -1,0 +1,1 @@
+{ "name": "bad-package-json", "version": "0.2.0"  <-- invalid JSON on purpose

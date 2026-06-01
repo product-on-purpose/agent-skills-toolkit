@@ -29,3 +29,8 @@ test("no package.json - not applicable (no error)", () => {
   const r = check(loadPlugin(path.join(FIXTURES, "golden/minimal-skill")));
   assert.equal(r.length, 0);
 });
+
+test("present-but-invalid package.json is a U9 error (fails closed)", () => {
+  const r = check(loadPlugin(path.join(FIXTURES, "anti/bad-package-json")));
+  assert.ok(r.some((f) => f.reqId === "U9" && /not valid JSON/.test(f.message)));
+});

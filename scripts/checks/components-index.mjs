@@ -15,6 +15,11 @@ export function check(ctx) {
     out.push(finding(meta.id, SEVERITY.ERROR, "library.json \"components\" must be an object keyed by component type (e.g. { \"skills\": [...] }).", { file: "library.json", reqId: meta.reqId }));
     return out;
   }
+  for (const key of ["skills", "subagents", "commands", "mcpServers"]) {
+    if (components[key] !== undefined && !Array.isArray(components[key])) {
+      out.push(finding(meta.id, SEVERITY.ERROR, `library.json components.${key} must be an array.`, { file: "library.json", reqId: meta.reqId }));
+    }
+  }
   const declaredSkills = Array.isArray(components.skills) ? components.skills : [];
   const onDiskSkillNames = new Set((ctx.skills || []).map((s) => s.name));
   const declaredSkillNames = new Set();

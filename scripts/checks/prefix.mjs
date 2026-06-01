@@ -27,7 +27,7 @@ export function check(ctx) {
   ];
   for (const [kind, list, fileOf] of groups) {
     for (const c of list ?? []) {
-      const name = c?.frontmatter?.name ?? c?.name;
+      const name = c?.name;
       if (typeof name === "string" && !name.startsWith(p)) {
         out.push(
           finding(

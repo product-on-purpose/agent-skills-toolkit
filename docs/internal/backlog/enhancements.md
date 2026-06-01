@@ -12,3 +12,10 @@
 - **How to apply (sketch):** `scripts/evaluate.mjs` already produces a structured report object. Add `--format=md|html` renderers over that ONE model so MD / HTML / JSON never diverge (deterministic, portable Node, no new runtime, no binary assets - preserves the "CI only shells out to portable scripts" principle). Reuse the summary+detailed convention and the existing mermaid validation.
 - **Tier / phase:** enhancement. Natural home is Phase 4 (when `evaluate`'s behavioral/review modes land), or earlier as a standalone output enhancement. Strong candidate to pull into the v1 docs/visuals push so the public Silver preview ships a polished report.
 - **Status:** backlog (recorded 2026-05-31).
+
+## E2 - Deeper MCP secret scanning
+
+- **Target:** the `mcp-valid` check (U11) and `askit-build-mcp`.
+- **Change:** broaden inline-secret detection beyond `env` values, `bearer_token`, and url userinfo / secretish query params: recursively scan server definitions (args, headers, nested objects) and recognize more credential shapes (JWTs, base64-ish tokens containing `.`/`/`/`+`/`=`). Use field-aware allowlists to avoid false positives.
+- **Why:** the Codex adversarial review (2026-05-31) flagged that the current heuristic misses credentials in args, headers, and non-secretish keys. A bounded improvement (url userinfo + secretish query params) shipped immediately; the recursive scan is deferred so the heuristic can be tuned against golden/anti fixtures before it risks over-eager false positives.
+- **Status:** backlog (recorded 2026-05-31).

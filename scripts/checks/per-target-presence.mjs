@@ -35,15 +35,16 @@ export function check(ctx) {
   if ((ctx.mcpServers || []).length > 0) {
     const MANIFEST_OBJ = { claude: ctx.claudeManifest, codex: ctx.codexManifest };
     for (const t of targets) {
-      if (!MANIFEST_FOR[t]) continue;
+      const rel = MANIFEST_FOR[t];
+      if (!rel || !fileExists(path.join(ctx.root, rel))) continue; // a missing manifest is owned by the plugin-level loop above
       const m = MANIFEST_OBJ[t];
-      if (m && !m.mcpServers) {
+      if (!m || m.mcpServers !== "./.mcp.json") {
         out.push(
           finding(
             meta.id,
             SEVERITY.ERROR,
-            `plugin ships MCP servers (.mcp.json) but ${MANIFEST_FOR[t]} lacks the "mcpServers" pointer for target "${t}" (Standard sec 3.9). Regenerate: node scripts/generators/gen-manifest.mjs . --write --target=all`,
-            { file: MANIFEST_FOR[t], reqId: meta.reqId }
+            `plugin ships MCP servers (.mcp.json) but ${rel} does not carry "mcpServers": "./.mcp.json" for target "${t}" (Standard sec 3.9). Regenerate: node scripts/generators/gen-manifest.mjs . --write --target=all`,
+            { file: rel, reqId: meta.reqId }
           )
         );
       }

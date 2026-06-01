@@ -38,3 +38,27 @@ test("env var reference (empty value) is not a secret", () => {
   const r = check({ mcpServers: [{ name: "s", def: { command: "x", env: { API_KEY: "" } } }] });
   assert.equal(r.length, 0);
 });
+
+test("present-but-invalid .mcp.json fails closed (U11 error)", () => {
+  const r = check({ mcpPath: ".mcp.json", mcpParseError: "Unexpected token", mcpServers: [] });
+  assert.ok(r.some((f) => f.severity === "error" && /not valid JSON/.test(f.message)));
+});
+
+test("present .mcp.json with no mcpServers object fails closed", () => {
+  const r = check({ mcpPath: ".mcp.json", mcpMalformed: true, mcpServers: [] });
+  assert.ok(r.some((f) => f.severity === "error" && /no valid .mcpServers/.test(f.message)));
+});
+
+test("empty/whitespace command is not well-formed (U11 error)", () => {
+  assert.ok(check({ mcpServers: [{ name: "e", def: { command: "   " } }] }).some((f) => f.severity === "error"));
+});
+
+test("non-http(s) or unparseable url is not well-formed", () => {
+  assert.ok(check({ mcpServers: [{ name: "u", def: { url: "not a url" } }] }).some((f) => f.severity === "error"));
+  assert.ok(check({ mcpServers: [{ name: "f", def: { url: "ftp://x.test/" } }] }).some((f) => f.severity === "error"));
+});
+
+test("credentials embedded in the url are a secret error", () => {
+  assert.ok(check({ mcpServers: [{ name: "c", def: { url: "https://user:pass@x.test/mcp" } }] }).some((f) => /secret|credential/i.test(f.message)));
+  assert.ok(check({ mcpServers: [{ name: "q", def: { url: "https://x.test/mcp?api_key=AKIA1234567890ABCDEF" } }] }).some((f) => /secret/i.test(f.message)));
+});

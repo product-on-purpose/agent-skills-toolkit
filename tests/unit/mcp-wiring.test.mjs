@@ -53,5 +53,5 @@ test("S6 flags a native manifest missing the mcpServers pointer when servers shi
     claudeManifest: { name: "x" },
     codexManifest: null,
   };
-  assert.ok(perTarget(ctx).some((f) => f.reqId === "S6" && /mcpServers. pointer/.test(f.message)));
+  assert.ok(perTarget(ctx).some((f) => f.reqId === "S6" && /mcpServers/.test(f.message)));
 });

@@ -56,3 +56,12 @@ test("prefixed skill, command, and subagent names pass", () => {
   };
   assert.equal(check(ctx).length, 0);
 });
+
+test("a prefixed frontmatter.name does not mask an unprefixed filename (S2 error)", () => {
+  const ctx = {
+    root: ".",
+    library: { data: { prefix: "askit-" } },
+    commands: [{ name: "evaluate", frontmatter: { name: "askit-evaluate" }, file: "commands/evaluate.md" }],
+  };
+  assert.ok(check(ctx).some((f) => f.reqId === "S2" && /must start with the plugin prefix/.test(f.message)));
+});
