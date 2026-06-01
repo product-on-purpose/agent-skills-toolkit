@@ -10,6 +10,7 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ## [Unreleased]
 
 ### Added
+- `askit-backlog` skill (Phase 4): manages the two backlogs (new-component proposals + enhancements, Standard sec 7.1; intake/triage/prune modes) with the why-gate that routes would-be micro-skills to enhancements.
 - `askit-build-workflow` skill (Phase 3C-2d): authors workflows (`_workflows/*.md`, ordered multi-skill arcs, Standard sec 3.4; create/improve), reusing S5 (workflow skill-existence). `templates/workflow.md` scaffold. Completes the Phase 3 (Convergent) builder set: skill, evaluate, subagent, command, mcp, hook, chain-contract, agents-md, output-style, workflow.
 - `askit-build-output-style` skill (Phase 3C-2d): authors Claude Code output styles (Claude-only response-mode definitions, Standard sec 2.3; create/improve). States the Claude-only asymmetry plainly (F-06). `templates/output-style.md` scaffold.
 - `askit-build-agents-md` skill (Phase 3C-2d): authors and syncs a plugin's `AGENTS.md` (Standard sec 3.10; create/improve), with brevity guidance from the ETH-Zurich finding that verbose context files reduce agent task success. Reuses U2 + the `sync-agents-md` generator.
