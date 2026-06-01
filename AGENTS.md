@@ -25,14 +25,14 @@ The S1-S6 gate is green and `tier-report` reports `tier: convergent` with an emp
 the one-time Bronze bootstrap that ended once the spine existed.
 
 Components present on disk:
-- **Skills:** `askit-build-skill` (author and improve skills), `askit-evaluate`
-  (assess a skill or plugin against the Standard), `askit-build-subagent`
-  (author and improve Claude subagents), `askit-build-command` (author and
-  improve Claude slash commands), `askit-build-mcp` (author a plugin's MCP
-  servers as a portable `.mcp.json`), `askit-build-hook` (author event-driven
-  hooks), `askit-build-chain-contract` (author the chain contract), and
-  `askit-build-agents-md` (author and sync AGENTS.md). Core loop: `askit-build-skill`
-  (create) -> `askit-evaluate` -> `askit-build-skill` (improve).
+- **Skills:** `askit-evaluate` (assess a skill or plugin against the Standard) plus
+  the `askit-build-*` builder family - one builder per component type (skill,
+  subagent, command, mcp, hook, chain-contract, agents-md, output-style, and more as
+  the catalog fills), each with `create`/`improve` modes following
+  `docs/reference/builder-pattern.md`. Core loop: `askit-build-skill` (create) ->
+  `askit-evaluate` -> `askit-build-skill` (improve). The exact current component
+  list lives in `library.json` and [`INDEX.md`](INDEX.md) (this section stays terse
+  on purpose - brevity is a feature).
 - **Subagents:** `askit-skill-author` (the bounded authoring delegate behind
   `askit-build-skill`) and `askit-evaluator` (the read-only assessment delegate behind
   `askit-evaluate`). Both are Claude-only (`agent-targets: [claude]`; Standard

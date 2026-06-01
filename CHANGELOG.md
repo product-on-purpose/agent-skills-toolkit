@@ -10,6 +10,7 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ## [Unreleased]
 
 ### Added
+- `askit-build-output-style` skill (Phase 3C-2d): authors Claude Code output styles (Claude-only response-mode definitions, Standard sec 2.3; create/improve). States the Claude-only asymmetry plainly (F-06). `templates/output-style.md` scaffold.
 - `askit-build-agents-md` skill (Phase 3C-2d): authors and syncs a plugin's `AGENTS.md` (Standard sec 3.10; create/improve), with brevity guidance from the ETH-Zurich finding that verbose context files reduce agent task success. Reuses U2 + the `sync-agents-md` generator.
 - `askit-build-chain-contract` skill (Phase 3C-2d): authors a plugin's chain contract (`agents/_chain-permitted.yaml`, Standard sec 3.6; create/improve) and resolves S4 orphan/phantom findings. `templates/chain-permitted.yaml` scaffold.
 - `askit-build-hook` skill (Phase 3C-2d): authors event-driven hooks (Advanced tier; create/improve modes) per Standard sec 3.5 - event/trigger/scope/failure documentation, actionable block messages, idempotency, least privilege. Codex hook ingestion is verified at build time (known caveat); the deterministic hook check ships with Gold (Phase 5). `templates/hooks.json` scaffold.

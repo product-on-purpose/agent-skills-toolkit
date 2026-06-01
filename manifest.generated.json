@@ -30,6 +30,11 @@
       "description": "Creates and improves MCP server definitions (a portable .mcp.json) for a plugin to the Advanced Skill Library Standard. Use when you need to add an MCP server to a plugin, author or extend .mcp.json, or wire the per-target mcpServers manifest pointer."
     },
     {
+      "name": "askit-build-output-style",
+      "path": "skills/askit-build-output-style/SKILL.md",
+      "description": "Creates and improves Claude Code output styles (Claude-only response-mode definitions) to the Advanced Skill Library Standard. Use when you need to author a custom output style for Claude Code, define a response mode, or improve an existing output style."
+    },
+    {
       "name": "askit-build-skill",
       "path": "skills/askit-build-skill/SKILL.md",
       "description": "Creates and improves agentskills.io skills to the Advanced Skill Library Standard. Use when you need to author a new SKILL.md, scaffold a skill directory, or raise an existing skill's conformance and description quality."
