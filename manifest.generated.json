@@ -113,6 +113,11 @@
       "name": "askit-release",
       "path": "skills/askit-release/SKILL.md",
       "description": "Builds and validates a plugin's release by computing the version, promoting the changelog, curating the release notes, and running the readiness gate, to the Advanced Skill Library Standard. Use when cutting a release, bumping the plugin version, updating the changelog or release notes, or checking release readiness."
+    },
+    {
+      "name": "askit-template-manager",
+      "path": "skills/askit-template-manager/SKILL.md",
+      "description": "Creates and maintains a plugin's global templates directory so the scaffolders produce consistent components. Use when adding a template, updating an existing one, or keeping templates in sync with the component shapes they scaffold."
     }
   ],
   "commands": [

@@ -57,6 +57,7 @@ bootstrap exemption (now ended).
   - [`askit-build-statusline`](skills/askit-build-statusline/) - author a Claude Code status line script + settings registration (Claude-only; create/improve modes).
   - [`askit-build-settings`](skills/askit-build-settings/) - author settings + permissions per target and recommend least-privilege allowlists (create/improve + permission advice).
   - [`askit-deprecate`](skills/askit-deprecate/) - mark a component deprecated with a replacement + removal target and keep it validating until removal (deprecate/check modes; G6).
+  - [`askit-template-manager`](skills/askit-template-manager/) - curate the global `templates/` directory the scaffolders consume (create/maintain modes; keeps templates conformant).
   - Core loop: `askit-build-skill` (create) -> `askit-evaluate` -> `askit-build-skill` (improve).
 - **Subagents (Claude-only):**
   - [`askit-skill-author`](agents/askit-skill-author.md) - bounded authoring delegate behind `askit-build-skill`; carries `Read`/`Write`/`Edit`/`Bash`.
