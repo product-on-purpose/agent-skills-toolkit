@@ -8,7 +8,9 @@ export const meta = { id: "no-dashes", tier: "universal", reqId: "U10" };
 // Built from code points so this checker never embeds the literal characters it forbids.
 const EM_DASH = String.fromCharCode(0x2014);
 const EN_DASH = String.fromCharCode(0x2013);
-const SKIP_DIRS = new Set(["node_modules", ".git", ".memsearch", "_local", "_LOCAL"]);
+// Skip dependency and gitignored-scratch dirs, plus build-output / tool-cache dirs (dist, .astro):
+// generated artifacts are not authored text, so house style does not apply to them.
+const SKIP_DIRS = new Set(["node_modules", ".git", ".memsearch", "_local", "_LOCAL", "dist", ".astro"]);
 const SCAN = /\.(md|mjs)$/;
 
 function collect(dir, out) {

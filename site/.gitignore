@@ -1,0 +1,5 @@
+# Astro / site build artifacts and dependencies (do not commit).
+# package-lock.json IS committed (CI uses `npm ci`, which requires it).
+node_modules/
+dist/
+.astro/

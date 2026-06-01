@@ -1,0 +1,32 @@
+---
+title: agent-skills-toolkit
+description: Toolkit and Standard for building cross-agent skill libraries to a tiered Bronze/Silver/Gold quality bar.
+template: splash
+hero:
+  tagline: Turn a folder of skills into a graded, cross-agent, CI-gated plugin library - for Claude Code and Codex.
+  actions:
+    - text: Get started
+      link: /agent-skills-toolkit/getting-started/
+      icon: right-arrow
+    - text: View on GitHub
+      link: https://github.com/product-on-purpose/agent-skills-toolkit
+      icon: external
+      variant: minimal
+---
+
+import { Card, CardGrid } from '@astrojs/starlight/components';
+
+<CardGrid stagger>
+  <Card title="A tiered Standard" icon="approve-check">
+    The Advanced Skill Library Standard grades a whole plugin Bronze, Silver, or Gold - the highest tier it actually earns, with a burndown to the next. Not per-skill linting: system-level conformance.
+  </Card>
+  <Card title="A deterministic gate" icon="setting">
+    Objective rules (structure, portability, security) are checked by portable Node scripts with no LLM, so the grade is trustworthy in CI. Judgment work (behavioral evaluation, review) sits beside the gate as opt-in evidence, never inside it.
+  </Card>
+  <Card title="Genuinely cross-agent" icon="puzzle">
+    Emits for Claude Code and Codex, and is honest about asymmetry: it knows which component types each agent can and cannot ship, and encodes those facts as checks.
+  </Card>
+  <Card title="Self-hosting" icon="seti:config">
+    The toolkit is itself a conformant plugin that passes its own checks. The product is its own best example.
+  </Card>
+</CardGrid>

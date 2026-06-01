@@ -1,0 +1,12 @@
+/* Minimal brand accent for the docs site. Indigo accent matches the toolkit's mark. */
+:root {
+  --sl-color-accent-low: #1e2a4a;
+  --sl-color-accent: #5c7cfa;
+  --sl-color-accent-high: #c7d2fe;
+}
+
+/* Keep Mermaid diagrams readable on both themes. */
+.mermaid {
+  margin: 1.25rem 0;
+  text-align: center;
+}
