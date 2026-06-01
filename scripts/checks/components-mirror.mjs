@@ -1,0 +1,44 @@
+import { finding, SEVERITY } from "../lib/findings.mjs";
+
+export const meta = { id: "components-mirror", tier: "convergent", reqId: "S8" };
+
+/** The `status` declared in a component's frontmatter metadata (undefined when absent). */
+function frontmatterStatus(comp) {
+  const m = comp && comp.frontmatter && comp.frontmatter.metadata;
+  return m && typeof m === "object" && !Array.isArray(m) ? m.status : undefined;
+}
+
+/**
+ * S8 (Standard sec 5.1): a library.json component entry MUST mirror the component on disk.
+ * This enforces the status half of that mandate: if a component's frontmatter declares
+ * `metadata.status`, the library.json entry's `status` MUST equal it. A frontmatter declaring
+ * `deprecated` while the entry says `active` (or omits status) is the disagreement sec 5.1 says
+ * tooling MUST flag, and it is what would otherwise let a frontmatter-only deprecation slip past
+ * the G6 deprecation check (which reads the entry). Frontmatter that omits status leaves the
+ * entry canonical (no finding), so a skill that simply does not declare status is unaffected.
+ * Convergent tier (the components index is REQUIRED at Convergent+).
+ */
+export function check(ctx) {
+  const lib = ctx.library?.data;
+  if (!lib || typeof lib.components !== "object" || lib.components === null) return [];
+  const out = [];
+  const groups = [
+    ["skills", ctx.skills || []],
+    ["subagents", ctx.subagents || []],
+    ["commands", ctx.commands || []],
+  ];
+  for (const [type, onDisk] of groups) {
+    const entries = Array.isArray(lib.components[type]) ? lib.components[type] : [];
+    const byName = new Map(onDisk.map((c) => [c.name, c]));
+    for (const e of entries) {
+      if (!e || typeof e !== "object" || typeof e.name !== "string") continue;
+      const comp = byName.get(e.name);
+      if (!comp) continue; // S3 owns an entry with no on-disk component.
+      const fm = frontmatterStatus(comp);
+      if (fm !== undefined && fm !== null && fm !== e.status) {
+        out.push(finding(meta.id, SEVERITY.ERROR, `library.json components.${type} entry "${e.name}" declares status ${JSON.stringify(e.status)} but the component's frontmatter declares metadata.status ${JSON.stringify(fm)}; the entry MUST mirror the frontmatter (Standard sec 5.1). Otherwise a frontmatter-only deprecation escapes the deprecation contract (G6).`, { file: "library.json", reqId: meta.reqId }));
+      }
+    }
+  }
+  return out;
+}

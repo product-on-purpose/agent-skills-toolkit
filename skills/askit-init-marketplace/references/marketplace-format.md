@@ -7,7 +7,7 @@ A marketplace is a distribution index of plugins. The entry shape is the same ac
 | Agent | File | Notes |
 |---|---|---|
 | Claude Code | `.claude-plugin/marketplace.json` | the native marketplace manifest a user adds as a source |
-| Codex | `.agents/plugins/marketplace.json` | Codex's native marketplace (added with `codex marketplace add <path>`) |
+| Codex | `.agents/plugins/marketplace.json` | Codex's native marketplace (added with `codex plugin marketplace add <path>`; the `marketplace` verb is under the `plugin` group) |
 
 ## Entry shape
 
@@ -21,4 +21,4 @@ Each entry catalogs one plugin: its `name`, its `source` (a path or repository t
 
 ## Registration timing
 
-Per decision D8, a plugin is registered in a marketplace only at its first Gold tag. Scaffolding and validating the index is fine at any tier; publishing an entry waits for Gold.
+The Standard registers a plugin in a marketplace at its first tagged release, not before (sec 12). The toolkit additionally reserves its own marketplace debut for its Gold v1.0.0 tag (Decision C) - a product choice, not the normative rule. Scaffolding and validating the index is fine at any tier; publishing an entry waits for the first tagged release.

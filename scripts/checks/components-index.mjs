@@ -15,7 +15,10 @@ export function check(ctx) {
     out.push(finding(meta.id, SEVERITY.ERROR, "library.json \"components\" must be an object keyed by component type (e.g. { \"skills\": [...] }).", { file: "library.json", reqId: meta.reqId }));
     return out;
   }
-  for (const key of ["skills", "subagents", "commands", "mcpServers"]) {
+  // Every declared component-type value must be an array - not only the four known keys, so a
+  // malformed (object/string) value under any type (workflows, hooks, chain-contracts, ...) fails
+  // closed rather than being silently skipped by the type-specific checks below.
+  for (const key of Object.keys(components)) {
     if (components[key] !== undefined && !Array.isArray(components[key])) {
       out.push(finding(meta.id, SEVERITY.ERROR, `library.json components.${key} must be an array.`, { file: "library.json", reqId: meta.reqId }));
     }

@@ -18,12 +18,13 @@ import * as noDashes from "../checks/no-dashes.mjs";
 import * as mcpValid from "../checks/mcp-valid.mjs";
 import * as libraryRegression from "../checks/library-regression.mjs";
 import * as deprecation from "../checks/deprecation.mjs";
+import * as componentsMirror from "../checks/components-mirror.mjs";
 
 /** Ordered checks. Each exports { meta:{id,tier,reqId}, check(ctx)->Finding[] }. */
 export const CHECKS = [
   libraryJson, anatomy, frontmatterValid, nameMatchesDir,
   descriptionScore, referenceLinks, instructionBudget, manifestDrift,
-  agentTargets, prefix, componentsIndex, chainContract, commandContract, workflowSkills,
+  agentTargets, prefix, componentsIndex, componentsMirror, chainContract, commandContract, workflowSkills,
   perTargetPresence,
   versionMatch, noDashes, mcpValid,
   libraryRegression, deprecation,

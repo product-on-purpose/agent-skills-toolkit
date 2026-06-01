@@ -10,7 +10,7 @@ metadata:
 # askit-template-manager
 
 ## Purpose
-Curate the global `templates/` directory the `askit-build-*` and `askit-init-*` skills consume, so generated components are consistent by construction (Standard sec 11 / 7.3). `create` adds a new template for a component type or artifact; `maintain` keeps an existing template in sync with the shape it scaffolds (a template that drifts from the current component contract produces non-conformant scaffolds). The inventory and the sync rule are in [references/templates-inventory.md](references/templates-inventory.md).
+Curate the global `templates/` directory the `askit-build-*` and `askit-init-*` skills consume, so generated components are consistent by construction (Standard sec 10.5). `create` adds a new template for a component type or artifact; `maintain` keeps an existing template in sync with the shape it scaffolds (a template that drifts from the current component contract produces non-conformant scaffolds). The inventory and the sync rule are in [references/templates-inventory.md](references/templates-inventory.md).
 
 ## When to use
 When adding a template, updating an existing one, or keeping the templates in sync with the component shapes they scaffold.

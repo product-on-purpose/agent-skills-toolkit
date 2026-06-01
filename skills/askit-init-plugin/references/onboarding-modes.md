@@ -10,7 +10,7 @@ How `askit-init-plugin` onboards a maintainer and what it scaffolds.
 | `questionnaire` | fills the emitted template async | emits the template, then processes it into a config + scaffold |
 | `hybrid` | corrects a pre-filled template | reads chat context, emits a tailored questionnaire pre-filled with suggestions, then processes the corrected return |
 
-The questionnaire is the reusable [onboarding template](../../templates/onboarding-questionnaire.template.md): per-section "Maintainer feedback" + "Agent response" blocks. This collaborative-doc pattern is the same one this toolkit was built with, and it generalizes to any skill that needs structured async input.
+The questionnaire is the reusable [onboarding template](../../../templates/onboarding-questionnaire.template.md): per-section "Maintainer feedback" + "Agent response" blocks. This collaborative-doc pattern is the same one this toolkit was built with, and it generalizes to any skill that needs structured async input.
 
 ## The onboarding questions
 

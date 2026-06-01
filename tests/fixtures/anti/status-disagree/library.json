@@ -1,0 +1,14 @@
+{
+  "name": "status-disagree",
+  "version": "0.1.0",
+  "description": "Fixture: a component whose frontmatter status disagrees with its library.json entry.",
+  "standard": "0.8",
+  "tier": "convergent",
+  "prefix": "sd-",
+  "agent-targets": ["claude"],
+  "components": {
+    "skills": [
+      { "name": "sd-skill", "path": "skills/sd-skill/SKILL.md", "version": "0.1.0", "tier": "universal", "status": "active" }
+    ]
+  }
+}

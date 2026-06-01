@@ -21,7 +21,7 @@ When deprecating a component, recording its replacement, or checking that deprec
 3. Point users at the replacement in the component's description or body; do not delete it yet.
 
 ## check mode
-1. Run `node scripts/check.mjs` (the G6 `deprecation` check): every `deprecated` component declares `deprecated-by` + `remove-in`, and no component carries an invalid status.
+1. Run `node scripts/check.mjs` (the aggregate gate, which includes the G6 `deprecation` check): every `deprecated` component declares `deprecated-by` + `remove-in`, and no component carries an invalid status.
 2. Confirm each deprecated component still passes its tier checks until `remove-in` (a deprecated component must keep validating during the migration window).
 
 ## Scope

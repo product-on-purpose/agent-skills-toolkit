@@ -1,6 +1,6 @@
 # Templates inventory (reference)
 
-The global `templates/` directory holds the skeletons the scaffolders consume (Standard sec 11). Each template is a minimal, conformant shape with `REPLACE-` placeholders.
+The global `templates/` directory holds the skeletons the scaffolders consume (Standard sec 10.5). Each template is a minimal, conformant shape with `REPLACE-` placeholders.
 
 ## Inventory
 

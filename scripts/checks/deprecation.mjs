@@ -27,10 +27,10 @@ export function check(ctx) {
         continue;
       }
       if (status === "deprecated") {
-        if (typeof c["deprecated-by"] !== "string" || c["deprecated-by"].length === 0) {
+        if (typeof c["deprecated-by"] !== "string" || c["deprecated-by"].trim().length === 0) {
           out.push(finding(meta.id, SEVERITY.ERROR, `deprecated component "${name}" must declare "deprecated-by" naming its replacement (Standard sec 3.7, 7.5; G6).`, { file: "library.json", reqId: meta.reqId }));
         }
-        if (typeof c["remove-in"] !== "string" || c["remove-in"].length === 0) {
+        if (typeof c["remove-in"] !== "string" || c["remove-in"].trim().length === 0) {
           out.push(finding(meta.id, SEVERITY.ERROR, `deprecated component "${name}" must declare "remove-in" (the target plugin version for its removal; Standard sec 3.7, 7.5; G6).`, { file: "library.json", reqId: meta.reqId }));
         }
       }
