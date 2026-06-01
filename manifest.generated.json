@@ -10,6 +10,11 @@
       "description": "Creates and improves Claude slash commands (commands/<name>.md) that map to a skill, to the Advanced Skill Library Standard. Use when you need to give a skill an explicit /command entry point or raise an existing command's conformance."
     },
     {
+      "name": "askit-build-hook",
+      "path": "skills/askit-build-hook/SKILL.md",
+      "description": "Creates and improves event-driven hooks (Advanced tier) for a plugin to the Advanced Skill Library Standard. Use when you need to add a hook, enforce a guard on a tool or session event, inject context, or document a hook's event, scope, and failure behavior."
+    },
+    {
       "name": "askit-build-mcp",
       "path": "skills/askit-build-mcp/SKILL.md",
       "description": "Creates and improves MCP server definitions (a portable .mcp.json) for a plugin to the Advanced Skill Library Standard. Use when you need to add an MCP server to a plugin, author or extend .mcp.json, or wire the per-target mcpServers manifest pointer."

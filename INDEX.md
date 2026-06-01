@@ -40,6 +40,7 @@ bootstrap exemption (now ended).
   - [`askit-build-subagent`](skills/askit-build-subagent/) - author and improve Claude subagents (create + improve modes).
   - [`askit-build-command`](skills/askit-build-command/) - author and improve Claude slash commands (create + improve modes).
   - [`askit-build-mcp`](skills/askit-build-mcp/) - author a plugin's MCP servers as a portable `.mcp.json` (create + improve modes).
+  - [`askit-build-hook`](skills/askit-build-hook/) - author event-driven hooks for a plugin (create + improve modes; Advanced tier).
   - Core loop: `askit-build-skill` (create) -> `askit-evaluate` -> `askit-build-skill` (improve).
 - **Subagents (Claude-only):**
   - [`askit-skill-author`](agents/askit-skill-author.md) - bounded authoring delegate behind `askit-build-skill`; carries `Read`/`Write`/`Edit`/`Bash`.
