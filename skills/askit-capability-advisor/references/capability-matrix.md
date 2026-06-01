@@ -1,6 +1,6 @@
 # Capability matrix (reference)
 
-What each target agent can run, by component type, for a *distributed plugin*. Pinned to Claude Code and Codex CLI v0.135 (Standard sec 3). "Plugin-distributable" means the component ships inside the plugin and the agent ingests it; a capability that exists only via user/project config is not plugin-distributable.
+What each target agent can run, by component type, for a *distributed plugin*. Pinned to Claude Code and Codex CLI; the load-bearing Codex constraint (a plugin manifest has no `agents` field) is fixed to Codex CLI v0.135 in Standard sec 3.3. "Plugin-distributable" means the component ships inside the plugin and the agent ingests it; a capability that exists only via user/project config is not plugin-distributable.
 
 ## By component type
 
@@ -20,7 +20,7 @@ What each target agent can run, by component type, for a *distributed plugin*. P
 
 ## The Claude-only set
 
-Subagents, output styles, and statuslines do not ship to Codex from a plugin. A plugin that targets `codex` (or both) must give each such component a per-component `agent-targets: [claude]` override (sec 3.7); their absence on Codex is not a conformance failure (sec 2.3). This is what `check` mode enforces.
+Subagents, output styles, and statuslines do not ship to Codex *from a plugin*. The limit is plugin distribution, not the feature: Codex still has user/project subagents (`config.toml [agents.*]`) and built-in roles (default/worker/explorer), and configures a built-in statusline picker; they just are not carried inside a distributed plugin. A plugin that targets `codex` (or both) must give each such component a per-component `agent-targets: [claude]` override (sec 3.7); their absence on Codex is not a conformance failure (sec 2.3). This is what `check` mode checks.
 
 ## Tier path
 

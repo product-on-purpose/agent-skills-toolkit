@@ -26,4 +26,4 @@ When choosing `agent-targets`, checking whether a component is portable across a
 3. Point each flag at the fix: set a per-component `agent-targets: [claude]` override (sec 3.7), or move the component into a Claude-only plugin.
 
 ## Scope
-Advisory only: it reports capability and recommends a tier; it does not author components (the `askit-build-*` skills do) or grade conformance (`askit-evaluate` does). The matrix tracks the Standard's pinned agent versions (Codex CLI v0.135); when an agent adds a capability the matrix and this skill update together, so the advice never drifts ahead of what the agents actually support.
+Advisory only: it reports capability and recommends a tier; it does not author components (the `askit-build-*` skills do) or grade conformance (`askit-evaluate` does). The matrix tracks the agent versions the Standard pins per component (the load-bearing Codex subagent constraint is pinned to Codex CLI v0.135 in sec 3.3); when an agent adds a capability the matrix and this skill update together, so the advice never drifts ahead of what the agents actually support.

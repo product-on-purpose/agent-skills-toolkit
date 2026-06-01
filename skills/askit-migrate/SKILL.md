@@ -26,9 +26,9 @@ When adopting a foreign or ad-hoc skills repo, migrating a Claude-only plugin to
 3. Record the plan so the migration is legible and resumable across sessions.
 
 ## adopt mode
-1. Write a minimal canonical `library.json`: `name`, `version` 0.1.0, a kebab-case `prefix` ending in a hyphen, `agent-targets`, and a `components` index built from the discovered components.
-2. Add a root `AGENTS.md` if absent (Standard sec 3.10) so anatomy (U2) passes.
-3. Emit native manifests with `node scripts/generators/gen-manifest.mjs . --write --target=all`, then hand off to `askit-evaluate` to drive the remaining findings to zero.
+1. Write the Bronze-minimal canonical `library.json` the conformance core requires at every tier (sec 5.1, check U1): `name`, `version` 0.1.0, `description`, `standard` (the Standard version targeted), and `tier` `universal`. That is the smallest manifest that satisfies U1 and makes the repo gradeable.
+2. Add a root `AGENTS.md` if absent (Standard sec 3.10) so anatomy (U2) passes, then run `askit-evaluate` to confirm Bronze is clean.
+3. When climbing to Silver, add the Convergent-only fields the higher checks require: `agent-targets` (S1), a kebab-case `prefix` ending in a hyphen carried by every component name (S2), and a `components` index (S3); then emit native manifests with `node scripts/generators/gen-manifest.mjs . --write --target=all` (S6) and hand off to the `askit-build-*` skills and `askit-evaluate`.
 
 ## Scope
-`askit-migrate` adopts an existing repo; greenfield scaffolding from an interview is `askit-init-plugin` (separate). It makes the repo gradeable and produces the plan, then the `askit-build-*` skills and `askit-evaluate` execute the plan slice by slice; it does not rename components to add the prefix wholesale or rewrite skills on its own. The why-gate applies before adding any new component (see `askit-backlog`).
+`askit-migrate` adopts an existing repo; greenfield scaffolding from an interview is a separate, planned init/onboarding flow (Standard sec 10.7). It makes the repo gradeable and produces the plan, then the `askit-build-*` skills and `askit-evaluate` execute the plan slice by slice; it does not rename components to add the prefix wholesale or rewrite skills on its own. The why-gate applies before adding any new component (see `askit-backlog`).

@@ -59,7 +59,6 @@ bootstrap exemption (now ended).
     - [`askit-file-search`](agents/askit-file-search.md) - pinpoint search -> matching paths/lines; `Read`/`Grep`/`Glob`.
     - [`askit-file-ops`](agents/askit-file-ops.md) - bounded file mutation (apply given create/edit ops); `Read`/`Write`/`Edit`.
     - [`askit-reviewer`](agents/askit-reviewer.md) - qualitative judgment review (correctness/altitude/warranted); `Read`/`Bash`.
-    - [`askit-quality-grader`](agents/askit-quality-grader.md) - tier grading via `tier-report` -> satisfied tier + burndown; `Read`/`Bash`.
   - Chain contract: [`agents/_chain-permitted.yaml`](agents/_chain-permitted.yaml) - permits `askit-build-skill` -> `askit-skill-author`, `askit-evaluate` -> `askit-evaluator`, and `askit-skill-author` -> `askit-evaluator`. The judgment roster declares no `chain:` yet (leaf roles), so it adds no contract entries.
 - **Commands (Claude-native):**
   - [`/askit-evaluate`](commands/askit-evaluate.md) - maps to `askit-evaluate`; assess a skill or plugin.

@@ -52,12 +52,12 @@ For each gap, name the resolver: the `askit-build-<type>` skill authors a missin
 
 The smallest change that makes the repo gradeable:
 
-- A minimal `library.json`: `name`, `version` 0.1.0, a `prefix` (kebab-case ending in a hyphen), `agent-targets`, and a `components` index built from the inventory.
+- A Bronze-minimal `library.json` with exactly the fields U1 requires at every tier (sec 5.1): `name`, `version` 0.1.0, `description`, `standard` (the Standard version targeted), and `tier` `universal`. The Convergent-only fields (`prefix`, `agent-targets`, a `components` index) are added later, in the Silver step, where S1/S2/S3 require them; writing them now does not help Bronze and a manifest missing `description`/`standard`/`tier` fails U1.
 - A root `AGENTS.md` if absent.
-- `node scripts/generators/gen-manifest.mjs . --write --target=all` to emit the native manifests for the declared targets.
+- Run `askit-evaluate` to confirm Bronze is clean; the native manifests (`gen-manifest --write --target=all`) come with the Silver step, once `agent-targets` is declared.
 
 Then hand off: `askit-evaluate` drives the findings to zero and the `askit-build-*` skills author what is missing. `adopt` deliberately does not rename components wholesale or rewrite skill bodies; those are slice-by-slice steps in the plan, each separately verifiable.
 
 ## Boundary with init
 
-`askit-migrate` adopts an existing repo. Scaffolding a brand-new plugin from an interview is `askit-init-plugin`. The split keeps each skill's job legible: migrate reconciles what already exists with the Standard; init starts from nothing.
+`askit-migrate` adopts an existing repo. Scaffolding a brand-new plugin from an interview is a separate, planned init/onboarding flow (Standard sec 10.7). The split keeps each skill's job legible: migrate reconciles what already exists with the Standard; init starts from nothing.

@@ -12,7 +12,7 @@ Invoke `askit-migrate` (plan mode) to order the gaps into a staged roadmap: Bron
 
 ## Adopt (make it gradeable)
 
-Invoke `askit-migrate` (adopt mode) to write a minimal `library.json` (name, version, prefix, agent-targets, a components index from the inventory) and a root `AGENTS.md` if absent, then emit the native manifests with `gen-manifest`. From there, `askit-evaluate` drives the remaining findings to zero and the builders author what is missing.
+Invoke `askit-migrate` (adopt mode) to write the Bronze-minimal `library.json` (exactly the U1-required fields: name, version, description, standard, tier) and a root `AGENTS.md` if absent, so the conformance core can grade the repo. The Convergent-only fields (prefix, agent-targets, a components index) and the native manifests come with the Silver step. From there, `askit-evaluate` drives the remaining findings to zero and the builders author what is missing.
 
 ## See also
 

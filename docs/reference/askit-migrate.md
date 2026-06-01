@@ -8,7 +8,7 @@ Adopts an existing skills repository into a Standard-conformant plugin and produ
 - `adopt`: write the minimal canonical `library.json` + a root `AGENTS.md` if absent, then emit native manifests, so the repo becomes gradeable.
 
 ## Boundary
-Migrate adopts an EXISTING repo; greenfield scaffolding from an interview is `askit-init-plugin`. Migrate makes the repo gradeable and plans the work; the builders and `askit-evaluate` execute it slice by slice.
+Migrate adopts an existing repo; greenfield scaffolding from an interview is a separate, planned init/onboarding flow (Standard sec 10.7). Migrate makes the repo gradeable and plans the work; the builders and `askit-evaluate` execute it slice by slice.
 
 ## Notes
 See the [adopt-a-foreign-repo how-to](../how-to/adopt-a-foreign-repo.md) and [migration-workflow](../../skills/askit-migrate/references/migration-workflow.md).
