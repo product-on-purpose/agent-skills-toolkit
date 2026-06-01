@@ -25,6 +25,11 @@
       "description": "Creates and improves Claude slash commands (commands/<name>.md) that map to a skill, to the Advanced Skill Library Standard. Use when you need to give a skill an explicit /command entry point or raise an existing command's conformance."
     },
     {
+      "name": "askit-build-docs",
+      "path": "skills/askit-build-docs/SKILL.md",
+      "description": "Creates and improves a plugin's documentation across modes (readme, quickstart, tutorial, how-to, reference, glossary, faq, troubleshooting, architecture, and an Astro Starlight docs site) to the Advanced Skill Library Standard. Use when authoring or refreshing docs, standing up a docs site, or aligning documentation with the component index."
+    },
+    {
       "name": "askit-build-hook",
       "path": "skills/askit-build-hook/SKILL.md",
       "description": "Creates and improves event-driven hooks (Advanced tier) for a plugin to the Advanced Skill Library Standard. Use when you need to add a hook, enforce a guard on a tool or session event, inject context, or document a hook's event, scope, and failure behavior."

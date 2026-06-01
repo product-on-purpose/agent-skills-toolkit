@@ -50,6 +50,7 @@ bootstrap exemption (now ended).
   - [`askit-release`](skills/askit-release/) - cut a release: version/changelog/notes/gate modes (deterministic version + release-readiness).
   - [`askit-migrate`](skills/askit-migrate/) - adopt an existing repo into a conformant plugin (assess/plan/adopt modes; a Bronze-to-Silver roadmap).
   - [`askit-capability-advisor`](skills/askit-capability-advisor/) - report what a target agent supports and recommend a tier (advise/check modes; the Claude/Codex capability matrix).
+  - [`askit-build-docs`](skills/askit-build-docs/) - author docs and an Astro Starlight docs site (readme/quickstart/tutorial/how-to/reference/glossary/faq/troubleshooting/architecture/site modes).
   - Core loop: `askit-build-skill` (create) -> `askit-evaluate` -> `askit-build-skill` (improve).
 - **Subagents (Claude-only):**
   - [`askit-skill-author`](agents/askit-skill-author.md) - bounded authoring delegate behind `askit-build-skill`; carries `Read`/`Write`/`Edit`/`Bash`.
