@@ -80,6 +80,11 @@
       "description": "Evaluates a skill or plugin against the Advanced Skill Library Standard across three modes, producing deterministic conformance findings and a tier, an opt-in behavioral pass, and a qualitative review. Use when you want to audit conformance, judge whether a skill behaves and triggers correctly, get a qualitative review, or see what blocks the next tier."
     },
     {
+      "name": "askit-init-marketplace",
+      "path": "skills/askit-init-marketplace/SKILL.md",
+      "description": "Creates and validates a marketplace index that catalogs plugins for Claude Code and Codex, checking each entry, its plugin reference, and version consistency. Use when standing up a marketplace, adding a plugin to a marketplace, or validating marketplace entries."
+    },
+    {
       "name": "askit-init-plugin",
       "path": "skills/askit-init-plugin/SKILL.md",
       "description": "Creates a starting plugin that satisfies the Bronze anatomy and onboards the maintainer, in three modes (interview, questionnaire, hybrid). Use when starting a new plugin from scratch, onboarding a maintainer, or generating a scaffolding questionnaire."

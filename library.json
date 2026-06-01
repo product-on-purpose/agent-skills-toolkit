@@ -28,7 +28,8 @@
       { "name": "askit-capability-advisor", "path": "skills/askit-capability-advisor/SKILL.md", "version": "0.1.0", "tier": "universal", "status": "active" },
       { "name": "askit-build-docs", "path": "skills/askit-build-docs/SKILL.md", "version": "0.1.0", "tier": "universal", "status": "active" },
       { "name": "askit-build-samples", "path": "skills/askit-build-samples/SKILL.md", "version": "0.1.0", "tier": "universal", "status": "active" },
-      { "name": "askit-init-plugin", "path": "skills/askit-init-plugin/SKILL.md", "version": "0.1.0", "tier": "universal", "status": "active" }
+      { "name": "askit-init-plugin", "path": "skills/askit-init-plugin/SKILL.md", "version": "0.1.0", "tier": "universal", "status": "active" },
+      { "name": "askit-init-marketplace", "path": "skills/askit-init-marketplace/SKILL.md", "version": "0.1.0", "tier": "universal", "status": "active" }
     ],
     "subagents": [
       { "name": "askit-skill-author", "path": "agents/askit-skill-author.md", "version": "0.1.0", "tier": "convergent", "status": "active" },
