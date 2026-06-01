@@ -17,7 +17,7 @@ function isFile(p) { return existsSync(p) && statSync(p).isFile(); }
  */
 function loadEvalSets(root) {
   const dir = path.join(root, "evals");
-  if (!isDir(dir)) return { present: false, sets: [], malformed: [] };
+  if (!isDir(dir)) return { sets: [], malformed: [] };
   const sets = [];
   const malformed = [];
   for (const name of readdirSync(dir)) {
@@ -34,10 +34,14 @@ function loadEvalSets(root) {
     }
     sets.push({ file: rel, data });
   }
-  return { present: true, sets, malformed };
+  return { sets, malformed };
 }
 
-/** Parse the chain contract into [caller, callee] edges (empty when absent/invalid). */
+/**
+ * Parse the chain contract into [caller, callee] edges (empty when absent/invalid).
+ * A non-array callee value is a contract-shape error owned by the chain-contract check (S4),
+ * which fails the gate at Convergent, so a scalar shorthand cannot reach Gold unrecognized.
+ */
 function contractEdges(root) {
   const contractPath = path.join(root, "agents", "_chain-permitted.yaml");
   if (!isFile(contractPath)) return [];
@@ -72,25 +76,31 @@ function hookEvents(root) {
   return Object.keys(hooks).filter((ev) => Array.isArray(hooks[ev]) && hooks[ev].length > 0);
 }
 
-const edgeKey = (caller, callee) => `${caller} -> ${callee}`;
+// Structured edge key so a component name containing the rendered " -> " cannot collide.
+const edgeKey = (caller, callee) => JSON.stringify([caller, callee]);
+const renderEdge = (caller, callee) => `${caller} -> ${callee}`;
 
 /**
- * G3 (Gold baseline): each chain edge and each hook MUST carry at least one eval/regression
- * case under evals/, and an eval that covers a chain edge the contract no longer permits is a
- * stale case (the regression signal: a component or edge changed and a consumer's eval dangles).
- * Conditional: only applies when there is something to regress - a chain contract or hooks.
- * Advanced tier, so it gates only a plugin that declares tier >= advanced; lower-tier plugins
- * see it as a Gold burndown item, not a CI failure.
+ * G3 (Gold baseline): each chain edge (in agents/_chain-permitted.yaml) and each hook event
+ * (in hooks/hooks.json) MUST carry at least one eval/regression case under evals/. An eval
+ * covering an edge the contract no longer permits, or a hook that is not registered, is a stale
+ * case - the regression signal that a component changed and a consumer's eval dangles. Malformed
+ * eval JSON is ALWAYS reported, independent of whether a contract or hooks exist, so eval hygiene
+ * is never silently suppressed by an absent or emptied contract.
+ *
+ * Advanced tier: a plugin that declares universal or convergent sees these findings as a Gold
+ * burndown item rather than a gate failure (the milestone-validity ceiling); a plugin that
+ * declares advanced gates on them. (A missing or invalid declared tier is failed by U1 first.)
  */
 export function check(ctx) {
   const root = ctx.root;
   const edges = contractEdges(root);
   const events = hookEvents(root);
-  if (edges.length === 0 && events.length === 0) return []; // nothing chained or hooked -> nothing to regress.
-
-  const out = [];
   const { sets, malformed } = loadEvalSets(root);
 
+  const out = [];
+
+  // Eval hygiene: a malformed eval file is always a defect, even with no contract or hooks.
   for (const m of malformed) {
     out.push(finding(meta.id, SEVERITY.ERROR, `eval set ${m.file} is not valid JSON: ${m.message}`, { file: m.file, reqId: meta.reqId }));
   }
@@ -100,33 +110,49 @@ export function check(ctx) {
   const coveredHooks = new Set();
 
   for (const s of sets) {
-    const covers = s.data && typeof s.data === "object" ? s.data.covers : undefined;
-    if (!covers || typeof covers !== "object") {
+    const covers = s.data && typeof s.data === "object" && !Array.isArray(s.data) ? s.data.covers : undefined;
+    if (!covers || typeof covers !== "object" || Array.isArray(covers)) {
       out.push(finding(meta.id, SEVERITY.ERROR, `eval set ${s.file} is missing a "covers" object; declare what it exercises (e.g. { "chain": ["caller", "callee"] }, { "hook": "<event>" }, or { "skill": "<name>" }).`, { file: s.file, reqId: meta.reqId }));
       continue;
     }
-    if (Array.isArray(covers.chain)) {
-      if (covers.chain.length !== 2 || !covers.chain.every((x) => typeof x === "string")) {
+    let claimed = false;
+    // chain and hook are checked independently so a multi-claim eval is honored and a
+    // wrong-typed claim is diagnosed rather than silently ignored.
+    if ("chain" in covers) {
+      claimed = true;
+      if (!Array.isArray(covers.chain) || covers.chain.length !== 2 || !covers.chain.every((x) => typeof x === "string")) {
         out.push(finding(meta.id, SEVERITY.ERROR, `eval set ${s.file} "covers.chain" must be a [caller, callee] pair of strings.`, { file: s.file, reqId: meta.reqId }));
       } else {
         const key = edgeKey(covers.chain[0], covers.chain[1]);
         if (!permittedEdgeKeys.has(key)) {
-          out.push(finding(meta.id, SEVERITY.ERROR, `eval set ${s.file} covers chain "${key}" but agents/_chain-permitted.yaml no longer permits that edge (stale eval; a component or edge changed - the G3 regression signal). Update or remove the eval, or restore the chain.`, { file: s.file, reqId: meta.reqId }));
+          out.push(finding(meta.id, SEVERITY.ERROR, `eval set ${s.file} covers chain "${renderEdge(covers.chain[0], covers.chain[1])}" but agents/_chain-permitted.yaml does not permit that edge (stale eval; a component or edge changed, or the contract is missing - the G3 regression signal). Update or remove the eval, or restore the chain.`, { file: s.file, reqId: meta.reqId }));
         } else {
           coveredChains.add(key);
         }
       }
-    } else if (typeof covers.hook === "string") {
-      coveredHooks.add(covers.hook);
     }
-    // covers.skill (triggering eval set) is a Universal SHOULD (8.3), not gated here; the
-    // behavioral runner consumes it. G3 baseline gates chain + hook coverage only.
+    if ("hook" in covers) {
+      claimed = true;
+      if (typeof covers.hook !== "string") {
+        out.push(finding(meta.id, SEVERITY.ERROR, `eval set ${s.file} "covers.hook" must be a string event name.`, { file: s.file, reqId: meta.reqId }));
+      } else if (!events.includes(covers.hook)) {
+        out.push(finding(meta.id, SEVERITY.ERROR, `eval set ${s.file} covers hook "${covers.hook}" but no hook for that event is registered in hooks/hooks.json (stale eval; the G3 regression signal).`, { file: s.file, reqId: meta.reqId }));
+      } else {
+        coveredHooks.add(covers.hook);
+      }
+    }
+    if ("skill" in covers) {
+      // A triggering eval set (a Universal SHOULD per sec 8.3); not gated by the G3 baseline.
+      claimed = true;
+    }
+    if (!claimed) {
+      out.push(finding(meta.id, SEVERITY.ERROR, `eval set ${s.file} "covers" declares none of "chain", "hook", or "skill"; declare what it exercises.`, { file: s.file, reqId: meta.reqId }));
+    }
   }
 
   for (const [caller, callee] of edges) {
-    const key = edgeKey(caller, callee);
-    if (!coveredChains.has(key)) {
-      out.push(finding(meta.id, SEVERITY.ERROR, `chain "${key}" has no eval/regression case under evals/ (every chained invocation MUST carry at least one eval case at Gold - G3). Add evals/<name>.eval.json with "covers": { "chain": ["${caller}", "${callee}"] }.`, { file: "evals/", reqId: meta.reqId }));
+    if (!coveredChains.has(edgeKey(caller, callee))) {
+      out.push(finding(meta.id, SEVERITY.ERROR, `chain "${renderEdge(caller, callee)}" has no eval/regression case under evals/ (every chained invocation MUST carry at least one eval case at Gold - G3). Add evals/<name>.eval.json with "covers": { "chain": ["${caller}", "${callee}"] }.`, { file: "evals/", reqId: meta.reqId }));
     }
   }
 

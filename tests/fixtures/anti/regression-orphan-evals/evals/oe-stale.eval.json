@@ -1,0 +1,7 @@
+{
+  "covers": { "chain": ["oe-a", "oe-b"] },
+  "description": "Covers a chain with no contract present at all (dangling).",
+  "cases": [
+    { "given": "a request", "expect": "oe-a invokes oe-b" }
+  ]
+}

@@ -37,6 +37,14 @@ test("regression-stale-eval: stale, malformed, and uncovered are all G3 errors",
   assert.ok(r.some((f) => f.reqId === "G3" && /rs-caller -> rs-worker/.test(f.message) && /no eval/.test(f.message)), "uncovered edge not flagged");
 });
 
+test("regression-orphan-evals: eval hygiene is enforced even with no contract", () => {
+  // No chain contract and no hooks, but evals/ has a malformed file and a dangling chain eval.
+  // The early conditional must not suppress these (the eval-hygiene false-negative the gate found).
+  const r = check(loadPlugin(path.join(FIXTURES, "anti/regression-orphan-evals")));
+  assert.ok(r.some((f) => f.reqId === "G3" && /not valid JSON/.test(f.message)), "malformed eval not flagged without a contract");
+  assert.ok(r.some((f) => f.reqId === "G3" && /stale eval/.test(f.message) && /oe-a -> oe-b/.test(f.message)), "dangling eval not flagged without a contract");
+});
+
 test("the toolkit's own chains are covered (dogfood) -> no G3 findings", () => {
   assert.deepEqual(check(loadPlugin(REPO_ROOT)), []);
 });

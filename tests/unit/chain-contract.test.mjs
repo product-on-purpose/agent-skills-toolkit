@@ -26,6 +26,11 @@ test("chain-orphan fixture: a frontmatter chain invocation not permitted by the 
   assert.ok(r.some((f) => f.reqId === "S4" && /co-caller/.test(f.message) && /co-worker/.test(f.message) && /orphan/.test(f.message)));
 });
 
+test("chain-scalar-callee fixture: a scalar (non-list) callee is a contract-shape error", () => {
+  const r = check(loadPlugin(path.join(FIXTURES, "anti/chain-scalar-callee")));
+  assert.ok(r.some((f) => f.reqId === "S4" && /cs-caller/.test(f.message) && /must map to a list/.test(f.message)));
+});
+
 test("golden subagent-fixture: chain permitted + subagent in known set - no findings", () => {
   // Empty result is the discriminating check: sf-caller -> sf-worker is permitted (no orphan),
   // and sf-worker (a subagent named as a contract callee) is not flagged as a phantom - which

@@ -6,7 +6,7 @@ tools:
   - Bash
 metadata:
   version: 0.1.0
-  tier: advanced
+  tier: convergent
   status: active
   agent-targets:
     - claude

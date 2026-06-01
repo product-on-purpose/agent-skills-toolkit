@@ -51,6 +51,12 @@ export function check(ctx) {
     if (!known.has(caller)) {
       out.push(finding(meta.id, SEVERITY.ERROR, `chain-permitted contract names caller "${caller}" but no on-disk component is known by that name (phantom; Standard sec 3.6).`, { file: "agents/_chain-permitted.yaml", reqId: meta.reqId }));
     }
+    // The value MUST be a YAML sequence (the list of components the caller may invoke, sec 3.6).
+    // A scalar shorthand (caller: callee) would otherwise be silently dropped here AND in the G3
+    // regression check, leaving a real permitted edge ungated; reject it as a contract-shape error.
+    if (callees !== null && callees !== undefined && !Array.isArray(callees)) {
+      out.push(finding(meta.id, SEVERITY.ERROR, `chain-permitted contract entry "${caller}" must map to a list of allowed invocations (a YAML sequence); got ${typeof callees} (Standard sec 3.6). Use "${caller}:\\n  - <callee>".`, { file: "agents/_chain-permitted.yaml", reqId: meta.reqId }));
+    }
     if (Array.isArray(callees)) {
       for (const callee of callees) {
         if (typeof callee === "string" && !known.has(callee)) {
