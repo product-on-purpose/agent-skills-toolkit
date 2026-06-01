@@ -6,9 +6,9 @@
 ## Current state
 
 - **Declared tier:** Convergent (Silver). `library.json` `tier: convergent`, `standard: 0.8`, version `0.2.0`.
-- **Self-validating:** yes. `node scripts/check.mjs` exits 0 (0 errors, 0 warnings); `tier-report` prints Convergent with an empty burndown; `npm test` = 154/154 (verified 2026-05-31).
+- **Self-validating:** yes. `node scripts/check.mjs` exits 0 (0 errors, 0 warnings); `tier-report` prints Convergent with an empty burndown; `npm test` = 169/169 (verified 2026-06-01).
 - **Installable:** not yet. Public `0.x` Silver preview is the next external milestone (Q-A); marketplace registration is reserved for the Gold `v1.0.0` tag (D8).
-- **On disk:** 15 skills (`askit-evaluate` + the `askit-build-*` family: skill, subagent, command, mcp, hook, chain-contract, agents-md, output-style, workflow + the Phase 4 governance/lifecycle set: `askit-backlog`, `askit-decision`, `askit-release`, `askit-migrate`, `askit-capability-advisor`), 7 subagents (Claude-only: `askit-skill-author`, `askit-evaluator`, `askit-quality-grader` (behavioral judge), `askit-reviewer`, and the discovery/ops roster `askit-explorer`, `askit-file-search`, `askit-file-ops`), 2 commands, a 19-check validation spine (incl. the G3 `library-regression` check) + generators + `tier-report`/`evaluate`/`check`, 163 tests with golden/anti fixtures + a Codex ingestion round-trip.
+- **On disk:** 23 skills (the full v1 catalog: `askit-evaluate`; the `askit-build-*` family - skill, subagent, command, mcp, hook, chain-contract, agents-md, output-style, workflow, docs, samples, statusline, settings; governance/lifecycle - `askit-backlog`, `askit-decision`, `askit-release`, `askit-deprecate`; lifecycle/onboarding - `askit-migrate`, `askit-init-plugin`, `askit-init-marketplace`, `askit-template-manager`; advise - `askit-capability-advisor`), 7 subagents (Claude-only: `askit-skill-author`, `askit-evaluator`, `askit-quality-grader` (behavioral judge), `askit-reviewer`, `askit-explorer`, `askit-file-search`, `askit-file-ops`), 2 commands, a 20-check validation spine (Bronze U1-U11, Silver S1-S7, Gold G3 `library-regression` + G6 `deprecation`) + generators + `tier-report`/`evaluate`/`check`, 169 tests with golden/anti fixtures + a Codex ingestion round-trip.
 
 ## Scope decision (2026-05-30, maintainer)
 
@@ -35,8 +35,8 @@
 | 3C-2c | build-mcp + sec 3.9 correction + component-level S6 | DONE | `v1-build` |
 | 3C-2d | build-hook, build-chain-contract, build-agents-md, build-output-style, build-workflow | DONE | `v1-build` (10 skills) |
 | 3 gate | Phase 3 (Convergent) builder set complete; Codex hardening applied | DONE | `f35bfaf`; next: `0.3` Silver preview (go-public decision) |
-| 4 | Governance + lifecycle + advise + init-* + judgment subagents + full-catalog tail | IN PROGRESS | `v1-build`: governance/lifecycle + `askit-migrate` + `askit-capability-advisor` + the 7-subagent roster done; design calls resolved (ADR 0023); **Sub-phase A (eval engine) done** (Layer 1 G3 `library-regression` + Layer 2 behavioral/review modes + `askit-quality-grader`). Next: Sub-phase B (docs-site + samples), then C (init-*). |
-| 5 | Gold G1-G7 + self-conformance + docs/visuals complete + v1.0.0 | PENDING | - |
+| 4 | Governance + lifecycle + advise + init-* + judgment subagents + full-catalog tail | DONE (catalog) | `v1-build`: full v1 catalog built (23 skills + 7 subagents). ADR 0023; Sub-phase A eval engine (G3 + Layer 2 + `askit-quality-grader`); B (build-docs + build-samples); C (init-plugin + init-marketplace); tail (statusline, settings, deprecate + G6, template-manager). Remaining: the live Astro site build + a Phase-4-close adversarial gate. |
+| 5 | Gold G1-G7 + self-conformance + docs/visuals complete + v1.0.0 | PENDING | the toolkit declares `advanced` and closes G1/G2/G4/G5; G3/G6 checks already exist |
 
 ## DoD burndown (full-catalog v1, consolidated taxonomy)
 
@@ -55,29 +55,29 @@ Status: `done` on disk | `designed` (design doc exists) | `pending`. Areas refer
 | 8 | `askit-build-chain-contract` | skill | both | done |
 | 10/24 | `askit-build-agents-md` | skill | both | done |
 | 12 | `askit-build-output-style` | skill | claude-only | done |
-| 13 | `askit-build-statusline` | skill | claude-only | pending (full-catalog) |
-| 14 | `askit-build-settings` + permission advice | skill | both(subset) | pending (full-catalog) |
-| 11 | references/assets (likely a build-skill mode) | mode | both | pending |
-| 1 | `askit-init-marketplace` | skill | both | pending |
-| 2 | plugin scaffolding (folded into init-plugin) | skill | both | pending |
-| 23 | `askit-init-plugin` (interview/questionnaire/hybrid) | skill | both | pending |
+| 13 | `askit-build-statusline` | skill | claude-only | done |
+| 14 | `askit-build-settings` + permission advice | skill | both(subset) | done |
+| 11 | references/assets (a build-skill / build-samples concern) | mode | both | done (covered by build-skill + build-samples) |
+| 1 | `askit-init-marketplace` | skill | both | done |
+| 2 | plugin scaffolding (folded into init-plugin) | skill | both | done (folded into `askit-init-plugin`) |
+| 23 | `askit-init-plugin` (interview/questionnaire/hybrid) | skill | both | done |
 | 18 | `askit-backlog` (intake/triage/prune) | skill | both | done |
 | 24 | `askit-decision` (ADR/RFC) | skill | both | done |
 | 16/20/26 | `askit-release` (gate/version/changelog/release-notes) | skill | both | done |
 | 0 | `askit-migrate` (adopt foreign repo) | skill | both | done |
 | X | `askit-capability-advisor` (resolved to a skill, not a subagent) | skill | both | done |
-| 15 | `askit-build-docs` (readme/quickstart/tutorial/how-to/reference/glossary/faq/troubleshooting/architecture/site modes) | skill | both | pending |
-| 19 | `askit-build-samples` (threads-aware golden/anti generator + drift validate) | skill | both | pending |
+| 15 | `askit-build-docs` (readme/quickstart/tutorial/how-to/reference/glossary/faq/troubleshooting/architecture/site modes) | skill | both | done (site mode = the pinned Astro Starlight recipe; live site is a build-verified slice) |
+| 19 | `askit-build-samples` (threads-aware golden/anti generator + drift validate) | skill | both | done |
 | - | `askit-reviewer` | subagent | claude | done |
 | - | `askit-quality-grader` | subagent | claude | done (rebuilt as the behavioral judge in eval engine Layer 2; ADR 0023 closed backlog N1) |
 | - | `askit-explorer`, `askit-file-search`, `askit-file-ops` | subagents | claude | done |
 | 17 | eval-harness + library-regression (behavioral eval layer) | spine+skill | both | done (Layer 1 G3 `library-regression` check + `evals/` format; Layer 2 `askit-evaluate` behavioral/review modes + `askit-quality-grader` judge) |
 | 19 | (folded into `askit-build-samples`, above) | - | - | - |
-| 21 | deprecation policy + status handling | skill+check | both | pending |
-| 25 | template-manager | skill | both | pending |
-| 15 | docs + docs-site -> `askit-build-docs` (above); changelog/notes -> `askit-release` modes | skill/mode | both | pending |
+| 21 | deprecation policy + status handling | skill+check | both | done (`askit-deprecate` + the G6 `deprecation` check) |
+| 25 | template-manager | skill | both | done (`askit-template-manager`) |
+| 15 | docs + docs-site -> `askit-build-docs` (above); changelog/notes -> `askit-release` modes | skill/mode | both | done |
 
-Rough count: 15 of ~19-21 builder/governance skills (the +2 docs/samples skills bring the consolidated set to ~19) and all 7 planned subagents are on disk (`askit-quality-grader` rebuilt as the behavioral judge in eval engine Layer 2). The exact final count is fixed by RELEASE-PLAN v0.2 wave planning.
+Count: the full v1 catalog is on disk - 23 skills and all 7 planned subagents. The build areas above are all `done`; what remains for Phase 5 (Gold) is conformance work on the toolkit itself (declare `advanced`, close G1/G2/G4/G5) plus the live Astro site build, not new catalog components.
 
 ## Cross-cutting workstreams (added by the 2026-05-30 audit)
 
@@ -92,9 +92,9 @@ Rough count: 15 of ~19-21 builder/governance skills (the +2 docs/samples skills 
 
 ## Next action
 
-Design calls RESOLVED (ADR 0023, 2026-06-01): init-plugin uses a structural/anatomy seed-match; the docs-site is a full Astro Starlight site in v1; the eval engine ships full in v1. Three sub-phases, each designed then built slice-by-slice with an adversarial gate at each boundary:
-1. **Sub-phase A (eval engine) - DONE.** Layer 1: the deterministic G3 `library-regression` check + `evals/` format (the CI gate stays deterministic). Layer 2: `askit-evaluate` behavioral + review modes (opt-in, LLM-judged, beside the gate, Design Principle 3) delegating to `askit-quality-grader` (rebuilt as the behavioral judge) and `askit-reviewer`. The new chain edges carry eval sets (dogfoods the G3 check).
-2. **Sub-phase B (docs-site) - NEXT.** `askit-build-docs` (incl. type=site, a full Astro Starlight site copied/adapted from `../pm-skills`, wired to GitHub Pages) + `askit-build-samples` (threads-aware golden/anti generator + drift validate).
-3. **Sub-phase C (init).** `askit-init-plugin` (interview/questionnaire/hybrid + anatomy-match seed regeneration) + `askit-init-marketplace`.
+**The full v1 catalog is built (Phase 4 complete): 23 skills + 7 subagents, gate green at Convergent, 169 tests.** Sub-phase A (eval engine: G3 `library-regression` + Layer 2 behavioral/review + `askit-quality-grader`), B (`askit-build-docs` incl. the Astro Starlight `site` recipe + `askit-build-samples`), C (`askit-init-plugin` with the asserted anatomy test + `askit-init-marketplace`), and the tail (`askit-build-statusline`, `askit-build-settings`, `askit-deprecate` + the G6 `deprecation` check, `askit-template-manager`) are all on `v1-build`.
 
-Remaining tail after: `askit-build-statusline`, `askit-build-settings`, deprecation policy + check, `template-manager`. (The Phase-4 Codex adversarial pass was cancelled after hanging ~1h41m; the parallel Claude review covered the same four axes and its verified findings were fixed.)
+Remaining to close Phase 4 and reach Phase 5:
+1. **Phase-4-close adversarial gate** over the tail + Sub-phase B/C components (especially the `deprecation` check soundness), fixing CRITICAL/MAJOR findings.
+2. **Stand up the toolkit's own live Astro Starlight site** (a build-verified infra slice: `npm install` the pinned stack from `references/docs-site-recipe.md`, scaffold `site/` + `astro.config.mjs` + `deploy-pages.yml`, confirm `npm run build` is green). This is the one piece deferred from the in-session build because it needs a real Astro build.
+3. **Phase 5 (Gold):** flip the toolkit to declare `tier: advanced` and close the remaining Gold requirements - G1 (hooks documented; the toolkit ships none yet), G2 (self-hosting CI green at advanced), G4 (generated INDEX + manifest drift), G5 (RELEASE-NOTES). G3 and G6 checks already exist; the toolkit already satisfies G3 (chains covered) and G6 (all components active). Then the `v1.0.0` Gold tag + the go-public decision (still NO per the maintainer until an explicit go).
