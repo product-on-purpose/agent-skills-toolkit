@@ -45,6 +45,11 @@
       "description": "Creates and improves Claude subagents (agents/<name>.md) to the Advanced Skill Library Standard. Use when you need to author a new subagent, scaffold an agents/ delegate, declare its tools and chain, or raise an existing subagent's conformance."
     },
     {
+      "name": "askit-build-workflow",
+      "path": "skills/askit-build-workflow/SKILL.md",
+      "description": "Creates and improves workflows (an ordered multi-skill arc) for a plugin to the Advanced Skill Library Standard. Use when a recurring sequence of skills is worth formalizing as a workflow, when you need to author a _workflows file with steps and exit criteria, or to resolve S5 workflow findings."
+    },
+    {
       "name": "askit-evaluate",
       "path": "skills/askit-evaluate/SKILL.md",
       "description": "Evaluates a skill or plugin against the Advanced Skill Library Standard, producing per-rule findings, a tier result, and remediation steps. Use when you want to audit conformance, check a skill or plugin, or see what blocks the next tier."

@@ -19,7 +19,8 @@
       { "name": "askit-build-hook", "path": "skills/askit-build-hook/SKILL.md", "version": "0.1.0", "tier": "universal", "status": "active" },
       { "name": "askit-build-chain-contract", "path": "skills/askit-build-chain-contract/SKILL.md", "version": "0.1.0", "tier": "universal", "status": "active" },
       { "name": "askit-build-agents-md", "path": "skills/askit-build-agents-md/SKILL.md", "version": "0.1.0", "tier": "universal", "status": "active" },
-      { "name": "askit-build-output-style", "path": "skills/askit-build-output-style/SKILL.md", "version": "0.1.0", "tier": "universal", "status": "active" }
+      { "name": "askit-build-output-style", "path": "skills/askit-build-output-style/SKILL.md", "version": "0.1.0", "tier": "universal", "status": "active" },
+      { "name": "askit-build-workflow", "path": "skills/askit-build-workflow/SKILL.md", "version": "0.1.0", "tier": "universal", "status": "active" }
     ],
     "subagents": [
       { "name": "askit-skill-author", "path": "agents/askit-skill-author.md", "version": "0.1.0", "tier": "convergent", "status": "active" },
