@@ -6,9 +6,9 @@
 ## Current state
 
 - **Declared tier:** Convergent (Silver). `library.json` `tier: convergent`, `standard: 0.8`, version `0.2.0`.
-- **Self-validating:** yes. `node scripts/check.mjs` exits 0 (0 errors, 0 warnings); `tier-report` prints Convergent with an empty burndown; `npm test` = 147/147 (verified 2026-05-31).
+- **Self-validating:** yes. `node scripts/check.mjs` exits 0 (0 errors, 0 warnings); `tier-report` prints Convergent with an empty burndown; `npm test` = 154/154 (verified 2026-05-31).
 - **Installable:** not yet. Public `0.x` Silver preview is the next external milestone (Q-A); marketplace registration is reserved for the Gold `v1.0.0` tag (D8).
-- **On disk:** 5 skills (build-skill, evaluate, build-subagent, build-command, build-mcp), 2 subagents (Claude-only), 2 commands, the 16-check validation spine + generators + `tier-report`/`evaluate`/`check`, 126 tests with golden/anti fixtures + a Codex ingestion round-trip.
+- **On disk:** 10 skills (`askit-evaluate` + the `askit-build-*` family: skill, subagent, command, mcp, hook, chain-contract, agents-md, output-style, workflow), 2 subagents (Claude-only), 2 commands, an 18-check validation spine + generators + `tier-report`/`evaluate`/`check`, 154 tests with golden/anti fixtures + a Codex ingestion round-trip.
 
 ## Scope decision (2026-05-30, maintainer)
 
@@ -33,7 +33,8 @@
 | 3C-2a | build-subagent + dogfood subagents (Claude-only) | DONE | `c2dca9b` (#63) |
 | 3C-2b | build-command + builder-pattern.md | DONE | `6b9d419` (#74) |
 | 3C-2c | build-mcp + sec 3.9 correction + component-level S6 | DONE | `v1-build` |
-| 3C-2d+ | build-hook, build-workflow, build-chain-contract, build-agents-md, build-output-style | PENDING | - |
+| 3C-2d | build-hook, build-chain-contract, build-agents-md, build-output-style, build-workflow | DONE | `v1-build` (10 skills) |
+| 3 gate | Phase 3 (Convergent) builder set complete; Codex hardening applied | DONE | `f35bfaf`; next: `0.3` Silver preview (go-public decision) |
 | 4 | Governance + lifecycle + advise + init-* + judgment subagents + full-catalog tail | PENDING | - |
 | 5 | Gold G1-G7 + self-conformance + docs/visuals complete + v1.0.0 | PENDING | - |
 
