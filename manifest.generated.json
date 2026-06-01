@@ -65,6 +65,11 @@
       "description": "Evaluates a skill or plugin against the Advanced Skill Library Standard, producing per-rule findings, a tier result, and remediation steps. Use when you want to audit conformance, check a skill or plugin, or see what blocks the next tier."
     },
     {
+      "name": "askit-migrate",
+      "path": "skills/askit-migrate/SKILL.md",
+      "description": "Assesses an existing skills repository against the Advanced Skill Library Standard, produces a staged bring-to-conformance plan, and writes the minimal canonical manifest so the repo becomes gradeable. Use when adopting a foreign or ad-hoc skills repo, migrating a Claude-only plugin toward cross-agent conformance, or planning a Bronze-to-Silver upgrade path."
+    },
+    {
       "name": "askit-release",
       "path": "skills/askit-release/SKILL.md",
       "description": "Builds and validates a plugin's release by computing the version, promoting the changelog, curating the release notes, and running the readiness gate, to the Advanced Skill Library Standard. Use when cutting a release, bumping the plugin version, updating the changelog or release notes, or checking release readiness."

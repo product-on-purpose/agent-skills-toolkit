@@ -10,6 +10,7 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ## [Unreleased]
 
 ### Added
+- `askit-migrate` skill (Phase 4): adopts an existing skills repo into a conformant plugin (assess/plan/adopt modes, area 0 / Standard sec 2-5). `assess` inventories components and reports the gap by tier; `plan` orders a staged Bronze-to-Silver roadmap naming the `askit-build-*` skill or check that closes each gap; `adopt` writes the minimal canonical `library.json` + a root `AGENTS.md` so the conformance core can grade the repo. Distinct from `askit-init-plugin` (greenfield); migrate reconciles what already exists.
 - `askit-release` skill (Phase 4): runs a plugin's release (version/changelog/notes/gate modes, Standard sec 4.3/7.4/10.6 + ADR 0022) - the deterministic max(component-bump) version, the CHANGELOG/RELEASE-NOTES split, and the release-readiness gate.
 - `askit-decision` skill (Phase 4): authors numbered MADR ADRs + RFCs in `docs/internal/` and the mandatory 3-line TL;DR (adr/rfc/summary modes, Standard sec 10.4 + ADR 0021). `templates/adr.md` scaffold. The toolkit dogfoods it (ADRs 0020-0022).
 - `askit-backlog` skill (Phase 4): manages the two backlogs (new-component proposals + enhancements, Standard sec 7.1; intake/triage/prune modes) with the why-gate that routes would-be micro-skills to enhancements.
