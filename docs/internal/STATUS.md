@@ -5,10 +5,10 @@
 
 ## Current state
 
-- **Declared tier:** Convergent (Silver). `library.json` `tier: convergent`, `standard: 0.8`, version `0.2.0`.
-- **Self-validating:** yes. `node scripts/check.mjs` exits 0 (0 errors, 0 warnings); `tier-report` prints Convergent with an empty burndown; `npm test` = 173/173 (verified 2026-06-01).
-- **Installable:** not yet. Public `0.x` Silver preview is the next external milestone (Q-A); marketplace registration is reserved for the Gold `v1.0.0` tag (D8).
-- **On disk:** 23 skills (the full v1 catalog: `askit-evaluate`; the `askit-build-*` family - skill, subagent, command, mcp, hook, chain-contract, agents-md, output-style, workflow, docs, samples, statusline, settings; governance/lifecycle - `askit-backlog`, `askit-decision`, `askit-release`, `askit-deprecate`; lifecycle/onboarding - `askit-migrate`, `askit-init-plugin`, `askit-init-marketplace`, `askit-template-manager`; advise - `askit-capability-advisor`), 7 subagents (Claude-only: `askit-skill-author`, `askit-evaluator`, `askit-quality-grader` (behavioral judge), `askit-reviewer`, `askit-explorer`, `askit-file-search`, `askit-file-ops`), 2 commands, a 21-check validation spine (Bronze U1-U11, Silver S1-S8 incl. S8 `components-mirror`, Gold G3 `library-regression` + G6 `deprecation`) + generators + `tier-report`/`evaluate`/`check`, 173 tests with golden/anti fixtures + a Codex ingestion round-trip.
+- **Declared tier:** Advanced (Gold). `library.json` `tier: advanced`, `standard: 0.8`, version `0.3.0`. Self-proving: the toolkit passes its own Gold gate.
+- **Self-validating:** yes. `node scripts/check.mjs` exits 0 (0 errors, 0 warnings); `tier-report` prints Advanced with an empty burndown (satisfies universal + convergent + advanced); `npm test` = 188/188 (verified 2026-06-01).
+- **Installable:** not yet. The repo is public at a Gold-grade `0.x` preview; the formal `v1.0.0` Gold release tag + marketplace registration (D8) remain a maintainer-gated step.
+- **On disk:** 23 skills (the full v1 catalog: `askit-evaluate`; the `askit-build-*` family - skill, subagent, command, mcp, hook, chain-contract, agents-md, output-style, workflow, docs, samples, statusline, settings; governance/lifecycle - `askit-backlog`, `askit-decision`, `askit-release`, `askit-deprecate`; lifecycle/onboarding - `askit-migrate`, `askit-init-plugin`, `askit-init-marketplace`, `askit-template-manager`; advise - `askit-capability-advisor`), 7 subagents (Claude-only: `askit-skill-author`, `askit-evaluator`, `askit-quality-grader` (behavioral judge), `askit-reviewer`, `askit-explorer`, `askit-file-search`, `askit-file-ops`), 2 commands, a 25-check validation spine (Bronze U1-U11, Silver S1-S8, Gold G1-G7: `hook-documentation` G1, `self-hosting` G2, `library-regression` G3, `index-drift` G4, `release-notes` G5, `deprecation` G6) + generators + `tier-report`/`evaluate`/`check`, 188 tests with golden/anti fixtures + a Codex ingestion round-trip.
 
 ## Scope decision (2026-05-30, maintainer)
 
@@ -36,7 +36,7 @@
 | 3C-2d | build-hook, build-chain-contract, build-agents-md, build-output-style, build-workflow | DONE | `v1-build` (10 skills) |
 | 3 gate | Phase 3 (Convergent) builder set complete; Codex hardening applied | DONE | `f35bfaf`; next: `0.3` Silver preview (go-public decision) |
 | 4 | Governance + lifecycle + advise + init-* + judgment subagents + full-catalog tail | DONE (catalog) | `v1-build`: full v1 catalog built (23 skills + 7 subagents). ADR 0023; Sub-phase A eval engine (G3 + Layer 2 + `askit-quality-grader`); B (build-docs + build-samples); C (init-plugin + init-marketplace); tail (statusline, settings, deprecate + G6, template-manager). Remaining: the live Astro site build + a Phase-4-close adversarial gate. |
-| 5 | Gold G1-G7 + self-conformance + docs/visuals complete + v1.0.0 | PENDING | the toolkit declares `advanced` and closes G1/G2/G4/G5; G3/G6 checks already exist |
+| 5 | Gold G1-G7 + self-conformance + v1.0.0 | DONE (self-conformance) | toolkit declares `tier: advanced`; full Gold gate G1-G7 green (0/0), 188 tests; PR #75. Remaining: the `v1.0.0` release tag (maintainer-gated) |
 
 ## DoD burndown (full-catalog v1, consolidated taxonomy)
 
@@ -96,6 +96,9 @@ Count: the full v1 catalog is on disk - 23 skills and all 7 planned subagents. T
 
 **PUBLIC as of 2026-06-01 (maintainer go):** the repo is public at Silver (the planned 0.x preview) at https://github.com/product-on-purpose/agent-skills-toolkit. `v1-build` was merged to `main` (now the default); `main` is branch-protected (PR required, the `validate` CI check required and strict, no force-push or deletion, linear history, conversation resolution; `enforce_admins: false` keeps an owner escape hatch). The repo description, homepage, and topics are set. The Astro Starlight docs site (`site/`) deploys to GitHub Pages (Actions source enabled) at https://product-on-purpose.github.io/agent-skills-toolkit/. Session logs were moved to gitignored `_agent-context/` and purged from history before the flip; `docs/internal/` is intentionally the tracked public-internal folder.
 
-Remaining to reach Gold (Phase 5):
-1. **Phase 5 (Gold):** flip the toolkit to declare `tier: advanced` and close the remaining Gold requirements - G1 (hooks documented; the toolkit ships none yet), G2 (self-hosting CI green at advanced), G4 (generated INDEX + manifest drift), G5 (RELEASE-NOTES). G3 and G6 checks already exist; the toolkit already satisfies G3 (chains covered) and G6 (all components active). Then the `v1.0.0` Gold tag.
-2. **Docs-site depth:** mount the full Diataxis `docs/` tree into the site in-place (needs frontmatter titles added to the reference/how-to docs); the v1 site is a curated public surface that links out to the full docs on GitHub.
+**Gold self-conformance ACHIEVED (2026-06-01):** the toolkit declares `tier: advanced` and passes the full Gold gate (G1-G7) - built the missing Gold checks (G1 `hook-documentation`, G2 `self-hosting`, G4 `index-drift`, G5 `release-notes`; G3 + G6 already existed) so the claim is non-vacuous, then flipped the tier and bumped to `0.3.0`. Gate green at Advanced, 188/188. On branch `phase-5-gold` / PR #75.
+
+Remaining (maintainer-gated):
+1. **Cut the formal `v1.0.0` Gold release tag** + marketplace registration (D8). The grade is Gold; the release tag is a separate decision.
+2. **Final adversarial gate** on the Phase 5 changes before the `v1.0.0` tag (the Gold-check soundness especially).
+3. **Docs-site depth:** mount the full Diataxis `docs/` tree into the site in-place (needs frontmatter titles on the reference/how-to docs); the current site is a curated public surface linking to the full docs on GitHub.
