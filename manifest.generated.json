@@ -45,6 +45,11 @@
       "description": "Creates and improves Claude Code output styles (Claude-only response-mode definitions) to the Advanced Skill Library Standard. Use when you need to author a custom output style for Claude Code, define a response mode, or improve an existing output style."
     },
     {
+      "name": "askit-build-samples",
+      "path": "skills/askit-build-samples/SKILL.md",
+      "description": "Creates and validates a skill's sample sets and eval sets (golden examples, anti-examples, and triggering cases) and detects drift against current behavior. Use when generating samples for a skill, building an eval set, or checking samples for drift."
+    },
+    {
       "name": "askit-build-skill",
       "path": "skills/askit-build-skill/SKILL.md",
       "description": "Creates and improves agentskills.io skills to the Advanced Skill Library Standard. Use when you need to author a new SKILL.md, scaffold a skill directory, or raise an existing skill's conformance and description quality."
