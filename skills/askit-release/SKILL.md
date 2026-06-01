@@ -1,6 +1,6 @@
 ---
 name: askit-release
-description: Runs a plugin's release - promotes the changelog, curates release notes, computes the version deterministically, and runs the release-readiness gate - to the Advanced Skill Library Standard. Use when cutting a release, bumping the plugin version, updating CHANGELOG or RELEASE-NOTES, or checking release readiness.
+description: Builds and validates a plugin's release by computing the version, promoting the changelog, curating the release notes, and running the readiness gate, to the Advanced Skill Library Standard. Use when cutting a release, bumping the plugin version, updating the changelog or release notes, or checking release readiness.
 metadata:
   version: 0.1.0
   tier: universal

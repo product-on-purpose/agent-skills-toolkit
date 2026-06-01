@@ -7,7 +7,7 @@
     {
       "name": "askit-backlog",
       "path": "skills/askit-backlog/SKILL.md",
-      "description": "Manages a plugin's two backlogs (new-component proposals and enhancements) to the Advanced Skill Library Standard. Use when capturing a new-component proposal through the why-gate, triaging or prioritizing backlog items, or pruning stale or completed entries."
+      "description": "Creates, triages, and prunes a plugin's two backlogs (new-component proposals and enhancements) to the Advanced Skill Library Standard. Use when capturing a new-component proposal through the why-gate, prioritizing backlog items, or removing stale or completed entries."
     },
     {
       "name": "askit-build-agents-md",
@@ -67,7 +67,7 @@
     {
       "name": "askit-release",
       "path": "skills/askit-release/SKILL.md",
-      "description": "Runs a plugin's release - promotes the changelog, curates release notes, computes the version deterministically, and runs the release-readiness gate - to the Advanced Skill Library Standard. Use when cutting a release, bumping the plugin version, updating CHANGELOG or RELEASE-NOTES, or checking release readiness."
+      "description": "Builds and validates a plugin's release by computing the version, promoting the changelog, curating the release notes, and running the readiness gate, to the Advanced Skill Library Standard. Use when cutting a release, bumping the plugin version, updating the changelog or release notes, or checking release readiness."
     }
   ],
   "commands": [

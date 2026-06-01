@@ -1,6 +1,6 @@
 ---
 name: askit-backlog
-description: Manages a plugin's two backlogs (new-component proposals and enhancements) to the Advanced Skill Library Standard. Use when capturing a new-component proposal through the why-gate, triaging or prioritizing backlog items, or pruning stale or completed entries.
+description: Creates, triages, and prunes a plugin's two backlogs (new-component proposals and enhancements) to the Advanced Skill Library Standard. Use when capturing a new-component proposal through the why-gate, prioritizing backlog items, or removing stale or completed entries.
 metadata:
   version: 0.1.0
   tier: universal
