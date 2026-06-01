@@ -4,6 +4,10 @@
 _local/
 _LOCAL/
 
+# Agent working context kept out of the public repo (session logs live here).
+# docs/internal/ is the tracked "public internal" folder; this is the private one.
+_agent-context/
+
 # claude-mem local observation store (immutable session record, not source)
 .memsearch/
 
