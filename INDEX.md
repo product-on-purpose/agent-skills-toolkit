@@ -55,6 +55,7 @@ bootstrap exemption (now ended).
   - [`askit-init-plugin`](skills/askit-init-plugin/) - onboard a maintainer and scaffold a Bronze-anatomy starting plugin (interview/questionnaire/hybrid modes).
   - [`askit-init-marketplace`](skills/askit-init-marketplace/) - scaffold and validate a marketplace index that catalogs plugins (create/validate modes; CC + Codex native formats).
   - [`askit-build-statusline`](skills/askit-build-statusline/) - author a Claude Code status line script + settings registration (Claude-only; create/improve modes).
+  - [`askit-build-settings`](skills/askit-build-settings/) - author settings + permissions per target and recommend least-privilege allowlists (create/improve + permission advice).
   - Core loop: `askit-build-skill` (create) -> `askit-evaluate` -> `askit-build-skill` (improve).
 - **Subagents (Claude-only):**
   - [`askit-skill-author`](agents/askit-skill-author.md) - bounded authoring delegate behind `askit-build-skill`; carries `Read`/`Write`/`Edit`/`Bash`.

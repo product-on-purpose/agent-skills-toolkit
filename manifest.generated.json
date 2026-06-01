@@ -50,6 +50,11 @@
       "description": "Creates and validates a skill's sample sets and eval sets (golden examples, anti-examples, and triggering cases) and detects drift against current behavior. Use when generating samples for a skill, building an eval set, or checking samples for drift."
     },
     {
+      "name": "askit-build-settings",
+      "path": "skills/askit-build-settings/SKILL.md",
+      "description": "Creates and improves a plugin's settings and permissions per target and recommends least-privilege allowlists. Use when authoring settings, scoping permissions, wiring environment variables, or registering hooks in settings."
+    },
+    {
       "name": "askit-build-skill",
       "path": "skills/askit-build-skill/SKILL.md",
       "description": "Creates and improves agentskills.io skills to the Advanced Skill Library Standard. Use when you need to author a new SKILL.md, scaffold a skill directory, or raise an existing skill's conformance and description quality."
