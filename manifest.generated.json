@@ -55,6 +55,11 @@
       "description": "Creates and improves agentskills.io skills to the Advanced Skill Library Standard. Use when you need to author a new SKILL.md, scaffold a skill directory, or raise an existing skill's conformance and description quality."
     },
     {
+      "name": "askit-build-statusline",
+      "path": "skills/askit-build-statusline/SKILL.md",
+      "description": "Creates and improves a Claude Code status line script and its settings registration. Use when authoring a status line, customizing what the status line shows, or wiring its settings entry."
+    },
+    {
       "name": "askit-build-subagent",
       "path": "skills/askit-build-subagent/SKILL.md",
       "description": "Creates and improves Claude subagents (agents/<name>.md) to the Advanced Skill Library Standard. Use when you need to author a new subagent, scaffold an agents/ delegate, declare its tools and chain, or raise an existing subagent's conformance."
