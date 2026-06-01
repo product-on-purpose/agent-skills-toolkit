@@ -1,0 +1,8 @@
+{
+  "name": "ci-npm-gate",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "check": "node scripts/check.mjs"
+  }
+}

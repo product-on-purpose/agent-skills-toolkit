@@ -11,10 +11,9 @@ test("the repository seed passes the Bronze gate", () => {
   assert.equal(r.exitCode, 0);
 });
 
-test("the repository self-validates at Convergent (Silver): no convergent blockers remain", () => {
+test("the repository self-validates at Advanced (Gold): no blockers remain", () => {
   const t = computeTierReport(process.cwd());
-  assert.equal(t.tier, "convergent");
-  assert.ok(t.satisfies.includes("universal") && t.satisfies.includes("convergent"));
-  const conv = t.blocked.convergent ?? [];
-  assert.equal(conv.length, 0, "no convergent blockers expected");
+  assert.equal(t.tier, "advanced");
+  assert.ok(t.satisfies.includes("universal") && t.satisfies.includes("convergent") && t.satisfies.includes("advanced"));
+  assert.deepEqual(t.blocked, {}, "no blockers expected at Gold: " + JSON.stringify(t.blocked));
 });

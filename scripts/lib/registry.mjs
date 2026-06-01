@@ -19,6 +19,10 @@ import * as mcpValid from "../checks/mcp-valid.mjs";
 import * as libraryRegression from "../checks/library-regression.mjs";
 import * as deprecation from "../checks/deprecation.mjs";
 import * as componentsMirror from "../checks/components-mirror.mjs";
+import * as hookDocumentation from "../checks/hook-documentation.mjs";
+import * as selfHosting from "../checks/self-hosting.mjs";
+import * as releaseNotes from "../checks/release-notes.mjs";
+import * as indexDrift from "../checks/index-drift.mjs";
 
 /** Ordered checks. Each exports { meta:{id,tier,reqId}, check(ctx)->Finding[] }. */
 export const CHECKS = [
@@ -28,6 +32,7 @@ export const CHECKS = [
   perTargetPresence,
   versionMatch, noDashes, mcpValid,
   libraryRegression, deprecation,
+  hookDocumentation, selfHosting, releaseNotes, indexDrift,
 ];
 
 export function runAllChecks(ctx) {
