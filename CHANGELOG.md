@@ -10,6 +10,7 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ## [Unreleased]
 
 ### Added
+- `askit-build-chain-contract` skill (Phase 3C-2d): authors a plugin's chain contract (`agents/_chain-permitted.yaml`, Standard sec 3.6; create/improve) and resolves S4 orphan/phantom findings. `templates/chain-permitted.yaml` scaffold.
 - `askit-build-hook` skill (Phase 3C-2d): authors event-driven hooks (Advanced tier; create/improve modes) per Standard sec 3.5 - event/trigger/scope/failure documentation, actionable block messages, idempotency, least privilege. Codex hook ingestion is verified at build time (known caveat); the deterministic hook check ships with Gold (Phase 5). `templates/hooks.json` scaffold.
 - `askit-build-mcp` skill (Phase 3C-2c): authors a plugin's MCP servers as one portable `.mcp.json` and wires the per-target `mcpServers` manifest pointer (create/improve modes); `templates/mcp.json` scaffold.
 - U11 `mcp-valid` check (Universal): each `.mcp.json` server is well-formed (stdio has `command`, http has `url`) and commits no inline secret. S3 now validates `components.mcpServers` against `.mcp.json`; S6 gains a component-level rule requiring the per-target `mcpServers` pointer when `.mcp.json` ships. `gen-manifest` emits the pointer + indexes servers (conditional, so the toolkit's own manifests are unaffected).

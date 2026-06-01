@@ -5,6 +5,11 @@
   "standard": "0.8",
   "skills": [
     {
+      "name": "askit-build-chain-contract",
+      "path": "skills/askit-build-chain-contract/SKILL.md",
+      "description": "Creates and improves a plugin's chain contract (agents/_chain-permitted.yaml) to the Advanced Skill Library Standard. Use when a skill or subagent invokes another component and you need to declare the permitted inter-component invocations, or to resolve S4 orphan or phantom findings."
+    },
+    {
       "name": "askit-build-command",
       "path": "skills/askit-build-command/SKILL.md",
       "description": "Creates and improves Claude slash commands (commands/<name>.md) that map to a skill, to the Advanced Skill Library Standard. Use when you need to give a skill an explicit /command entry point or raise an existing command's conformance."

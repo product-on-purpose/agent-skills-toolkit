@@ -1,0 +1,5 @@
+# Permitted inter-component invocations (Standard sec 3.6).
+# One entry per caller; list the components it MAY invoke. Omit this file entirely
+# if no component invokes another (the conditional MUST: no empty governance files).
+example-caller-skill:
+  - example-callee-subagent

@@ -29,8 +29,8 @@ Components present on disk:
   (assess a skill or plugin against the Standard), `askit-build-subagent`
   (author and improve Claude subagents), `askit-build-command` (author and
   improve Claude slash commands), `askit-build-mcp` (author a plugin's MCP
-  servers as a portable `.mcp.json`), and `askit-build-hook` (author event-driven
-  hooks). Core loop: `askit-build-skill`
+  servers as a portable `.mcp.json`), `askit-build-hook` (author event-driven
+  hooks), and `askit-build-chain-contract` (author the chain contract). Core loop: `askit-build-skill`
   (create) -> `askit-evaluate` -> `askit-build-skill` (improve).
 - **Subagents:** `askit-skill-author` (the bounded authoring delegate behind
   `askit-build-skill`) and `askit-evaluator` (the read-only assessment delegate behind
