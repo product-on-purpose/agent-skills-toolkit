@@ -2,9 +2,9 @@
 
 Curated, user-facing highlights. For the full technical history see [`CHANGELOG.md`](CHANGELOG.md).
 
-## Unreleased - public Silver preview
+## Unreleased - public Gold-grade preview
 
-The first public preview of `agent-skills-toolkit`. The toolkit self-validates at the Silver (Convergent) tier and is climbing to Gold.
+The first public preview of `agent-skills-toolkit`. The toolkit self-validates at the Gold (Advanced) tier - it passes its own Bronze, Silver, and Gold checks (G1-G7) in CI, a self-proving example of the Standard it defines.
 
 ### What you can do today
 
@@ -21,4 +21,4 @@ The first public preview of `agent-skills-toolkit`. The toolkit self-validates a
 - An eval engine: a deterministic chain/hook regression check plus an opt-in behavioral and review layer beside the gate.
 - A live documentation site.
 
-This is a preview at Silver; Gold (`v1.0.0`) is in progress.
+This is a Gold-grade `0.x` preview; the formal `v1.0.0` Gold release tag is pending.

@@ -39,12 +39,14 @@ a plugin actually satisfies and lists exactly what blocks the next one.
 
 ## Status
 
-**Public `0.x` preview (Silver).** This repository declares `tier: convergent`
-(Silver) and self-validates at Convergent in CI - S1-S6 gate green, `tier-report`
-reports `convergent` with an empty burndown. The Phase 0 Bronze bootstrap is
-historical context (see [`docs/internal/BOOTSTRAP.md`](docs/internal/BOOTSTRAP.md)).
-The toolkit is **not yet installable**. Marketplace registration is planned at the
-first Gold-tagged release (`v1.0.0`).
+**Public `0.x` preview (Gold-grade).** This repository declares `tier: advanced`
+(Gold) and self-validates at Advanced in CI - the full gate (Bronze U1-U11,
+Silver S1-S8, Gold G1-G7) is green and `tier-report` reports `advanced` with an
+empty burndown, so the toolkit is a self-proving example of the Standard it
+defines. The Phase 0 Bronze bootstrap is historical context (see
+[`docs/internal/BOOTSTRAP.md`](docs/internal/BOOTSTRAP.md)). The toolkit is **not
+yet installable**; marketplace registration is planned at the first Gold-tagged
+release (`v1.0.0`).
 
 ## Quickstart
 
