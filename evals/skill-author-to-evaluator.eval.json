@@ -1,0 +1,10 @@
+{
+  "covers": { "chain": ["askit-skill-author", "askit-evaluator"] },
+  "description": "askit-skill-author delegates assessment to askit-evaluator while iterating to zero errors.",
+  "cases": [
+    {
+      "given": "a freshly authored skill that still has findings",
+      "expect": "askit-skill-author invokes askit-evaluator, applies the reported findings, and re-checks until 0 errors"
+    }
+  ]
+}

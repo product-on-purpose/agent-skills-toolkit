@@ -1,0 +1,10 @@
+{
+  "covers": { "chain": ["REPLACE-caller-component", "REPLACE-callee-component"] },
+  "description": "REPLACE - one line: the chained behavior this eval set exercises.",
+  "cases": [
+    {
+      "given": "REPLACE - the input or situation",
+      "expect": "REPLACE - the behavior the chain should produce"
+    }
+  ]
+}

@@ -1,0 +1,10 @@
+{
+  "covers": { "chain": ["askit-build-skill", "askit-skill-author"] },
+  "description": "askit-build-skill delegates skill authoring to askit-skill-author.",
+  "cases": [
+    {
+      "given": "a request to create a new conformant skill",
+      "expect": "askit-build-skill scaffolds the skill via askit-skill-author and the authored SKILL.md passes the conformance core"
+    }
+  ]
+}

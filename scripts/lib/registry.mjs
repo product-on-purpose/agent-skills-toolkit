@@ -16,6 +16,7 @@ import * as perTargetPresence from "../checks/per-target-presence.mjs";
 import * as versionMatch from "../checks/version-match.mjs";
 import * as noDashes from "../checks/no-dashes.mjs";
 import * as mcpValid from "../checks/mcp-valid.mjs";
+import * as libraryRegression from "../checks/library-regression.mjs";
 
 /** Ordered checks. Each exports { meta:{id,tier,reqId}, check(ctx)->Finding[] }. */
 export const CHECKS = [
@@ -24,6 +25,7 @@ export const CHECKS = [
   agentTargets, prefix, componentsIndex, chainContract, commandContract, workflowSkills,
   perTargetPresence,
   versionMatch, noDashes, mcpValid,
+  libraryRegression,
 ];
 
 export function runAllChecks(ctx) {

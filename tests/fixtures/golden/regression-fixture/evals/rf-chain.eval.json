@@ -1,0 +1,7 @@
+{
+  "covers": { "chain": ["rf-caller", "rf-worker"] },
+  "description": "rf-caller delegates to rf-worker.",
+  "cases": [
+    { "given": "a request that rf-caller handles", "expect": "rf-caller invokes rf-worker and returns its result" }
+  ]
+}

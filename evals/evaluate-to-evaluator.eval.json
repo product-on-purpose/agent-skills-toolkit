@@ -1,0 +1,10 @@
+{
+  "covers": { "chain": ["askit-evaluate", "askit-evaluator"] },
+  "description": "askit-evaluate delegates conformance assessment to askit-evaluator.",
+  "cases": [
+    {
+      "given": "a request to assess a skill or plugin against the Standard",
+      "expect": "askit-evaluator runs the validator and askit-evaluate reports per-rule findings, the tier, and remediation"
+    }
+  ]
+}

@@ -1,0 +1,7 @@
+{
+  "covers": { "chain": ["rs-caller", "rs-ghost"] },
+  "description": "Covers an edge the contract no longer permits (rs-ghost was removed).",
+  "cases": [
+    { "given": "a request", "expect": "rs-caller invokes rs-ghost" }
+  ]
+}
