@@ -37,6 +37,7 @@ function nativeSpine(lib) {
     name: lib.name ?? null,
     version: lib.version ?? null,
     description: lib.description ?? null,
+    ...(lib.license ? { license: lib.license } : {}),
     author: lib.author ?? null,
     homepage: lib.homepage ?? null,
     repository: lib.repository ?? null,
