@@ -1,0 +1,7 @@
+{
+  "name": "index-stale",
+  "version": "0.1.0",
+  "description": "Fixture: a plugin whose INDEX.md is hand-edited and out of date with the generator.",
+  "standard": "0.8",
+  "tier": "universal"
+}
