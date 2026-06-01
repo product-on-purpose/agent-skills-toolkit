@@ -29,7 +29,12 @@
     ],
     "subagents": [
       { "name": "askit-skill-author", "path": "agents/askit-skill-author.md", "version": "0.1.0", "tier": "convergent", "status": "active" },
-      { "name": "askit-evaluator", "path": "agents/askit-evaluator.md", "version": "0.1.0", "tier": "convergent", "status": "active" }
+      { "name": "askit-evaluator", "path": "agents/askit-evaluator.md", "version": "0.1.0", "tier": "convergent", "status": "active" },
+      { "name": "askit-explorer", "path": "agents/askit-explorer.md", "version": "0.1.0", "tier": "convergent", "status": "active" },
+      { "name": "askit-file-search", "path": "agents/askit-file-search.md", "version": "0.1.0", "tier": "convergent", "status": "active" },
+      { "name": "askit-file-ops", "path": "agents/askit-file-ops.md", "version": "0.1.0", "tier": "convergent", "status": "active" },
+      { "name": "askit-reviewer", "path": "agents/askit-reviewer.md", "version": "0.1.0", "tier": "convergent", "status": "active" },
+      { "name": "askit-quality-grader", "path": "agents/askit-quality-grader.md", "version": "0.1.0", "tier": "convergent", "status": "active" }
     ],
     "commands": [
       { "name": "askit-evaluate", "path": "commands/askit-evaluate.md", "version": "0.1.0", "tier": "convergent", "status": "active" },
