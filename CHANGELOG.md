@@ -10,6 +10,7 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ## [Unreleased]
 
 ### Added
+- `askit-release` skill (Phase 4): runs a plugin's release (version/changelog/notes/gate modes, Standard sec 4.3/7.4/10.6 + ADR 0022) - the deterministic max(component-bump) version, the CHANGELOG/RELEASE-NOTES split, and the release-readiness gate.
 - `askit-decision` skill (Phase 4): authors numbered MADR ADRs + RFCs in `docs/internal/` and the mandatory 3-line TL;DR (adr/rfc/summary modes, Standard sec 10.4 + ADR 0021). `templates/adr.md` scaffold. The toolkit dogfoods it (ADRs 0020-0022).
 - `askit-backlog` skill (Phase 4): manages the two backlogs (new-component proposals + enhancements, Standard sec 7.1; intake/triage/prune modes) with the why-gate that routes would-be micro-skills to enhancements.
 - `askit-build-workflow` skill (Phase 3C-2d): authors workflows (`_workflows/*.md`, ordered multi-skill arcs, Standard sec 3.4; create/improve), reusing S5 (workflow skill-existence). `templates/workflow.md` scaffold. Completes the Phase 3 (Convergent) builder set: skill, evaluate, subagent, command, mcp, hook, chain-contract, agents-md, output-style, workflow.

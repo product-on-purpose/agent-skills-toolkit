@@ -63,6 +63,11 @@
       "name": "askit-evaluate",
       "path": "skills/askit-evaluate/SKILL.md",
       "description": "Evaluates a skill or plugin against the Advanced Skill Library Standard, producing per-rule findings, a tier result, and remediation steps. Use when you want to audit conformance, check a skill or plugin, or see what blocks the next tier."
+    },
+    {
+      "name": "askit-release",
+      "path": "skills/askit-release/SKILL.md",
+      "description": "Runs a plugin's release - promotes the changelog, curates release notes, computes the version deterministically, and runs the release-readiness gate - to the Advanced Skill Library Standard. Use when cutting a release, bumping the plugin version, updating CHANGELOG or RELEASE-NOTES, or checking release readiness."
     }
   ],
   "commands": [

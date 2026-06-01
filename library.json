@@ -22,7 +22,8 @@
       { "name": "askit-build-output-style", "path": "skills/askit-build-output-style/SKILL.md", "version": "0.1.0", "tier": "universal", "status": "active" },
       { "name": "askit-build-workflow", "path": "skills/askit-build-workflow/SKILL.md", "version": "0.1.0", "tier": "universal", "status": "active" },
       { "name": "askit-backlog", "path": "skills/askit-backlog/SKILL.md", "version": "0.1.0", "tier": "universal", "status": "active" },
-      { "name": "askit-decision", "path": "skills/askit-decision/SKILL.md", "version": "0.1.0", "tier": "universal", "status": "active" }
+      { "name": "askit-decision", "path": "skills/askit-decision/SKILL.md", "version": "0.1.0", "tier": "universal", "status": "active" },
+      { "name": "askit-release", "path": "skills/askit-release/SKILL.md", "version": "0.1.0", "tier": "universal", "status": "active" }
     ],
     "subagents": [
       { "name": "askit-skill-author", "path": "agents/askit-skill-author.md", "version": "0.1.0", "tier": "convergent", "status": "active" },
