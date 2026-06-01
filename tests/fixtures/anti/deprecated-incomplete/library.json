@@ -1,0 +1,12 @@
+{
+  "name": "deprecated-incomplete",
+  "version": "0.1.0",
+  "description": "Fixture: a deprecated component missing its deprecation contract (deprecated-by and remove-in).",
+  "standard": "0.8",
+  "tier": "universal",
+  "components": {
+    "skills": [
+      { "name": "di-old", "path": "skills/di-old/SKILL.md", "version": "0.1.0", "tier": "universal", "status": "deprecated" }
+    ]
+  }
+}

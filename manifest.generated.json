@@ -85,6 +85,11 @@
       "description": "Creates and maintains a plugin's decision records (MADR ADRs) and RFCs in docs/internal, and the summary TL;DR companion for long decision docs. Use when recording an architecture decision, drafting an RFC to evolve the Standard, or generating the TL;DR for a decision doc."
     },
     {
+      "name": "askit-deprecate",
+      "path": "skills/askit-deprecate/SKILL.md",
+      "description": "Validates and records a component's deprecation (status, replacement, and removal target) and keeps deprecated components validating until removal. Use when deprecating a component, recording its replacement, or checking the deprecation contract."
+    },
+    {
       "name": "askit-evaluate",
       "path": "skills/askit-evaluate/SKILL.md",
       "description": "Evaluates a skill or plugin against the Advanced Skill Library Standard across three modes, producing deterministic conformance findings and a tier, an opt-in behavioral pass, and a qualitative review. Use when you want to audit conformance, judge whether a skill behaves and triggers correctly, get a qualitative review, or see what blocks the next tier."
