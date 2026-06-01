@@ -27,6 +27,11 @@ test("hook-undocumented fixture: missing matcher and missing type are G1 errors"
   assert.ok(r.some((f) => f.reqId === "G1" && /type/.test(f.message)), "missing type not flagged");
 });
 
+test("hook-array fixture: a top-level hooks array (not an object keyed by event) is a G1 error", () => {
+  const r = check(loadPlugin(path.join(FIXTURES, "anti/hook-array")));
+  assert.ok(r.some((f) => f.reqId === "G1" && /object keyed by event name/.test(f.message)), "array hooks not flagged");
+});
+
 test("the toolkit ships no hooks -> no G1 findings", () => {
   assert.deepEqual(check(loadPlugin(REPO_ROOT)), []);
 });

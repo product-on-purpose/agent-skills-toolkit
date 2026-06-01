@@ -1,0 +1,8 @@
+name: CI
+# This workflow only mentions node scripts/check.mjs in a comment; it never runs it.
+on: [push]
+jobs:
+  noop:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "no gate here"

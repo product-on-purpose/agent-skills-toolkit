@@ -1,17 +1,42 @@
 import { finding, SEVERITY } from "../lib/findings.mjs";
-import { fileExists } from "../lib/fs-utils.mjs";
+import { existsSync, readFileSync, statSync } from "node:fs";
 import path from "node:path";
 
 export const meta = { id: "release-notes", tier: "advanced", reqId: "G5" };
 
+function isFile(p) { return existsSync(p) && statSync(p).isFile(); }
+
 /**
- * G5 (Gold): the plugin maintains a curated, user-facing RELEASE-NOTES.md at the root,
- * distinct from the full technical CHANGELOG.md (Standard sec 2.6 G5, sec 10.6).
- * Advanced tier, so it is a Gold burndown item for a plugin that has not declared advanced.
+ * G5 (Gold): the plugin maintains a curated, user-facing RELEASE-NOTES.md at the root, distinct
+ * from the full technical CHANGELOG.md (Standard sec 2.6 G5, sec 10.6). Enforces presence,
+ * non-emptiness, and distinctness (a RELEASE-NOTES.md byte-identical to CHANGELOG.md is not a
+ * curated, user-facing companion). Advanced tier.
  */
 export function check(ctx) {
-  if (!fileExists(path.join(ctx.root, "RELEASE-NOTES.md"))) {
+  const rn = path.join(ctx.root, "RELEASE-NOTES.md");
+  if (!isFile(rn)) {
     return [finding(meta.id, SEVERITY.ERROR, "RELEASE-NOTES.md is missing at the repository root; Gold requires a curated, user-facing RELEASE-NOTES.md distinct from CHANGELOG.md (Standard sec 2.6 G5, sec 10.6).", { file: "RELEASE-NOTES.md", reqId: meta.reqId })];
+  }
+  let notes;
+  try {
+    notes = readFileSync(rn, "utf8");
+  } catch (e) {
+    return [finding(meta.id, SEVERITY.ERROR, `RELEASE-NOTES.md could not be read: ${e.message}`, { file: "RELEASE-NOTES.md", reqId: meta.reqId })];
+  }
+  if (notes.trim().length === 0) {
+    return [finding(meta.id, SEVERITY.ERROR, "RELEASE-NOTES.md is empty; Gold requires a curated, user-facing RELEASE-NOTES.md (Standard sec 2.6 G5, sec 10.6).", { file: "RELEASE-NOTES.md", reqId: meta.reqId })];
+  }
+  const cl = path.join(ctx.root, "CHANGELOG.md");
+  if (isFile(cl)) {
+    let changelog = "";
+    try {
+      changelog = readFileSync(cl, "utf8");
+    } catch {
+      changelog = "";
+    }
+    if (changelog.trim().length > 0 && notes.trim() === changelog.trim()) {
+      return [finding(meta.id, SEVERITY.ERROR, "RELEASE-NOTES.md is byte-identical to CHANGELOG.md; the two MUST be distinct (curated user-facing notes vs the full technical history; Standard sec 10.6).", { file: "RELEASE-NOTES.md", reqId: meta.reqId })];
+    }
   }
   return [];
 }
