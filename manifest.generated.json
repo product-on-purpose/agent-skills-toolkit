@@ -55,6 +55,11 @@
       "description": "Creates and improves workflows (an ordered multi-skill arc) for a plugin to the Advanced Skill Library Standard. Use when a recurring sequence of skills is worth formalizing as a workflow, when you need to author a _workflows file with steps and exit criteria, or to resolve S5 workflow findings."
     },
     {
+      "name": "askit-decision",
+      "path": "skills/askit-decision/SKILL.md",
+      "description": "Creates and maintains a plugin's decision records (MADR ADRs) and RFCs in docs/internal, and the summary TL;DR companion for long decision docs. Use when recording an architecture decision, drafting an RFC to evolve the Standard, or generating the TL;DR for a decision doc."
+    },
+    {
       "name": "askit-evaluate",
       "path": "skills/askit-evaluate/SKILL.md",
       "description": "Evaluates a skill or plugin against the Advanced Skill Library Standard, producing per-rule findings, a tier result, and remediation steps. Use when you want to audit conformance, check a skill or plugin, or see what blocks the next tier."

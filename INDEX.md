@@ -46,6 +46,7 @@ bootstrap exemption (now ended).
   - [`askit-build-output-style`](skills/askit-build-output-style/) - author Claude Code output styles (Claude-only response modes; create + improve modes).
   - [`askit-build-workflow`](skills/askit-build-workflow/) - author workflows (`_workflows/*.md`, ordered multi-skill arcs; create + improve modes).
   - [`askit-backlog`](skills/askit-backlog/) - manage the two backlogs (new-component proposals + enhancements; intake/triage/prune modes).
+  - [`askit-decision`](skills/askit-decision/) - author MADR ADRs + RFCs and the TL;DR summary (adr/rfc/summary modes).
   - Core loop: `askit-build-skill` (create) -> `askit-evaluate` -> `askit-build-skill` (improve).
 - **Subagents (Claude-only):**
   - [`askit-skill-author`](agents/askit-skill-author.md) - bounded authoring delegate behind `askit-build-skill`; carries `Read`/`Write`/`Edit`/`Bash`.
