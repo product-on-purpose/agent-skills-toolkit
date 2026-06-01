@@ -8,7 +8,7 @@
 - **Declared tier:** Convergent (Silver). `library.json` `tier: convergent`, `standard: 0.8`, version `0.2.0`.
 - **Self-validating:** yes. `node scripts/check.mjs` exits 0 (0 errors, 0 warnings); `tier-report` prints Convergent with an empty burndown; `npm test` = 154/154 (verified 2026-05-31).
 - **Installable:** not yet. Public `0.x` Silver preview is the next external milestone (Q-A); marketplace registration is reserved for the Gold `v1.0.0` tag (D8).
-- **On disk:** 15 skills (`askit-evaluate` + the `askit-build-*` family: skill, subagent, command, mcp, hook, chain-contract, agents-md, output-style, workflow + the Phase 4 governance/lifecycle set: `askit-backlog`, `askit-decision`, `askit-release`, `askit-migrate`, `askit-capability-advisor`), 6 subagents (Claude-only: `askit-skill-author`, `askit-evaluator`, and the judgment roster `askit-explorer`, `askit-file-search`, `askit-file-ops`, `askit-reviewer`), 2 commands, a 19-check validation spine (incl. the G3 `library-regression` check) + generators + `tier-report`/`evaluate`/`check`, 160 tests with golden/anti fixtures + a Codex ingestion round-trip.
+- **On disk:** 15 skills (`askit-evaluate` + the `askit-build-*` family: skill, subagent, command, mcp, hook, chain-contract, agents-md, output-style, workflow + the Phase 4 governance/lifecycle set: `askit-backlog`, `askit-decision`, `askit-release`, `askit-migrate`, `askit-capability-advisor`), 7 subagents (Claude-only: `askit-skill-author`, `askit-evaluator`, `askit-quality-grader` (behavioral judge), `askit-reviewer`, and the discovery/ops roster `askit-explorer`, `askit-file-search`, `askit-file-ops`), 2 commands, a 19-check validation spine (incl. the G3 `library-regression` check) + generators + `tier-report`/`evaluate`/`check`, 160 tests with golden/anti fixtures + a Codex ingestion round-trip.
 
 ## Scope decision (2026-05-30, maintainer)
 
@@ -35,7 +35,7 @@
 | 3C-2c | build-mcp + sec 3.9 correction + component-level S6 | DONE | `v1-build` |
 | 3C-2d | build-hook, build-chain-contract, build-agents-md, build-output-style, build-workflow | DONE | `v1-build` (10 skills) |
 | 3 gate | Phase 3 (Convergent) builder set complete; Codex hardening applied | DONE | `f35bfaf`; next: `0.3` Silver preview (go-public decision) |
-| 4 | Governance + lifecycle + advise + init-* + judgment subagents + full-catalog tail | IN PROGRESS | `v1-build`: governance/lifecycle (`askit-backlog`/`decision`/`release`) + `askit-migrate` + `askit-capability-advisor` + the judgment roster (`explorer`/`file-search`/`file-ops`/`reviewer`) done; Phase-4 adversarial gate applied (migrate manifest fix; `quality-grader` deferred). PAUSED for 3 design calls before init-*/docs/eval-harness. |
+| 4 | Governance + lifecycle + advise + init-* + judgment subagents + full-catalog tail | IN PROGRESS | `v1-build`: governance/lifecycle + `askit-migrate` + `askit-capability-advisor` + the 7-subagent roster done; design calls resolved (ADR 0023); **Sub-phase A (eval engine) done** (Layer 1 G3 `library-regression` + Layer 2 behavioral/review modes + `askit-quality-grader`). Next: Sub-phase B (docs-site + samples), then C (init-*). |
 | 5 | Gold G1-G7 + self-conformance + docs/visuals complete + v1.0.0 | PENDING | - |
 
 ## DoD burndown (full-catalog v1, consolidated taxonomy)
@@ -69,15 +69,15 @@ Status: `done` on disk | `designed` (design doc exists) | `pending`. Areas refer
 | 15 | `askit-build-docs` (readme/quickstart/tutorial/how-to/reference/glossary/faq/troubleshooting/architecture/site modes) | skill | both | pending |
 | 19 | `askit-build-samples` (threads-aware golden/anti generator + drift validate) | skill | both | pending |
 | - | `askit-reviewer` | subagent | claude | done |
-| - | `askit-quality-grader` | subagent | claude | deferred (gate found it duplicated evaluate; behavioral role -> eval-harness design call; backlog N1) |
+| - | `askit-quality-grader` | subagent | claude | done (rebuilt as the behavioral judge in eval engine Layer 2; ADR 0023 closed backlog N1) |
 | - | `askit-explorer`, `askit-file-search`, `askit-file-ops` | subagents | claude | done |
-| 17 | eval-harness + library-regression (behavioral eval layer) | spine+skill | both | pending |
+| 17 | eval-harness + library-regression (behavioral eval layer) | spine+skill | both | done (Layer 1 G3 `library-regression` check + `evals/` format; Layer 2 `askit-evaluate` behavioral/review modes + `askit-quality-grader` judge) |
 | 19 | (folded into `askit-build-samples`, above) | - | - | - |
 | 21 | deprecation policy + status handling | skill+check | both | pending |
 | 25 | template-manager | skill | both | pending |
 | 15 | docs + docs-site -> `askit-build-docs` (above); changelog/notes -> `askit-release` modes | skill/mode | both | pending |
 
-Rough count: 15 of ~19-21 builder/governance skills (the +2 docs/samples skills bring the consolidated set to ~19) and 6 of the 7 planned subagents are on disk; the 7th (`askit-quality-grader`) is deferred to the eval-harness design call (backlog N1). The exact final count is fixed by RELEASE-PLAN v0.2 wave planning.
+Rough count: 15 of ~19-21 builder/governance skills (the +2 docs/samples skills bring the consolidated set to ~19) and all 7 planned subagents are on disk (`askit-quality-grader` rebuilt as the behavioral judge in eval engine Layer 2). The exact final count is fixed by RELEASE-PLAN v0.2 wave planning.
 
 ## Cross-cutting workstreams (added by the 2026-05-30 audit)
 
@@ -92,4 +92,9 @@ Rough count: 15 of ~19-21 builder/governance skills (the +2 docs/samples skills 
 
 ## Next action
 
-Design calls RESOLVED (ADR 0023, 2026-06-01): init-plugin uses a structural/anatomy seed-match; the docs-site is a full Astro Starlight site in v1; the eval engine ships full in v1 (which un-defers `askit-quality-grader` as the behavioral judge, backlog N1). Now building three sub-phases, each designed then built slice-by-slice with an adversarial gate at each boundary: (1) the eval engine (behavioral + library-regression + LLM-judge, Gold G3; the CI gate stays deterministic and the behavioral layer sits opt-in beside it, Design Principle 3); (2) the full docs-site (`askit-build-docs` incl. type=site copied from `../pm-skills` + `askit-build-samples`); (3) `askit-init-plugin` (interview/questionnaire/hybrid + anatomy-match seed regeneration). Remaining tail after: `askit-build-statusline`, `askit-build-settings`, `askit-init-marketplace`, deprecation policy + check, `template-manager`. The Phase-4 Codex adversarial pass was cancelled after hanging ~1h41m on investigation; the parallel Claude adversarial review covered the same four axes (Standard accuracy, why-gate, naming, registration) and its verified findings were fixed.
+Design calls RESOLVED (ADR 0023, 2026-06-01): init-plugin uses a structural/anatomy seed-match; the docs-site is a full Astro Starlight site in v1; the eval engine ships full in v1. Three sub-phases, each designed then built slice-by-slice with an adversarial gate at each boundary:
+1. **Sub-phase A (eval engine) - DONE.** Layer 1: the deterministic G3 `library-regression` check + `evals/` format (the CI gate stays deterministic). Layer 2: `askit-evaluate` behavioral + review modes (opt-in, LLM-judged, beside the gate, Design Principle 3) delegating to `askit-quality-grader` (rebuilt as the behavioral judge) and `askit-reviewer`. The new chain edges carry eval sets (dogfoods the G3 check).
+2. **Sub-phase B (docs-site) - NEXT.** `askit-build-docs` (incl. type=site, a full Astro Starlight site copied/adapted from `../pm-skills`, wired to GitHub Pages) + `askit-build-samples` (threads-aware golden/anti generator + drift validate).
+3. **Sub-phase C (init).** `askit-init-plugin` (interview/questionnaire/hybrid + anatomy-match seed regeneration) + `askit-init-marketplace`.
+
+Remaining tail after: `askit-build-statusline`, `askit-build-settings`, deprecation policy + check, `template-manager`. (The Phase-4 Codex adversarial pass was cancelled after hanging ~1h41m; the parallel Claude review covered the same four axes and its verified findings were fixed.)

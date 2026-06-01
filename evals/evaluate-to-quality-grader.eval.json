@@ -1,0 +1,10 @@
+{
+  "covers": { "chain": ["askit-evaluate", "askit-quality-grader"] },
+  "description": "askit-evaluate behavioral mode delegates behavioral judging to askit-quality-grader.",
+  "cases": [
+    {
+      "given": "a behavioral evaluation request for a skill that has an eval-set",
+      "expect": "askit-quality-grader runs the skill against its cases and askit-evaluate reports the per-case verdicts as advisory evidence, not a gate result"
+    }
+  ]
+}

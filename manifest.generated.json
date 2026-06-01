@@ -67,7 +67,7 @@
     {
       "name": "askit-evaluate",
       "path": "skills/askit-evaluate/SKILL.md",
-      "description": "Evaluates a skill or plugin against the Advanced Skill Library Standard, producing per-rule findings, a tier result, and remediation steps. Use when you want to audit conformance, check a skill or plugin, or see what blocks the next tier."
+      "description": "Evaluates a skill or plugin against the Advanced Skill Library Standard across three modes, producing deterministic conformance findings and a tier, an opt-in behavioral pass, and a qualitative review. Use when you want to audit conformance, judge whether a skill behaves and triggers correctly, get a qualitative review, or see what blocks the next tier."
     },
     {
       "name": "askit-migrate",

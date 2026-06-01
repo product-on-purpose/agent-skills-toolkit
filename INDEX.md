@@ -54,12 +54,13 @@ bootstrap exemption (now ended).
 - **Subagents (Claude-only):**
   - [`askit-skill-author`](agents/askit-skill-author.md) - bounded authoring delegate behind `askit-build-skill`; carries `Read`/`Write`/`Edit`/`Bash`.
   - [`askit-evaluator`](agents/askit-evaluator.md) - read-only assessment delegate behind `askit-evaluate`; carries `Read`/`Bash` only.
-  - Judgment roster (reusable delegate roles, no fixed caller yet):
+  - [`askit-quality-grader`](agents/askit-quality-grader.md) - behavioral-judge delegate behind `askit-evaluate`'s behavioral mode (runs a skill against its eval-set, LLM-judged, advanced tier); `Read`/`Bash`.
+  - [`askit-reviewer`](agents/askit-reviewer.md) - qualitative-review delegate behind `askit-evaluate`'s review mode (correctness/altitude/warranted); `Read`/`Bash`.
+  - Discovery/ops roster (reusable delegate roles, no fixed caller yet):
     - [`askit-explorer`](agents/askit-explorer.md) - broad read-only repo survey -> structural map; `Read`/`Grep`/`Glob`.
     - [`askit-file-search`](agents/askit-file-search.md) - pinpoint search -> matching paths/lines; `Read`/`Grep`/`Glob`.
     - [`askit-file-ops`](agents/askit-file-ops.md) - bounded file mutation (apply given create/edit ops); `Read`/`Write`/`Edit`.
-    - [`askit-reviewer`](agents/askit-reviewer.md) - qualitative judgment review (correctness/altitude/warranted); `Read`/`Bash`.
-  - Chain contract: [`agents/_chain-permitted.yaml`](agents/_chain-permitted.yaml) - permits `askit-build-skill` -> `askit-skill-author`, `askit-evaluate` -> `askit-evaluator`, and `askit-skill-author` -> `askit-evaluator`. The judgment roster declares no `chain:` yet (leaf roles), so it adds no contract entries.
+  - Chain contract: [`agents/_chain-permitted.yaml`](agents/_chain-permitted.yaml) - permits `askit-build-skill` -> `askit-skill-author`; `askit-evaluate` -> `askit-evaluator` (conformance), `askit-quality-grader` (behavioral), `askit-reviewer` (review); and `askit-skill-author` -> `askit-evaluator`. Each chain edge carries an eval set under `evals/` (G3). The discovery/ops roster declares no `chain:` (leaf roles).
 - **Commands (Claude-native):**
   - [`/askit-evaluate`](commands/askit-evaluate.md) - maps to `askit-evaluate`; assess a skill or plugin.
   - [`/askit-build-skill`](commands/askit-build-skill.md) - maps to `askit-build-skill`; create or improve a skill.

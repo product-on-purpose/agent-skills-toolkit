@@ -2,5 +2,7 @@ askit-build-skill:
   - askit-skill-author
 askit-evaluate:
   - askit-evaluator
+  - askit-quality-grader
+  - askit-reviewer
 askit-skill-author:
   - askit-evaluator

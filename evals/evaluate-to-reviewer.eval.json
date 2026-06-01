@@ -1,0 +1,10 @@
+{
+  "covers": { "chain": ["askit-evaluate", "askit-reviewer"] },
+  "description": "askit-evaluate review mode delegates qualitative review to askit-reviewer.",
+  "cases": [
+    {
+      "given": "a qualitative review request for a component or change",
+      "expect": "askit-reviewer reports correctness/altitude/naming/warranted findings by severity and askit-evaluate presents them as advisory, not a gate result"
+    }
+  ]
+}
