@@ -1,4 +1,4 @@
-# 0024 - Raise the runner Node baseline from EOL Node 20 to Node 22.12 (pin 24)
+# 0025 - Raise the runner Node baseline from EOL Node 20 to Node 22.12 (pin 24)
 
 ## TL;DR
 - **Decision:** The portable check-runner Node baseline (STANDARD.md sec 4.1) moves from `>=20` to `>=22.12.0`; the recommended pinned runtime (`.nvmrc` / `.node-version`) is `24`.
