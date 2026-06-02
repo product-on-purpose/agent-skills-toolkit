@@ -24,10 +24,10 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Set up Node (baseline >=20 LTS, per Standard sec 4.1)
+      - name: Set up Node 24 (baseline >=22.12.0, the family floor; Node 20 is EOL)
         uses: actions/setup-node@v4
         with:
-          node-version: "20"
+          node-version: "24"
 
       - name: Install dependencies
         run: npm ci
@@ -37,3 +37,29 @@ jobs:
 
       - name: Conformance gate (self-validation)
         run: node scripts/check.mjs
+
+  # Non-deploying site build: proves the Astro Starlight site in site/ compiles on
+  # every push and PR, so a green PR predicts a green deploy. Catalog drift is covered
+  # by the validate job (npm test). Deployment itself lives in deploy-pages.yml; this
+  # job never uploads a Pages artifact.
+  build-site:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: site
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node (Node 24 LTS, matches .nvmrc)
+        uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: npm
+          cache-dependency-path: site/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build site (no deploy)
+        run: npm run build
