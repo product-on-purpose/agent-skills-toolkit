@@ -1,6 +1,7 @@
 # The Advanced Skill Library Standard
 
-> **Standard version 0.8**, promoted to the repository root on 2026-05-26. This is the normative Standard that every tool in `agent-skills-toolkit` enforces; the version-history notes below record how the frozen draft converged.
+> **Standard version 0.9**, amended 2026-06-01 (promoted to the repository root at v0.8 on 2026-05-26). This is the normative Standard that every tool in `agent-skills-toolkit` enforces; the version-history notes below record how the frozen draft converged.
+> v0.9: Runner Node baseline raised from EOL Node 20 to >=22.12.0; recommended pin Node 24. See ADR 0024.
 > v0.8: Codex contract revised to the native plugin + marketplace model (sec 3.2/3.3/3.9/10.1 + Appendix A), per the 2026-05-27 spike against Codex CLI v0.133. Sec 12 marketplace updated to describe Codex's concrete native marketplace alongside Claude's (in a separate task).
 > v0.7: Codex-review judgment calls applied - a minimal `library.json` (name/version/tier) is now REQUIRED at every tier (5/2.1/2.5; "loose components" without it are not a plugin); added component specs for **MCP server** (3.9) and **AGENTS.md** (3.10).
 > v0.6: Second Codex review consistency fixes - `library.json` clarified as authored SoT not generated (2.6 G4); component-history rule made coherent (version all tiers; HISTORY required Silver+, recommended Bronze; match-when-present - 3.7/7.3/2.5); Codex emission paths reconciled to one contract (10.1; residual packaging note in Appendix A); chain-contract location pinned to `agents/_chain-permitted.yaml` (3.6/10.1); `_workflows/` added to layout (10.1); command parity note (3.2); 20+ trigger-eval SHOULD (8.3); "one plugin (release) version" wording (0).
@@ -204,7 +205,7 @@ Only skills are governed by agentskills.io frontmatter (3.1). This Standard exte
 ## 4. CI and release expectations
 
 ### 4.1 CI-agnostic runner
-All checks MUST be implemented as portable scripts (single runtime) runnable locally, in any CI, or invoked by a skill. The runner targets **Node, baseline Node >= 20 (LTS)**; CI SHOULD additionally exercise the current Active LTS. A validator/generator has no need for bleeding-edge APIs, so the baseline maximizes install base rather than chasing new built-ins. A CI configuration (e.g., GitHub Actions) MUST only shell out to those scripts; the plugin MUST NOT depend on a specific CI provider for correctness.
+All checks MUST be implemented as portable scripts (single runtime) runnable locally, in any CI, or invoked by a skill. The runner targets **Node, baseline Node >= 22.12.0**; the recommended pinned runtime is **Node 24** (Active LTS), declared via a committed `.nvmrc` / `.node-version`, and CI SHOULD run on that pinned version. A validator/generator has no need for bleeding-edge APIs, but the baseline MUST NOT recommend an end-of-life runtime: Node 20 reached EOL on 2026-04-30 and is below the `>=22.12.0` floor that Astro 6 (the basis of every family documentation site) requires. A co-located plugin core's runtime floor follows this clause, not its documentation site (ADR 0024). A CI configuration (e.g., GitHub Actions) MUST only shell out to those scripts; the plugin MUST NOT depend on a specific CI provider for correctness.
 
 ### 4.2 Required checks (by tier)
 - **Universal:** frontmatter validity; `name`/directory match; description quality; instruction-budget warning; reference-link validity.
@@ -237,7 +238,7 @@ At **Convergent tier and above** the manifest MUST additionally declare:
 | `name` | string | REQUIRED | kebab-case; equals the plugin directory name. |
 | `version` | string (semver) | REQUIRED | The single plugin version (Section 7.4); the manifest's version is authoritative. |
 | `description` | string | REQUIRED | What the plugin is and when to use it; meets the 8.1 bar. |
-| `standard` | string | REQUIRED | The version of THIS Standard the plugin targets (e.g. `"0.8"`, the current version), so tooling can validate against the right ruleset. |
+| `standard` | string | REQUIRED | The version of THIS Standard the plugin targets (e.g. `"0.9"`, the current version), so tooling can validate against the right ruleset. |
 | `tier` | `"universal"` \| `"convergent"` \| `"advanced"` | REQUIRED | The declared target tier; tooling verifies the tier actually satisfied (Section 2.4) and MUST flag a claim above what is met. |
 | `agent-targets` | array of `"claude"` \| `"codex"` | REQUIRED at Convergent+ | Agents this plugin emits for. Omitted at Universal (skills are agent-agnostic). |
 | `prefix` | string | REQUIRED at Convergent+ | The multi-agent component name prefix (Section 8.2). |
@@ -467,7 +468,7 @@ The separation rule applies to BOTH formats: a plugin MUST NOT embed a marketpla
 - RESOLVED (2026-05-25): chain contracts are a **conditional MUST** - required if and only if chaining is used (Section 3.6); a plugin with no inter-component invocation ships none. Chosen over a blanket Convergent MUST to avoid empty governance files and honor a la carte minimalism.
 - RESOLVED (2026-05-25): manifest model = canonical `library.json` (cross-agent SoT) + native manifests generated from it (Section 5); field schema pinned in Section 5.1 (top-level fields + component-entry shape).
 - RESOLVED (2026-05-25): tier-reporting format pinned (Section 2.4) - machine (JSON) + human one-liner, with a `blocked` list keyed to the requirement IDs. Conformance **badges/branding** remain deferred (v1 reports the tier, does not brand it).
-- RESOLVED (2026-05-25): Node baseline = Node >= 20 (LTS); CI also exercises current Active LTS (Section 4.1).
+- RESOLVED (2026-05-25): Node baseline = Node >= 20 (LTS); CI also exercises current Active LTS (Section 4.1). SUPERSEDED (2026-06-01, ADR 0024, Standard v0.9): baseline raised to Node >= 22.12.0, recommended pin Node 24 (Node 20 EOL plus the Astro 6 floor).
 - RESOLVED (2026-05-25): sample count = SHOULD >= 3 golden + >= 1 anti-example (Section 7.2).
 - RESOLVED (2026-05-25): version-propagation pinned (Section 7.4) - one plugin version; plugin bump = the largest component bump since last release (MAJOR>MINOR>PATCH), as a MUST so tooling can compute and verify it.
 - RESOLVED (2026-05-25): description-scoring rubric pinned with a 0.7 warn threshold (Section 8.1).
