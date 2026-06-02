@@ -62,7 +62,7 @@ Do not claim or invoke components that are not present on disk.
 
 ## Conventions
 
-- **Runtime:** Node, baseline `>=20` (LTS). Validators and generators are plain,
+- **Runtime:** Node, baseline `>=22.12.0` (the family floor; Node 24 Active LTS pinned via `.nvmrc`). Validators and generators are plain,
   portable Node scripts (Standard sec 4.1); CI only shells out to them.
 - **Skills:** agentskills.io `SKILL.md` format, portable across Claude Code and
   Codex unchanged (Standard sec 3.1).

@@ -3,7 +3,7 @@ title: Getting started
 description: Grade an existing plugin, or scaffold a new one, with the toolkit.
 ---
 
-The toolkit is a Claude Code and Codex plugin. Its validation spine is plain Node (the only runtime dependency is a YAML parser), so the gate runs anywhere Node 20+ does.
+The toolkit is a Claude Code and Codex plugin. Its validation spine is plain Node (the only runtime dependency is a YAML parser), so the gate runs anywhere Node 22.12+ does.
 
 ## Grade what you have
 
