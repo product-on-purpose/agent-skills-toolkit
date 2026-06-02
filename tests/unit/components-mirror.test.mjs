@@ -18,6 +18,11 @@ test("status-disagree: a frontmatter status that the entry does not mirror is an
   assert.ok(r.some((f) => f.reqId === "S8" && /sd-skill/.test(f.message) && /mirror/.test(f.message)), "status disagreement not flagged");
 });
 
+test("tier-disagree: a frontmatter tier that the entry does not mirror is an S8 error", () => {
+  const r = check(loadPlugin(path.join(FIXTURES, "anti/tier-disagree")));
+  assert.ok(r.some((f) => f.reqId === "S8" && /td-skill/.test(f.message) && /tier/.test(f.message) && /mirror/.test(f.message)), "tier disagreement not flagged");
+});
+
 test("a skill whose frontmatter omits status leaves the entry canonical -> no findings", () => {
   // silver-fixture's skill declares no metadata.status, so its active entry is canonical.
   assert.deepEqual(check(loadPlugin(path.join(FIXTURES, "golden/silver-fixture"))), []);
