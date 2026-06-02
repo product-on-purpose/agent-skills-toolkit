@@ -1,0 +1,3 @@
+User-agent: *
+Allow: /
+Sitemap: https://product-on-purpose.github.io/agent-skills-toolkit/sitemap-index.xml
