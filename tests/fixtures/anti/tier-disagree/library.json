@@ -1,0 +1,14 @@
+{
+  "name": "tier-disagree",
+  "version": "0.1.0",
+  "description": "Fixture: a component whose frontmatter tier disagrees with its library.json entry.",
+  "standard": "0.8",
+  "tier": "convergent",
+  "prefix": "td-",
+  "agent-targets": ["claude"],
+  "components": {
+    "skills": [
+      { "name": "td-skill", "path": "skills/td-skill/SKILL.md", "version": "0.1.0", "tier": "convergent", "status": "active" }
+    ]
+  }
+}

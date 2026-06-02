@@ -237,7 +237,7 @@ At **Convergent tier and above** the manifest MUST additionally declare:
 | `name` | string | REQUIRED | kebab-case; equals the plugin directory name. |
 | `version` | string (semver) | REQUIRED | The single plugin version (Section 7.4); the manifest's version is authoritative. |
 | `description` | string | REQUIRED | What the plugin is and when to use it; meets the 8.1 bar. |
-| `standard` | string | REQUIRED | The version of THIS Standard the plugin targets (e.g. `"1.0"`), so tooling can validate against the right ruleset. |
+| `standard` | string | REQUIRED | The version of THIS Standard the plugin targets (e.g. `"0.8"`, the current version), so tooling can validate against the right ruleset. |
 | `tier` | `"universal"` \| `"convergent"` \| `"advanced"` | REQUIRED | The declared target tier; tooling verifies the tier actually satisfied (Section 2.4) and MUST flag a claim above what is met. |
 | `agent-targets` | array of `"claude"` \| `"codex"` | REQUIRED at Convergent+ | Agents this plugin emits for. Omitted at Universal (skills are agent-agnostic). |
 | `prefix` | string | REQUIRED at Convergent+ | The multi-agent component name prefix (Section 8.2). |
