@@ -1,17 +1,18 @@
-# 0024 - Documentation depth, discoverability conventions, and the full docs-site mount
+# 0024 - Documentation depth, discoverability conventions, and the full docs-site build-out
 
 ## TL;DR
-- **Decision:** Run the documentation, learning, and discoverability build-out as a full-scope but staged effort that finishes ADR 0021 and adds three new conventions. Three forks resolved: (1) source files are documented by **folder-READMEs + header docblocks**, never a sibling `.md` per source file; (2) the Astro Starlight site becomes the **generated in-place-glob view of `docs/**`** (ADR 0021 D3) with a curated landing on top; (3) all of it is in scope, delivered as a sequence of small, individually-green PRs under an **author-before-enforce** ordering. Add **five new deterministic checks** (one Bronze, four Gold), taking the spine from 25 to **30 checks (U1-U12 / S1-S8 / G1-G10)**. No new prefix skills - new capability is checks + conventions + `askit-build-docs` modes. Fix the long-standing G7 requirement-vs-check confusion.
+- **Decision:** Run the documentation, learning, and discoverability build-out as a full-scope but staged effort that finishes ADR 0021 and adds three new conventions. Three forks resolved: (1) source files are documented by **folder-READMEs + header docblocks**, never a sibling `.md` per source file; (2) the Astro Starlight site becomes a **generated Pattern S view** of the public `docs/**` (emitted into `site/src/content/docs/`, read by the stock `docsLoader()`) with a curated landing on top; (3) all of it is in scope, delivered as a sequence of small, individually-green PRs under an **author-before-enforce** ordering. Add **five new deterministic checks** (one Bronze, four Gold), taking the spine from 25 to **30 checks (U1-U12 / S1-S8 / G1-G10)**. No new prefix skills - new capability is checks + conventions + `askit-build-docs` modes. Fix the long-standing G7 requirement-vs-check confusion.
 - **Why:** ADR 0021 specified a dual-audience Diataxis documentation set but only half of it shipped; the maintainer's bar is two-doors (non-engineer and engineer) beginner-to-advanced empowerment; and the toolkit should apply its own deterministic-gate-plus-behavioral-evidence philosophy to its own documentation surface - without manufacturing doc-rot. A literal sibling-`.md`-per-source-file rule fights that philosophy (~141 files, most beside intentional test fixtures, each a dual-maintenance surface that must itself pass the gate).
 - **Status:** Accepted (2026-06-01). Extends ADR 0021; supersedes ADR 0021's v1.x deferral of the docs-presence check and its unbuilt mermaid-check timing.
 
 - **Date:** 2026-06-01
 - **Deciders:** maintainer (jprisant), with Claude (Opus 4.8)
 - **Builds on:** ADR 0021 (documentation, examples, docs-site strategy), ADR 0023 (full v1 scope), ADR 0020 (packaging, naming, consolidation).
+- **Reconciliation (2026-06-02):** Decision 2 revised from an in-place-glob view of `docs/**` (Pattern W) to a generated Pattern S view, reconciling this ADR with the merged #79 site convergence and family clause 14.1. Other references to the in-place-glob mechanism (the title, TL;DR, Context, D3, D6, Consequences, Scope, Provenance) were swept to the generated Pattern S wording for consistency; the substance (Decision 1, the staged delivery, the five new checks / G7 fix) is unchanged.
 
 ## Context
 
-ADR 0021 D1 specified a dual-audience, multi-level Diataxis information architecture. Verified current state on `main` (public, tier advanced, v0.3.0): the `how-to/` (28 files) and `reference/` (24 per-component files) quadrants are full, but the artifacts ADR 0021 D1 explicitly required are **missing** - the entire `tutorials/` quadrant, a root `QUICKSTART`, `glossary`, `faq`, `troubleshooting`, and the architecture overview+detailed pair. The docs site is a hand-curated landing in `site/src/content/`, not the in-place-glob **generated view of `docs/**`** that ADR 0021 D3 specified (it was curated as a stopgap because `docs/reference|how-to` files lack the frontmatter `title` Starlight needs). The `mermaid-valid` check that ADR 0021 D6 marked "a CHECK ... in v1" was never built - it is not among the 25 checks. The `docs-presence` check was deferred to v1.x.
+ADR 0021 D1 specified a dual-audience, multi-level Diataxis information architecture. Verified current state on `main` (public, tier advanced, v0.3.0): the `how-to/` (28 files) and `reference/` (24 per-component files) quadrants are full, but the artifacts ADR 0021 D1 explicitly required are **missing** - the entire `tutorials/` quadrant, a root `QUICKSTART`, `glossary`, `faq`, `troubleshooting`, and the architecture overview+detailed pair. The docs site is a hand-curated landing in `site/src/content/`, not yet the **generated view of `docs/**`** this ADR adopts (D2, superseding ADR 0021 D3's in-place-glob mechanism); it was curated as a stopgap because `docs/reference|how-to` files lack the frontmatter `title` Starlight needs. The `mermaid-valid` check that ADR 0021 D6 marked "a CHECK ... in v1" was never built - it is not among the 25 checks. The `docs-presence` check was deferred to v1.x.
 
 The maintainer's new brief asks for: a more visually appealing, instructional, comprehensive README matching the pm-skills and product-on-purpose standards; mermaid diagrams added thoughtfully throughout; a README in every meaningful folder explaining its files, with CI to keep these in sync with the corresponding Astro pages; a deep `docs/` learning surface (getting-started, "try this", onboarding, examples) structured for progressive discovery for both non-engineer and engineer audiences; a same-named explainer `.md` for every `.json/.mjs/.py/.js` source file; and consistently applied frontmatter so people can explore beginner-to-advanced from different perspectives.
 
@@ -39,21 +40,21 @@ Reject the literal sibling-`.md`-per-source-file rule. Document source two ways 
 
 Rationale: this reaches the maintainer's real goal - nothing in the repo is unexplained or undiscoverable - at roughly 15-20 folder READMEs plus docblocks, instead of ~141 hand-maintained sibling files, and it matches how the named style reference actually works.
 
-### D2 - The site is the generated view of `docs/` (mount the tree)
+### D2 - The documentation site is a generated Pattern S view (not an in-place glob)
 
-Adopt ADR 0021 D3 as originally decided: add frontmatter `title` (and the D3 taxonomy below) to every `docs/**` page, then mount the Diataxis tree via the in-place glob loader so the folder tree **is** the published IA, with the curated landing page kept on top. The maintainer's "CI to keep docs and Astro pages in sync" requirement is then satisfied **structurally** - the site is a view of `docs/`, not a second content store, so there is nothing to drift. The residual CI concern (a `docs/**` page that cannot mount because it lacks a `title`, or is silently excluded) is covered by the `docs-frontmatter` check in D4.
+The documentation site is a generated Pattern S view, not an in-place glob. The Astro Starlight site presents a generated view of the repository's public documentation (the Diataxis `docs/{tutorials,how-to,reference,explanation}` tree plus component sources) with a curated landing on top. Generated pages are emitted into `site/src/content/docs/` and read by the stock Starlight `docsLoader()` (no arguments); they are gitignored and rebuilt on every build (no committed generated output, no drift surface). Repo-root `docs/` remains the repository's own documentation and governance tree (`docs/internal/` in particular) and is never built by Astro. This supersedes the in-place-glob-over-`docs/**` mechanism ADR 0021 D3 contemplated: it delivers the same outcome (the repo's rich docs become a browsable site with a curated landing) via the family Pattern S layout (clause 14.1) this repo converged onto in #79, rather than mounting `docs/` in place with a custom glob loader. The generator reads the public `docs/` tree and component sources and writes `site/src/content/docs/`; the governance/public split is preserved by reading only the public tree.
 
 ### D3 - Frontmatter taxonomy (consistent, audience-aware)
 
 Define a normative frontmatter schema for `docs/**` (excluding `docs/internal/`), shipped as a reference document the way pm-skills ships `frontmatter-schema.yaml`:
 
-- `title` (string, required) - the published page title; required for the mount.
+- `title` (string, required) - the published page title; required so the generator can emit the page.
 - `description` (string, required) - one line, reusing the U5 "action verb + use-when" shape; no colon-space.
 - `audience` (enum, required) - one of `non-engineer`, `engineer`, `both`.
 - `level` (enum, required) - one of `beginner`, `intermediate`, `advanced`.
 - `tags` (array of strings, optional).
 
-This single taxonomy unlocks both the site mount and the audience/level grouping and filtering that delivers the two-doors, beginner-to-advanced exploration goal.
+This single taxonomy unlocks both the site generation and the audience/level grouping and filtering that delivers the two-doors, beginner-to-advanced exploration goal.
 
 ### D4 - Five new checks, their tiers, and the G7 cleanup
 
@@ -82,7 +83,7 @@ Full scope, delivered as a sequence of small, individually-green PRs. The orderi
 | Phase | Lands | New check enforced |
 |---|---|---|
 | P1 | frontmatter taxonomy doc; `title/description/audience/level` added to all `docs/**`; author QUICKSTART, `tutorials/`, glossary, faq, troubleshooting, architecture overview+detailed (via `askit-build-docs`) | none |
-| P2 | `docs-frontmatter` (G7) + mount the full `docs/` tree as the in-place-glob view | G7 |
+| P2 | `docs-frontmatter` (G7) + generate the full `docs/` tree into `site/src/content/docs/` (the Pattern S view) | G7 |
 | P3 | README hero rewrite (pm-skills pattern) + the architecture / tier-climb / eval-boundary / build-evaluate-improve diagrams | U12 (`mermaid-valid`) |
 | P4 | folder READMEs authored (via the new `folder-readme` mode) | G8 (`folder-readme`) |
 | P5 | source docblocks added under the in-scope roots | G9 (`source-doc`) |
@@ -92,13 +93,13 @@ Each phase keeps the per-slice cadence (`gen-* --write` -> `node scripts/check.m
 
 ## Consequences
 
-**Positive:** finishes the dual-audience Diataxis set ADR 0021 promised; the site becomes a true generated view of `docs/` with the folder tree as the IA; the repo documents itself folder-by-folder and file-by-file without a rot surface; five new checks deepen the self-proving Gold reference and ship as reusable capability for any plugin a user builds; the long-standing G7 labeling error is corrected; and the toolkit dogfoods its own deterministic-structure-plus-behavioral-quality philosophy on its own documentation.
+**Positive:** finishes the dual-audience Diataxis set ADR 0021 promised; the site becomes a true generated Pattern S view of `docs/` with its folder structure reflected in the IA; the repo documents itself folder-by-folder and file-by-file without a rot surface; five new checks deepen the self-proving Gold reference and ship as reusable capability for any plugin a user builds; the long-standing G7 labeling error is corrected; and the toolkit dogfoods its own deterministic-structure-plus-behavioral-quality philosophy on its own documentation.
 
 **Negative / to manage:** five new checks is the largest single addition to the gate since the Gold spine; each new MUST means the toolkit must author its own conforming artifacts before flipping the check, so the content/README/folder-README/docblock work is real labor budgeted across P1-P5; STANDARD.md v0.9 and a version bump touch the normative spec; and the staged delivery is several PRs against protected `main`, each needing its own adversarial gate.
 
 ## Scope and R6
 
-- **Pulled into v1 now:** the missing ADR 0021 D1 content; the full site mount; the frontmatter taxonomy; `mermaid-valid` (was decided in v1, never built); `docs-presence` (was v1.x); the two new conventions (folder-README, source docblock) and their checks.
+- **Pulled into v1 now:** the missing ADR 0021 D1 content; the full generated docs site (Pattern S); the frontmatter taxonomy; `mermaid-valid` (was decided in v1, never built); `docs-presence` (was v1.x); the two new conventions (folder-README, source docblock) and their checks.
 - **Net new skills = 0** (one new `askit-build-docs` mode). **Net new checks = +5** (25 -> 30).
 - **Stays out (v1.x):** the example "threads" / samples build-out (ADR 0021 D5), the interactive capability matrix, `starlight-versions`, and video casts.
 
@@ -112,4 +113,4 @@ Each phase keeps the per-slice cadence (`gen-* --write` -> `node scripts/check.m
 
 ## Provenance
 
-A pre-design review workflow (build/test/version + inventory + git-state verification, plus continuation-prompt and log-quality critiques) established the real spine count, the sibling-`.md` scope, and the G7 confusion. An Explore study of `../pm-skills` and the product-on-purpose portfolio established the documentation conventions to match (hero README, Diataxis docs tree, Astro Starlight + astro-mermaid, generation over duplication, folder-level navigation). This ADR resolves the three forks the maintainer chose (folder-READMEs + docblocks; mount the tree; full staged scope) into a build plan that holds the consolidation and non-vacuous-tier lines.
+A pre-design review workflow (build/test/version + inventory + git-state verification, plus continuation-prompt and log-quality critiques) established the real spine count, the sibling-`.md` scope, and the G7 confusion. An Explore study of `../pm-skills` and the product-on-purpose portfolio established the documentation conventions to match (hero README, Diataxis docs tree, Astro Starlight + astro-mermaid, generation over duplication, folder-level navigation). This ADR resolves the three forks the maintainer chose (folder-READMEs + docblocks; generate the docs site as a Pattern S view; full staged scope) into a build plan that holds the consolidation and non-vacuous-tier lines.
