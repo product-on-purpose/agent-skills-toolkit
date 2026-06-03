@@ -48,7 +48,7 @@ Two single-line edits to `library.json` clear the first two Silver checks.
 {
   "name": "my-plugin",
   "version": "0.2.0",
-  "standard": "0.9",
+  "standard": "0.10",
   "tier": "universal",
   "agent-targets": ["claude", "codex"],
   "prefix": "myp-"
@@ -129,7 +129,7 @@ From here `node scripts/check.mjs` gates on Convergent errors too - the declared
 
 ## Part 2 - Silver to Gold (Advanced)
 
-Gold certifies that the plugin proves itself: deep lifecycle plus CI that runs the Standard against the plugin and passes. The Gold checks are `G1` through `G6`; `G7` is tier inclusion (all of Bronze and Silver), satisfied structurally rather than by a separate check. That is the full 25-check spine: `U1-U11`, `S1-S8`, `G1-G6`.
+Gold certifies that the plugin proves itself: deep lifecycle plus CI that runs the Standard against the plugin and passes. The Gold checks are `G1` through `G7` (the seventh, `docs-frontmatter`, landed in Standard v0.10); tier inclusion of all Bronze and Silver is a structural property, not a numbered check. That is the full 26-check spine: `U1-U11`, `S1-S8`, `G1-G7`.
 
 Read the new worklist first:
 
