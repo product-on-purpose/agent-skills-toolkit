@@ -1,6 +1,7 @@
 # The Advanced Skill Library Standard
 
-> **Standard version 0.9**, amended 2026-06-01 (promoted to the repository root at v0.8 on 2026-05-26). This is the normative Standard that every tool in `agent-skills-toolkit` enforces; the version-history notes below record how the frozen draft converged.
+> **Standard version 0.10**, amended 2026-06-03 (promoted to the repository root at v0.8 on 2026-05-26). This is the normative Standard that every tool in `agent-skills-toolkit` enforces; the version-history notes below record how the frozen draft converged.
+> v0.10: First of the documentation-depth checks (ADR 0024). `G7` is reclassified from the tier-inclusion statement (now an unnumbered structural property) to the **`docs-frontmatter`** check; the docs frontmatter taxonomy is pinned in sec 8.4; the Gold checks are now `G1-G7` and the spine is `U1-U11` + `S1-S8` + `G1-G7` = 26. Further docs-depth checks (`U12`, `G8-G10`) land across the v1.1.x build-out.
 > v0.9: Runner Node baseline raised from EOL Node 20 to >=22.12.0; recommended pin Node 24. See ADR 0025.
 > v0.8: Codex contract revised to the native plugin + marketplace model (sec 3.2/3.3/3.9/10.1 + Appendix A), per the 2026-05-27 spike against Codex CLI v0.133. Sec 12 marketplace updated to describe Codex's concrete native marketplace alongside Claude's (in a separate task).
 > v0.7: Codex-review judgment calls applied - a minimal `library.json` (name/version/tier) is now REQUIRED at every tier (5/2.1/2.5; "loose components" without it are not a plugin); added component specs for **MCP server** (3.9) and **AGENTS.md** (3.10).
@@ -120,9 +121,11 @@ Because a Gold plugin is the self-proving reference for this Standard, every Gol
 | G4 | **Generated INDEX + manifests.** `INDEX.md`, the native plugin manifests (`.claude-plugin/plugin.json`, Codex `plugin.json`), and `manifest.generated.json` are generated from the **authored** `library.json` + component frontmatter (`gen-index`, `gen-manifest`) and drift-checked; a hand-edited generated file is an `error`. (`library.json` itself is authored canonical, NOT a generated artifact - see Section 5; its `components` index MAY be synced from on-disk frontmatter and is drift-checked the same way.) | gen-index / gen-manifest + drift check | - |
 | G5 | **RELEASE-NOTES.** The plugin maintains `RELEASE-NOTES.md` (curated, user-facing), distinct from `CHANGELOG.md` (10.6). | release-notes presence check | - |
 | G6 | **Deprecation policy.** The plugin defines and follows a deprecation policy: `status: deprecated` + `deprecated-by` + `remove-in` handling (7.5), and tooling recognizes deprecated components. | frontmatter handling + deprecation check | a dedicated `deprecate` **automation skill**. The *policy and frontmatter handling* are required; *automating* them is roadmap. |
-| G7 | **All Bronze + Silver requirements.** By tier inclusion. | full check suite | - |
+| G7 | **Docs frontmatter taxonomy.** Every published `docs/**` page (excluding `docs/internal/`) carries the Section 8.4 taxonomy: `title`, `description` (no colon-space), `audience`, `level`, and optional `tags` / `doc-role`. Conditional on a published docs tree. | docs-frontmatter check | folder-READMEs, source docblocks, docs-presence (`G8-G10`, v1.1.x roadmap) |
 
-Conformance **badges/branding** are not a Gold requirement at v1: tooling reports the tier it verifies (2.4); it does not brand it. The toolkit targets Gold at v1 and MUST pass G1-G7 against itself before release.
+**Tier inclusion** (a Gold plugin satisfies every Bronze and Silver requirement) is a structural property of the monotonic tiers, not a numbered check; it was carried as "G7" before v0.10 and is now an unnumbered statement, freeing `G7` for `docs-frontmatter`. The Gold checks are `G1-G7`; the spine is `U1-U11` + `S1-S8` + `G1-G7` = **26**.
+
+Conformance **badges/branding** are not a Gold requirement at v1: tooling reports the tier it verifies (2.4); it does not brand it. The toolkit targets Gold at v1 and MUST pass `G1-G7` against itself before release.
 
 ---
 
@@ -330,6 +333,9 @@ Beyond the agentskills.io `name` rules, a plugin SHOULD adopt consistent, docume
 - **Advanced:** MUST provide regression coverage for chains and hooks (does changing one component break another?).
 
 ---
+
+### 8.4 Documentation frontmatter taxonomy
+Every published documentation page under `docs/**` (excluding `docs/internal/`, which is committed maintainer governance and never published) MUST carry a YAML frontmatter block with: `title` (non-empty string); `description` (a non-empty string following the 8.1 shape, with no colon-space); `audience` (one of `non-engineer`, `engineer`, `both`); `level` (one of `beginner`, `intermediate`, `advanced`); and the OPTIONAL `tags` (array of strings) and `doc-role` (a path-independent structural marker, e.g. `architecture-overview` / `architecture-detailed`). The `docs-frontmatter` check (G7) enforces this and is conditional on a published `docs/` tree (a plugin with none passes vacuously). The taxonomy makes the docs tree audience-aware and lets the documentation site generate each page.
 
 ## 9. Security and least privilege
 
