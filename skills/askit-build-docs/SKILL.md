@@ -25,7 +25,7 @@ When authoring or refreshing a plugin's docs, standing up a docs site, or aligni
 2. Fix each gap; keep prose tight (the ETH-Zurich finding: verbose context files lower agent task success).
 
 ## site mode
-1. Follow [references/docs-site-recipe.md](references/docs-site-recipe.md): copy the pinned `../pm-skills` stack (Astro 6 + `@astrojs/starlight` ~0.39 + `astro-mermaid` ~2.0, ordered mermaid-before-starlight), the GitHub Pages `site` + `base`, and the **generated Pattern S** content collection (ADR 0024 D2): the stock `docsLoader()` over `src/content/docs/`, a `gen-docs-site.mjs` generator that emits the public `docs/**` tree there (gitignored, rebuilt in the `prebuild` hook, link-rewritten so the clause-14.11 guard stays green), and curated landing pages on top. Not an in-place glob over `./docs`.
+1. Follow [references/docs-site-recipe.md](references/docs-site-recipe.md): copy the pinned `../pm-skills` stack (Astro 6 + `@astrojs/starlight` ~0.39 + `astro-mermaid` ~2.0, ordered mermaid-before-starlight), the GitHub Pages `site` + `base`, and the **generated Pattern S** content collection (ADR 0024 D2): the stock `docsLoader()` over `src/content/docs/`, a `gen-docs-site.mjs` generator that emits the public `docs/**` tree there (gitignored, rebuilt via a `generate()` call at the top of `astro.config.mjs`, link-rewritten so the clause-14.11 guard stays green), and curated landing pages on top. Not an in-place glob over `./docs`.
 2. Wire the deploy workflow (`.github/workflows/deploy-pages.yml`, triggered on `site/**` and `docs/**`) and verify `npm run build` plus the link/route/untracked guards are green before publishing (standing up a live site is a separate, build-verified slice; the recipe is the contract).
 
 ## Scope

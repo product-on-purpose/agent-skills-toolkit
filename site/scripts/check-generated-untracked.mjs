@@ -26,6 +26,40 @@ if (dirs.length === 0) {
 }
 
 const targets = dirs.map((d) => `site/src/content/docs/${d}/`);
+
+console.log('=== Generated Docs Untracked Check (R-SITE-2) ===');
+console.log(`Guarded quadrants: ${dirs.join(', ')}`);
+
+// (1) The gitignore invariant. Each emitted quadrant MUST be gitignored, so a new public docs/
+// quadrant cannot silently slip past the static site/.gitignore list and become a committable drift
+// surface. `git check-ignore -q <path>` exits 0 when the path is ignored, 1 when it is not (and >1 on
+// a real git error). We probe a representative path under each quadrant (the rule ignores the
+// directory, so any path under it matches), running each probe in its own try so one un-ignored
+// quadrant does not mask the others. This turns "add it to .gitignore too" from a hopeful comment
+// into a checked invariant.
+const notIgnored = [];
+for (const d of dirs) {
+  const probe = `site/src/content/docs/${d}/.gen-probe`;
+  try {
+    execFileSync('git', ['check-ignore', '-q', '--', probe], { cwd: REPO });
+  } catch (err) {
+    if (err.status === 1) notIgnored.push(d);
+    else {
+      console.error(`check-generated-untracked: git check-ignore failed: ${err.message}`);
+      process.exit(1);
+    }
+  }
+}
+
+if (notIgnored.length) {
+  console.log(`\nFAIL: ${notIgnored.length} emitted quadrant(s) are NOT gitignored: ${notIgnored.join(', ')}`);
+  console.log('Each generated quadrant must be ignored in site/.gitignore, or its pages become a');
+  console.log('committable drift surface. Add `src/content/docs/<quadrant>/` to site/.gitignore.');
+  process.exit(1);
+}
+
+// (2) The committed-page check. Even when ignored, an explicit `git add -f` could track a generated
+// page; `git ls-files` lists the tracked set, which must be empty over the quadrants.
 let tracked = [];
 try {
   const out = execFileSync('git', ['ls-files', '--', ...targets], { cwd: REPO, encoding: 'utf8' });
@@ -35,11 +69,8 @@ try {
   process.exit(1);
 }
 
-console.log('=== Generated Docs Untracked Check (R-SITE-2) ===');
-console.log(`Guarded quadrants: ${dirs.join(', ')}`);
-
 if (tracked.length === 0) {
-  console.log('\nPASS: no generated docs pages are tracked (the Pattern S tree stays gitignored).');
+  console.log('\nPASS: every emitted quadrant is gitignored and no generated page is tracked.');
   process.exit(0);
 }
 
