@@ -1,0 +1,7 @@
+{
+  "name": "mermaid-ok",
+  "version": "0.1.0",
+  "description": "Grade a fixture plugin whose markdown carries a structurally valid mermaid diagram, used as the golden baseline for the mermaid-valid (U12) check.",
+  "standard": "0.10",
+  "tier": "universal"
+}

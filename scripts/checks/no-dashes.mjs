@@ -9,8 +9,9 @@ export const meta = { id: "no-dashes", tier: "universal", reqId: "U10" };
 const EM_DASH = String.fromCharCode(0x2014);
 const EN_DASH = String.fromCharCode(0x2013);
 // Skip dependency and gitignored-scratch dirs, plus build-output / tool-cache dirs (dist, .astro):
-// generated artifacts are not authored text, so house style does not apply to them.
-const SKIP_DIRS = new Set(["node_modules", ".git", ".memsearch", "_local", "_LOCAL", "_agent-context", "dist", ".astro"]);
+// generated artifacts are not authored text, so house style does not apply to them. Exported so the
+// other repo-wide content checks (U12 mermaid-valid) reuse the same skip set instead of re-listing it.
+export const SKIP_DIRS = new Set(["node_modules", ".git", ".memsearch", "_local", "_LOCAL", "_agent-context", "dist", ".astro"]);
 const SCAN = /\.(md|mjs)$/;
 
 function collect(dir, out) {

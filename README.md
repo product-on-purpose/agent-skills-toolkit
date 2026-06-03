@@ -132,17 +132,53 @@ No setup. Install the plugin and drive it through skills:
 
 The grade is trustworthy because it is deterministic: every skill runs the same model-free gate that also runs in CI, so a plugin proves itself instead of taking an agent's word for it (see [What makes it different](#what-makes-it-different)).
 
+The loop the skills drive is the same at every tier: create a component conformant by construction, evaluate it against the Standard, improve what the burndown names, and repeat until the tier is earned.
+
+```mermaid
+flowchart LR
+  C["Create<br/>askit-build-* (conformant by construction)"]
+  E["Evaluate<br/>node scripts/check.mjs and askit-evaluate"]
+  I["Improve<br/>fix what the burndown names"]
+  C --> E --> I
+  I --> E
+```
+
 <div align="right">(<a href="#readme-top">back to top</a>)</div>
 
 ## What makes it different
 
-Cross-agent emission is increasingly common. The defensible, less-occupied position is **grading a whole library, deterministically, against a tier you can climb and verify**:
+Cross-agent emission is increasingly common. The defensible, less-occupied position is **grading a whole library, deterministically, against a tier you can climb and verify**. The gate is a portable pipeline: the plugin on disk feeds one check module per requirement, each emits findings, and they roll up to the tier earned plus the burndown to the next.
+
+```mermaid
+flowchart LR
+  P["Plugin on disk<br/>library.json plus components"]
+  C["Check modules<br/>one per reqId (U, S, G)"]
+  F["Findings<br/>error or warn"]
+  T["tier-report<br/>tier earned plus burndown"]
+  P --> C --> F --> T
+```
+
+The differentiators:
 
 - **Library-level, not per-unit.** The gate grades the entire plugin - manifest, components, cross-agent emission, CI, and lifecycle - not one skill in isolation. The unit of governance is the library.
 - **Deterministic, not vibes.** A portable Node gate with real exit codes, not an LLM opinion. Judgment-based evaluation (behavioral and qualitative) exists too, but it sits **beside** the gate as opt-in evidence and never decides a pass or fail.
 - **Tiered and climbable.** Bronze, Silver, Gold are monotonic: each includes everything below it. The tier report hands back a burndown that names exactly what blocks the next tier, so the climb is a worklist, not a guess.
 - **Cross-agent by construction.** One authored `library.json` is the single source of truth; the native per-agent manifests are generated from it, so Claude Code and Codex stay in lockstep.
 - **Self-proving.** The repository is the Gold-grade reference implementation of its own Standard, and it runs that Standard against itself in CI.
+
+The deterministic boundary is the load-bearing idea: a plugin's **structure** runs through the model-free gate, which decides pass or fail; its **quality** (does a skill trigger, is the output good) runs through `askit-evaluate`, which sits beside the gate as opt-in evidence and never decides the grade.
+
+```mermaid
+flowchart TD
+  S["Structure<br/>manifest, anatomy, emission, CI"]
+  G["Deterministic gate<br/>node scripts/check.mjs"]
+  V["Pass or fail<br/>real exit code, runs in CI"]
+  Q["Quality<br/>triggering and output"]
+  E["askit-evaluate<br/>behavioral plus review, opt-in"]
+  N["Evidence beside the gate<br/>never decides the grade"]
+  S --> G --> V
+  Q --> E --> N
+```
 
 <div align="right">(<a href="#readme-top">back to top</a>)</div>
 
