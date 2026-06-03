@@ -1,14 +1,19 @@
 name: Deploy docs site to GitHub Pages
 
 # Builds the Astro Starlight site in site/ and deploys it to GitHub Pages.
-# Triggers on pushes to main that touch site/ (or this workflow) and on manual dispatch.
-# Pages source must be set to "GitHub Actions" in the repo settings for this to publish.
+# Triggers on pushes to main that touch site/, the public docs/ tree it now renders (the generated
+# Pattern S view, ADR 0024 D2), or this workflow, and on manual dispatch. Pages source must be set to
+# "GitHub Actions" in the repo settings for this to publish.
 
 on:
   push:
     branches: [main]
     paths:
       - 'site/**'
+      # The site is generated from the public docs/ tree, so a docs edit must redeploy. (A
+      # docs/internal/ edit also matches and triggers a harmless no-op rebuild; path filters cannot
+      # negate a subtree, and the generator excludes internal regardless.)
+      - 'docs/**'
       - '.github/workflows/deploy-pages.yml'
   workflow_dispatch:
 

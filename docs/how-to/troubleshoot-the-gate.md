@@ -38,7 +38,7 @@ These gate any plugin that declares `universal` or higher.
 
 - **Symptom:** `library.json is missing...` or `...is not valid JSON` or `...missing required field "<key>"`.
 - **Cause:** the manifest that makes a directory a plugin is absent, malformed, or missing one of the five required fields: `name`, `version`, `description`, `standard`, `tier` (Standard sec 5.1). A bare folder of skills with no `library.json` is loose components, not a Bronze plugin.
-- **Fix:** scaffold one with `askit-init-plugin`, or add the missing field by hand. `version` must be semver; `tier` must be `universal`, `convergent`, or `advanced`; `standard` is the Standard version you target (currently `"0.9"`).
+- **Fix:** scaffold one with `askit-init-plugin`, or add the missing field by hand. `version` must be semver; `tier` must be `universal`, `convergent`, or `advanced`; `standard` is the Standard version you target (currently `"0.10"`).
 
 ### U2 - AGENTS.md missing
 

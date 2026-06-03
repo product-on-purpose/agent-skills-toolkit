@@ -3,3 +3,13 @@
 node_modules/
 dist/
 .astro/
+
+# Generated Pattern S docs pages (ADR 0024 D2, R-SITE-2). These quadrants are emitted from
+# repo-root docs/ by scripts/gen-docs-site.mjs on every build and must never be committed (a
+# committed generated page is a drift surface). The hand-authored landing pages at the top level of
+# src/content/docs/ ARE tracked. check-generated-untracked.mjs enforces this. If a new public docs/
+# quadrant is added, add it here too.
+src/content/docs/tutorials/
+src/content/docs/how-to/
+src/content/docs/reference/
+src/content/docs/explanation/

@@ -4,7 +4,7 @@ Curated, user-facing highlights. For the full technical history see [`CHANGELOG.
 
 ## 1.0.0 - 2026-06-02
 
-The first Gold-tagged release, and the one that makes the toolkit **installable**. `agent-skills-toolkit` is now a plugin you can add from the `product-on-purpose` marketplace, and it self-validates at the Gold (Advanced) tier - it passes its own Bronze, Silver, and Gold checks (G1-G6) in CI, a self-proving example of the Standard it defines.
+The first Gold-tagged release, and the one that makes the toolkit **installable**. `agent-skills-toolkit` is now a plugin you can add from the `product-on-purpose` marketplace, and it self-validates at the Gold (Advanced) tier - it passes its own Bronze, Silver, and Gold checks (G1-G7) in CI, a self-proving example of the Standard it defines.
 
 ### Install
 
@@ -27,7 +27,7 @@ The first Gold-tagged release, and the one that makes the toolkit **installable*
 ### Highlights
 
 - The full v1 builder catalog: 23 skills plus 7 Claude-only delegate subagents and 2 commands.
-- A 25-check deterministic validation spine (Bronze `U1-U11`, Silver `S1-S8`, Gold `G1-G6`) that runs in CI with no model in the loop, so the grade is trustworthy. Judgment-based evaluation sits beside the gate as opt-in evidence, never inside it.
+- A 26-check deterministic validation spine (Bronze `U1-U11`, Silver `S1-S8`, Gold `G1-G7`) that runs in CI with no model in the loop, so the grade is trustworthy. Judgment-based evaluation sits beside the gate as opt-in evidence, never inside it.
 - Genuinely cross-agent (Claude Code and Codex) from one canonical `library.json`, with the native per-agent manifests generated from it so the two never drift.
 - A live documentation site with brand-colored diagrams and a CI link-integrity guard, so no browser-broken link or silently dropped page ever ships.
 - Adopts the v0.9 Standard (runner Node baseline `>=22.12.0`) in `library.json`, and ships standardized release CI: a tag push mints this release behind a version-consistency guard.
