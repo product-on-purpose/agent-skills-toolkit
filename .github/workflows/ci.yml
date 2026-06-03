@@ -22,12 +22,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
-      - name: Set up Node 24 (baseline >=22.12.0, the family floor; Node 20 is EOL)
-        uses: actions/setup-node@v4
+      - name: Set up Node from .nvmrc (pin 24; baseline >=22.12.0, the family floor; Node 20 is EOL)
+        uses: actions/setup-node@v5
         with:
-          node-version: "24"
+          node-version-file: .nvmrc
 
       - name: Install dependencies
         run: npm ci
@@ -49,12 +49,12 @@ jobs:
         working-directory: site
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
-      - name: Set up Node (Node 24 LTS, matches .nvmrc)
-        uses: actions/setup-node@v4
+      - name: Set up Node from .nvmrc (pin 24; the committed pin is the single CI source of truth)
+        uses: actions/setup-node@v5
         with:
-          node-version: "24"
+          node-version-file: .nvmrc
           cache: npm
           cache-dependency-path: site/package-lock.json
 
@@ -62,4 +62,21 @@ jobs:
         run: npm ci
 
       - name: Build site (no deploy)
+        id: build
         run: npm run build
+
+      # Clause 14.11 link/route integrity, enforced in the PR build (the donor pattern from
+      # pm-skills; see site/scripts/ and ADR 0026). Both gate on the build step's own outcome, so
+      # they run only when the build succeeded (a build failure surfaces the real Astro error, not a
+      # secondary "dist not found") yet still run independently of each other (a failure in one
+      # still reports the other, since the condition overrides the default success() of all prior
+      # steps). Both operate on the built dist in the site working directory.
+      - name: Check rendered links + anchors (clause 14.11a; enforcing)
+        if: ${{ !cancelled() && steps.build.outcome == 'success' }}
+        env:
+          STRICT_ANCHORS: "1"
+        run: node scripts/check-rendered-links.mjs dist
+
+      - name: Check route parity (clause 14.11b; no published route removed without a redirect)
+        if: ${{ !cancelled() && steps.build.outcome == 'success' }}
+        run: node scripts/check-route-parity.mjs dist scripts/route-manifest.txt
