@@ -1,6 +1,11 @@
 # v1.0.0 launch runbook (maintainer-gated steps)
 
-> The toolkit-side PR and the marketplace-side PR are both prepared. These are the remaining steps, which involve an **irreversible** tag + public release and branch-protected merges, so they are left to the maintainer. Run them in order: the registry cannot pin until the tag exists.
+> The toolkit-side PR and the marketplace-side branch are both prepared. These are the remaining steps, which involve an **irreversible** tag + public release and branch-protected merges, so they are left to the maintainer. Run them in order: the registry cannot pin until the tag exists.
+
+## Current state (2026-06-02)
+
+- **Toolkit PR #84** (`release-v1.0.0` -> `main`): CI green (`validate` + `build-site`), mergeable.
+- **Marketplace branch `add-agent-skills-toolkit`** is pushed to `product-on-purpose/agent-plugins` (commit `374cd8f`): it adds the `agent-skills-toolkit` entry with a `REPLACE_WITH_V1.0.0_TAG_SHA` placeholder, bumps `metadata.version` 1.2.0 -> 1.3.0, updates the README + CHANGELOG, and fixes the `CONTRIBUTING.md` source example. **No PR is open yet** (a PR would fail `validate-registry` on the placeholder); open it in Step 4 after filling the sha.
 
 ## Forced order
 
@@ -12,8 +17,8 @@ toolkit PR (green)  ->  merge to main  ->  tag v1.0.0 + push  ->  release.yml mi
 
 ## Step 1 - merge the toolkit release PR
 
-- Repo: `product-on-purpose/agent-skills-toolkit`, branch `release-v1.0.0`.
-- Confirm `CI` (validate + build-site) is green.
+- Repo: `product-on-purpose/agent-skills-toolkit`, **PR #84** (branch `release-v1.0.0`).
+- Confirm `CI` (validate + build-site) is green (it is, as of 2026-06-02).
 - Admin-squash merge to `main` (the repo's convention).
 
 ## Step 2 - cut the v1.0.0 tag (irreversible)
@@ -36,7 +41,7 @@ git rev-list -n1 v1.0.0
 
 ## Step 4 - finish + merge the agent-plugins registry PR
 
-- Repo: `product-on-purpose/agent-plugins`, branch `add-agent-skills-toolkit` (prepared).
+- Repo: `product-on-purpose/agent-plugins`, branch `add-agent-skills-toolkit` (already pushed to origin).
 - In `.claude-plugin/marketplace.json`, replace the `REPLACE_WITH_V1.0.0_TAG_SHA` placeholder in the `agent-skills-toolkit` entry with the Step 3 sha.
 - Validate locally (needs network + token for checks 5 and 7):
   ```bash
