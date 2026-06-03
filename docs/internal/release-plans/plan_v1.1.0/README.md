@@ -1,7 +1,7 @@
 # plan_v1.1.0 - the ADR 0024 documentation depth + discoverability build-out
 
 > The planning packet for the **v1.1.0** milestone: execute [ADR 0024 (documentation depth, discoverability, and the full docs-site build-out)](../../decisions/0024-documentation-depth-and-discoverability.md), take the validation spine from **25 to 30 checks**, and pair in the demonstrative hook that makes Gold check `G1` non-vacuous.
-> Created 2026-06-02. Status: **planned** (not yet started). Source of truth: ADR 0024 (Accepted 2026-06-01). Live status: [`docs/internal/STATUS.md`](../../STATUS.md).
+> Created 2026-06-02. Status (2026-06-03): **P0-P2 merged to `main`** (the hook, the Diataxis content + frontmatter, `G7 docs-frontmatter` + Standard v0.10, the generated Pattern S site); **P3-P6 in progress** (per-phase packets below). Source of truth: ADR 0024 (Accepted 2026-06-01). Live status: [`docs/internal/STATUS.md`](../../STATUS.md).
 
 ## Read order
 
@@ -9,6 +9,17 @@
 2. **[`SPEC.md`](./SPEC.md)** - the requirements with IDs and testable acceptance criteria (`R-CONTENT`, `R-FM`, `R-SITE`, `R-CONV`, `R-CHECK`, `R-G7FIX`, `R-HOOK`, `R-STD`, `R-SEQ`), each traced to an ADR 0024 decision.
 3. **[`CHECKS-SPEC.md`](./CHECKS-SPEC.md)** - the per-check normative spec: how each of the five new checks works as a portable zero-model module (incl. why `mermaid-valid` is a structural check, not a full parse), the `G7` renumber, and the demonstrative hook's `G1`/`G3` contract.
 4. **[`IMPL-PLAN.md`](./IMPL-PLAN.md)** - the phase-by-phase (P0-P6) execution order, file-by-file, with the cross-phase dependency graph and the marketplace re-pin.
+
+## Per-phase detail packets (P3-P6)
+
+Each remaining phase has a verbose sub-packet (PRD + SPEC + IMPL-PLAN) expanding the relevant `SPEC.md` / `CHECKS-SPEC.md` rows into a from-cold executable plan:
+
+- **[`P3-readme-mermaid/`](./P3-readme-mermaid/)** - README hero rewrite + four mermaid diagrams + `mermaid-valid` (`U12`, Bronze structural check).
+- **[`P4-folder-readme/`](./P4-folder-readme/)** - folder-READMEs (inventory-matched) + `folder-readme` (`G8`, Gold).
+- **[`P5-source-docblock/`](./P5-source-docblock/)** - four-field source docblocks + `source-doc` (`G9`, Gold).
+- **[`P6-docs-presence-release/`](./P6-docs-presence-release/)** - `docs-presence` (`G10`, Gold) + STANDARD v0.10 completion + the `G7`-inclusion renumber close-out + the `1.1.0` release + marketplace re-pin.
+
+(P0-P2 shipped before these packets were written; their detail lives in `IMPL-PLAN.md` and the merged PRs #88-#93.)
 
 ## What this delivers
 
