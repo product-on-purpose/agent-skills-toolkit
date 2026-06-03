@@ -69,6 +69,25 @@ test("a ## TL;DR inside a code fence does not satisfy the ADR rule", () => {
   }
 });
 
+test("a duplicate architecture marker fails G10 (resolution is order-independent)", () => {
+  const dir = mkdtempSync(path.join(tmpdir(), "g10-dup-"));
+  try {
+    for (const q of ["tutorials", "how-to", "reference", "explanation"]) {
+      mkdirSync(path.join(dir, "docs", q), { recursive: true });
+      writeFileSync(path.join(dir, "docs", q, "a.md"), "# a\n");
+    }
+    writeFileSync(path.join(dir, "docs", "explanation", "architecture.md"), "---\ndoc-role: architecture-overview\n---\n\n[d](./d.md)\n");
+    writeFileSync(path.join(dir, "docs", "explanation", "d.md"), "---\ndoc-role: architecture-detailed\n---\n# d\n");
+    // A SECOND architecture-detailed marker would make last-writer-wins depend on readdir order.
+    writeFileSync(path.join(dir, "docs", "explanation", "d2.md"), "---\ndoc-role: architecture-detailed\n---\n# d2\n");
+    const f = check({ root: dir });
+    assert.ok(f.some((x) => /more than one page carries doc-role: architecture-detailed/.test(x.message)), "a duplicate detailed marker must fail");
+    assert.ok(f.every((x) => x.reqId === "G10"));
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
 test("a plugin with no docs/ tree passes G10 vacuously", () => {
   assert.equal(check(loadPlugin(noDocs)).length, 0);
 });

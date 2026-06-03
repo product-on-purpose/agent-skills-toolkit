@@ -40,6 +40,13 @@ const GLOB_ROOTS = [
 
 function isDir(p) { try { return statSync(p).isDirectory(); } catch { return false; } }
 
+/** Strip fenced code blocks (``` and ~~~) so a list item shown inside a fenced EXAMPLE neither counts
+ *  as a listed child (which would mask a real under-listed child) nor is reported as a phantom. A
+ *  folder guide that documents an authoring example is a normal pattern; mirrors docs-presence.mjs. */
+function stripFences(text) {
+  return text.replace(/```[\s\S]*?```|~~~[\s\S]*?~~~/g, "");
+}
+
 function resolveFolders(root) {
   const out = [];
   for (const rel of FIXED_ROOTS) {
@@ -112,7 +119,9 @@ export function check(ctx) {
       out.push(finding(meta.id, SEVERITY.ERROR, `folder README must carry a non-empty frontmatter "title" (ADR 0024 D1.1).`, { file: relReadme, reqId: meta.reqId }));
     }
     const onDisk = new Set(readdirSync(folder).filter((n) => !INVENTORY_SKIP.has(n)));
-    const { names: listed, found: hasInventory } = parseInventory(text);
+    // Parse the inventory over fence-stripped text so a fenced example list item is neither counted
+    // as a child (masking drift) nor flagged as a phantom (a within-release fix; G10 already does this).
+    const { names: listed, found: hasInventory } = parseInventory(stripFences(text));
     if (!hasInventory) {
       out.push(finding(meta.id, SEVERITY.ERROR, `folder README has no inventory section (an "## Inventory" heading listing the immediate children); add one with askit-build-docs folder-readme mode.`, { file: relReadme, reqId: meta.reqId }));
     }

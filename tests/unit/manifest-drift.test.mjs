@@ -7,11 +7,18 @@ test("matching name/version - no finding", () => {
   assert.equal(check(ctx).length, 0);
 });
 
-test("version drift between library.json and plugin.json is a WARN", () => {
+test("version drift between library.json and plugin.json is an ERROR (the tag-guard invariant)", () => {
   const ctx = { root: ".", library: { data: { name: "x", version: "0.2.0" } }, claudeManifest: { name: "x", version: "0.1.0" } };
   const f = check(ctx)[0];
-  assert.equal(f.severity, "warn");
+  assert.equal(f.severity, "error");
   assert.match(f.message, /version/);
+});
+
+test("name drift stays a WARN (cosmetic; not the tag-guard invariant)", () => {
+  const ctx = { root: ".", library: { data: { name: "x", version: "0.1.0" } }, claudeManifest: { name: "y", version: "0.1.0" } };
+  const f = check(ctx)[0];
+  assert.equal(f.severity, "warn");
+  assert.match(f.message, /name/);
 });
 
 test("no claudeManifest - no finding", () => {
@@ -24,10 +31,10 @@ test("codex manifest matching name/version - no finding", () => {
   assert.equal(check(ctx).length, 0);
 });
 
-test("codex manifest version drift is a WARN citing .codex-plugin", () => {
+test("codex manifest version drift is an ERROR citing .codex-plugin", () => {
   const ctx = { root: ".", library: { data: { name: "x", version: "0.2.0" } }, codexManifest: { name: "x", version: "0.1.0" } };
   const f = check(ctx)[0];
-  assert.equal(f.severity, "warn");
+  assert.equal(f.severity, "error");
   assert.equal(f.file, ".codex-plugin/plugin.json");
   assert.match(f.message, /version/);
 });

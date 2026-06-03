@@ -123,6 +123,24 @@ test("CRLF source: an info-string fence opener and bare closer are detected, lin
   assert.ok(out.includes('{ "a": 1 }'), "in-fence content preserved");
 });
 
+test("CRLF source: a reference-style link definition is rewritten (not left as a raw relative target)", () => {
+  // Regression for the CRLF reference-def bug: rewriteBodyLinks must split on /\r?\n/ so the
+  // `[label]: target` line does not retain a trailing \r the definition regex cannot consume, which
+  // would leave the relative target un-rewritten and browser-broken on the published site.
+  const content = [
+    "See [the standard][std] for the rules.",
+    "",
+    "[std]: ../../STANDARD.md",
+    "", // a trailing line: the def line is now FOLLOWED by a CRLF, so under split('\n') it keeps a \r
+  ].join("\r\n");
+  const out = transform(content, SRC);
+  // This must FAIL against the pre-fix split('\n') code: the def line carries a trailing \r the
+  // reference-def regex cannot consume, so the target is left un-rewritten. (A def on the LAST line
+  // has no trailing \r and would match even pre-fix, which is why the trailing line is load-bearing.)
+  assert.ok(out.includes(`[std]: ${BLOB}/STANDARD.md`), "the CRLF reference-style definition must be rewritten to a blob URL");
+  assert.ok(!out.includes("[std]: ../../STANDARD.md"), "the raw relative reference target must not survive");
+});
+
 test("emittedDirs returns the public quadrants and never docs/internal", () => {
   const dirs = emittedDirs();
   assert.ok(dirs.includes("how-to"), `expected how-to in ${dirs.join(", ")}`);

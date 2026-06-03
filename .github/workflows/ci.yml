@@ -61,8 +61,8 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      # The generated Pattern S docs tree (emitted by scripts/gen-docs-site.mjs in the build's
-      # `prebuild` hook) must stay gitignored - a committed generated page is a drift surface
+      # The generated Pattern S docs tree (emitted by scripts/gen-docs-site.mjs when astro.config.mjs
+      # loads, not a prebuild hook) must stay gitignored - a committed generated page is a drift surface
       # (ADR 0024 D2, R-SITE-2). This runs before the build so a tracked generated page fails fast.
       - name: Assert generated docs tree is untracked (R-SITE-2)
         run: node scripts/check-generated-untracked.mjs

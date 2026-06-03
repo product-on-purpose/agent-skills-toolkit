@@ -122,7 +122,11 @@ function fenceRun(line) {
 
 /** Rewrite links in a markdown body, leaving fenced code blocks untouched. */
 function rewriteBodyLinks(body, srcFileAbs) {
-  const lines = body.split('\n');
+  // Split on CRLF or LF (rejoined with LF below). A bare body.split('\n') leaves a trailing \r on
+  // every line of a CRLF checkout, which the reference-style-definition regex below cannot consume
+  // (`.` excludes \r and `$` without /m will not match before it), silently leaving those links
+  // un-rewritten. Same CRLF bug class as the fence-run trim; the docs are authored on Windows.
+  const lines = body.split(/\r?\n/);
   let fence = null; // { char, len } when inside a fenced block
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i];

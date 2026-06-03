@@ -1,6 +1,8 @@
 // what-it-is:   the U12 mermaid-valid Bronze check
 // what-it-does: structurally validates every fenced ```mermaid block in tracked .md/.mdx files
-//               (non-empty, recognized first keyword, brackets balanced ignoring quotes, no tabs)
+//               (non-empty; a recognized diagram keyword on the first diagram line, after any leading
+//               %%{init}%% directive, %% comment, or --- config block; brackets balanced ignoring
+//               quotes and comments; no tabs)
 // why:          a malformed diagram renders as a broken box on the docs site; this portable gate
 //               catches it deterministically without the heavy mermaid runtime (the astro-mermaid
 //               build is the render-time second layer of the toolkit's two-layer philosophy)
@@ -89,6 +91,48 @@ function bracketsBalanced(s) {
   return stack.length === 0 && !inQuote;
 }
 
+// Mermaid permits three constructs BEFORE the diagram-type line, all stripped by the renderer before
+// it detects the type: a leading YAML frontmatter block fenced by `---`, `%%{init: ...}%%` theming
+// directives, and `%%` line comments. Skip them, then return the first real diagram line so the
+// keyword test does not false-reject a validly themed diagram (and so the finding can cite that line).
+// Returns { index, text }: index is the 0-based line within bodyLines, or -1 if the body holds no
+// diagram line (only frontmatter/directives/blanks).
+function diagramLine(bodyLines) {
+  let i = 0;
+  while (i < bodyLines.length && bodyLines[i].trim() === "") i++; // leading blanks
+  if (i < bodyLines.length && bodyLines[i].trim() === "---") {
+    // a leading --- config frontmatter block: skip through its closing --- line
+    let j = i + 1;
+    while (j < bodyLines.length && bodyLines[j].trim() !== "---") j++;
+    i = j < bodyLines.length ? j + 1 : bodyLines.length;
+  }
+  while (i < bodyLines.length) {
+    const t = bodyLines[i].trim();
+    if (t === "" || t.startsWith("%%")) { i++; continue; } // blanks, %%{init}%% directives, %% comments
+    break;
+  }
+  return i < bodyLines.length ? { index: i, text: bodyLines[i].trim() } : { index: -1, text: "" };
+}
+
+/** Remove Mermaid `%%` line comments (and `%%{init}%%` directive lines) from s before bracket
+ *  counting, honoring "..." quoted spans so a `%%` inside a label is kept as literal text. Without this
+ *  a lone bracket in comment prose, or the {} in an init directive's JSON, would fail the balance rule. */
+function stripComments(s) {
+  let out = "";
+  let inQuote = false;
+  for (let i = 0; i < s.length; i++) {
+    const ch = s[i];
+    if (ch === '"') { inQuote = !inQuote; out += ch; continue; }
+    if (!inQuote && ch === "%" && s[i + 1] === "%") {
+      while (i < s.length && s[i] !== "\n") i++; // drop the rest of the line
+      out += "\n"; // keep the line break so line structure is preserved
+      continue;
+    }
+    out += ch;
+  }
+  return out;
+}
+
 /**
  * U12 (Bronze): every fenced ```mermaid block in a tracked .md/.mdx file is structurally well-formed.
  * Four rules: non-empty body; first non-blank line begins with a recognized diagram keyword; brackets
@@ -118,11 +162,18 @@ export function check(ctx) {
         out.push(finding(meta.id, SEVERITY.ERROR, `mermaid block at line ${b.startLine} is empty.`, { file: rel, reqId: meta.reqId }));
         continue;
       }
-      const first = body.split(/\r?\n/).find((l) => l.trim() !== "")?.trim() ?? "";
-      if (!DIAGRAM_KEYWORDS.some((kw) => first.startsWith(kw))) {
-        out.push(finding(meta.id, SEVERITY.ERROR, `mermaid block at line ${b.startLine} does not start with a recognized diagram keyword (got ${JSON.stringify(first.split(/\s+/)[0])}).`, { file: rel, reqId: meta.reqId }));
+      // Find the diagram-type line, skipping any leading --- config block, %%{init}%% directive, and
+      // %% comment lines (Mermaid strips these before detecting the type). Cite that line, not the fence.
+      const bodyLines = body.split(/\r?\n/);
+      const dl = diagramLine(bodyLines);
+      const firstWord = dl.text.split(/\s+/)[0] ?? "";
+      if (dl.index === -1 || !DIAGRAM_KEYWORDS.some((kw) => dl.text.startsWith(kw))) {
+        const lineNo = dl.index === -1 ? b.startLine : b.startLine + 1 + dl.index;
+        out.push(finding(meta.id, SEVERITY.ERROR, `mermaid block starting at line ${b.startLine} has no recognized diagram keyword on its first diagram line (line ${lineNo}, got ${JSON.stringify(firstWord)}).`, { file: rel, reqId: meta.reqId }));
       }
-      if (!bracketsBalanced(body)) {
+      // Strip %% comments/directives (honoring quotes) before counting, so a lone bracket in comment
+      // prose or an init directive's JSON braces does not fail the balance rule.
+      if (!bracketsBalanced(stripComments(body))) {
         out.push(finding(meta.id, SEVERITY.ERROR, `mermaid block at line ${b.startLine} has unbalanced brackets [] () {} or an unterminated quote (quotes ignored for bracket counting).`, { file: rel, reqId: meta.reqId }));
       }
       if (body.includes("\t")) {

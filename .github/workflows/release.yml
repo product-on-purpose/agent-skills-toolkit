@@ -72,8 +72,8 @@ jobs:
             flag { print }
           ' RELEASE-NOTES.md > RELEASE_BODY.md
           if [ ! -s RELEASE_BODY.md ]; then
-            echo "No RELEASE-NOTES.md section for ${VERSION}; using the full file."
-            cp RELEASE-NOTES.md RELEASE_BODY.md
+            echo "::error::no RELEASE-NOTES.md section for ${VERSION}; add a '## ${VERSION}' heading before tagging (refusing to publish the whole changelog as the release body)"
+            exit 1
           fi
 
       - name: Create GitHub release

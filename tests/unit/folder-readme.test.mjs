@@ -74,6 +74,43 @@ test("items under a deeper sub-heading of the inventory are still parsed (sticky
   }
 });
 
+test("a list item inside a fenced example is not counted as a child (no phantom)", () => {
+  const dir = mkdtempSync(path.join(tmpdir(), "g8-fence-phantom-"));
+  try {
+    mkdirSync(path.join(dir, "evals"), { recursive: true });
+    writeFileSync(path.join(dir, "evals", "a.eval.json"), "{}\n");
+    writeFileSync(
+      path.join(dir, "evals", "README.md"),
+      '---\ntitle: "evals"\n---\n\n# evals\n\n## Inventory\n\n- `a.eval.json` - a real set.\n\nHow to add one:\n\n```md\n- `ghost.eval.json` - a sample line\n```\n',
+    );
+    const f = check({ root: dir });
+    assert.ok(!f.some((x) => /phantom/.test(x.message)), "a fenced example must not be a phantom");
+    assert.equal(f.length, 0, `expected 0 findings, got: ${f.map((x) => x.message).join("; ")}`);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test("a child listed only inside a fenced example is still under-listed (drift not masked)", () => {
+  const dir = mkdtempSync(path.join(tmpdir(), "g8-fence-mask-"));
+  try {
+    mkdirSync(path.join(dir, "evals"), { recursive: true });
+    writeFileSync(path.join(dir, "evals", "a.eval.json"), "{}\n");
+    writeFileSync(path.join(dir, "evals", "b.eval.json"), "{}\n");
+    // b.eval.json appears ONLY inside a fenced example, so it must NOT count as listed.
+    writeFileSync(
+      path.join(dir, "evals", "README.md"),
+      '---\ntitle: "evals"\n---\n\n# evals\n\n## Inventory\n\n- `a.eval.json` - a real set.\n\n```md\n- `b.eval.json` - shown only as an example\n```\n',
+    );
+    assert.ok(
+      check({ root: dir }).some((x) => /under-listed/.test(x.message) && /b\.eval\.json/.test(x.message)),
+      "a child listed only inside a fence must still be flagged under-listed",
+    );
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
 test("prose backticks outside the inventory section do not cause a phantom false-fail", () => {
   const dir = mkdtempSync(path.join(tmpdir(), "g8-prose-"));
   try {
