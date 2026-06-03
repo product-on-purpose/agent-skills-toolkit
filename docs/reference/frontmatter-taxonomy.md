@@ -7,21 +7,21 @@ level: intermediate
 
 # Reference: docs frontmatter taxonomy
 
-The normative schema for the YAML frontmatter block at the top of every public documentation page in this repository. This is the **page** frontmatter taxonomy: every page under `docs/**` carries it **today**, and a planned `docs-frontmatter` check will **enforce** it.
+The normative schema for the YAML frontmatter block at the top of every public documentation page in this repository. This is the **page** frontmatter taxonomy: every page under `docs/**` carries it **today**, and the `docs-frontmatter` check (`G7`) **enforces** it.
 
-> **Status.** The taxonomy is applied now. The check that enforces it is part of the v1.1.0 documentation build-out (ADR 0024) and **has not shipped yet** - the current spine is 25 checks (`U1-U11`, `S1-S8`, `G1-G6`), and `G7` currently denotes tier inclusion, not a module. See [How it will be enforced](#how-it-will-be-enforced).
+> **Status.** The taxonomy is applied and **enforced** as of Standard v0.10: the `docs-frontmatter` check is `G7` (the spine is 26 checks, `U1-U11` + `S1-S8` + `G1-G7`). The related `docs-presence` check (`G10`) and the folder-README / source-docblock checks are still part of the v1.1.x build-out. See [How it is enforced](#how-it-is-enforced).
 
-It is distinct from the component frontmatter contract. The `frontmatter-valid` check (Bronze) validates a component's `SKILL.md` and agent frontmatter against the agentskills.io rules and Section 3.8 of the [Standard](../../STANDARD.md). The planned `docs-frontmatter` check (Gold) will validate this docs-page taxonomy. Different modules, different scopes, different requirement IDs - do not conflate them.
+It is distinct from the component frontmatter contract. The `frontmatter-valid` check (Bronze) validates a component's `SKILL.md` and agent frontmatter against the agentskills.io rules and Section 3.8 of the [Standard](../../STANDARD.md). The `docs-frontmatter` check (Gold, `G7`) validates this docs-page taxonomy. Different modules, different scopes, different requirement IDs - do not conflate them.
 
 ## Scope
 
 This taxonomy applies to **every page under `docs/**`, excluding `docs/internal/`.**
 
-- `docs/internal/` is committed maintainer governance (decisions, RFCs, backlog, release plans) and is never published to the docs site, so it is out of scope for the taxonomy and for the planned check.
+- `docs/internal/` is committed maintainer governance (decisions, RFCs, backlog, release plans) and is never published to the docs site, so it is out of scope for the taxonomy and for the `docs-frontmatter` check.
 - The four Diataxis trees - `docs/tutorials/`, `docs/how-to/`, `docs/reference/`, `docs/explanation/` - are all in scope. The file you are reading is one of them.
 - A root file (for example `README.md`, `QUICKSTART.md`, `STANDARD.md`) is **not** a docs page and does not carry this frontmatter.
 
-The planned check will be conditional: a plugin with no public `docs/` pages passes vacuously. A plugin owes this taxonomy only once it has a published docs tree.
+The check is conditional: a plugin with no public `docs/` pages passes vacuously. A plugin owes this taxonomy only once it has a published docs tree.
 
 ## Fields
 
@@ -45,7 +45,7 @@ A non-empty one-line summary that follows the same shape the Standard's `U5` des
 - **Action verb plus use-when.** State what the page does or covers, and when a reader would want it. The same discipline that makes a skill discoverable makes a docs page scannable.
 - **No `": "` colon-space.** The colon-space sequence is disallowed in the `description` value. A colon-space is the field separator inside frontmatter and a frequent trigger word artifact; restructure the sentence with a comma, a clause break, or a single space-hyphen-space instead.
 
-The planned `docs-frontmatter` check will verify the field is a non-empty string and contains no colon-space; it will not score prose quality (that judgment routes to the behavioral `askit-evaluate` path, never the deterministic gate).
+The `docs-frontmatter` check verifies the field is a non-empty string and contains no colon-space; it does not score prose quality (that judgment routes to the behavioral `askit-evaluate` path, never the deterministic gate).
 
 ### `audience` (enum, REQUIRED)
 
@@ -109,15 +109,15 @@ level: beginner
 ---
 ```
 
-## How it will be enforced
+## How it is enforced
 
-The taxonomy is documented here as a reference (the way a plugin ships a `frontmatter-schema` file). It is **applied today** - every `docs/**` page already carries it - and a deterministic check to **enforce** it is planned as part of the v1.1.0 documentation build-out (ADR 0024). That check has not shipped yet: the current spine is **25 checks (`U1-U11`, `S1-S8`, `G1-G6`)**, and `G7` currently denotes tier inclusion (Standard sec 2.6), not a module. When the build-out lands it reclassifies that tier-inclusion statement and assigns `G7` to this `docs-frontmatter` check (and `G10` to `docs-presence`), growing the spine to 30.
+The taxonomy is documented here as a reference (the way a plugin ships a `frontmatter-schema` file). It is **applied today** - every `docs/**` page already carries it - and it is **enforced** by the `docs-frontmatter` check as of Standard v0.10, which reclassified the old `G7` tier-inclusion statement (now an unnumbered structural property) and assigned `G7` to this check. The spine is **26 checks (`U1-U11`, `S1-S8`, `G1-G7`)**; the related `docs-presence` (`G10`) and the folder-README / source-docblock checks land later in the v1.1.x build-out, growing the spine toward 30.
 
-When shipped, the planned `docs-frontmatter` module (reqId `G7`, Gold tier) will:
+The `docs-frontmatter` module (reqId `G7`, Gold tier):
 
-- walk `docs/**/*.md`, skip `docs/internal/**`, parse each page's frontmatter, and emit an `error` for any in-scope page missing a required field, carrying an out-of-vocabulary `audience` or `level`, with a `description` containing a colon-space, or with a non-array `tags`;
-- bind a plugin that declares `advanced` (below that tier the finding is a burndown item toward the next rung);
-- be synchronous, deterministic, and zero-model, like every check in the spine: the gate decides pass or fail; judgment-based review sits beside it and never decides conformance.
+- walks `docs/**/*.md`, skips `docs/internal/**`, parse each page's frontmatter, and emits an `error` for any in-scope page missing a required field, carrying an out-of-vocabulary `audience` or `level`, with a `description` containing a colon-space, or with a non-array `tags`;
+- binds a plugin that declares `advanced` (below that tier the finding is a burndown item toward the next rung);
+- is synchronous, deterministic, and zero-model, like every check in the spine: the gate decides pass or fail; judgment-based review sits beside it and never decides conformance.
 
 ## See also
 

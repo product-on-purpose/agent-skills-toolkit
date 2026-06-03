@@ -2,7 +2,7 @@
   "name": "agent-skills-toolkit",
   "version": "1.0.0",
   "tier": "advanced",
-  "standard": "0.9",
+  "standard": "0.10",
   "skills": [
     {
       "name": "askit-backlog",

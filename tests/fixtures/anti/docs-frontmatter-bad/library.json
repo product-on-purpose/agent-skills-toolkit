@@ -1,0 +1,1 @@
+{ "name": "docs-frontmatter-bad", "version": "0.1.0", "description": "A fixture plugin whose docs page violates the taxonomy. Use it to prove the docs-frontmatter (G7) check bites.", "standard": "0.10", "tier": "advanced" }

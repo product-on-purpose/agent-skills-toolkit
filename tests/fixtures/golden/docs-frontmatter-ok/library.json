@@ -1,0 +1,1 @@
+{ "name": "docs-frontmatter-ok", "version": "0.1.0", "description": "A fixture plugin with a conformant docs page. Use it as the golden baseline for the docs-frontmatter (G7) check.", "standard": "0.10", "tier": "advanced" }
