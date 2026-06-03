@@ -9,15 +9,15 @@
 Most skill collections are a flat, single-agent, ungoverned pile. This is the Standard that defines what a best-in-class, multi-agent skill library actually is, plus the portable tooling that authors components, grades a plugin against the Standard, and emits each component in the right format for each agent. The repository is built to its own Standard and self-validates at Gold in CI: it is meant to be the proof.
 
 <p>
+  <a href="#install"><strong>Install</strong></a>
+  &nbsp;&middot;&nbsp;
   <a href="#what-it-is"><strong>What it is</strong></a>
   &nbsp;&middot;&nbsp;
-  <a href="#quick-start"><strong>Quick start</strong></a>
+  <a href="#use-it"><strong>Use it</strong></a>
   &nbsp;&middot;&nbsp;
   <a href="#the-tier-model"><strong>Tiers</strong></a>
   &nbsp;&middot;&nbsp;
   <a href="#the-catalog"><strong>Catalog</strong></a>
-  &nbsp;&middot;&nbsp;
-  <a href="STANDARD.md"><strong>The Standard</strong></a>
   &nbsp;&middot;&nbsp;
   <a href="https://product-on-purpose.github.io/agent-skills-toolkit/"><strong>Live docs</strong></a>
 </p>
@@ -47,8 +47,9 @@ Most skill collections are a flat, single-agent, ungoverned pile. This is the St
 <details>
 <summary><strong>Table of Contents</strong></summary>
 
+- [Install](#install)
 - [What it is](#what-it-is)
-- [Quick start](#quick-start)
+- [Use it](#use-it)
 - [What makes it different](#what-makes-it-different)
 - [The tier model](#the-tier-model)
 - [The catalog](#the-catalog)
@@ -60,6 +61,20 @@ Most skill collections are a flat, single-agent, ungoverned pile. This is the St
 
 </details>
 
+## Install
+
+```bash
+# Add the marketplace once (by repo path)
+/plugin marketplace add product-on-purpose/agent-plugins
+
+# Install the toolkit (by marketplace identity)
+/plugin install agent-skills-toolkit@product-on-purpose
+```
+
+You **add** the marketplace by its repo path and **install** by the marketplace identity (`@product-on-purpose`): the path is the address, the identity is the brand. The toolkit installs on Claude Code and Codex (it ships both native manifests). New here? Read [What it is](#what-it-is) first, then [Use it](#use-it).
+
+<div align="right">(<a href="#readme-top">back to top</a>)</div>
+
 ## What it is
 
 `agent-skills-toolkit` is two things working together, built for the **whole life of a plugin** - not just the moment you write a skill.
@@ -69,22 +84,20 @@ Most skill collections are a flat, single-agent, ungoverned pile. This is the St
 
 This is more than a skill builder. A single skill is where you start; the real work is **starting**, **growing**, **governing**, and **leveling up** a coherent, versioned plugin that works across more than one agent and holds together as it scales.
 
-| Phase | What you do | What the toolkit gives you |
-|---|---|---|
-| **Start** | Write your first skill, or scaffold a plugin from scratch | `askit-build-skill`, `askit-init-plugin`, `askit-init-marketplace`, `askit-migrate` for an existing repo |
-| **Grow** | Add subagents, slash commands, MCP servers, hooks, workflows, chain contracts, output styles, status lines, settings | the `askit-build-*` authoring family, emitted per agent |
-| **Govern** | Run the plugin over its lifetime | backlog with a why-gate, MADR decision records, releases, deprecations, templates, docs, and eval samples |
-| **Level up** | Climb Bronze to Silver to Gold by adding the machinery each tier certifies | a deterministic tier report that names exactly what blocks the next rung |
+- **Start** - write your first skill, or scaffold a plugin from scratch: `askit-build-skill`, `askit-init-plugin`, `askit-init-marketplace`, or `askit-migrate` for an existing repo.
+- **Grow** - add subagents, slash commands, MCP servers, hooks, workflows, chain contracts, output styles, status lines, and settings, through the `askit-build-*` family (emitted per agent).
+- **Govern** - run the plugin over its lifetime: backlog with a why-gate, MADR decision records, releases, deprecations, templates, docs, and eval samples.
+- **Level up** - climb Bronze to Silver to Gold by adding the machinery each tier certifies; a deterministic tier report names exactly what blocks the next rung.
 
 The path is a flat pile of skills becoming a coherent, versioned **plugin** that conforms to a defined quality bar and works across more than one agent - and then keeps earning higher grades as it matures: **loose components into a plugin into a skill library.**
 
-| It is | It is not |
-|---|---|
-| A lifecycle toolkit: start, grow, govern, and level up a plugin | A one-shot skill scaffolder you run once |
-| A deterministic gate that grades a **whole library** at once and reports the tier it earns | A per-skill linter or a style guide |
-| **Cross-agent**: one canonical `library.json`, emitted per agent (Claude Code and Codex) | A single-agent or Claude-only format |
-| **Self-proving**: the repository validates itself against the Standard in CI | An aspirational spec with no reference implementation |
-| A **grade** a plugin earns (Bronze / Silver / Gold) | A separate artifact you install |
+What it is, and is not:
+
+- A **lifecycle toolkit** (start, grow, govern, level up a plugin), not a one-shot skill scaffolder.
+- A **deterministic gate** that grades a whole library at once and reports the tier it earns, not a per-skill linter or style guide.
+- **Cross-agent** from one canonical `library.json` emitted per agent (Claude Code and Codex), not a single-agent or Claude-only format.
+- **Self-proving** (the repository validates itself against the Standard in CI), not an aspirational spec with no reference implementation.
+- A **grade** a plugin earns (Bronze / Silver / Gold), not a separate artifact you install.
 
 ```mermaid
 flowchart LR
@@ -110,29 +123,16 @@ The same tier ladder serves two audiences, and you can self-locate on it.
 
 Because the tiers are monotonic, the beginner's first Bronze plugin is the exact foundation the advanced track builds on. Nobody starts over. The bar rises and the earlier work still counts.
 
-## Quick start
+## Use it
 
-### Install
+Once installed, grade a plugin by invoking the **`askit-evaluate`** skill - run the **`/askit-evaluate`** command, or just ask your agent "grade this plugin against the Standard." It runs the deterministic core and presents the tier, the burndown to the next tier, and per-rule remediation. Start a new plugin with `askit-init-plugin`, build any component with the `askit-build-*` family, and bring an existing repo up to the bar with `askit-migrate`.
 
-```bash
-# Add the marketplace once (by repo path)
-/plugin marketplace add product-on-purpose/agent-plugins
-
-# Install the toolkit (by marketplace identity)
-/plugin install agent-skills-toolkit@product-on-purpose
-```
-
-You **add** the marketplace by its repo path and **install** the plugin by the marketplace identity (`@product-on-purpose`): the path is the address, the identity is the brand. The toolkit is a Claude Code and Codex plugin (it ships both `.claude-plugin/plugin.json` and `.codex-plugin/plugin.json`).
-
-### Grade a plugin
-
-The validation spine has a single runtime dependency (a YAML parser), so the gate runs anywhere Node 22.12+ does. From a plugin's root:
+Under the hood the same gate is a **portable script** you can run directly - in CI, a pre-commit hook, or a plain terminal, anywhere Node 22.12+ runs (one runtime dependency, a YAML parser). From a plugin's root:
 
 ```bash
-node scripts/check.mjs
+node scripts/check.mjs              # the tier + what blocks the next one, on a real exit code
+node scripts/tier-report.mjs --json # the same result as JSON for tooling
 ```
-
-It prints the highest tier the plugin satisfies and exactly what blocks the next one:
 
 ```
 Tier: Advanced (no blockers detected)
@@ -140,7 +140,7 @@ Tier: Advanced (no blockers detected)
 0 error(s), 0 warning(s).
 ```
 
-`node scripts/tier-report.mjs --json` emits the same result as JSON for tooling (`{ "tier": "advanced", "satisfies": [...], "blocked": {} }`).
+**Why a script, not only a skill:** a model can present the grade, but only a deterministic gate with a real exit code can run in CI and let a plugin **prove itself** (Gold `G2`) - the whole point of "a portable gate, not an LLM opinion." The skill is the door; the script is the engine, and both run the same checks.
 
 <div align="right">(<a href="#readme-top">back to top</a>)</div>
 
@@ -164,11 +164,11 @@ A tier is reported only when its checks actually pass; the tooling flags any cla
 
 ### At a glance
 
-| Tier | Codename | What it certifies | Who it is for | Adds | Cumulative checks |
-|---|---|---|---|---|---|
-| **Bronze** | Universal | Identical, portable files run unchanged on any agentskills.io-compliant agent | The beginner on-ramp: turn a pile of skills into a gradeable, portable plugin | A minimal `library.json`, valid skill anatomy, a description that clears the what-plus-when-plus-trigger bar, scarce context | `U1-U11` (11) |
-| **Silver** | Convergent | The multi-agent machinery is emitted in the correct format for every target agent | Real multi-component plugins that must ship to both Claude Code and Codex | Subagents, commands, workflows, chain contracts, per-agent emission, semver governance | `+ S1-S8` (19) |
-| **Gold** | Advanced | The plugin proves itself: deep lifecycle plus self-hosting CI that passes | Maintainers running plugins at scale who need lifecycle guarantees | Hooks, self-hosting CI, regression-covered chains, generated drift-checked docs, release and deprecation policy | `+ G1-G6` (25) |
+Three rungs, monotonic - each includes everything below it (per-tier detail follows):
+
+- **Bronze - Universal (`U1-U11`, 11 checks).** Certifies identical, portable files that run unchanged on any agentskills.io agent. For the beginner on-ramp. Adds a minimal `library.json`, valid skill anatomy, and a description that clears the bar.
+- **Silver - Convergent (`+ S1-S8`, 19).** Certifies the multi-agent machinery emitted in the right format for every target agent. For real multi-component plugins on both Claude and Codex. Adds subagents, commands, workflows, chain contracts, per-agent emission, and semver governance.
+- **Gold - Advanced (`+ G1-G6`, 25).** Certifies that the plugin proves itself: deep lifecycle plus self-hosting CI. For maintainers running plugins at scale. Adds hooks, self-hosting CI, regression-covered chains, drift-checked generated docs, and a release and deprecation policy.
 
 > **Read it as a climb.** Bronze makes a plugin *portable*. Silver makes it *genuinely cross-agent*. Gold makes it *self-proving*. Each rung is the floor the next one builds on.
 
@@ -218,13 +218,11 @@ A tier is reported only when its checks actually pass; the tooling flags any cla
 
 ### Locate yourself
 
-| Where you are | Your next rung | Get there with |
-|---|---|---|
-| I have loose skills, or none yet | **Bronze** | `askit-build-skill`, `askit-init-plugin`, or `askit-migrate` |
-| I have a Bronze plugin and want it on both agents | **Silver** | the `askit-build-*` family, then `node scripts/check.mjs` for the burndown |
-| I have a Silver plugin and want it self-proving | **Gold** | `askit-build-hook`, `askit-release`, `askit-deprecate`, plus self-hosting CI |
+- **Loose skills, or none yet -> Bronze.** Use `askit-build-skill`, `askit-init-plugin`, or `askit-migrate`.
+- **A Bronze plugin you want on both agents -> Silver.** Use the `askit-build-*` family, then `askit-evaluate` (or `node scripts/check.mjs`) for the burndown.
+- **A Silver plugin you want self-proving -> Gold.** Use `askit-build-hook`, `askit-release`, `askit-deprecate`, plus self-hosting CI.
 
-Run `node scripts/check.mjs` at any point to see the highest tier you satisfy and exactly what blocks the next one.
+Invoke `askit-evaluate` (or run `node scripts/check.mjs`) at any point to see the highest tier you satisfy and exactly what blocks the next one.
 
 <div align="right">(<a href="#readme-top">back to top</a>)</div>
 
@@ -236,96 +234,80 @@ Run `node scripts/check.mjs` at any point to see the highest tier you satisfy an
 
 The `askit-build-*` family scaffolds and improves each component type to the Standard.
 
-| Component | What it does |
-|---|---|
-| **askit-build-skill** | Author or improve an agentskills.io `SKILL.md`, scaffold a skill directory, and raise its conformance and description quality. |
-| **askit-build-subagent** | Create or improve a Claude subagent in `agents/<name>.md`, declaring tools and chain; the produced subagent is Claude-only. |
-| **askit-build-command** | Create or improve a Claude slash command that maps to a skill, giving it an explicit `/command` entry point. |
-| **askit-build-mcp** | Author or extend a portable `.mcp.json` server definition and wire the per-target `mcpServers` manifest pointer. |
-| **askit-build-hook** | Add Advanced-tier event-driven hooks that guard tool or session events, inject context, and document failure behavior. |
-| **askit-build-chain-contract** | Declare permitted inter-component invocations in `agents/_chain-permitted.yaml`; use to resolve `S4` orphan or phantom findings. |
-| **askit-build-agents-md** | Author or sync `AGENTS.md`, the agent navigation entrypoint, aligning it with the component index and trimming overgrowth. |
-| **askit-build-output-style** | Author or improve a Claude Code output style defining a response mode; the produced output style is Claude-only. |
-| **askit-build-workflow** | Formalize a recurring multi-skill sequence as a `_workflows` file with ordered steps and exit criteria; resolves `S5` findings. |
-| **askit-build-statusline** | Author a Claude Code status line script and wire its settings registration; the produced status line is Claude-only. |
-| **askit-build-settings** | Author per-target settings and permissions, scope least-privilege allowlists, wire env vars, and register hooks. |
+- **askit-build-skill** - author or improve an agentskills.io `SKILL.md`, scaffold a skill directory, and raise its conformance and description quality.
+- **askit-build-subagent** - create or improve a Claude subagent in `agents/<name>.md`, declaring tools and chain (Claude-only).
+- **askit-build-command** - create or improve a Claude slash command that maps to a skill, giving it an explicit `/command` entry point.
+- **askit-build-mcp** - author or extend a portable `.mcp.json` server definition and wire the per-target `mcpServers` manifest pointer.
+- **askit-build-hook** - add Advanced-tier event-driven hooks that guard tool or session events, inject context, and document failure behavior.
+- **askit-build-chain-contract** - declare permitted inter-component invocations in `agents/_chain-permitted.yaml`; resolves `S4` orphan or phantom findings.
+- **askit-build-agents-md** - author or sync `AGENTS.md`, the agent navigation entrypoint, aligning it with the component index.
+- **askit-build-output-style** - author or improve a Claude Code output style defining a response mode (Claude-only).
+- **askit-build-workflow** - formalize a recurring multi-skill sequence as a `_workflows` file with ordered steps and exit criteria; resolves `S5` findings.
+- **askit-build-statusline** - author a Claude Code status line script and wire its settings registration (Claude-only).
+- **askit-build-settings** - author per-target settings and permissions, scope least-privilege allowlists, wire env vars, and register hooks.
 
 ### Assessment (1)
 
 Evaluating a skill or plugin against the Standard for conformance, behavior, and quality.
 
-| Component | What it does |
-|---|---|
-| **askit-evaluate** | Audit a skill or plugin against the Standard in three modes: deterministic conformance plus tier, behavioral pass, and qualitative review. |
+- **askit-evaluate** - audit a skill or plugin against the Standard in three modes: deterministic conformance plus tier, behavioral pass, and qualitative review.
 
 ### Docs and samples (2)
 
 Authoring documentation and the sample/eval sets that prove a skill behaves and triggers correctly.
 
-| Component | What it does |
-|---|---|
-| **askit-build-docs** | Author or refresh docs across modes (readme, tutorial, reference, faq, and more) and stand up an Astro Starlight docs site. |
-| **askit-build-samples** | Create and validate a skill's golden examples, anti-examples, and triggering cases, and detect drift against current behavior. |
+- **askit-build-docs** - author or refresh docs across modes (readme, tutorial, reference, faq, and more) and stand up an Astro Starlight docs site.
+- **askit-build-samples** - create and validate a skill's golden examples, anti-examples, and triggering cases, and detect drift against current behavior.
 
 ### Governance and lifecycle (5)
 
 Managing backlogs, decisions, releases, deprecations, and templates over a plugin's lifetime.
 
-| Component | What it does |
-|---|---|
-| **askit-backlog** | Capture new-component proposals through the why-gate, prioritize backlog items, and prune stale or completed enhancements. |
-| **askit-decision** | Record MADR architecture decision records and RFCs in `docs/internal`, plus the TL;DR companion for long decision docs. |
-| **askit-release** | Cut a release: compute the version, promote the changelog, curate release notes, and run the readiness gate. |
-| **askit-deprecate** | Record a component's deprecation (status, replacement, removal target) and keep deprecated components validating until removal. |
-| **askit-template-manager** | Add or update the global templates directory and keep templates in sync with the shapes the scaffolders produce. |
+- **askit-backlog** - capture new-component proposals through the why-gate, prioritize backlog items, and prune stale or completed enhancements.
+- **askit-decision** - record MADR architecture decision records and RFCs in `docs/internal`, plus the TL;DR companion for long decision docs.
+- **askit-release** - cut a release: compute the version, promote the changelog, curate release notes, and run the readiness gate.
+- **askit-deprecate** - record a component's deprecation (status, replacement, removal target) and keep it validating until removal.
+- **askit-template-manager** - add or update the global templates directory and keep templates in sync with the shapes the scaffolders produce.
 
 ### Onboarding and adoption (4)
 
 Starting new plugins and marketplaces, migrating existing repos, and advising on targets and tier.
 
-| Component | What it does |
-|---|---|
-| **askit-init-plugin** | Scaffold a new Bronze-anatomy plugin from scratch and onboard the maintainer via interview, questionnaire, or hybrid mode. |
-| **askit-init-marketplace** | Stand up or validate a marketplace index that catalogs plugins, checking each entry, plugin reference, and version. |
-| **askit-migrate** | Assess an existing skills repo against the Standard, write the minimal manifest, and produce a staged bring-to-conformance plan. |
-| **askit-capability-advisor** | Report which component types a target agent can run and recommend a conformance tier before a plugin is built. |
+- **askit-init-plugin** - scaffold a new Bronze-anatomy plugin from scratch and onboard the maintainer via interview, questionnaire, or hybrid mode.
+- **askit-init-marketplace** - stand up or validate a marketplace index that catalogs plugins, checking each entry, plugin reference, and version.
+- **askit-migrate** - assess an existing skills repo against the Standard, write the minimal manifest, and produce a staged bring-to-conformance plan.
+- **askit-capability-advisor** - report which component types a target agent can run and recommend a conformance tier before a plugin is built.
 
 ### Subagents (7, Claude-only)
 
 The bounded delegate roles the toolkit's skills invoke; each is Claude-only and cannot ship to Codex.
 
-| Component | What it does |
-|---|---|
-| **askit-skill-author** | Author and improve agentskills.io skills to the Standard; the bounded delegate behind `askit-build-skill`. |
-| **askit-evaluator** | Assess a skill or plugin against the Standard and report findings with remediation; the read-only role behind `askit-evaluate`. |
-| **askit-reviewer** | Review a component or change for correctness, conformance, and quality, reporting findings with severity. |
-| **askit-quality-grader** | Run a skill against its eval-set and grade the outputs; the opt-in LLM-judge behind `askit-evaluate`'s behavioral mode. |
-| **askit-explorer** | Survey a repository broadly and report a structural map of its components and layout. |
-| **askit-file-search** | Locate specific files, symbols, or text and report matching paths and lines. |
-| **askit-file-ops** | Apply a specified set of file create and edit operations precisely; the bounded mutation role for authoring. |
+- **askit-skill-author** - author and improve agentskills.io skills to the Standard; the bounded delegate behind `askit-build-skill`.
+- **askit-evaluator** - assess a skill or plugin against the Standard and report findings with remediation; the read-only role behind `askit-evaluate`.
+- **askit-reviewer** - review a component or change for correctness, conformance, and quality, reporting findings with severity.
+- **askit-quality-grader** - run a skill against its eval-set and grade the outputs; the opt-in LLM-judge behind `askit-evaluate`'s behavioral mode.
+- **askit-explorer** - survey a repository broadly and report a structural map of its components and layout.
+- **askit-file-search** - locate specific files, symbols, or text and report matching paths and lines.
+- **askit-file-ops** - apply a specified set of file create and edit operations precisely; the bounded mutation role for authoring.
 
 ### Commands (2, Claude-only)
 
 The Claude slash commands that give the core flows an explicit `/command` entry point.
 
-| Component | What it does |
-|---|---|
-| **/askit-evaluate** | Invoke the `askit-evaluate` skill to report per-rule findings, the tier, and remediation for a path. |
-| **/askit-build-skill** | Invoke the `askit-build-skill` skill to scaffold a new `SKILL.md` or raise an existing skill's conformance. |
+- **/askit-evaluate** - invoke the `askit-evaluate` skill to report per-rule findings, the tier, and remediation for a path.
+- **/askit-build-skill** - invoke the `askit-build-skill` skill to scaffold a new `SKILL.md` or raise an existing skill's conformance.
 
 <div align="right">(<a href="#readme-top">back to top</a>)</div>
 
 ## Find your way in
 
-| If you want to... | Start here |
-|---|---|
-| Understand what a best-in-class library is | [`STANDARD.md`](STANDARD.md) and [The tier model](#the-tier-model) |
-| Grade a plugin you already have | `node scripts/check.mjs`, then read the burndown |
-| Build your first skill | `askit-build-skill` (or the `/askit-build-skill` command) |
-| Start a brand-new plugin | `askit-init-plugin` |
-| Bring an existing skills repo up to the Standard | `askit-migrate` |
-| See whether your agent supports a component type | `askit-capability-advisor` |
-| Read the full reference | [`docs/`](docs/) and the [live docs site](https://product-on-purpose.github.io/agent-skills-toolkit/) |
+- **Understand what a best-in-class library is** - [`STANDARD.md`](STANDARD.md) and [The tier model](#the-tier-model).
+- **Grade a plugin you already have** - the `askit-evaluate` skill, or `node scripts/check.mjs` for the burndown.
+- **Build your first skill** - `askit-build-skill` (or the `/askit-build-skill` command).
+- **Start a brand-new plugin** - `askit-init-plugin`.
+- **Bring an existing skills repo up to the Standard** - `askit-migrate`.
+- **See whether your agent supports a component type** - `askit-capability-advisor`.
+- **Read the full reference** - [`docs/`](docs/) and the [live docs site](https://product-on-purpose.github.io/agent-skills-toolkit/).
 
 <div align="right">(<a href="#readme-top">back to top</a>)</div>
 
@@ -343,16 +325,14 @@ The Claude slash commands that give the core flows an explicit `/command` entry 
 
 **`v1.0.0`, Gold grade, installable.** The repository declares `tier: advanced` and self-validates at Advanced in CI: the full gate is green and `tier-report` prints `advanced` with an empty burndown, so the toolkit is a self-proving example of the Standard it defines. Two Gold checks (`G1` hooks, `G6` deprecation) are currently satisfied without exercise, since the toolkit ships no hooks and no deprecated components yet; a demonstrative hook is a planned follow-up. The toolkit installs from the `product-on-purpose` marketplace (see [Quick start](#quick-start)).
 
-| | |
-|---|---|
-| **Version** | `1.0.0` (Standard `v0.9`) |
-| **Tier** | Advanced (Gold), self-validated |
-| **Install** | `product-on-purpose` marketplace (`agent-plugins`) |
-| **Components** | 23 skills, 7 subagents, 2 commands |
-| **Validation spine** | 25 checks (`U1-U11`, `S1-S8`, `G1-G6`) |
-| **Agents** | Claude Code and Codex; agentskills.io-compatible at Bronze |
-| **License** | Apache-2.0 |
-| **Docs site** | [product-on-purpose.github.io/agent-skills-toolkit](https://product-on-purpose.github.io/agent-skills-toolkit/) |
+- **Version** - `1.0.0` (Standard `v0.9`).
+- **Tier** - Advanced (Gold), self-validated.
+- **Install** - `product-on-purpose` marketplace (`agent-plugins`).
+- **Components** - 23 skills, 7 subagents, 2 commands.
+- **Validation spine** - 25 checks (`U1-U11`, `S1-S8`, `G1-G6`).
+- **Agents** - Claude Code and Codex; agentskills.io-compatible at Bronze.
+- **License** - Apache-2.0.
+- **Docs site** - [product-on-purpose.github.io/agent-skills-toolkit](https://product-on-purpose.github.io/agent-skills-toolkit/).
 
 The Phase 0 Bronze bootstrap is historical context (see [`docs/internal/BOOTSTRAP.md`](docs/internal/BOOTSTRAP.md)).
 
