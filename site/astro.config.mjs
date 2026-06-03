@@ -13,8 +13,20 @@ export default defineConfig({
   base: '/agent-skills-toolkit',
   integrations: [
     // astro-mermaid MUST come before starlight (integration-order rule). autoTheme follows
-    // Starlight's light/dark.
-    mermaid({ theme: 'default', autoTheme: true }),
+    // Starlight's light/dark. Brand the diagram line color (#5C7CFA) + system-ui font per the
+    // family Astro site standard 14.2 (mirrors the pm-skills reference); the shared preset will
+    // own this once it lands.
+    mermaid({
+      theme: 'default',
+      autoTheme: true,
+      mermaidConfig: {
+        themeVariables: {
+          lineColor: '#5C7CFA',
+          fontFamily: 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", sans-serif',
+          fontSize: '14px',
+        },
+      },
+    }),
     starlight({
       title: 'agent-skills-toolkit',
       description:

@@ -1,0 +1,7 @@
+/404.html
+/catalog/index.html
+/getting-started/index.html
+/index.html
+/overview/index.html
+/the-standard/index.html
+/tiers/index.html
