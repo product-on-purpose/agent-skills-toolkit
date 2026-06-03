@@ -1,7 +1,7 @@
 # The Advanced Skill Library Standard
 
 > **Standard version 0.10**, amended 2026-06-03 (promoted to the repository root at v0.8 on 2026-05-26). This is the normative Standard that every tool in `agent-skills-toolkit` enforces; the version-history notes below record how the frozen draft converged.
-> v0.10: First of the documentation-depth checks (ADR 0024). `G7` is reclassified from the tier-inclusion statement (now an unnumbered structural property) to the **`docs-frontmatter`** check; the docs frontmatter taxonomy is pinned in sec 8.4; the Gold checks are now `G1-G7` and the spine is `U1-U11` + `S1-S8` + `G1-G7` = 26. Further docs-depth checks (`U12`, `G8-G10`) land across the v1.1.x build-out.
+> v0.10: The documentation-depth build-out (ADR 0024). `G7` is reclassified from the tier-inclusion statement (now an unnumbered structural property) to the **`docs-frontmatter`** check; the docs frontmatter taxonomy is pinned in sec 8.4. The build-out adds five checks: `U12` (`mermaid-valid`, Bronze - every fenced mermaid block is structurally valid) and `G8` (`folder-readme`), `G9` (`source-doc`), `G10` (`docs-presence`) at Gold, alongside `G7` (`docs-frontmatter`). The Gold checks are now `G1-G10` and the spine is `U1-U12` + `S1-S8` + `G1-G10` = **30**.
 > v0.9: Runner Node baseline raised from EOL Node 20 to >=22.12.0; recommended pin Node 24. See ADR 0025.
 > v0.8: Codex contract revised to the native plugin + marketplace model (sec 3.2/3.3/3.9/10.1 + Appendix A), per the 2026-05-27 spike against Codex CLI v0.133. Sec 12 marketplace updated to describe Codex's concrete native marketplace alongside Claude's (in a separate task).
 > v0.7: Codex-review judgment calls applied - a minimal `library.json` (name/version/tier) is now REQUIRED at every tier (5/2.1/2.5; "loose components" without it are not a plugin); added component specs for **MCP server** (3.9) and **AGENTS.md** (3.10).
@@ -69,6 +69,7 @@ A Universal-tier plugin MUST:
 - Carry a minimal `library.json` (at least `name`, `version`, `tier`) - the manifest that makes it a plugin (Section 5).
 - Carry an `AGENTS.md` at the repository root.
 - Declare `compatibility` on skills that have environment requirements.
+- Keep its authored markdown structurally valid where it carries diagrams: every fenced `mermaid` block MUST be structurally well-formed (a recognized diagram keyword, balanced brackets, no tabs), so it renders rather than showing a broken box (`U12`, `mermaid-valid`; conditional on the plugin carrying diagrams).
 
 ### 2.2 Tier 2 - Convergent (Silver)
 Concepts both CC and CX support, but in **different formats**, so they MUST be emitted per agent target.
@@ -93,7 +94,7 @@ An Advanced-tier plugin MUST, in addition to Tier 2:
 ### 2.4 Declaring a tier
 A skill declares its portability with the agentskills.io `compatibility` field. A plugin declares its overall tier and agent targets in its manifest (Section 5). Tooling MUST be able to verify a claimed tier and MUST report the highest tier a plugin actually satisfies.
 
-**Report format.** Tooling MUST emit both a machine-readable and a human-readable form. The machine form names the tier achieved, the tiers satisfied, and - for the next tier up - the specific blocking requirements keyed to their requirement IDs (e.g., the `G1`-`G7` of Section 2.6):
+**Report format.** Tooling MUST emit both a machine-readable and a human-readable form. The machine form names the tier achieved, the tiers satisfied, and - for the next tier up - the specific blocking requirements keyed to their requirement IDs (e.g., the `G1`-`G10` of Section 2.6):
 ```json
 { "tier": "silver",
   "satisfies": ["bronze", "silver"],
@@ -121,11 +122,14 @@ Because a Gold plugin is the self-proving reference for this Standard, every Gol
 | G4 | **Generated INDEX + manifests.** `INDEX.md`, the native plugin manifests (`.claude-plugin/plugin.json`, Codex `plugin.json`), and `manifest.generated.json` are generated from the **authored** `library.json` + component frontmatter (`gen-index`, `gen-manifest`) and drift-checked; a hand-edited generated file is an `error`. (`library.json` itself is authored canonical, NOT a generated artifact - see Section 5; its `components` index MAY be synced from on-disk frontmatter and is drift-checked the same way.) | gen-index / gen-manifest + drift check | - |
 | G5 | **RELEASE-NOTES.** The plugin maintains `RELEASE-NOTES.md` (curated, user-facing), distinct from `CHANGELOG.md` (10.6). | release-notes presence check | - |
 | G6 | **Deprecation policy.** The plugin defines and follows a deprecation policy: `status: deprecated` + `deprecated-by` + `remove-in` handling (7.5), and tooling recognizes deprecated components. | frontmatter handling + deprecation check | a dedicated `deprecate` **automation skill**. The *policy and frontmatter handling* are required; *automating* them is roadmap. |
-| G7 | **Docs frontmatter taxonomy.** Every published `docs/**` page (excluding `docs/internal/`) carries the Section 8.4 taxonomy: `title`, `description` (no colon-space), `audience`, `level`, and optional `tags` / `doc-role`. Conditional on a published docs tree. | docs-frontmatter check | folder-READMEs, source docblocks, docs-presence (`G8-G10`, v1.1.x roadmap) |
+| G7 | **Docs frontmatter taxonomy.** Every published `docs/**` page (excluding `docs/internal/`) carries the Section 8.4 taxonomy: `title`, `description` (no colon-space), `audience`, `level`, and optional `tags` / `doc-role`. Conditional on a published docs tree. | docs-frontmatter check | - |
+| G8 | **Folder-README inventory.** Every meaningful folder (the repo's source and component folders) carries a `README.md` with a frontmatter `title` and an inventory whose listed immediate children set-equal the folder's actual immediate children (ADR 0024 D1.1). Conditional on the allowlisted folder existing. | folder-readme check | - |
+| G9 | **Source docblocks.** Every hand-authored `*.mjs` / `*.js` / `*.py` under the in-scope source roots carries a four-field header docblock (what it is / what it does / why / what uses it) in its first lines (ADR 0024 D1.2). Presence of the four fields, never prose quality. Conditional on in-scope source existing. | source-doc check | - |
+| G10 | **Docs presence.** The four Diataxis quadrants (`docs/{tutorials,how-to,reference,explanation}`) are non-empty, every ADR (`docs/internal/decisions/NNNN-*.md`) carries a `## TL;DR`, and the `doc-role: architecture-overview` page resolvably links the `architecture-detailed` page (ADR 0024 D4 / sec 10.4). Conditional on a published docs tree. | docs-presence check | - |
 
-**Tier inclusion** (a Gold plugin satisfies every Bronze and Silver requirement) is a structural property of the monotonic tiers, not a numbered check; it was carried as "G7" before v0.10 and is now an unnumbered statement, freeing `G7` for `docs-frontmatter`. The Gold checks are `G1-G7`; the spine is `U1-U11` + `S1-S8` + `G1-G7` = **26**.
+**Tier inclusion** (a Gold plugin satisfies every Bronze and Silver requirement) is a structural property of the monotonic tiers, not a numbered check; it was carried as "G7" before v0.10 and is now an unnumbered statement, freeing `G7` for `docs-frontmatter`. The Gold checks are `G1-G10`; the spine is `U1-U12` + `S1-S8` + `G1-G10` = **30**.
 
-Conformance **badges/branding** are not a Gold requirement at v1: tooling reports the tier it verifies (2.4); it does not brand it. The toolkit targets Gold at v1 and MUST pass `G1-G7` against itself before release.
+Conformance **badges/branding** are not a Gold requirement at v1: tooling reports the tier it verifies (2.4); it does not brand it. The toolkit targets Gold at v1 and MUST pass `G1-G10` against itself before release.
 
 ---
 
@@ -211,9 +215,9 @@ Only skills are governed by agentskills.io frontmatter (3.1). This Standard exte
 All checks MUST be implemented as portable scripts (single runtime) runnable locally, in any CI, or invoked by a skill. The runner targets **Node, baseline Node >= 22.12.0**; the recommended pinned runtime is **Node 24** (Active LTS), declared via a committed `.nvmrc` / `.node-version`, and CI SHOULD run on that pinned version. A validator/generator has no need for bleeding-edge APIs, but the baseline MUST NOT recommend an end-of-life runtime: Node 20 reached EOL on 2026-04-30 and is below the `>=22.12.0` floor that Astro 6 (the basis of every family documentation site) requires. A co-located plugin core's runtime floor follows this clause, not its documentation site (ADR 0025). A CI configuration (e.g., GitHub Actions) MUST only shell out to those scripts; the plugin MUST NOT depend on a specific CI provider for correctness.
 
 ### 4.2 Required checks (by tier)
-- **Universal:** frontmatter validity; `name`/directory match; description quality; instruction-budget warning; reference-link validity.
+- **Universal:** frontmatter validity; `name`/directory match; description quality; instruction-budget warning; reference-link validity; mermaid-block validity (`U12`).
 - **Convergent (adds):** per-target format presence for every Convergent component; chain-contract integrity (no orphans/phantoms); workflow skill-existence.
-- **Advanced (adds):** hook documentation completeness; self-hosting check (the plugin passes its own validators); count/cross-reference consistency across README/AGENTS.md/manifest.
+- **Advanced (adds):** hook documentation completeness; self-hosting check (the plugin passes its own validators); count/cross-reference consistency across README/AGENTS.md/manifest; docs frontmatter taxonomy (`G7`); folder-README inventory (`G8`); source-docblock presence (`G9`); docs presence - Diataxis non-empty, ADR TL;DRs, architecture overview-to-detailed link (`G10`).
 
 ### 4.3 Release gates
 A release SHOULD pass an aggregate gate (all tier-applicable checks) before tagging. Versioning MUST be semver. A changelog SHOULD describe what changed, in user-facing terms.

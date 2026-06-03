@@ -129,7 +129,7 @@ From here `node scripts/check.mjs` gates on Convergent errors too - the declared
 
 ## Part 2 - Silver to Gold (Advanced)
 
-Gold certifies that the plugin proves itself: deep lifecycle plus CI that runs the Standard against the plugin and passes. The Gold checks are `G1` through `G7` (the seventh, `docs-frontmatter`, landed in Standard v0.10); tier inclusion of all Bronze and Silver is a structural property, not a numbered check. That is the full 26-check spine: `U1-U11`, `S1-S8`, `G1-G7`.
+Gold certifies that the plugin proves itself: deep lifecycle plus CI that runs the Standard against the plugin and passes. The Gold checks are `G1` through `G10` (`G7` is `docs-frontmatter`; `G8`-`G10` are folder-readme, source-doc, and docs-presence, all landed in Standard v0.10); tier inclusion of all Bronze and Silver is a structural property, not a numbered check. That is the full 30-check spine: `U1-U12`, `S1-S8`, `G1-G10`.
 
 Read the new worklist first:
 
@@ -250,4 +250,4 @@ The lever was always the same: run the gate, read the burndown, fix the next `re
 - [Climb from Bronze to Silver](../how-to/climb-from-bronze-to-silver.md) - the focused Silver how-to.
 - [Emit for multiple agents](../how-to/emit-for-multiple-agents.md) - per-target emission mechanics.
 - [Build a hook](../how-to/build-a-hook.md), [Add eval coverage](../how-to/add-eval-coverage.md), [Cut a release](../how-to/cut-a-release.md), [Deprecate a component](../how-to/deprecate-a-component.md).
-- [`STANDARD.md`](../../STANDARD.md) - the normative Standard, with the frozen Gold criteria (`G1-G7`) in section 2.6.
+- [`STANDARD.md`](../../STANDARD.md) - the normative Standard, with the frozen Gold criteria (`G1-G10`) in section 2.6.

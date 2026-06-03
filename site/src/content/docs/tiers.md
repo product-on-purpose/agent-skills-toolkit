@@ -15,7 +15,7 @@ Cross-agent shape. Declared `agent-targets`, a component `prefix` carried by eve
 
 ## Gold (Advanced)
 
-The self-proving bar. Hooks documented, self-hosting CI that passes, eval and regression coverage for chains and hooks, generated INDEX and manifests that are drift-checked, RELEASE-NOTES, and a deprecation policy. Checks `G1` through `G7`.
+The self-proving bar. Hooks documented, self-hosting CI that passes, eval and regression coverage for chains and hooks, generated INDEX and manifests that are drift-checked, RELEASE-NOTES, and a deprecation policy. Checks `G1` through `G10`.
 
 ## The milestone-validity model
 

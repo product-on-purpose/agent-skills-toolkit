@@ -169,5 +169,5 @@ Because the tiers are **monotonic**, none of this work is throwaway. Bronze is t
 ## Where to go next
 
 - **Climb to Silver** - take the plugin genuinely cross-agent: declare `agent-targets` and a component `prefix`, add subagents, commands, and workflows, and emit each in the right format per agent. Start with [Climb from Bronze to Silver](../how-to/climb-from-bronze-to-silver.md).
-- **Aim for Gold eventually** - the self-proving summit adds hooks, self-hosting CI, regression coverage, and a release and deprecation story. See [The tier model](https://product-on-purpose.github.io/agent-skills-toolkit/) for the full ladder and the [Gold checks reference](../reference/gold-checks.md) for what `G1` through `G7` certify.
+- **Aim for Gold eventually** - the self-proving summit adds hooks, self-hosting CI, regression coverage, and a release and deprecation story. See [The tier model](https://product-on-purpose.github.io/agent-skills-toolkit/) for the full ladder and the [Gold checks reference](../reference/gold-checks.md) for what `G1` through `G10` certify.
 - **Keep building components** - the `askit-build-*` family scaffolds every component type to the Standard; `askit-evaluate` (or `node scripts/check.mjs`) tells you, at any point, the highest tier you satisfy and exactly what blocks the next one.

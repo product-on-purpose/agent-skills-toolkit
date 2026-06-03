@@ -18,6 +18,7 @@ One module per Standard requirement (reqId); each exports meta plus a synchronou
 - `deprecation.mjs` - the deprecation module.
 - `description-score.mjs` - the description-score module.
 - `docs-frontmatter.mjs` - the docs-frontmatter module.
+- `docs-presence.mjs` - the docs-presence (G10) check module.
 - `folder-readme.mjs` - the folder-readme module.
 - `frontmatter-valid.mjs` - the frontmatter-valid module.
 - `hook-documentation.mjs` - the hook-documentation module.

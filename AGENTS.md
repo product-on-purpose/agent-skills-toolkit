@@ -19,7 +19,7 @@ design and decision record is [`docs/internal/DESIGN.md`](docs/internal/DESIGN.m
 
 This repository declares `tier: advanced` (Gold) and **self-validates against its
 own Standard in CI** - the deterministic validation spine lives in `scripts/`. The
-full gate (Bronze U1-U11, Silver S1-S8, Gold G1-G7) is green and `tier-report`
+full gate (Bronze U1-U12, Silver S1-S8, Gold G1-G10) is green and `tier-report`
 reports `tier: advanced` with an empty burndown, so the toolkit is a self-proving
 example of the Standard. See
 [`docs/internal/BOOTSTRAP.md`](docs/internal/BOOTSTRAP.md) for historical context:
@@ -47,7 +47,7 @@ Components present on disk:
 - **Scripts:** the Node validation spine in `scripts/` - conformance checks,
   generators (`gen-index`, `gen-manifest`, `sync-agents-md`), `tier-report.mjs`,
   the aggregate gate `check.mjs`, and `evaluate.mjs`.
-- **Silver checks (Convergent, reqId S1-S8)** and **Gold checks (Advanced, reqId G1-G7)** gate the declared `tier: advanced`
+- **Silver checks (Convergent, reqId S1-S8)** and **Gold checks (Advanced, reqId G1-G10)** gate the declared `tier: advanced`
   alongside the Universal ones. S3 now validates `components.skills`,
   `components.subagents`, and `components.commands` against disk. S4 orphan
   detection is complete: a frontmatter `chain:` invocation not permitted by

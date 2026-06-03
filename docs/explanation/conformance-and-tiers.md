@@ -27,7 +27,7 @@ flowchart LR
 Each tier is cumulative: Silver includes every Universal check, Gold includes every Silver check. `tier-report` reports the highest tier a plugin fully satisfies and lists what blocks the next.
 
 The toolkit is itself built to this Standard and validates itself in CI: it declares
-`tier: advanced` and satisfies Gold (G1-G7, on top of Bronze + Silver), so `node scripts/tier-report.mjs --json`
+`tier: advanced` and satisfies Gold (G1-G10, on top of Bronze + Silver), so `node scripts/tier-report.mjs --json`
 reports `tier: advanced` with an empty `blocked` - a self-proving example of the Standard. See
 [`STANDARD.md`](../../STANDARD.md) for the normative rules.
 
@@ -48,8 +48,8 @@ Convergent (Silver) reqIds carry the `S` prefix. The current set:
 
 Two Universal checks were added in the v0.2 hardening: **U9** (`version-match`: `package.json` version must equal `library.json` version, the source of truth) and **U10** (`no-dashes`: the house no-em-dash / no-en-dash rule, now CI-enforced for every contributor, not only a local hook).
 
-S6 (per-target native-manifest presence) fires only when `agent-targets` is declared; it checks that each declared target has its generated native manifest on disk. The repository declares `agent-targets: ["claude", "codex"]` and emits both manifests. The `components` index (S3) is now present in `library.json`, so the Silver burndown is empty; the toolkit has since closed the Gold checks (G1-G7) too and declares `tier: advanced`.
+S6 (per-target native-manifest presence) fires only when `agent-targets` is declared; it checks that each declared target has its generated native manifest on disk. The repository declares `agent-targets: ["claude", "codex"]` and emits both manifests. The `components` index (S3) is now present in `library.json`, so the Silver burndown is empty; the toolkit has since closed the Gold checks (G1-G10) too and declares `tier: advanced`.
 
 ## Visible burndown - reading `blocked.convergent` as the climb to Silver
 
-`tier-report` caps `satisfies` at the plugin's declared tier (so a Bronze plugin cannot accidentally claim Silver), and lists everything above the ceiling as `blocked.<next-tier>`. The gate-runner (`check.mjs`) follows the same model: only errors at-or-below the declared tier fail the gate. So a Bronze plugin that adds Silver requirements gradually sees its `blocked.convergent` list shrink, while CI stays green throughout the climb. The repository completed the full climb to Gold: the toolkit now declares `tier: advanced` and `blocked` is empty (Bronze, Silver, and Gold all satisfied). The Gold checks (G1-G7) are documented in [`../reference/gold-checks.md`](../reference/gold-checks.md).
+`tier-report` caps `satisfies` at the plugin's declared tier (so a Bronze plugin cannot accidentally claim Silver), and lists everything above the ceiling as `blocked.<next-tier>`. The gate-runner (`check.mjs`) follows the same model: only errors at-or-below the declared tier fail the gate. So a Bronze plugin that adds Silver requirements gradually sees its `blocked.convergent` list shrink, while CI stays green throughout the climb. The repository completed the full climb to Gold: the toolkit now declares `tier: advanced` and `blocked` is empty (Bronze, Silver, and Gold all satisfied). The Gold checks (G1-G10) are documented in [`../reference/gold-checks.md`](../reference/gold-checks.md).

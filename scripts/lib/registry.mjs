@@ -31,6 +31,7 @@ import * as indexDrift from "../checks/index-drift.mjs";
 import * as docsFrontmatter from "../checks/docs-frontmatter.mjs";
 import * as folderReadme from "../checks/folder-readme.mjs";
 import * as sourceDoc from "../checks/source-doc.mjs";
+import * as docsPresence from "../checks/docs-presence.mjs";
 
 /** Ordered checks. Each exports { meta:{id,tier,reqId}, check(ctx)->Finding[] }. */
 export const CHECKS = [
@@ -40,7 +41,7 @@ export const CHECKS = [
   perTargetPresence,
   versionMatch, noDashes, mermaidValid, mcpValid,
   libraryRegression, deprecation,
-  hookDocumentation, selfHosting, releaseNotes, indexDrift, docsFrontmatter, folderReadme, sourceDoc,
+  hookDocumentation, selfHosting, releaseNotes, indexDrift, docsFrontmatter, folderReadme, sourceDoc, docsPresence,
 ];
 
 export function runAllChecks(ctx) {
