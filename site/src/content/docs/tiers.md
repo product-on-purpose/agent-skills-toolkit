@@ -7,7 +7,7 @@ A plugin earns the highest tier it actually satisfies. The gate reports that tie
 
 ## Bronze (Universal)
 
-The plugin parses and self-describes. A `library.json` with the required fields, a root `AGENTS.md`, valid skill frontmatter, names that match directories, resolvable reference links, an instruction budget, and house style (no em-dashes or en-dashes). Checks `U1` through `U11`.
+The plugin parses and self-describes. A `library.json` with the required fields, a root `AGENTS.md`, valid skill frontmatter, names that match directories, resolvable reference links, an instruction budget, and house style (no em-dashes or en-dashes). Checks `U1` through `U12`.
 
 ## Silver (Convergent)
 
@@ -15,7 +15,7 @@ Cross-agent shape. Declared `agent-targets`, a component `prefix` carried by eve
 
 ## Gold (Advanced)
 
-The self-proving bar. Hooks documented, self-hosting CI that passes, eval and regression coverage for chains and hooks, generated INDEX and manifests that are drift-checked, RELEASE-NOTES, and a deprecation policy. Checks `G1` through `G7`.
+The self-proving bar. Hooks documented, self-hosting CI that passes, eval and regression coverage for chains and hooks, generated INDEX and manifests that are drift-checked, RELEASE-NOTES, and a deprecation policy. Checks `G1` through `G10`.
 
 ## The milestone-validity model
 

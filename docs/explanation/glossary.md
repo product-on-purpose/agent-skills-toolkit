@@ -29,11 +29,11 @@ Each term below is defined in one sentence. The terms are grouped by axis, then 
 
 **Tier** - a named rung of conformance the gate verifies and reports; the three tiers are monotonic, so each one includes every requirement of the tier below it and earlier work always still counts.
 
-**Bronze (Universal)** - the start line: certifies portable, agent-agnostic files (valid skills, a minimal `library.json`, an `AGENTS.md`) that run unchanged on any agentskills.io-compliant agent, backed by checks `U1` through `U11`.
+**Bronze (Universal)** - the start line: certifies portable, agent-agnostic files (valid skills, a minimal `library.json`, an `AGENTS.md`) that run unchanged on any agentskills.io-compliant agent, backed by checks `U1` through `U12`.
 
 **Silver (Convergent)** - the multi-agent rung: certifies the machinery (subagents, commands, workflows, chain contracts, per-target emission, semver governance) emitted in the right format for every target agent, backed by checks `S1` through `S8` on top of Bronze.
 
-**Gold (Advanced)** - the self-proving summit: certifies deep lifecycle plus self-hosting CI (documented hooks, regression-covered chains, drift-checked generated files, release notes, a deprecation policy), backed by checks `G1` through `G7` on top of Silver.
+**Gold (Advanced)** - the self-proving summit: certifies deep lifecycle plus self-hosting CI (documented hooks, regression-covered chains, drift-checked generated files, release notes, a deprecation policy), backed by checks `G1` through `G10` on top of Silver.
 
 ## The grading machinery
 
@@ -43,7 +43,7 @@ Each term below is defined in one sentence. The terms are grouped by axis, then 
 
 **reqId** - the stable identifier a check backs, prefixed by tier - `U` for Universal, `S` for Convergent, `G` for Advanced (for example `U5` is the description-quality rule and `G2` is self-hosting CI) - so a finding points to exactly one requirement.
 
-**Spine** - the 26-check backbone the toolkit ships (`U1`-`U11`, `S1`-`S8`, `G1`-`G7`); the `G7` slot is the `docs-frontmatter` check (Standard v0.10), and tier inclusion of Bronze and Silver is a structural property of the monotonic tiers, not a numbered check.
+**Spine** - the 30-check backbone the toolkit ships (`U1`-`U12`, `S1`-`S8`, `G1`-`G10`); the `G7` slot is the `docs-frontmatter` check (Standard v0.10), and tier inclusion of Bronze and Silver is a structural property of the monotonic tiers, not a numbered check.
 
 **Burndown** - the actionable list the tier report hands back naming exactly what blocks the next tier, keyed to reqIds, so the climb reads as a worklist rather than a guess (for example `blocked.gold: ["G3: no eval cases for chain rs-synthesis"]`).
 

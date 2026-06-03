@@ -2,6 +2,22 @@
 
 Curated, user-facing highlights. For the full technical history see [`CHANGELOG.md`](CHANGELOG.md).
 
+## 1.1.0 - 2026-06-03
+
+The documentation-depth release. `agent-skills-toolkit` now grades a plugin's documentation as rigorously as its code, and the toolkit proves it on itself: a dual-audience Diataxis docs set, a generated docs site, folder-by-folder and file-by-file self-documentation, and **Standard v0.10**.
+
+### What is new
+
+- **Five new checks, a 30-check spine.** The deterministic gate grows from 25 to **30 checks** (`U1-U12` + `S1-S8` + `G1-G10`): `mermaid-valid` (Bronze - every diagram is structurally valid), and at Gold `docs-frontmatter`, `folder-readme` (every folder's README inventory matches its contents), `source-doc` (every source file carries a four-field header docblock), and `docs-presence` (the Diataxis quadrants are non-empty, every decision record has a TL;DR, and the architecture overview links its detail).
+- **A real documentation site.** The Astro Starlight site is now a generated view of the repository's public docs, with a curated landing on top - so the docs you read on GitHub and the docs you browse on the web never drift apart.
+- **The full Diataxis set.** Tutorials, how-to guides, reference, and explanation, each with a typed audience and level, plus a quickstart, glossary, FAQ, and troubleshooting.
+- **A demonstrative hook.** The toolkit ships a portable `PreToolUse` no-dash guard, so the Gold "hooks are documented" check grades a real hook instead of passing on an empty surface.
+- **Standard v0.10.** The Standard adds the five new requirements and pins the docs frontmatter taxonomy.
+
+### Upgrade
+
+Already installed? Update from the marketplace as usual; nothing in your plugin breaks. If you run the gate, note the spine is now 30 checks and a Gold plugin is expected to carry the documentation surface above (each new Gold check is conditional - it only binds once you have the thing it grades).
+
 ## 1.0.0 - 2026-06-02
 
 The first Gold-tagged release, and the one that makes the toolkit **installable**. `agent-skills-toolkit` is now a plugin you can add from the `product-on-purpose` marketplace, and it self-validates at the Gold (Advanced) tier - it passes its own Bronze, Silver, and Gold checks (G1-G7) in CI, a self-proving example of the Standard it defines.

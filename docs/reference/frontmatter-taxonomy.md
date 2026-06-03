@@ -9,7 +9,7 @@ level: intermediate
 
 The normative schema for the YAML frontmatter block at the top of every public documentation page in this repository. This is the **page** frontmatter taxonomy: every page under `docs/**` carries it **today**, and the `docs-frontmatter` check (`G7`) **enforces** it.
 
-> **Status.** The taxonomy is applied and **enforced** as of Standard v0.10: the `docs-frontmatter` check is `G7` (the spine is 26 checks, `U1-U11` + `S1-S8` + `G1-G7`). The related `docs-presence` check (`G10`) and the folder-README / source-docblock checks are still part of the v1.1.x build-out. See [How it is enforced](#how-it-is-enforced).
+> **Status.** The taxonomy is applied and **enforced** as of Standard v0.10: the `docs-frontmatter` check is `G7` (the spine is 30 checks, `U1-U12` + `S1-S8` + `G1-G10`). The related `docs-presence` (`G10`), folder-README (`G8`), and source-docblock (`G9`) checks are all live. See [How it is enforced](#how-it-is-enforced).
 
 It is distinct from the component frontmatter contract. The `frontmatter-valid` check (Bronze) validates a component's `SKILL.md` and agent frontmatter against the agentskills.io rules and Section 3.8 of the [Standard](../../STANDARD.md). The `docs-frontmatter` check (Gold, `G7`) validates this docs-page taxonomy. Different modules, different scopes, different requirement IDs - do not conflate them.
 
@@ -111,7 +111,7 @@ level: beginner
 
 ## How it is enforced
 
-The taxonomy is documented here as a reference (the way a plugin ships a `frontmatter-schema` file). It is **applied today** - every `docs/**` page already carries it - and it is **enforced** by the `docs-frontmatter` check as of Standard v0.10, which reclassified the old `G7` tier-inclusion statement (now an unnumbered structural property) and assigned `G7` to this check. The spine is **26 checks (`U1-U11`, `S1-S8`, `G1-G7`)**; the related `docs-presence` (`G10`) and the folder-README / source-docblock checks land later in the v1.1.x build-out, growing the spine toward 30.
+The taxonomy is documented here as a reference (the way a plugin ships a `frontmatter-schema` file). It is **applied today** - every `docs/**` page already carries it - and it is **enforced** by the `docs-frontmatter` check as of Standard v0.10, which reclassified the old `G7` tier-inclusion statement (now an unnumbered structural property) and assigned `G7` to this check. The spine is **30 checks (`U1-U12`, `S1-S8`, `G1-G10`)**; the related `docs-presence` (`G10`), folder-README (`G8`), and source-docblock (`G9`) checks are all live, completing the 30-check spine.
 
 The `docs-frontmatter` module (reqId `G7`, Gold tier):
 

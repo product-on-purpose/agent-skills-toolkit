@@ -1,6 +1,6 @@
 {
   "name": "agent-skills-toolkit",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Toolkit and Standard for authoring, validating, governing, and scaling cross-agent skill libraries (Claude Code and Codex) to a tiered Bronze/Silver/Gold quality bar. Use when building or grading agent skill plugins, when emitting components for multiple agents, or when adopting the Advanced Skill Library Standard.",
   "license": "Apache-2.0",
   "author": {

@@ -1,0 +1,7 @@
+{
+  "name": "docs-presence-empty-tutorials",
+  "version": "0.1.0",
+  "description": "A docs-presence G10 fixture plugin with a complete (or defective) docs tree.",
+  "standard": "0.10",
+  "tier": "advanced"
+}

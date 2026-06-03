@@ -1,13 +1,13 @@
 ---
 title: "Gold (Advanced) conformance checks"
-description: "The Gold tier adds requirements G1-G7 (Standard sec 2.6) on top of Bronze + Silver."
+description: "The Gold tier adds requirements G1-G10 (Standard sec 2.6) on top of Bronze + Silver."
 audience: engineer
 level: advanced
 ---
 
 # Reference: Gold (Advanced) conformance checks
 
-The Gold tier adds requirements G1-G7 (Standard sec 2.6) on top of Bronze + Silver. Each fires findings tagged `reqId: "G<n>"`; `tier-report` buckets them into the `advanced` tier and lists unmet ones in `blocked.advanced`. Because they are advanced-tier, they do NOT fail the gate for a plugin that declares `universal` or `convergent` - they appear as the burndown to Gold until the plugin declares `advanced` and addresses them. The checks are built incrementally as the toolkit climbs to Gold; this reference documents the ones implemented so far.
+The Gold tier adds requirements G1-G10 (Standard sec 2.6) on top of Bronze + Silver. Each fires findings tagged `reqId: "G<n>"`; `tier-report` buckets them into the `advanced` tier and lists unmet ones in `blocked.advanced`. Because they are advanced-tier, they do NOT fail the gate for a plugin that declares `universal` or `convergent` - they appear as the burndown to Gold until the plugin declares `advanced` and addresses them. The full Gold set `G1`-`G10` is implemented; this reference documents every check.
 
 | reqId | Module | What it checks | Standard | Conditional? | Example fix |
 |---|---|---|---|---|---|
@@ -18,6 +18,9 @@ The Gold tier adds requirements G1-G7 (Standard sec 2.6) on top of Bronze + Silv
 | G5 | `scripts/checks/release-notes.mjs` | A curated, user-facing `RELEASE-NOTES.md` exists at the root, distinct from `CHANGELOG.md` | sec 2.6 (G5), sec 10.6 | no | Add `RELEASE-NOTES.md` (highlights-first, user-facing); `askit-release` notes mode curates it. |
 | G6 | `scripts/checks/deprecation.mjs` | Every `library.json` component `status` is valid, and a `deprecated` component declares `deprecated-by` (its replacement) and `remove-in` (its removal version) | sec 2.6 (G6), sec 3.7, 7.5 | yes (a deprecated/invalid status exists) | On the deprecated component's `library.json` entry add `"deprecated-by": "<replacement>"` and `"remove-in": "<version>"`, or correct an invalid `status` (active/deprecated/experimental). Manage it with `askit-deprecate`. |
 | G7 | `scripts/checks/docs-frontmatter.mjs` | Every published `docs/**` page (excluding `docs/internal/`) carries the frontmatter taxonomy: `title`, `description` (no colon-space), `audience` in {non-engineer, engineer, both}, `level` in {beginner, intermediate, advanced}, optional `tags`/`doc-role` | sec 2.6 (G7), sec 8.4 | yes (a published docs tree exists) | Add the missing or out-of-vocabulary frontmatter field to the flagged page; author docs with `askit-build-docs`. |
+| G8 | `scripts/checks/folder-readme.mjs` | Every meaningful folder has a `README.md` with a frontmatter `title` and an `## Inventory` whose listed immediate children set-equal the folder's actual children (reports under-listed + phantom) | sec 2.6 (G8), ADR 0024 D1.1 | yes (an allowlisted folder exists) | Add or refresh the folder `README.md` so its inventory lists every immediate child; use `askit-build-docs` (folder-readme mode). |
+| G9 | `scripts/checks/source-doc.mjs` | Every hand-authored `*.mjs`/`*.js`/`*.py` under the in-scope roots (`scripts/`, `site/scripts/`, `hooks/`) carries a four-field header docblock (what-it-is / what-it-does / why / used-by) in its first lines | sec 2.6 (G9), ADR 0024 D1.2 | yes (in-scope source exists) | Add the four labeled comment lines (or the `@what`/`@does`/`@why`/`@usedby` tags) to the file header. |
+| G10 | `scripts/checks/docs-presence.mjs` | The four Diataxis quadrants are non-empty, every ADR (`docs/internal/decisions/NNNN-*.md`) carries a `## TL;DR`, and the `doc-role: architecture-overview` page links the `architecture-detailed` page | sec 2.6 (G10), sec 10.4 | yes (a `docs/` tree exists) | Populate the empty quadrant / add the missing ADR `## TL;DR` / add the overview-to-detailed link. |
 
 G3 is the **baseline** (presence + execution + the deterministic regression signal). The Standard explicitly defers the multi-tier eval **engine** (Static / LLM-Judge / Monte-Carlo) to roadmap; that judging layer ships beside the gate as opt-in evidence, never inside the deterministic CI gate (Design Principle 3, ADR 0023).
 
