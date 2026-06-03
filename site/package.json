@@ -5,7 +5,9 @@
   "type": "module",
   "engines": { "node": ">=22.12.0" },
   "scripts": {
+    "predev": "node scripts/gen-docs-site.mjs",
     "dev": "astro dev",
+    "prebuild": "node scripts/gen-docs-site.mjs",
     "build": "astro build",
     "preview": "astro preview"
   },

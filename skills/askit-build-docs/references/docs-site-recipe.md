@@ -7,8 +7,10 @@ The pinned Astro Starlight stack for the `site` mode, adapted from the `../pm-sk
 ```json
 {
   "scripts": {
+    "predev": "node scripts/gen-docs-site.mjs",
     "dev": "astro dev",
-    "build": "astro build && node scripts/post-build-strip-md-links.mjs",
+    "prebuild": "node scripts/gen-docs-site.mjs",
+    "build": "astro build",
     "preview": "astro preview"
   },
   "dependencies": {
@@ -20,17 +22,25 @@ The pinned Astro Starlight stack for the `site` mode, adapted from the `../pm-sk
 }
 ```
 
+The `prebuild`/`predev` hooks run `gen-docs-site.mjs` before Astro, so the generated Pattern S pages always exist when the loader reads them. `astro build` is a plain build - no post-build link surgery.
+
 ## astro.config.mjs (the load-bearing decisions)
 
 - **`site` + `base`** set for GitHub Pages project hosting (`https://<org>.github.io` + `/<repo>`). Redirect destinations MUST include the base path - Astro does not auto-prepend the base to redirect targets (a bare destination 404s on the project page); redirect sources stay root-relative (the source side is base-aware).
 - **`astro-mermaid` BEFORE `starlight`** in `integrations` (the integration-order rule from the astro-mermaid README). Use `autoTheme: true` so Mermaid follows Starlight light/dark; brand `themeVariables` (lineColor, fontFamily) apply on top of either base theme.
-- **In-place `docs/` content collection.** A custom glob loader (`src/content.config.ts`) mounts `./docs` in place rather than copying into `src/content/docs/`, so `entry.filePath` retains the `docs/` prefix.
-- **Sidebar (Starlight 0.39 form).** Manual top-level ordering + `autogenerate` within each section. As of Starlight 0.39 the autogenerate shorthand was removed: every labeled section MUST wrap autogenerate in an `items` array - `{ label: 'X', items: [{ autogenerate: { directory: 'docs/X' } }] }`. Autogenerate `directory` paths are prefixed with `docs/` because of the in-place loader (do not "fix" the prefix).
+- **Generated Pattern S content collection (ADR 0024 D2).** `src/content.config.ts` uses the **stock** Starlight loader with NO arguments - `docsLoader()` reading `src/content/docs/` - not a custom in-place glob over `./docs`. A generator (`scripts/gen-docs-site.mjs`) emits the public `docs/**` tree into `src/content/docs/<quadrant>/` and a small set of curated landing pages are hand-authored at the top level. The generated quadrants are gitignored and rebuilt on every build (no committed generated pages, no drift surface); `docs/internal/` is never emitted (the governance/public split). The generator runs in the `prebuild`/`predev` npm lifecycle hooks, so the pages exist before Astro loads.
+- **Generation-time link rewriting.** Because a page is served one URL level deeper than its source file, a filesystem-correct relative link can 404 in the browser. The generator rewrites every intra-repo link: a link to another published `docs/**` page becomes a base-absolute site route (`/<base>/<quadrant>/<slug>/`), and a link to anything outside the published tree (the Standard, a skill reference, a script, `library.json`, an internal doc) becomes an absolute GitHub `blob/main` URL (which the rendered-link guard skips). This is what keeps the clause-14.11 rendered-link check green with zero post-build HTML surgery.
+- **Sidebar (Starlight 0.39 form).** Manual top-level curated ordering, then one `autogenerate` section per generated quadrant. As of Starlight 0.39 the autogenerate shorthand was removed: every labeled section MUST wrap autogenerate in an `items` array - `{ label: 'How-to guides', items: [{ autogenerate: { directory: 'how-to' } }] }`. With the **stock** loader the `directory` is the slug-relative quadrant (`how-to`, `reference`, ...), NOT a `docs/`-prefixed path.
 - **`customCss`** points at `src/styles/custom.css` (a minimal port; keep the `.mermaid` rules).
 
-## Post-build link strip
+## Keeping the generated tree honest
 
-`scripts/post-build-strip-md-links.mjs` rewrites residual `.md` links in the built HTML (the custom-glob-loader setup does not pick up a remark plugin reliably; a post-build HTML rewrite is the reliable fix). The `build` script runs it after `astro build`.
+Two guards make the generated view safe (both portable Node, zero-dependency):
+
+- `scripts/check-generated-untracked.mjs` (R-SITE-2) fails if any generated quadrant page is tracked by git - the tree must stay gitignored and rebuilt, never committed.
+- The clause-14.11 guards (`check-rendered-links.mjs`, `check-route-parity.mjs`) run on the built `dist`; the generation-time link rewriting above is what lets the rendered-link guard pass. Update `scripts/route-manifest.txt` (`node check-route-parity.mjs --update`) when published routes change.
+
+No post-build HTML link-strip step is needed: links are rewritten correctly at generation time, before Astro renders.
 
 ## Deploy
 

@@ -35,10 +35,19 @@ export default defineConfig({
         baseUrl: 'https://github.com/product-on-purpose/agent-skills-toolkit/edit/main/site/',
       },
       customCss: ['./src/styles/custom.css'],
+      // The curated landing sections sit on top of the generated Pattern S view of docs/ (ADR 0024
+      // D2). The four quadrant sections below autogenerate from the pages gen-docs-site.mjs emits
+      // into src/content/docs/{tutorials,how-to,reference,explanation}/ (stock docsLoader, so the
+      // autogenerate `directory` is the slug-relative quadrant, not a docs/-prefixed path). The
+      // generator runs in `prebuild`/`predev`, so these directories always exist at config-load time.
       sidebar: [
         { label: 'Start here', items: [{ slug: 'overview' }, { slug: 'getting-started' }] },
         { label: 'The Standard', items: [{ slug: 'the-standard' }, { slug: 'tiers' }] },
         { label: 'The catalog', items: [{ slug: 'catalog' }] },
+        { label: 'Tutorials', items: [{ autogenerate: { directory: 'tutorials' } }] },
+        { label: 'How-to guides', items: [{ autogenerate: { directory: 'how-to' } }] },
+        { label: 'Reference', items: [{ autogenerate: { directory: 'reference' } }] },
+        { label: 'Explanation', items: [{ autogenerate: { directory: 'explanation' } }] },
       ],
     }),
   ],
