@@ -80,6 +80,12 @@ G10's sibling check already strips fences; G8 did not (an inconsistency within t
 temp-dir tests: a fenced example must not inject a phantom; a child listed only inside a fence must
 still be flagged under-listed.
 
+*Known limitation (low, surfaced by the fix-verification pass).* `stripFences` is a non-greedy regex,
+the same helper G10 already ships; an odd/unbalanced number of fences in a README could mis-pair and
+drop a real inventory item. It cannot trigger on the current tree (no real folder README embeds a
+fence, verified), so it masks no drift today. A CommonMark-aware parse or a balanced-fence guard is a
+future hardening if folder guides ever embed fenced examples; it would also benefit the shipped G10.
+
 ### 5. U8 manifest-drift version drift to ERROR
 **Issue.** `manifest-drift` (U8) compared the native manifests' version to library.json but emitted
 `warn`; the gate's exit code only counts errors, so a maintainer who bumped library.json/package.json
