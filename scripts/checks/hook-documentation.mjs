@@ -1,3 +1,7 @@
+// what-it-is:   the hook-documentation check (G1)
+// what-it-does: G1 (Gold): every hook present documents what it is and when it fires
+// why:          enforces the Standard requirement G1 deterministically, one module per reqId, so the gate stays model-free
+// used-by:      registered in scripts/lib/registry.mjs; run by scripts/check.mjs and tier-report.mjs
 import { finding, SEVERITY } from "../lib/findings.mjs";
 import { existsSync, readFileSync, statSync } from "node:fs";
 import path from "node:path";

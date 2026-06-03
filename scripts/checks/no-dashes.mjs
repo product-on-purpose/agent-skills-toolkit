@@ -1,3 +1,7 @@
+// what-it-is:   the no-dashes check (U10)
+// what-it-does: House style (Standard sec 8): committed authored text MUST NOT contain em-dashes (U+2014) or en-dashes (U+2013); use a hyphen or restructure
+// why:          enforces the Standard requirement U10 deterministically, one module per reqId, so the gate stays model-free
+// used-by:      registered in scripts/lib/registry.mjs; run by scripts/check.mjs and tier-report.mjs
 import { readFileSync, readdirSync, statSync, existsSync } from "node:fs";
 import path from "node:path";
 import { relPath } from "../lib/fs-utils.mjs";

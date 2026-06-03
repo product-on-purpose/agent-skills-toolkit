@@ -1,3 +1,7 @@
+// what-it-is:   the instruction-budget check (U7)
+// what-it-does: asserts each skill body stays within the instruction budget so later steps are not silently dropped
+// why:          enforces the Standard requirement U7 deterministically, one module per reqId, so the gate stays model-free
+// used-by:      registered in scripts/lib/registry.mjs; run by scripts/check.mjs and tier-report.mjs
 import { finding, SEVERITY } from "../lib/findings.mjs";
 import { relPath } from "../lib/fs-utils.mjs";
 

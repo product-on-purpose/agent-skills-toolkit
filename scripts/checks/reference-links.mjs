@@ -1,3 +1,7 @@
+// what-it-is:   the reference-links check (U6)
+// what-it-does: asserts every relative link in a component resolves on disk (the no-dangling-reference discipline)
+// why:          enforces the Standard requirement U6 deterministically, one module per reqId, so the gate stays model-free
+// used-by:      registered in scripts/lib/registry.mjs; run by scripts/check.mjs and tier-report.mjs
 import { finding, SEVERITY } from "../lib/findings.mjs";
 import { statSync, existsSync, readdirSync, readFileSync } from "node:fs";
 import path from "node:path";

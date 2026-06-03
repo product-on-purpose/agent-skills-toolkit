@@ -1,3 +1,7 @@
+// what-it-is:   the AGENTS.md component-map generator
+// what-it-does: regenerates the component map in the root AGENTS.md from library.json plus component frontmatter
+// why:          keeps the agent navigation entrypoint honest with the actual component set
+// used-by:      run by contributors and the cadence
 import { loadPlugin } from "../lib/load-plugin.mjs";
 
 /** Returns the generated component-list block AGENTS.md should contain. Wiring into AGENTS.md is Silver. */

@@ -1,3 +1,7 @@
+// what-it-is:   the INDEX.md generator
+// what-it-does: regenerates the navigational INDEX.md deterministically from library.json plus component frontmatter
+// why:          a generated index that is drift-checked (G4) cannot silently disagree with the components it lists
+// used-by:      run by contributors and the per-phase cadence; its output is drift-checked by index-drift (G4)
 import { loadPlugin } from "../lib/load-plugin.mjs";
 import { writeFileSync } from "node:fs";
 import path from "node:path";

@@ -1,3 +1,7 @@
+// what-it-is:   the agent-targets check (S1)
+// what-it-does: asserts library.json declares agent-targets and that each is a recognized agent (the Convergent S1 signal)
+// why:          enforces the Standard requirement S1 deterministically, one module per reqId, so the gate stays model-free
+// used-by:      registered in scripts/lib/registry.mjs; run by scripts/check.mjs and tier-report.mjs
 import { finding, SEVERITY } from "../lib/findings.mjs";
 
 export const meta = { id: "agent-targets", tier: "convergent", reqId: "S1" };

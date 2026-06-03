@@ -1,3 +1,7 @@
+// what-it-is:   the native-manifest generator
+// what-it-does: regenerates the per-agent native manifests and manifest.generated.json from library.json plus component frontmatter
+// why:          generating the per-agent manifests from one source keeps Claude Code and Codex in lockstep
+// used-by:      run by contributors and the cadence; its output is drift-checked by manifest-drift (U8)
 import { loadPlugin } from "../lib/load-plugin.mjs";
 import { writeFileSync, mkdirSync } from "node:fs";
 import path from "node:path";

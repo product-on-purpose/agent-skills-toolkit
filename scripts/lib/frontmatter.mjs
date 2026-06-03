@@ -1,3 +1,7 @@
+// what-it-is:   the frontmatter parser
+// what-it-does: parses YAML frontmatter into { frontmatter, body, parseError } with a single runtime dependency (yaml)
+// why:          every frontmatter check reads through one parser so parse behavior is consistent and fail-safe
+// used-by:      imported by frontmatter-valid, docs-frontmatter, folder-readme, and the loaders
 import { parse as parseYaml } from "yaml";
 
 const FENCE = /^---\r?\n([\s\S]*?)\r?\n---(?:\r?\n|$)([\s\S]*)$/;

@@ -1,3 +1,7 @@
+// what-it-is:   the prefix check (S2)
+// what-it-does: asserts every component name carries the library prefix so it does not collide once emitted alongside others
+// why:          enforces the Standard requirement S2 deterministically, one module per reqId, so the gate stays model-free
+// used-by:      registered in scripts/lib/registry.mjs; run by scripts/check.mjs and tier-report.mjs
 import { finding, SEVERITY } from "../lib/findings.mjs";
 import { relPath } from "../lib/fs-utils.mjs";
 

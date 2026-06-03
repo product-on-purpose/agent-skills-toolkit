@@ -1,3 +1,7 @@
+// what-it-is:   the deprecation check (G6)
+// what-it-does: asserts every component status is valid and a deprecated component declares its replacement (deprecated-by) and removal version (remove-in)
+// why:          enforces the Standard requirement G6 deterministically, one module per reqId, so the gate stays model-free
+// used-by:      registered in scripts/lib/registry.mjs; run by scripts/check.mjs and tier-report.mjs
 import { finding, SEVERITY } from "../lib/findings.mjs";
 
 export const meta = { id: "deprecation", tier: "advanced", reqId: "G6" };

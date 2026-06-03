@@ -1,3 +1,7 @@
+// what-it-is:   the frontmatter-valid check (U3)
+// what-it-does: asserts each component's SKILL.md or agent frontmatter parses and carries a valid name and description
+// why:          enforces the Standard requirement U3 deterministically, one module per reqId, so the gate stays model-free
+// used-by:      registered in scripts/lib/registry.mjs; run by scripts/check.mjs and tier-report.mjs
 import { finding, SEVERITY } from "../lib/findings.mjs";
 import { relPath } from "../lib/fs-utils.mjs";
 

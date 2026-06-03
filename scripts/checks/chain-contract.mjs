@@ -1,3 +1,7 @@
+// what-it-is:   the chain-contract check (S4)
+// what-it-does: asserts every inter-component invocation is permitted by agents/_chain-permitted.yaml (no orphan or phantom edges)
+// why:          enforces the Standard requirement S4 deterministically, one module per reqId, so the gate stays model-free
+// used-by:      registered in scripts/lib/registry.mjs; run by scripts/check.mjs and tier-report.mjs
 import { finding, SEVERITY } from "../lib/findings.mjs";
 import { existsSync, readFileSync, statSync } from "node:fs";
 import path from "node:path";

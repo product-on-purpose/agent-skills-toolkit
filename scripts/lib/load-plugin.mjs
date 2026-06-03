@@ -1,3 +1,7 @@
+// what-it-is:   the plugin loader
+// what-it-does: builds the check context (root, library, skills, subagents, commands, manifests) that every check reads
+// why:          loading once into a shared context keeps each check synchronous and free of its own I/O setup
+// used-by:      imported by scripts/check.mjs, tier-report.mjs, evaluate.mjs, and the unit tests
 import { readFileSync } from "node:fs";
 import path from "node:path";
 import { readJsonSafe, fileExists, listSkillDirs, listAgentFiles, listCommandFiles } from "./fs-utils.mjs";

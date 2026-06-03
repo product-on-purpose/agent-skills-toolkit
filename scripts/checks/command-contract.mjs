@@ -1,3 +1,7 @@
+// what-it-is:   the command-contract check (S7)
+// what-it-does: asserts each command declares its contract and maps to exactly one skill for every declared target
+// why:          enforces the Standard requirement S7 deterministically, one module per reqId, so the gate stays model-free
+// used-by:      registered in scripts/lib/registry.mjs; run by scripts/check.mjs and tier-report.mjs
 import { finding, SEVERITY } from "../lib/findings.mjs";
 
 export const meta = { id: "command-contract", tier: "convergent", reqId: "S7" };

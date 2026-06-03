@@ -1,3 +1,7 @@
+// what-it-is:   the anatomy check (U2)
+// what-it-does: asserts each skill directory has valid agentskills.io anatomy (a SKILL.md, with optional references/scripts/assets)
+// why:          enforces the Standard requirement U2 deterministically, one module per reqId, so the gate stays model-free
+// used-by:      registered in scripts/lib/registry.mjs; run by scripts/check.mjs and tier-report.mjs
 import { finding, SEVERITY } from "../lib/findings.mjs";
 
 export const meta = { id: "anatomy", tier: "universal", reqId: "U2" };
