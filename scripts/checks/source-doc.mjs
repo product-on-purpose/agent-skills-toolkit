@@ -31,11 +31,14 @@ const SCOPE_ROOTS = ["scripts", "site/scripts", "hooks"];
 // The four logical fields and their recognized aliases (normalized: lowercased, separators removed) plus
 // the JSDoc-tag form. Accepting both the lowercase `what-it-is:` and uppercase `WHAT IT IS:` styles, and
 // `@what`/`@does`/`@why`/`@usedby`, is presence-not-format (the check never grades prose, only presence).
+// Aliases are the full, unambiguous label forms only (no bare "what" / "does" / "uses"): a one-word
+// stray comment like "// uses: the foo helper" must NOT satisfy the used-by field. "why" is the key
+// itself (the canonical label), so it is matched as the key, not added as a short alias.
 export const FIELDS = [
-  { key: "what-it-is",   aliases: ["whatitis", "what"],            tag: "@what" },
-  { key: "what-it-does", aliases: ["whatitdoes", "does"],          tag: "@does" },
-  { key: "why",          aliases: ["why", "whyitmatters"],         tag: "@why" },
-  { key: "used-by",      aliases: ["usedby", "whatusesit", "uses"], tag: "@usedby" },
+  { key: "what-it-is",   aliases: ["whatitis"],               tag: "@what" },
+  { key: "what-it-does", aliases: ["whatitdoes"],             tag: "@does" },
+  { key: "why",          aliases: ["whyitmatters"],           tag: "@why" },
+  { key: "used-by",      aliases: ["usedby", "whatusesit"],   tag: "@usedby" },
 ];
 
 function norm(label) {
@@ -63,9 +66,11 @@ function fieldPresent(field, headerLines) {
     const m = raw.match(/^\s*(\/\/|#|\*)\s*(.*)$/); // require a comment marker
     if (!m) continue;
     const line = m[2];
-    const tagMatch = line.match(/^(@\w+)\s+(.+\S)\s*$/);
+    // The value must be non-empty after trimming (one or more non-space chars), so `// why:` with no
+    // value fails while a single-character value passes.
+    const tagMatch = line.match(/^(@\w+)\s+(.*\S)\s*$/);
     if (tagMatch && tagMatch[1].toLowerCase() === field.tag) return true;
-    const labMatch = line.match(/^([A-Za-z][A-Za-z\-_ ]*?)\s*:\s*(.+\S)\s*$/);
+    const labMatch = line.match(/^([A-Za-z][A-Za-z\-_ ]*?)\s*:\s*(.*\S)\s*$/);
     if (labMatch) {
       const n = norm(labMatch[1]);
       if (n === norm(field.key) || field.aliases.includes(n)) return true;

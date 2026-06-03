@@ -193,3 +193,11 @@ A checklist the executor verifies before opening / merging the PR:
 - The `G10` check, the Standard v0.10 edit, the version bump, and the `25 -> 30` count sweep (all P6).
 - A new `askit-build-docs` mode (the `folder-readme` mode is P4; `source-doc` adds no mode).
 - Re-flowing or re-formatting the existing per-function JSDoc in any file.
+
+## Resolved during execution (2026-06-03)
+
+Decisions and review-driven hardening reflected in the shipped `source-doc.mjs`:
+
+1. **SCOPE_ROOTS is exactly `scripts`, `site/scripts`, `hooks`** - the only roots that hold in-scope source today. `agents`/`templates`/`evals`/`.github/workflows` carry `.md`/`.json`/`.yaml`, not source, so they are omitted (a root with no in-scope source would just contribute nothing, but keeping the list to the real source roots bounds the walk).
+2. **Recognizer hardened after the P5 adversarial review.** The bare short aliases (`what`, `does`, `uses`) were DROPPED: only the full label forms (`what-it-is`/`whatitis`, `what-it-does`/`whatitdoes`, `why`/`whyitmatters`, `used-by`/`usedby`/`whatusesit`) and the `@what`/`@does`/`@why`/`@usedby` tags satisfy a field, so a stray one-word comment like `// uses: the foo helper` can no longer satisfy an omitted `used-by`. A field line MUST be a comment (`//`/`#`/`*`), so a code line such as `{ why: 1 }` cannot satisfy a field. A value of a single non-space character counts as non-empty (matching "non-empty after trimming").
+3. **`site/astro.config.mjs` is the one hand-authored source file left ungraded** - it is `site/**` build tooling outside `site/scripts/`, explicitly excluded by the spec scope. Consciously left out of `G9` (a downstream consumer's Astro config is its own concern, and the family Astro preset will own it later).

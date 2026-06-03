@@ -51,6 +51,36 @@ test("the uppercase WHAT IT IS style is recognized", () => {
   }
 });
 
+test("a stray short-alias comment does not satisfy an omitted field", () => {
+  const dir = mkdtempSync(path.join(tmpdir(), "g9-alias-"));
+  try {
+    mkdirSync(path.join(dir, "scripts"), { recursive: true });
+    // Three real fields plus a stray `// uses:` comment - used-by must still be reported missing,
+    // because the bare short aliases (what/does/uses) are not accepted, only the full label forms.
+    writeFileSync(
+      path.join(dir, "scripts", "a.mjs"),
+      "// what-it-is:   a module\n// what-it-does: omits the used-by field\n// why:          it proves a stray short-alias comment cannot satisfy used-by\n// uses: the foo helper for parsing\nexport const a = 1;\n",
+    );
+    assert.ok(check({ root: dir }).some((x) => /used-by/.test(x.message)), "a stray `uses:` must not satisfy used-by");
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test("a single-character field value is accepted (non-empty after trimming)", () => {
+  const dir = mkdtempSync(path.join(tmpdir(), "g9-onechar-"));
+  try {
+    mkdirSync(path.join(dir, "scripts"), { recursive: true });
+    writeFileSync(
+      path.join(dir, "scripts", "a.mjs"),
+      "// what-it-is: x\n// what-it-does: y\n// why: z\n// used-by: q\nexport const a = 1;\n",
+    );
+    assert.equal(check({ root: dir }).length, 0);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
 test("a non-comment code line does not spuriously satisfy a field", () => {
   const dir = mkdtempSync(path.join(tmpdir(), "g9-code-"));
   try {
