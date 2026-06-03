@@ -1,3 +1,10 @@
+---
+title: "Climb from Bronze to Silver"
+description: "The toolkit's validators turn the Silver climb into a literal to-do list you can read off `tier-report`."
+audience: engineer
+level: intermediate
+---
+
 # How to climb from Bronze to Silver
 
 The toolkit's validators turn the Silver climb into a literal to-do list you can read off `tier-report`.

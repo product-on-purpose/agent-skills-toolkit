@@ -1,3 +1,10 @@
+---
+title: "Manage the backlog"
+description: "Capture, triage, and prune work in the two backlogs (Standard sec 7.1)."
+audience: engineer
+level: intermediate
+---
+
 # How to manage the backlog
 
 Capture, triage, and prune work in the two backlogs (Standard sec 7.1).

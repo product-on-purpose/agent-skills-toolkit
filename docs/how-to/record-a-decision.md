@@ -1,3 +1,10 @@
+---
+title: "Record a decision"
+description: "Capture an architecture decision as a numbered MADR ADR, or propose a change via an RFC (Standard sec 10.4)."
+audience: engineer
+level: intermediate
+---
+
 # How to record a decision
 
 Capture an architecture decision as a numbered MADR ADR, or propose a change via an RFC (Standard sec 10.4).

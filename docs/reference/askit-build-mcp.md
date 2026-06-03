@@ -1,3 +1,10 @@
+---
+title: "askit-build-mcp"
+description: "Authors a plugin's MCP servers as one portable `.mcp.json` and wires the per-target `mcpServers` manifest pointer."
+audience: engineer
+level: intermediate
+---
+
 # askit-build-mcp (reference)
 
 Authors a plugin's MCP servers as one portable `.mcp.json` and wires the per-target `mcpServers` manifest pointer. Universal tier.

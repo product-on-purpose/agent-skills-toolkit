@@ -1,3 +1,10 @@
+---
+title: "Gold (Advanced) conformance checks"
+description: "The Gold tier adds requirements G1-G7 (Standard sec 2.6) on top of Bronze + Silver."
+audience: engineer
+level: advanced
+---
+
 # Reference: Gold (Advanced) conformance checks
 
 The Gold tier adds requirements G1-G7 (Standard sec 2.6) on top of Bronze + Silver. Each fires findings tagged `reqId: "G<n>"`; `tier-report` buckets them into the `advanced` tier and lists unmet ones in `blocked.advanced`. Because they are advanced-tier, they do NOT fail the gate for a plugin that declares `universal` or `convergent` - they appear as the burndown to Gold until the plugin declares `advanced` and addresses them. The checks are built incrementally as the toolkit climbs to Gold; this reference documents the ones implemented so far.

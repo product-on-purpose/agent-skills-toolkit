@@ -1,3 +1,10 @@
+---
+title: "askit-decision"
+description: "Authors and maintains a plugin's decision records (MADR ADRs) and RFCs in `docs/internal/` (Standard sec 10.4)."
+audience: engineer
+level: intermediate
+---
+
 # askit-decision (reference)
 
 Authors and maintains a plugin's decision records (MADR ADRs) and RFCs in `docs/internal/` (Standard sec 10.4).

@@ -1,3 +1,10 @@
+---
+title: "askit-build-skill"
+description: "Creates and improves skills to the Standard."
+audience: engineer
+level: intermediate
+---
+
 # Reference: askit-build-skill
 
 Creates and improves skills to the Standard. Emits for Claude and Codex.

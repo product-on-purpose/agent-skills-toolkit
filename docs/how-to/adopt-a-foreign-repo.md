@@ -1,3 +1,10 @@
+---
+title: "Adopt a foreign repo"
+description: "Bring an existing skills repository to the Standard with `askit-migrate`."
+audience: engineer
+level: intermediate
+---
+
 # How to adopt a foreign repo
 
 Bring an existing skills repository to the Standard with `askit-migrate`.

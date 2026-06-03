@@ -1,3 +1,10 @@
+---
+title: "Add eval coverage (G3)"
+description: "Give each chain and hook an eval case so the plugin clears the Gold G3 baseline (Standard sec 2.6, sec 8.3)."
+audience: engineer
+level: intermediate
+---
+
 # How to add eval coverage (G3)
 
 Give each chain and hook an eval case so the plugin clears the Gold G3 baseline (Standard sec 2.6, sec 8.3).

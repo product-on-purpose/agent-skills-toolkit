@@ -1,3 +1,10 @@
+---
+title: "askit-deprecate"
+description: "Validates and records a component's deprecation and keeps deprecated components validating until removal."
+audience: engineer
+level: intermediate
+---
+
 # askit-deprecate (reference)
 
 Validates and records a component's deprecation and keeps deprecated components validating until removal.

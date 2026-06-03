@@ -1,3 +1,10 @@
+---
+title: "askit-build-samples"
+description: "Creates and validates a skill's samples and eval sets, following the builder pattern."
+audience: engineer
+level: intermediate
+---
+
 # askit-build-samples (reference)
 
 Creates and validates a skill's samples and eval sets, following the builder pattern.

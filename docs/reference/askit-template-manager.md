@@ -1,3 +1,10 @@
+---
+title: "askit-template-manager"
+description: "Creates and maintains the global `templates/` directory the scaffolders consume."
+audience: engineer
+level: intermediate
+---
+
 # askit-template-manager (reference)
 
 Creates and maintains the global `templates/` directory the scaffolders consume.

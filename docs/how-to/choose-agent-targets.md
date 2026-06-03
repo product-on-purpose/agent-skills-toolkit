@@ -1,3 +1,10 @@
+---
+title: "Choose agent-targets"
+description: "Decide which agents a plugin should target, and which tier to aim for, with `askit-capability-advisor`."
+audience: engineer
+level: intermediate
+---
+
 # How to choose agent-targets
 
 Decide which agents a plugin should target, and which tier to aim for, with `askit-capability-advisor`.

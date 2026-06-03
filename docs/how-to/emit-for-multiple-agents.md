@@ -1,3 +1,10 @@
+---
+title: "Emit a plugin for multiple agents"
+description: "A plugin can target Claude Code, Codex, or both."
+audience: engineer
+level: intermediate
+---
+
 # How to emit a plugin for multiple agents
 
 A plugin can target Claude Code, Codex, or both. The `SKILL.md` files are portable

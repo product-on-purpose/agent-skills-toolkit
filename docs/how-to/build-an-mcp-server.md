@@ -1,3 +1,10 @@
+---
+title: "Build an MCP server"
+description: "Add a Model Context Protocol server to a plugin - author the portable `.mcp.json`, register it, and wire the manifest pointer."
+audience: engineer
+level: intermediate
+---
+
 # How to build an MCP server
 
 Add a Model Context Protocol server to a plugin: author the portable `.mcp.json`, register it, and wire the manifest pointer.

@@ -1,3 +1,10 @@
+---
+title: "askit-build-subagent"
+description: "Creates and improves Claude subagents (`agents/<name>.md`) to the Standard."
+audience: engineer
+level: intermediate
+---
+
 # Reference: askit-build-subagent
 
 Creates and improves Claude subagents (`agents/<name>.md`) to the Standard. Claude-only emission.

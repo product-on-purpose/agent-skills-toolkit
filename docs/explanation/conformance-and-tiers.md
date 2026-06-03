@@ -1,3 +1,10 @@
+---
+title: "Conformance and tiers"
+description: "The toolkit grades a plugin against the Advanced Skill Library Standard."
+audience: both
+level: intermediate
+---
+
 # Explanation: conformance and tiers
 
 The toolkit grades a plugin against the Advanced Skill Library Standard. Checks emit
@@ -37,6 +44,7 @@ Convergent (Silver) reqIds carry the `S` prefix. The current set:
 | S5 | Workflow skill-existence | sec 3.4 | yes |
 | S6 | Per-target native-manifest presence | sec 5.1, sec 10.1 | yes |
 | S7 | Command-contract (maps-to resolves to one skill/workflow; description present) | sec 3.2 | yes |
+| S8 | Components index mirrors what is on disk, in both directions (no orphan or phantom entries) | sec 5.1 | no |
 
 Two Universal checks were added in the v0.2 hardening: **U9** (`version-match`: `package.json` version must equal `library.json` version, the source of truth) and **U10** (`no-dashes`: the house no-em-dash / no-en-dash rule, now CI-enforced for every contributor, not only a local hook).
 

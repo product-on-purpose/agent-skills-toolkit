@@ -1,3 +1,10 @@
+---
+title: "askit-build-statusline"
+description: "Creates and improves a Claude Code status line script and its settings registration."
+audience: engineer
+level: intermediate
+---
+
 # askit-build-statusline (reference)
 
 Creates and improves a Claude Code status line script and its settings registration. Claude-only.

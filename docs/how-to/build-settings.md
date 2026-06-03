@@ -1,3 +1,10 @@
+---
+title: "Build settings and permissions"
+description: "Author a plugin's settings, permissions, and env with `askit-build-settings`."
+audience: engineer
+level: intermediate
+---
+
 # How to build settings and permissions
 
 Author a plugin's settings, permissions, and env with `askit-build-settings`.

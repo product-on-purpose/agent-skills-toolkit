@@ -1,3 +1,10 @@
+---
+title: "askit-migrate"
+description: "Adopts an existing skills repository into a Standard-conformant plugin and produces a staged bring-to-conformance plan."
+audience: engineer
+level: intermediate
+---
+
 # askit-migrate (reference)
 
 Adopts an existing skills repository into a Standard-conformant plugin and produces a staged bring-to-conformance plan.

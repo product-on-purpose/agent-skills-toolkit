@@ -1,3 +1,10 @@
+---
+title: "Deprecate a component"
+description: "Retire a component cleanly with `askit-deprecate`."
+audience: engineer
+level: intermediate
+---
+
 # How to deprecate a component
 
 Retire a component cleanly with `askit-deprecate`.

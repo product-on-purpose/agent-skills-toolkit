@@ -1,3 +1,10 @@
+---
+title: "Scaffold a new plugin"
+description: "Start a new, gradeable plugin with `askit-init-plugin`."
+audience: engineer
+level: intermediate
+---
+
 # How to scaffold a new plugin
 
 Start a new, gradeable plugin with `askit-init-plugin`.

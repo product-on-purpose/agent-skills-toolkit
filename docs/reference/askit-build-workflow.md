@@ -1,3 +1,10 @@
+---
+title: "askit-build-workflow"
+description: "Authors a plugin's workflows (ordered multi-skill arcs, `_workflows/<name>.md`, Standard sec 3.4, Convergent tier)."
+audience: engineer
+level: intermediate
+---
+
 # askit-build-workflow (reference)
 
 Authors a plugin's workflows (ordered multi-skill arcs, `_workflows/<name>.md`, Standard sec 3.4, Convergent tier).

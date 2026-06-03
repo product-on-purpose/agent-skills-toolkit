@@ -1,3 +1,10 @@
+---
+title: "Build a subagent"
+description: "A walkthrough of creating a conformant `agents/<name>.md` delegate, wiring it into"
+audience: engineer
+level: intermediate
+---
+
 # How to build a subagent
 
 A walkthrough of creating a conformant `agents/<name>.md` delegate, wiring it into

@@ -1,3 +1,10 @@
+---
+title: "Build samples and eval sets"
+description: "Give a skill its evidence layer with `askit-build-samples`."
+audience: engineer
+level: intermediate
+---
+
 # How to build samples and eval sets
 
 Give a skill its evidence layer with `askit-build-samples`.

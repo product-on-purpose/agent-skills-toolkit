@@ -1,3 +1,10 @@
+---
+title: "Build a status line"
+description: "Author a Claude Code status line with `askit-build-statusline`."
+audience: engineer
+level: intermediate
+---
+
 # How to build a status line
 
 Author a Claude Code status line with `askit-build-statusline`.
