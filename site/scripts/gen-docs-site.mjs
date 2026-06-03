@@ -56,7 +56,9 @@ function walkMd(dir, acc = []) {
   for (const e of fs.readdirSync(dir, { withFileTypes: true })) {
     const full = path.join(dir, e.name);
     if (e.isDirectory()) walkMd(full, acc);
-    else if (e.name.endsWith('.md') || e.name.endsWith('.mdx')) acc.push(full);
+    // A folder's README.md is a repo-browsing folder guide (the G8 inventory), not a site content
+    // page - the sidebar already lists the quadrant's pages - so it is not emitted to the site.
+    else if (e.name !== 'README.md' && (e.name.endsWith('.md') || e.name.endsWith('.mdx'))) acc.push(full);
   }
   return acc;
 }

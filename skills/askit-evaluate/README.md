@@ -1,13 +1,12 @@
-# askit-evaluate (human overview)
+---
+title: "skills/askit-evaluate - folder guide"
+---
 
-Audit a skill or plugin against the Advanced Skill Library Standard.
+# skills/askit-evaluate
 
-**What it does:** runs the toolkit's conformance checks and shows you per-rule findings, the tier a plugin satisfies, and what to fix.
+The askit-evaluate skill. Evaluates a skill or plugin against the Advanced Skill Library Standard across three modes, producing deterministic conformance findings and a tier, an opt-in behavioral pass, and a qualitative review. Use when you want to audit conformance, judge whether a skill behaves and triggers correctly, get a qualitative review, or see what blocks the next tier.
 
-**When to use it:** before committing a new skill, or when you want to know what blocks the next tier.
+## Inventory
 
-**Example:**
-
-    node scripts/evaluate.mjs skills/askit-build-skill
-
-Agent-canonical instructions live in `SKILL.md`; the report shape is in `references/report-format.md`.
+- `SKILL.md` - the skill definition (frontmatter plus the procedure).
+- `references/` - supporting reference docs loaded on demand.

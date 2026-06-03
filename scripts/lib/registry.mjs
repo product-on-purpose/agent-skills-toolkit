@@ -25,6 +25,7 @@ import * as selfHosting from "../checks/self-hosting.mjs";
 import * as releaseNotes from "../checks/release-notes.mjs";
 import * as indexDrift from "../checks/index-drift.mjs";
 import * as docsFrontmatter from "../checks/docs-frontmatter.mjs";
+import * as folderReadme from "../checks/folder-readme.mjs";
 
 /** Ordered checks. Each exports { meta:{id,tier,reqId}, check(ctx)->Finding[] }. */
 export const CHECKS = [
@@ -34,7 +35,7 @@ export const CHECKS = [
   perTargetPresence,
   versionMatch, noDashes, mermaidValid, mcpValid,
   libraryRegression, deprecation,
-  hookDocumentation, selfHosting, releaseNotes, indexDrift, docsFrontmatter,
+  hookDocumentation, selfHosting, releaseNotes, indexDrift, docsFrontmatter, folderReadme,
 ];
 
 export function runAllChecks(ctx) {
