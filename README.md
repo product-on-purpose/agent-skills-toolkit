@@ -314,9 +314,9 @@ The Claude slash commands that give the core flows an explicit `/command` entry 
 
 ## Status
 
-**`v1.0.0`, Gold grade, installable.** The repository declares `tier: advanced` and self-validates at Advanced in CI: the full gate is green and `tier-report` prints `advanced` with an empty burndown, so the toolkit is a self-proving example of the Standard it defines. Two Gold checks (`G1` hooks, `G6` deprecation) are currently satisfied without exercise, since the toolkit ships no hooks and no deprecated components yet; a demonstrative hook is a planned follow-up. The toolkit installs from the `product-on-purpose` marketplace (see [Quick start](#quick-start)).
+**`v1.0.0`, Gold grade, installable.** The repository declares `tier: advanced` and self-validates at Advanced in CI: the full gate is green and `tier-report` prints `advanced` with an empty burndown, so the toolkit is a self-proving example of the Standard it defines. Gold check `G1` (hooks) now grades the toolkit's own demonstrative no-dash `PreToolUse` hook; `G6` (deprecation) is still satisfied without exercise, since the toolkit ships no deprecated components yet. The toolkit installs from the `product-on-purpose` marketplace (see [Quick start](#quick-start)).
 
-- **Version** - `1.0.0` (Standard `v0.9`).
+- **Version** - `1.0.0` (Standard `v0.10`).
 - **Tier** - Advanced (Gold), self-validated.
 - **Install** - `product-on-purpose` marketplace (`agent-plugins`).
 - **Components** - 23 skills, 7 subagents, 2 commands.
