@@ -4,7 +4,7 @@
 
 # [agent-skills-toolkit](https://github.com/product-on-purpose/agent-skills-toolkit)
 
-**A toolkit and standard for building advanced, cross-agent skill libraries - Claude Code and Codex - to a tiered Bronze / Silver / Gold quality bar.**
+**Start, grow, govern, and level up an advanced cross-agent plugin over its whole lifecycle - climbing a Bronze / Silver / Gold standard, with a portable gate that proves the climb. For Claude Code and Codex.**
 
 Most skill collections are a flat, single-agent, ungoverned pile. This is the Standard that defines what a best-in-class, multi-agent skill library actually is, plus the portable tooling that authors components, grades a plugin against the Standard, and emits each component in the right format for each agent. The repository is built to its own Standard and self-validates at Gold in CI: it is meant to be the proof.
 
@@ -33,7 +33,7 @@ Most skill collections are a flat, single-agent, ungoverned pile. This is the St
 <p>
   <img src="https://img.shields.io/badge/status-active-success?style=flat-square" alt="Status: Active">
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-Apache--2.0-blue?style=flat-square" alt="License: Apache-2.0"></a>
-  <img src="https://img.shields.io/badge/version-0.3.0-blue?style=flat-square" alt="Version 0.3.0">
+  <img src="https://img.shields.io/badge/version-1.0.0-blue?style=flat-square" alt="Version 1.0.0">
   <img src="https://img.shields.io/badge/tier-Gold%20(Advanced)-yellow?style=flat-square" alt="Tier: Gold (Advanced)">
   <a href="#the-catalog"><img src="https://img.shields.io/badge/skills-23-brightgreen?style=flat-square" alt="Skills: 23"></a>
   <img src="https://img.shields.io/badge/checks-25-brightgreen?style=flat-square" alt="Validation checks: 25">
@@ -62,15 +62,25 @@ Most skill collections are a flat, single-agent, ungoverned pile. This is the St
 
 ## What it is
 
-`agent-skills-toolkit` is two things working together:
+`agent-skills-toolkit` is two things working together, built for the **whole life of a plugin** - not just the moment you write a skill.
 
-- **The [Advanced Skill Library Standard](STANDARD.md)** - a normative (RFC-2119) definition of what a best-in-class, multi-agent skill library is: components, conformance tiers, manifest, CI, and lifecycle.
-- **The toolkit** - skills, subagents, and portable Node validators that author components, grade a plugin against the Standard, and emit each component in the right format for each target agent. The validators are zero-dependency and run anywhere Node 22.12+ does.
+- **The [Advanced Skill Library Standard](STANDARD.md)** - a normative (RFC-2119) definition of what a best-in-class, multi-agent skill library is: components, conformance tiers, manifest, CI, and lifecycle. It is the bar you climb.
+- **The toolkit** - skills, subagents, and portable Node validators that author every component type, grade a plugin against the Standard, and emit each component in the right format for each target agent (Claude Code and Codex). The validators run anywhere Node 22.12+ does, with a YAML parser as their only runtime dependency.
 
-The path is a flat pile of skills becoming a coherent, versioned **plugin** that conforms to a defined quality bar and works across more than one agent.
+This is more than a skill builder. A single skill is where you start; the real work is **starting**, **growing**, **governing**, and **leveling up** a coherent, versioned plugin that works across more than one agent and holds together as it scales.
+
+| Phase | What you do | What the toolkit gives you |
+|---|---|---|
+| **Start** | Write your first skill, or scaffold a plugin from scratch | `askit-build-skill`, `askit-init-plugin`, `askit-init-marketplace`, `askit-migrate` for an existing repo |
+| **Grow** | Add subagents, slash commands, MCP servers, hooks, workflows, chain contracts, output styles, status lines, settings | the `askit-build-*` authoring family, emitted per agent |
+| **Govern** | Run the plugin over its lifetime | backlog with a why-gate, MADR decision records, releases, deprecations, templates, docs, and eval samples |
+| **Level up** | Climb Bronze to Silver to Gold by adding the machinery each tier certifies | a deterministic tier report that names exactly what blocks the next rung |
+
+The path is a flat pile of skills becoming a coherent, versioned **plugin** that conforms to a defined quality bar and works across more than one agent - and then keeps earning higher grades as it matures: **loose components into a plugin into a skill library.**
 
 | It is | It is not |
 |---|---|
+| A lifecycle toolkit: start, grow, govern, and level up a plugin | A one-shot skill scaffolder you run once |
 | A deterministic gate that grades a **whole library** at once and reports the tier it earns | A per-skill linter or a style guide |
 | **Cross-agent**: one canonical `library.json`, emitted per agent (Claude Code and Codex) | A single-agent or Claude-only format |
 | **Self-proving**: the repository validates itself against the Standard in CI | An aspirational spec with no reference implementation |
@@ -91,9 +101,32 @@ flowchart LR
     class G gold;
 ```
 
+### Two ways in, one ladder
+
+The same tier ladder serves two audiences, and you can self-locate on it.
+
+- **The beginner on-ramp.** Build your first agentskills.io skill, then scaffold it into a plugin that parses, self-describes, and runs unchanged on any compliant agent. The smallest commitment that turns a pile of skills into a gradeable, portable plugin: **Bronze**.
+- **The advanced maintainer track.** Take a real multi-component plugin cross-agent with verified format parity, then make it self-proving with hooks, regression-covered chains, self-hosting CI, and a disciplined release and deprecation story: **Silver**, then **Gold**.
+
+Because the tiers are monotonic, the beginner's first Bronze plugin is the exact foundation the advanced track builds on. Nobody starts over. The bar rises and the earlier work still counts.
+
 ## Quick start
 
-The validation spine is live and zero-dependency. From a plugin's root:
+### Install
+
+```bash
+# Add the marketplace once (by repo path)
+/plugin marketplace add product-on-purpose/agent-plugins
+
+# Install the toolkit (by marketplace identity)
+/plugin install agent-skills-toolkit@product-on-purpose
+```
+
+You **add** the marketplace by its repo path and **install** the plugin by the marketplace identity (`@product-on-purpose`): the path is the address, the identity is the brand. The toolkit is a Claude Code and Codex plugin (it ships both `.claude-plugin/plugin.json` and `.codex-plugin/plugin.json`).
+
+### Grade a plugin
+
+The validation spine has a single runtime dependency (a YAML parser), so the gate runs anywhere Node 22.12+ does. From a plugin's root:
 
 ```bash
 node scripts/check.mjs
@@ -107,7 +140,7 @@ Tier: Advanced (no blockers detected)
 0 error(s), 0 warning(s).
 ```
 
-`node scripts/tier-report.mjs --json` emits the same result as JSON for tooling (`{ "tier": "advanced", "satisfies": [...], "blocked": {} }`). The toolkit is not yet installable as a plugin; install and usage instructions will be documented as it becomes installable, with marketplace registration planned at the first Gold-tagged release (`v1.0.0`).
+`node scripts/tier-report.mjs --json` emits the same result as JSON for tooling (`{ "tier": "advanced", "satisfies": [...], "blocked": {} }`).
 
 <div align="right">(<a href="#readme-top">back to top</a>)</div>
 
@@ -125,39 +158,73 @@ Cross-agent emission is increasingly common. The defensible, less-occupied posit
 
 ## The tier model
 
-A bare folder of agentskills.io skills is just **loose components**: the skills work a la carte, but the collection is not yet a plugin. Adding a minimal `library.json` turns it into a **Bronze** plugin that parses and self-describes; **Silver** makes it emit cleanly across Claude and Codex; **Gold** makes it a self-proving reference that validates itself in CI. The tiers are monotonic by construction, so a Bronze plugin grows into Silver and Gold without rework: the bar rises, and the earlier work still counts.
-
-| Tier | Name | What it certifies | Checks |
-|---|---|---|---|
-| **Bronze** | Universal | Identical files run unchanged on any agentskills.io-compliant agent | `U1-U11` |
-| **Silver** | Convergent | The multi-agent machinery is emitted in the correct format for every target | `+ S1-S8` |
-| **Gold** | Advanced | Deep lifecycle plus self-hosting CI: the plugin proves itself | `+ G1-G6` |
+A bare folder of agentskills.io skills is just **loose components**: the skills work a la carte, but the collection is not yet a plugin. The three tiers are the ladder that turns it into a best-in-class library, one rung at a time. They are **monotonic** - each tier includes everything below it - so a Bronze plugin grows into Silver and Gold without rework. The bar rises, and the earlier work still counts.
 
 A tier is reported only when its checks actually pass; the tooling flags any claim above what is met. The spine is **25 checks** total (`U1-U11`, `S1-S8`, `G1-G6`); the Gold requirement `G7` is tier inclusion, satisfied structurally rather than by a separate check.
 
-### Bronze (Universal)
+### At a glance
 
-> The plugin parses and self-describes with portable, agent-agnostic files that run unchanged on any agentskills.io-compliant agent.
+| Tier | Codename | What it certifies | Who it is for | Adds | Cumulative checks |
+|---|---|---|---|---|---|
+| **Bronze** | Universal | Identical, portable files run unchanged on any agentskills.io-compliant agent | The beginner on-ramp: turn a pile of skills into a gradeable, portable plugin | A minimal `library.json`, valid skill anatomy, a description that clears the what-plus-when-plus-trigger bar, scarce context | `U1-U11` (11) |
+| **Silver** | Convergent | The multi-agent machinery is emitted in the correct format for every target agent | Real multi-component plugins that must ship to both Claude Code and Codex | Subagents, commands, workflows, chain contracts, per-agent emission, semver governance | `+ S1-S8` (19) |
+| **Gold** | Advanced | The plugin proves itself: deep lifecycle plus self-hosting CI that passes | Maintainers running plugins at scale who need lifecycle guarantees | Hooks, self-hosting CI, regression-covered chains, generated drift-checked docs, release and deprecation policy | `+ G1-G6` (25) |
 
-- **Requires:** a minimal `library.json` carrying at least `name`, `version`, and `tier` (`U1`); valid agentskills.io skill anatomy and frontmatter, with a name that equals its directory (`U2`, `U3`, `U4`); a description that clears the what-plus-when-plus-trigger quality bar (`U5`); reference links that resolve (`U6`); an instruction-budget warning so context stays scarce (`U7`); native-manifest and version agreement and the house no-em-dash / no-en-dash rule (`U8`, `U9`, `U10`); and well-formed MCP entries that commit no secrets (`U11`). A root `AGENTS.md` entrypoint is part of the required anatomy.
-- **Why it matters:** the manifest (`U1`) is the line between a reusable folder and a release unit that carries a version, so tooling can grade and version it. Frontmatter and name discipline make skills discoverable and unambiguous; the description bar protects the one signal an agent uses to decide relevance; the reference-link and budget rules keep context scarce and progressively disclosed, which is how frontier models actually follow instructions.
-- **How it helps:** a Bronze plugin is installable and behaves the same on Claude Code, Codex, and the broader agentskills.io ecosystem at once - write once, run anywhere. It is the beginner on-ramp: the smallest commitment that turns a pile of skills into a gradeable, portable plugin, and the floor every higher tier builds on.
+> **Read it as a climb.** Bronze makes a plugin *portable*. Silver makes it *genuinely cross-agent*. Gold makes it *self-proving*. Each rung is the floor the next one builds on.
 
-### Silver (Convergent)
+### Bronze - Universal - the start line
 
-> The plugin adds the multi-agent machinery - subagents, commands, workflows, chain contracts - emitted in the correct format for every agent it targets.
+> **Certifies:** the plugin parses and self-describes with portable, agent-agnostic files that run unchanged on any agentskills.io-compliant agent.
 
-- **Requires:** declared `agent-targets` and a short component `prefix` carried by every component (`S1`, `S2`); a components index that mirrors what is on disk, in both directions (`S3`, `S8`); valid chain contracts in `agents/_chain-permitted.yaml` with no orphans or phantoms, and workflow steps that reference skills that exist (`S4`, `S5`); and per-target emission, with a native manifest and a command contract present for each declared target (`S6`, `S7`). Governance steps up too: per-component `HISTORY.md`, a `CHANGELOG`, and semver throughout.
-- **Why it matters:** Claude and Codex support the same concepts in different file formats, so a single file cannot serve both - per-target emission (`S6`) is what keeps a plugin genuinely cross-agent instead of secretly Claude-only. The prefix (`S2`) stops generic names like `init` from colliding on agents that lack plugin namespacing. The index mirroring disk (`S3`, `S8`) keeps the manifest honest as the single source of truth, and chain contracts (`S4`) make inter-component calls explicit and safe rather than implicit.
-- **How it helps:** a Silver plugin delivers the same intent across Claude and Codex with verified format parity and collision-proof names. It is the tier for real multi-component plugins - workflows, subagents, slash commands - that need to compose safely and ship to more than one agent.
+- **For:** beginners and first-time authors. The smallest commitment that makes a pile of skills a real plugin.
+- **Requires (`U1-U11`):**
+  - `U1` - a minimal `library.json` carrying at least `name`, `version`, and `tier`
+  - `U2-U4` - valid agentskills.io skill anatomy and frontmatter, with each skill's name equal to its directory; a root `AGENTS.md` entrypoint is part of the required anatomy
+  - `U5` - a description that clears the what-plus-when-plus-trigger quality bar
+  - `U6-U7` - reference links that resolve, and an instruction-budget warning so context stays scarce
+  - `U8-U10` - native-manifest and version agreement, plus the house no-em-dash / no-en-dash rule
+  - `U11` - well-formed MCP entries that commit no secrets
+- **Why it matters:** the manifest (`U1`) is the line between a reusable folder and a release unit that carries a version, so tooling can grade and version it. The description bar protects the one signal an agent uses to decide relevance; the reference-link and budget rules keep context scarce and progressively disclosed, which is how frontier models actually follow instructions.
+- **Payoff:** a Bronze plugin is installable and behaves the same on Claude Code, Codex, and the broader agentskills.io ecosystem at once. Write once, run anywhere.
 
-### Gold (Advanced)
+### Silver - Convergent - the multi-agent rung
 
-> The self-proving bar: deep lifecycle capability plus CI that validates the plugin against this Standard and passes.
+> **Certifies:** the plugin adds the multi-agent machinery - subagents, commands, workflows, chain contracts - emitted in the correct format for every agent it targets.
 
-- **Requires:** every hook documents its event, trigger, matcher, scope, and failure behavior (`G1`); the plugin ships self-hosting CI that runs the full tier-applicable gate and passes it (`G2`); each chain edge and hook carries at least one eval or regression case CI executes, so changing one component cannot silently break a consumer (`G3`); `INDEX.md` and the native manifests are generated from the authored sources and drift-checked, so a hand-edited generated file is an error (`G4`); a curated `RELEASE-NOTES.md` distinct from `CHANGELOG.md` (`G5`); and a deprecation policy with `status` / `deprecated-by` / `remove-in` that tooling recognizes (`G6`). `G7` is tier inclusion: all Bronze and Silver requirements.
-- **Why it matters:** self-hosting CI (`G2`) closes the credibility loop - a Standard whose own reference plugin cannot pass its validators is not trustworthy, so the prover must be the proof. Regression coverage (`G3`) turns "changing X broke Y" from a surprise into a CI failure. Generating `INDEX` and the manifests from one authored source (`G4`) is what keeps the agent view and the human view from drifting apart at scale, and the release and deprecation rules (`G5`, `G6`) make a library's evolution legible and its removals safe.
-- **How it helps:** a Gold plugin is a maintainable, best-in-class library that demonstrably conforms to the Standard. It is the tier this toolkit itself declares (`tier: advanced`) and passes against itself, with an empty blocked list as the proof. It is for maintainers running plugins at scale who need lifecycle guarantees: documented hooks, regression-protected chains, drift-free generated docs, and a disciplined release and deprecation story.
+- **For:** real multi-component plugins that need to compose safely and ship to more than one agent.
+- **Requires (`+ S1-S8`):**
+  - `S1-S2` - declared `agent-targets` and a short component `prefix` carried by every component
+  - `S3`, `S8` - a components index that mirrors what is on disk, in both directions
+  - `S4-S5` - valid chain contracts in `agents/_chain-permitted.yaml` with no orphans or phantoms, and workflow steps that reference skills that exist
+  - `S6-S7` - per-target emission, with a native manifest and a command contract present for each declared target
+  - plus governance stepping up: per-component `HISTORY.md`, a `CHANGELOG`, and semver throughout
+- **Why it matters:** Claude and Codex support the same concepts in different file formats, so a single file cannot serve both - per-target emission (`S6`) is what keeps a plugin genuinely cross-agent instead of secretly Claude-only. The prefix (`S2`) stops generic names like `init` from colliding on agents that lack plugin namespacing. The index mirroring disk (`S3`, `S8`) keeps the manifest honest as the single source of truth, and chain contracts (`S4`) make inter-component calls explicit and safe.
+- **Payoff:** a Silver plugin delivers the same intent across Claude and Codex with verified format parity and collision-proof names.
+
+### Gold - Advanced - the self-proving summit
+
+> **Certifies:** the self-proving bar - deep lifecycle capability plus CI that validates the plugin against this Standard and passes.
+
+- **For:** maintainers running plugins at scale who need lifecycle guarantees: documented hooks, regression-protected chains, drift-free generated docs, and a disciplined release and deprecation story.
+- **Requires (`+ G1-G6`, with `G7` = tier inclusion of all Bronze and Silver checks):**
+  - `G1` - every hook documents its event, trigger, matcher, scope, and failure behavior
+  - `G2` - the plugin ships self-hosting CI that runs the full tier-applicable gate and passes it
+  - `G3` - each chain edge and hook carries at least one eval or regression case CI executes, so changing one component cannot silently break a consumer
+  - `G4` - `INDEX.md` and the native manifests are generated from the authored sources and drift-checked, so a hand-edited generated file is an error
+  - `G5` - a curated `RELEASE-NOTES.md` distinct from `CHANGELOG.md`
+  - `G6` - a deprecation policy with `status` / `deprecated-by` / `remove-in` that tooling recognizes
+- **Why it matters:** self-hosting CI (`G2`) closes the credibility loop - a Standard whose own reference plugin cannot pass its validators is not trustworthy, so the prover must be the proof. Regression coverage (`G3`) turns "changing X broke Y" from a surprise into a CI failure. Generating `INDEX` and the manifests from one authored source (`G4`) keeps the agent view and the human view from drifting apart at scale.
+- **Payoff:** a Gold plugin is a maintainable, best-in-class library that demonstrably conforms to the Standard. It is the tier this toolkit itself declares (`tier: advanced`) and passes against itself, with an empty blocked list as the proof.
+
+### Locate yourself
+
+| Where you are | Your next rung | Get there with |
+|---|---|---|
+| I have loose skills, or none yet | **Bronze** | `askit-build-skill`, `askit-init-plugin`, or `askit-migrate` |
+| I have a Bronze plugin and want it on both agents | **Silver** | the `askit-build-*` family, then `node scripts/check.mjs` for the burndown |
+| I have a Silver plugin and want it self-proving | **Gold** | `askit-build-hook`, `askit-release`, `askit-deprecate`, plus self-hosting CI |
+
+Run `node scripts/check.mjs` at any point to see the highest tier you satisfy and exactly what blocks the next one.
 
 <div align="right">(<a href="#readme-top">back to top</a>)</div>
 
@@ -274,12 +341,13 @@ The Claude slash commands that give the core flows an explicit `/command` entry 
 
 ## Status
 
-**Public `0.x` preview, Gold grade.** The repository declares `tier: advanced` and self-validates at Advanced in CI: the full gate is green and `tier-report` prints `advanced` with an empty burndown, so the toolkit is a self-proving example of the Standard it defines. Two Gold checks (`G1` hooks, `G6` deprecation) are currently satisfied without exercise, since the toolkit ships no hooks and no deprecated components yet; a demonstrative hook is a planned follow-up. The toolkit is **not yet installable**; marketplace registration is planned at the first Gold-tagged release (`v1.0.0`).
+**`v1.0.0`, Gold grade, installable.** The repository declares `tier: advanced` and self-validates at Advanced in CI: the full gate is green and `tier-report` prints `advanced` with an empty burndown, so the toolkit is a self-proving example of the Standard it defines. Two Gold checks (`G1` hooks, `G6` deprecation) are currently satisfied without exercise, since the toolkit ships no hooks and no deprecated components yet; a demonstrative hook is a planned follow-up. The toolkit installs from the `product-on-purpose` marketplace (see [Quick start](#quick-start)).
 
 | | |
 |---|---|
-| **Version** | `0.3.0` (Standard `v0.8`) |
+| **Version** | `1.0.0` (Standard `v0.9`) |
 | **Tier** | Advanced (Gold), self-validated |
+| **Install** | `product-on-purpose` marketplace (`agent-plugins`) |
 | **Components** | 23 skills, 7 subagents, 2 commands |
 | **Validation spine** | 25 checks (`U1-U11`, `S1-S8`, `G1-G6`) |
 | **Agents** | Claude Code and Codex; agentskills.io-compatible at Bronze |
@@ -304,7 +372,7 @@ The path is **loose components into a plugin into a skill library**.
 - [`STANDARD.md`](STANDARD.md) - the normative Standard.
 - [`INDEX.md`](INDEX.md) - the generated map of the repository.
 - [`AGENTS.md`](AGENTS.md) - the agent navigation entrypoint.
-- [`scripts/`](scripts/) - the zero-dependency validation spine (`check.mjs`, `tier-report.mjs`), the per-check modules, and the manifest and index generators.
+- [`scripts/`](scripts/) - the portable validation spine (`check.mjs`, `tier-report.mjs`; one runtime dependency, a YAML parser), the per-check modules, and the manifest and index generators.
 - [`skills/`](skills/), [`agents/`](agents/), [`commands/`](commands/) - the components.
 - [`docs/`](docs/) - tutorials, how-to, reference, and explanation; [`docs/internal/`](docs/internal/) holds the design record, decisions, and backlog.
 - [`CHANGELOG.md`](CHANGELOG.md) - release history.

@@ -1,0 +1,84 @@
+# Release automation for agent-skills-toolkit.
+#
+# Trigger: a pushed tag "v*". The job re-runs the conformance gate as a safety net,
+# enforces a version-consistency guard (the tag must equal every version-bearing
+# manifest), extracts this version's section from RELEASE-NOTES.md, and publishes a
+# GitHub release. The toolkit is installed from the product-on-purpose marketplace by
+# cloning the pinned commit, so no archive artifact is built here.
+#
+# Per Standard sec 4.1/4.4, this workflow holds no validation logic of its own beyond
+# the guard: the gate is the same portable `node scripts/check.mjs` a contributor runs
+# locally. The PR-time validate + build-site jobs live in ci.yml and are unchanged.
+
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Set up Node from .nvmrc (the committed pin is the single CI source of truth)
+        uses: actions/setup-node@v5
+        with:
+          node-version-file: .nvmrc
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Conformance gate (the prover proves itself at release time)
+        run: node scripts/check.mjs
+
+      - name: Guard - tag must equal every version-bearing manifest
+        run: |
+          set -euo pipefail
+          TAG="${GITHUB_REF_NAME#v}"
+          fail=0
+          check() {
+            file="$1"
+            actual="$(node -p "JSON.parse(require('fs').readFileSync('$file','utf8')).version")"
+            if [ "$actual" != "$TAG" ]; then
+              echo "::error file=$file::version $actual does not match tag $TAG"
+              fail=1
+            else
+              echo "ok: $file = $actual"
+            fi
+          }
+          check package.json
+          check library.json
+          check .claude-plugin/plugin.json
+          check .codex-plugin/plugin.json
+          if [ "$fail" -ne 0 ]; then
+            echo "::error::tag/version mismatch; aborting before publishing a release"
+            exit 1
+          fi
+
+      - name: Extract this version's RELEASE-NOTES section
+        run: |
+          set -euo pipefail
+          VERSION="${GITHUB_REF_NAME#v}"
+          awk -v ver="## ${VERSION}" '
+            ($0 == ver) || index($0, ver " ") == 1 { flag=1; print; next }
+            /^## [0-9]+\.[0-9]+\.[0-9]+/ && flag { flag=0 }
+            flag { print }
+          ' RELEASE-NOTES.md > RELEASE_BODY.md
+          if [ ! -s RELEASE_BODY.md ]; then
+            echo "No RELEASE-NOTES.md section for ${VERSION}; using the full file."
+            cp RELEASE-NOTES.md RELEASE_BODY.md
+          fi
+
+      - name: Create GitHub release
+        uses: softprops/action-gh-release@v3
+        with:
+          body_path: RELEASE_BODY.md
+          draft: false
+          prerelease: false

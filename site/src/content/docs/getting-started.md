@@ -5,6 +5,20 @@ description: Grade an existing plugin, or scaffold a new one, with the toolkit.
 
 The toolkit is a Claude Code and Codex plugin. Its validation spine is plain Node (the only runtime dependency is a YAML parser), so the gate runs anywhere Node 22.12+ does.
 
+## Install
+
+The toolkit installs from the `product-on-purpose` marketplace:
+
+```bash
+# Add the marketplace once (by repo path)
+/plugin marketplace add product-on-purpose/agent-plugins
+
+# Install the toolkit (by marketplace identity)
+/plugin install agent-skills-toolkit@product-on-purpose
+```
+
+You add the marketplace by its repo path and install the plugin by the marketplace identity (`@product-on-purpose`): the path is the address, the identity is the brand. The same package is a Codex plugin, so Codex discovers the skills from its `.codex-plugin/plugin.json`.
+
 ## Grade what you have
 
 From a plugin repo, run the conformance gate:

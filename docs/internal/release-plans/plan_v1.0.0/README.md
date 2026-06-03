@@ -11,6 +11,8 @@ This bundle is a historical snapshot. For current truth, read the committed cano
 
 Within this snapshot, `agent-skills-toolkit-DESIGN.md` and `STANDARD.draft.md` are SUPERSEDED drafts; everything else is supporting, secondary, or archival provenance.
 
+> **The v1.0.0 release cut itself** (marketplace launch: README reposition, install, standardized release CI, Standard 0.9, version bump) is planned in [`marketplace-launch/`](./marketplace-launch/) - see its [`RELEASE-PLAN.md`](./marketplace-launch/RELEASE-PLAN.md), [`SPEC.md`](./marketplace-launch/SPEC.md), and [`IMPL-PLAN.md`](./marketplace-launch/IMPL-PLAN.md). That packet supersedes the "tag is pending" framing in this older snapshot.
+
 ## Classification
 
 ### Historical drafts (SUPERSEDED - prefer the committed canon)

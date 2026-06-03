@@ -5,6 +5,9 @@ template: splash
 hero:
   tagline: Turn a folder of skills into a graded, cross-agent, CI-gated plugin library - for Claude Code and Codex.
   actions:
+    - text: Install
+      link: getting-started/#install
+      icon: rocket
     - text: Get started
       link: getting-started/
       icon: right-arrow
@@ -17,6 +20,9 @@ hero:
 import { Card, CardGrid } from '@astrojs/starlight/components';
 
 <CardGrid stagger>
+  <Card title="Install from the marketplace" icon="rocket">
+    Add the marketplace by path, then install by identity: run `/plugin marketplace add product-on-purpose/agent-plugins`, then `/plugin install agent-skills-toolkit@product-on-purpose`.
+  </Card>
   <Card title="A tiered Standard" icon="approve-check">
     The Advanced Skill Library Standard grades a whole plugin Bronze, Silver, or Gold - the highest tier it actually earns, with a burndown to the next. Not per-skill linting: system-level conformance.
   </Card>
