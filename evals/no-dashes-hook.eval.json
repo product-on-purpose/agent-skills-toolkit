@@ -1,0 +1,22 @@
+{
+  "covers": { "hook": "PreToolUse" },
+  "description": "The PreToolUse no-dash guard denies a Write/Edit/NotebookEdit payload that contains an em-dash or en-dash, and allows clean or unreadable payloads.",
+  "cases": [
+    {
+      "given": "a Write tool call whose content contains an em-dash (U+2014)",
+      "expect": "the hook emits a PreToolUse deny decision whose reason names the banned character and the ' - ' substitution"
+    },
+    {
+      "given": "an Edit tool call whose new_string contains an en-dash (U+2013)",
+      "expect": "the hook emits a PreToolUse deny decision"
+    },
+    {
+      "given": "an Edit tool call whose new_string is free of em-dash and en-dash characters",
+      "expect": "the hook produces no deny output and exits 0 (the call proceeds)"
+    },
+    {
+      "given": "a malformed (non-JSON) stdin payload",
+      "expect": "the hook allows the call rather than blocking on a hook bug (exit 0, no deny)"
+    }
+  ]
+}

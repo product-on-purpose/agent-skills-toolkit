@@ -9,6 +9,9 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Added
+- **Demonstrative hook (`hooks/`): the toolkit now ships one real hook, so Gold check `G1` (hook-documentation) grades a real artifact instead of passing vacuously.** A `PreToolUse` guard on `Write|Edit|NotebookEdit` (`hooks/no-dashes.mjs`) denies any payload whose `new_string` / `content` / `new_source` contains an em-dash (U+2014) or en-dash (U+2013), emitting an actionable substitution message (replace with ' - ' or restructure); clean or unreadable payloads are allowed (a hook bug never wedges the session). It enforces the Standard's `U10` no-dash rule at author-time. Documented per sec 3.5 in `hooks/README.md` (event/trigger/matcher/scope/failure) and covered by a `G3` regression eval (`evals/no-dashes-hook.eval.json`, `covers: { "hook": "PreToolUse" }`). The script references the banned characters by character code so it stays `U10`-clean itself. This is **P0** of the ADR 0024 / `plan_v1.1.0` build-out (it sits on `main` unreleased; it reaches installers only at the next release tag). P0 adds no new check, so the spine stays at 25; it makes the existing `G1` non-vacuous. Gate green at Advanced, 211 tests.
+
 ## [1.0.0] - 2026-06-02
 
 The first tagged Gold release: the toolkit becomes installable through the `product-on-purpose` marketplace. It folds in everything since `v0.2.0` - the full v1 builder catalog, the Gold self-conformance gate, and full Astro site conformance (clauses 14.1-14.11) - plus the launch changes below.
