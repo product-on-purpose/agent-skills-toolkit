@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<!--
+  SAMPLE TEMPLATE: Single-skill evaluation report (component granularity).
+  Same design system as evaluation-report--plugin.html, adapted for one skill:
+  the focus is the skill's own conformance + a behavioral triggering pass + a qualitative review.
+  Self-contained: inline CSS + small inline JS (TOC scroll-spy, copy buttons). No tabs, no expanders.
+  Subject is HYPOTHETICAL. See docs/internal/backlog/enhancements.md E1.
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>acme-write-blog-post - Skill Evaluation</title>
+<style>
+  :root {
+    --paper: #fbfbf8; --panel: #ffffff; --ink: #181821; --ink-soft: #4a4a57; --ink-faint: #7b7b88;
+    --line: #e7e6df; --line-strong: #d3d2c8; --brand: #5c7cfa; --brand-deep: #3f57c9;
+    --bronze: #a97142; --bronze-bg: #f6ede1; --silver: #6b7a84; --silver-bg: #edf0f2; --gold: #b8901f; --gold-bg: #fbf3d6;
+    --pass: #1f7a46; --pass-bg: #e7f3ea; --fail: #b0341d; --fail-bg: #fbeae6; --warn: #9a6b00; --warn-bg: #faf0d6;
+    --serif: "Iowan Old Style", "Palatino Linotype", Palatino, "Book Antiqua", Georgia, serif;
+    --sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, sans-serif;
+    --mono: ui-monospace, "SF Mono", "Cascadia Code", Menlo, Consolas, monospace; --rail: 286px;
+  }
+  * { box-sizing: border-box; } html { scroll-behavior: smooth; }
+  body { margin: 0; background: var(--paper); color: var(--ink); font-family: var(--sans); font-size: 16px; line-height: 1.62; -webkit-font-smoothing: antialiased; }
+  a { color: var(--brand-deep); text-underline-offset: 2px; }
+  .layout { display: grid; grid-template-columns: var(--rail) minmax(0, 1fr); }
+  .toc { position: sticky; top: 0; align-self: start; height: 100vh; overflow-y: auto; background: linear-gradient(180deg, #f4f4ee, #efeee6); border-right: 1px solid var(--line-strong); padding: 30px 22px; }
+  .toc .brandmark { display: flex; align-items: center; gap: 10px; margin-bottom: 6px; }
+  .toc .diamond { width: 14px; height: 14px; transform: rotate(45deg); background: var(--brand); border-radius: 2px; box-shadow: 3px 3px 0 rgba(92,124,250,.25); }
+  .toc .kicker { font-family: var(--mono); font-size: 11px; letter-spacing: .14em; text-transform: uppercase; color: var(--ink-faint); }
+  .toc h2 { font-family: var(--serif); font-size: 19px; margin: 2px 0 18px; line-height: 1.2; }
+  .toc nav { font-size: 13.5px; } .toc nav a { display: block; color: var(--ink-soft); text-decoration: none; padding: 5px 10px; border-left: 2px solid transparent; border-radius: 0 4px 4px 0; }
+  .toc nav a:hover { color: var(--ink); background: rgba(92,124,250,.08); }
+  .toc nav a.active { color: var(--brand-deep); border-left-color: var(--brand); background: rgba(92,124,250,.10); font-weight: 600; }
+  .toc .railnote { margin-top: 24px; padding-top: 16px; border-top: 1px solid var(--line-strong); font-size: 11.5px; color: var(--ink-faint); line-height: 1.5; }
+  .content { padding: 0 0 120px; } .wrap { max-width: 820px; margin: 0 auto; padding: 0 40px; }
+  section { padding: 46px 0 8px; border-top: 1px solid var(--line); } section:first-of-type { border-top: 0; }
+  h2.sec { font-family: var(--serif); font-size: 30px; line-height: 1.15; margin: 0 0 6px; letter-spacing: -.01em; }
+  h2.sec .num { font-family: var(--mono); font-size: 14px; color: var(--brand); margin-right: 12px; vertical-align: 5px; }
+  .lead { color: var(--ink-soft); font-size: 17px; margin: 6px 0 24px; } h3 { font-size: 16px; margin: 30px 0 10px; }
+  p { margin: 0 0 14px; } ul, ol { margin: 0 0 16px; padding-left: 22px; } li { margin: 5px 0; }
+  .masthead { background: radial-gradient(120% 140% at 88% -10%, rgba(92,124,250,.16), transparent 60%), #1c1c26; color: #f3f3ef; padding: 52px 0 46px; }
+  .masthead .kicker { font-family: var(--mono); font-size: 11.5px; letter-spacing: .18em; text-transform: uppercase; color: #aeb4f0; margin: 0 0 10px; }
+  .masthead h1 { font-family: var(--serif); font-size: 46px; line-height: 1.05; margin: 0 0 8px; letter-spacing: -.015em; }
+  .masthead .sub { color: #c9c9cf; font-size: 16px; margin: 0 0 30px; }
+  .verdict { display: grid; grid-template-columns: auto 1fr; gap: 26px; align-items: center; }
+  .grade { text-align: center; padding: 18px 26px; border-radius: 12px; background: var(--pass-bg); color: #20232a; }
+  .grade .tier { font-family: var(--serif); font-size: 30px; font-weight: 700; line-height: 1.05; }
+  .grade .tierlabel { font-family: var(--mono); font-size: 10.5px; letter-spacing: .14em; text-transform: uppercase; color: var(--pass); margin-top: 6px; }
+  .climb { font-size: 14.5px; color: #d7d7dd; } .climb b { color: #fff; }
+  .stats { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 26px; }
+  .stat { background: rgba(255,255,255,.07); border: 1px solid rgba(255,255,255,.12); border-radius: 8px; padding: 10px 14px; min-width: 110px; }
+  .stat .k { font-family: var(--mono); font-size: 10.5px; letter-spacing: .1em; text-transform: uppercase; color: #a8a8b6; } .stat .v { font-size: 18px; font-weight: 600; margin-top: 3px; }
+  .badge { display: inline-flex; align-items: center; gap: 6px; font-family: var(--mono); font-size: 11px; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; padding: 3px 9px; border-radius: 999px; border: 1px solid transparent; white-space: nowrap; }
+  .b-pass { color: var(--pass); background: var(--pass-bg); border-color: #bfe0c9; } .b-fail { color: var(--fail); background: var(--fail-bg); border-color: #f0c7bd; }
+  .b-warn { color: var(--warn); background: var(--warn-bg); border-color: #ecd9a0; } .b-na { color: var(--ink-faint); background: #f0efe9; border-color: var(--line-strong); }
+  .dot { width: 7px; height: 7px; border-radius: 50%; } .dot.pass { background: var(--pass); } .dot.fail { background: var(--fail); } .dot.warn { background: var(--warn); } .dot.na { background: var(--ink-faint); }
+  table { width: 100%; border-collapse: collapse; margin: 8px 0 20px; font-size: 14px; }
+  th, td { text-align: left; padding: 9px 12px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  th { font-family: var(--mono); font-size: 11px; letter-spacing: .06em; text-transform: uppercase; color: var(--ink-faint); border-bottom: 1px solid var(--line-strong); } tr:last-child td { border-bottom: 0; }
+  code, .mono { font-family: var(--mono); font-size: 13px; background: #f1f0ea; padding: 1px 5px; border-radius: 4px; }
+  .ledger { border: 1px solid var(--line); border-radius: 10px; overflow: hidden; margin: 0 0 10px; }
+  .row { display: grid; grid-template-columns: 96px 1fr; border-bottom: 1px solid var(--line); } .row:last-child { border-bottom: 0; }
+  .row > .st { padding: 14px; border-right: 1px solid var(--line); display: flex; flex-direction: column; gap: 7px; } .row > .body { padding: 13px 16px; }
+  .row .rid { font-family: var(--mono); font-size: 11px; color: var(--ink-faint); } .row h4 { margin: 0 0 4px; font-size: 15px; }
+  .row .ev { font-size: 13.5px; color: var(--ink-soft); } .row .ev .src { font-family: var(--mono); font-size: 12px; color: var(--brand-deep); }
+  .row.is-warn { background: linear-gradient(90deg, var(--warn-bg), transparent 40%); }
+  .why { margin-top: 8px; font-size: 13.5px; padding: 9px 12px; border-left: 3px solid var(--warn); background: #fff; border-radius: 0 6px 6px 0; } .why b { font-variant: small-caps; letter-spacing: .03em; }
+  .imp { border: 1px solid var(--line-strong); border-radius: 12px; padding: 18px 20px; margin: 0 0 16px; background: var(--panel); }
+  .imp .top { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 8px; } .imp h4 { margin: 0; font-size: 16px; flex: 1 1 auto; }
+  .pill { font-family: var(--mono); font-size: 10.5px; letter-spacing: .04em; text-transform: uppercase; padding: 2px 8px; border-radius: 6px; border: 1px solid var(--line-strong); color: var(--ink-soft); }
+  .pill.p-med { color: var(--warn); border-color: #ecd9a0; background: var(--warn-bg); }
+  .imp .fix { font-size: 14.5px; color: var(--ink-soft); margin: 4px 0 12px; }
+  .prompt { position: relative; background: #1d1d27; color: #e9e9f1; border-radius: 9px; padding: 14px 46px 14px 16px; font-family: var(--mono); font-size: 12.5px; line-height: 1.6; white-space: pre-wrap; }
+  .prompt .lbl { display: block; font-size: 10px; letter-spacing: .12em; text-transform: uppercase; color: #9aa0e6; margin-bottom: 7px; }
+  .copy { position: absolute; top: 10px; right: 10px; background: rgba(255,255,255,.1); color: #e9e9f1; border: 1px solid rgba(255,255,255,.18); border-radius: 6px; font-family: var(--mono); font-size: 11px; padding: 4px 9px; cursor: pointer; } .copy:hover { background: rgba(255,255,255,.2); }
+  .insight { display: grid; grid-template-columns: 30px 1fr; gap: 12px; padding: 14px 16px; border: 1px solid var(--line); border-left: 3px solid var(--brand); border-radius: 0 9px 9px 0; margin: 0 0 12px; background: #fcfcfa; }
+  .insight .ic { font-family: var(--serif); font-size: 22px; color: var(--brand); line-height: 1; }
+  .refs { font-size: 13.5px; } .refs li { margin: 7px 0; } .refs .tag { font-family: var(--mono); font-size: 11px; color: var(--ink-faint); margin-right: 8px; }
+  .meta-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 0 28px; font-size: 14px; }
+  .meta-grid .mk { color: var(--ink-faint); } .meta-grid div { padding: 7px 0; border-bottom: 1px solid var(--line); display: flex; justify-content: space-between; gap: 12px; }
+  .legend { display: flex; flex-wrap: wrap; gap: 10px 18px; margin: 12px 0; font-size: 13px; color: var(--ink-soft); } .legend span { display: inline-flex; align-items: center; gap: 7px; }
+  .toolbar { position: fixed; top: 16px; right: 20px; z-index: 5; }
+  .toolbar button { font-family: var(--mono); font-size: 12px; background: var(--panel); border: 1px solid var(--line-strong); border-radius: 7px; padding: 7px 12px; cursor: pointer; color: var(--ink-soft); box-shadow: 0 1px 3px rgba(0,0,0,.06); }
+  @media (max-width: 900px) { .layout { grid-template-columns: 1fr; } .toc { position: static; height: auto; border-right: 0; border-bottom: 1px solid var(--line-strong); } .toc nav { columns: 2; } .verdict { grid-template-columns: 1fr; } }
+  @media print { .toc, .toolbar, .copy { display: none !important; } .layout { grid-template-columns: 1fr; } .masthead { -webkit-print-color-adjust: exact; print-color-adjust: exact; } body { font-size: 11pt; } section, .imp, .row, .ledger { break-inside: avoid; } }
+</style>
+</head>
+<body>
+<div class="toolbar"><button onclick="window.print()">Print / Save PDF</button></div>
+<div class="layout">
+  <aside class="toc">
+    <div class="brandmark"><span class="diamond"></span><span class="kicker">Skill Evaluation</span></div>
+    <h2>acme-write-blog-post</h2>
+    <nav id="toc">
+      <a href="#summary">Executive summary</a>
+      <a href="#overview">What was evaluated</a>
+      <a href="#method">Methodology &amp; scope</a>
+      <a href="#conformance">Conformance</a>
+      <a href="#behavioral">Behavioral triggering</a>
+      <a href="#review">Qualitative review</a>
+      <a href="#improve">Improvement path</a>
+      <a href="#insights">Insights</a>
+      <a href="#references">Evidence &amp; sources</a>
+      <a href="#meta">Report metadata</a>
+    </nav>
+    <div class="railnote">A skill is a component, not a plugin: there is no Bronze/Silver/Gold grade here, only its conformance to the skill rules, whether it triggers correctly, and how good its output is.</div>
+  </aside>
+
+  <main class="content">
+    <header class="masthead"><div class="wrap">
+      <p class="kicker">Component evaluation &middot; against the Advanced Skill Library Standard v0.10</p>
+      <h1>acme-write-blog-post</h1>
+      <p class="sub">A long-form blog drafting skill &middot; emits for Claude Code and Codex &middot; evaluated 2026-06-03</p>
+      <div class="verdict">
+        <div class="grade"><div class="tier">Conformant</div><div class="tierlabel">strong, 1 warning</div></div>
+        <div class="climb">
+          <p style="margin:0 0 8px"><b>Structurally clean and behaviorally reliable.</b> Conformance passes with one budget warning; the triggering eval fires correctly on 19/20 cases; review rates the output quality high.</p>
+          <div class="stats">
+            <div class="stat"><div class="k">Conformance</div><div class="v">5/6 pass</div></div>
+            <div class="stat"><div class="k">Triggering</div><div class="v">19/20</div></div>
+            <div class="stat"><div class="k">Review</div><div class="v">Strong</div></div>
+            <div class="stat"><div class="k">Warnings</div><div class="v">1</div></div>
+          </div>
+        </div>
+      </div>
+    </div></header>
+
+    <div class="wrap">
+      <section id="summary">
+        <h2 class="sec"><span class="num">01</span>Executive summary</h2>
+        <p class="lead">A well-built skill that does its job and triggers reliably; the one gap is an instruction budget that should be trimmed, not a defect.</p>
+        <p>acme-write-blog-post drafts a long-form post from a brief, outline-first, with an SEO pass. It is structurally conformant to the agentskills.io skill rules and the Standard's skill clauses, with a single advisory warning: the body runs to about 240 instructions, over the ~200 guidance, which risks later steps being dropped. Behaviorally it is solid: across a 20-case triggering set it fired correctly 19 times, with one near-miss (an ambiguous "help me write" prompt). The qualitative review rates output quality strong: clear structure, good voice control, honest SEO suggestions.</p>
+        <p><b>Recommended next move:</b> move the SEO checklist into a <code>references/</code> file loaded on demand (closing the budget warning), and add one trigger keyword to catch the ambiguous-prompt near-miss. Both are quick and raise reliability without changing what the skill does.</p>
+      </section>
+
+      <section id="overview">
+        <h2 class="sec"><span class="num">02</span>What was evaluated</h2>
+        <p>A single <b>skill</b> (one <code>SKILL.md</code> plus its supporting files), the atomic unit of reuse. It can run standalone on any agentskills.io agent.</p>
+        <ul>
+          <li><b>Frontmatter:</b> name <code>acme-write-blog-post</code> (equals its directory); a description scoring 0.81; <code>metadata</code> nested per the spec.</li>
+          <li><b>Body:</b> an outline-first workflow with an SEO checklist (~240 instructions).</li>
+          <li><b>Supporting files:</b> <code>references/seo-checklist.md</code> (loaded on demand), no <code>scripts/</code> or <code>assets/</code>.</li>
+          <li><b>Targets:</b> portable; emits for both <code>claude</code> and <code>codex</code>.</li>
+        </ul>
+      </section>
+
+      <section id="method">
+        <h2 class="sec"><span class="num">03</span>Methodology &amp; scope</h2>
+        <p>Three layers, separated so the verdict stays honest:</p>
+        <ul>
+          <li><b>Conformance (deterministic).</b> The skill-applicable checks ran with real exit codes: name discipline, frontmatter, description bar, instruction budget, reference links, no-dashes.</li>
+          <li><b>Behavioral (advisory).</b> The skill was run against its 20-case triggering eval set (fire when it should, stay silent when it should not).</li>
+          <li><b>Review (advisory).</b> A qualitative read of scoping, voice, and output quality on three sample briefs.</li>
+        </ul>
+        <div class="legend"><span><span class="dot pass"></span> pass</span><span><span class="dot warn"></span> warning (never gates)</span><span><span class="dot na"></span> not applicable</span></div>
+      </section>
+
+      <section id="conformance">
+        <h2 class="sec"><span class="num">04</span>Conformance</h2>
+        <p class="lead">The skill rules, each with the evidence found. Deterministic and reproducible.</p>
+        <div class="ledger">
+          <div class="row"><div class="st"><span class="rid">U2-U4</span><span class="badge b-pass">Pass</span></div><div class="body"><h4>Anatomy, frontmatter, name-equals-directory</h4><p class="ev">Valid agentskills.io anatomy; frontmatter parses; <code>name</code> matches the directory. <span class="src">anatomy, frontmatter-valid, name-matches-dir</span></p></div></div>
+          <div class="row"><div class="st"><span class="rid">U5</span><span class="badge b-pass">Pass</span></div><div class="body"><h4>Description quality bar</h4><p class="ev">Scores 0.81 (at or above 0.70): a concrete action plus a use-when trigger. <span class="src">description-score</span></p></div></div>
+          <div class="row is-warn"><div class="st"><span class="rid">U7</span><span class="badge b-warn">Warn</span></div><div class="body"><h4>Instruction budget</h4><p class="ev">Body is ~240 instructions, over the ~200 guidance. <span class="src">instruction-budget</span></p><div class="why"><b>why it matters</b> - frontier models reliably follow on the order of 150-200 instructions; beyond that, later steps (here, the SEO pass) are quietly skipped. Move the checklist into <code>references/</code> so it loads only when needed.</div></div></div>
+          <div class="row"><div class="st"><span class="rid">U6,U10</span><span class="badge b-pass">Pass</span></div><div class="body"><h4>Reference links and house style</h4><p class="ev">The <code>references/seo-checklist.md</code> link resolves; no em or en dashes. <span class="src">reference-links, no-dashes</span></p></div></div>
+        </div>
+      </section>
+
+      <section id="behavioral">
+        <h2 class="sec"><span class="num">05</span>Behavioral triggering</h2>
+        <p class="lead">Does the description make the skill fire at the right time? 20 cases, 19 correct. Advisory evidence, never a gate result.</p>
+        <table>
+          <thead><tr><th>Prompt</th><th>Should fire</th><th>Fired</th><th>Verdict</th></tr></thead>
+          <tbody>
+            <tr><td>"Write a 1500-word blog post on remote onboarding"</td><td>yes</td><td>yes</td><td><span class="badge b-pass">Correct</span></td></tr>
+            <tr><td>"Draft an article about our Q3 launch"</td><td>yes</td><td>yes</td><td><span class="badge b-pass">Correct</span></td></tr>
+            <tr><td>"Summarize this PDF"</td><td>no</td><td>no</td><td><span class="badge b-pass">Correct</span></td></tr>
+            <tr><td>"Help me write something"</td><td>yes</td><td>no</td><td><span class="badge b-warn">Near miss</span></td></tr>
+            <tr><td colspan="4" style="color:var(--ink-faint);font-size:13px">... 16 further cases, all correct. Fire rate 19/20 (95%); the single near-miss is an ambiguous prompt with no topic.</td></tr>
+          </tbody>
+        </table>
+        <div class="why"><b>finding</b> - the near-miss is a borderline prompt ("help me write something") with no subject; the skill correctly hesitates rather than firing on noise. Adding a soft trigger keyword would catch it without raising false fires.</div>
+      </section>
+
+      <section id="review">
+        <h2 class="sec"><span class="num">06</span>Qualitative review</h2>
+        <p>Across three sample briefs, the reviewer rated:</p>
+        <ul>
+          <li><b>Structure - strong.</b> Outline-first keeps long posts coherent; sections map to the brief.</li>
+          <li><b>Voice - strong.</b> Holds a consistent register; adapts formality to the brief.</li>
+          <li><b>SEO honesty - good.</b> Suggests keywords without stuffing; flags thin sections. (When the budget warning bites, this pass is the first thing dropped - see <code>U7</code>.)</li>
+        </ul>
+      </section>
+
+      <section id="improve">
+        <h2 class="sec"><span class="num">07</span>Improvement path</h2>
+        <div class="imp">
+          <div class="top"><h4><code>U7</code> - Trim the instruction budget</h4><span class="pill p-med">Warning</span><span class="pill">~10 min</span></div>
+          <p class="fix">Move the SEO checklist out of the body into a reference loaded on demand, so the core flow stays under budget.</p>
+          <div class="prompt"><button class="copy" onclick="cp(this)">Copy</button><span class="lbl">Paste to your agent</span>Use askit-build-skill (improve mode) on skills/acme-write-blog-post: extract the SEO checklist from SKILL.md into references/seo-checklist.md and reference it with a progressive-disclosure pointer, bringing the body under ~200 instructions. Then run node scripts/check.mjs and confirm U7 no longer warns.</div>
+        </div>
+        <div class="imp">
+          <div class="top"><h4>Behavioral - catch the ambiguous prompt</h4><span class="pill p-med">Reliability</span><span class="pill">~5 min</span></div>
+          <p class="fix">Add a soft trigger so "help me write [a post/article]" fires, without raising false positives.</p>
+          <div class="prompt"><button class="copy" onclick="cp(this)">Copy</button><span class="lbl">Paste to your agent</span>Use askit-build-samples to add one triggering case for the near-miss prompt, then use askit-build-skill (improve mode) to add a trigger keyword for "write a post/article" to the description. Re-run the eval set and confirm the fire rate is 20/20 with no new false fires.</div>
+        </div>
+      </section>
+
+      <section id="insights">
+        <h2 class="sec"><span class="num">08</span>Insights</h2>
+        <div class="insight"><div class="ic">&#9670;</div><div><b>Budget and behavior are linked.</b> The same over-budget body that warns on <code>U7</code> is why the SEO pass occasionally drops in review. Fixing the budget fixes both - one change, two wins.</div></div>
+        <div class="insight"><div class="ic">&#9670;</div><div><b>It hesitates correctly.</b> The single near-miss is the skill refusing to fire on a contentless prompt, which is the right default. The fix is a gentle nudge, not a looser trigger.</div></div>
+      </section>
+
+      <section id="references">
+        <h2 class="sec"><span class="num">09</span>Evidence &amp; sources</h2>
+        <ul class="refs">
+          <li><span class="tag">U7</span> <code>scripts/checks/instruction-budget.mjs</code> &middot; Standard sec 1.2 &middot; <code>skills/acme-write-blog-post/SKILL.md</code> (~240 instructions).</li>
+          <li><span class="tag">U5</span> <code>scripts/checks/description-score.mjs</code> &middot; Standard sec 8.1 &middot; score 0.81.</li>
+          <li><span class="tag">behavior</span> <code>evals/acme-write-blog-post.eval.json</code> &middot; 20 triggering cases, 19 correct.</li>
+          <li><span class="tag">review</span> sampled on 3 briefs (remote onboarding, product launch, comparison post).</li>
+        </ul>
+      </section>
+
+      <section id="meta">
+        <h2 class="sec"><span class="num">10</span>Report metadata</h2>
+        <div class="meta-grid">
+          <div><span class="mk">Subject</span><span>acme-write-blog-post (skill)</span></div>
+          <div><span class="mk">Standard</span><span>v0.10</span></div>
+          <div><span class="mk">Conformance</span><span>5/6 pass, 1 warn</span></div>
+          <div><span class="mk">Triggering</span><span>19/20</span></div>
+          <div><span class="mk">Evaluator</span><span>askit-evaluate (conformance + behavioral + review)</span></div>
+          <div><span class="mk">Generated</span><span>2026-06-03</span></div>
+        </div>
+        <p style="font-size:12.5px;color:var(--ink-faint);margin-top:18px">SAMPLE template. The subject is hypothetical; the structure and severities mirror the askit-evaluate HTML renderer at component granularity. Conformance is deterministic; behavioral and review sit beside it and never decide conformance.</p>
+      </section>
+    </div>
+  </main>
+</div>
+<script>
+  function cp(btn){ var t = btn.parentElement.innerText.replace(/^Copy\s*/, '').replace(/^Paste to your agent\s*/i,'').trim(); navigator.clipboard && navigator.clipboard.writeText(t); var o = btn.textContent; btn.textContent = 'Copied'; setTimeout(function(){ btn.textContent = o; }, 1200); }
+  var links = Array.prototype.slice.call(document.querySelectorAll('#toc a')); var map = {}; links.forEach(function(a){ var id = a.getAttribute('href').slice(1); var el = document.getElementById(id); if (el) map[id] = a; });
+  var obs = new IntersectionObserver(function(entries){ entries.forEach(function(e){ if (e.isIntersecting) { links.forEach(function(a){ a.classList.remove('active'); }); var a = map[e.target.id]; if (a) a.classList.add('active'); } }); }, { rootMargin: '-10% 0px -80% 0px', threshold: 0 });
+  Object.keys(map).forEach(function(id){ obs.observe(document.getElementById(id)); });
+</script>
+</body>
+</html>
