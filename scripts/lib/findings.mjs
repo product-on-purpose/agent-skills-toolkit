@@ -1,3 +1,7 @@
+// what-it-is:   the findings library
+// what-it-does: provides finding() and the SEVERITY enum that every check uses to report an error or warning
+// why:          one finding shape keeps the gate aggregation and tier bucketing uniform across all checks
+// used-by:      imported by every check module and by the aggregate gate
 export const SEVERITY = Object.freeze({ ERROR: "error", WARN: "warn" });
 
 /**

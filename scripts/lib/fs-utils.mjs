@@ -1,3 +1,7 @@
+// what-it-is:   the filesystem helpers
+// what-it-does: provides relPath, the component-discovery listers (skills, agents, commands), and other fs helpers
+// why:          centralizes path normalization and component discovery so a folder README is never mistaken for a component
+// used-by:      imported by the checks, generators, and the plugin loader
 import { readFileSync, existsSync, readdirSync, statSync } from "node:fs";
 import path from "node:path";
 

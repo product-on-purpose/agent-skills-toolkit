@@ -1,3 +1,7 @@
+// what-it-is:   the library-json check (U1)
+// what-it-does: asserts library.json exists at the root with the required fields (name, version, description, standard, tier)
+// why:          enforces the Standard requirement U1 deterministically, one module per reqId, so the gate stays model-free
+// used-by:      registered in scripts/lib/registry.mjs; run by scripts/check.mjs and tier-report.mjs
 import { finding, SEVERITY } from "../lib/findings.mjs";
 
 export const meta = { id: "library-json", tier: "universal", reqId: "U1" };

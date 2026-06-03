@@ -1,3 +1,7 @@
+// what-it-is:   the aggregate conformance gate entry point
+// what-it-does: loads the plugin, runs every registered check, prints the tier and findings, and exits with a real status code
+// why:          the deterministic, model-free gate is what lets a plugin prove itself in CI rather than rely on an opinion
+// used-by:      invoked by contributors and by .github/workflows/ci.yml; the self-hosting (G2) target
 import { loadPlugin } from "./lib/load-plugin.mjs";
 import { runAllChecks } from "./lib/registry.mjs";
 import { computeTierReport, humanLine } from "./tier-report.mjs";

@@ -1,3 +1,7 @@
+// what-it-is:   the description-score check (U5)
+// what-it-does: scores each skill description and warns below the quality bar (a concrete action plus a use-when trigger)
+// why:          enforces the Standard requirement U5 deterministically, one module per reqId, so the gate stays model-free
+// used-by:      registered in scripts/lib/registry.mjs; run by scripts/check.mjs and tier-report.mjs
 import { finding, SEVERITY } from "../lib/findings.mjs";
 import { relPath } from "../lib/fs-utils.mjs";
 

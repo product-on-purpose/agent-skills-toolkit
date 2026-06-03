@@ -1,3 +1,7 @@
+// what-it-is:   the docs-frontmatter check (G7)
+// what-it-does: asserts every published docs/** page (excluding docs/internal/) carries the frontmatter taxonomy (title, description with no colon-space, audience, level)
+// why:          enforces the Standard requirement G7 deterministically, one module per reqId, so the gate stays model-free
+// used-by:      registered in scripts/lib/registry.mjs; run by scripts/check.mjs and tier-report.mjs
 import { readFileSync, readdirSync, statSync, existsSync } from "node:fs";
 import path from "node:path";
 import { relPath } from "../lib/fs-utils.mjs";

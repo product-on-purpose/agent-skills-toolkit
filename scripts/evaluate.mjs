@@ -1,3 +1,7 @@
+// what-it-is:   the structured evaluator behind askit-evaluate
+// what-it-does: produces the one report object (terminal, --json) over a plugin's conformance, used by the askit-evaluate skill
+// why:          a single report object keeps the terminal, JSON, and future MD/HTML renderers from diverging
+// used-by:      run by the askit-evaluate skill and askit-build-docs improve mode
 import path from "node:path";
 import { existsSync, statSync } from "node:fs";
 import { loadPlugin, loadSkill } from "./lib/load-plugin.mjs";

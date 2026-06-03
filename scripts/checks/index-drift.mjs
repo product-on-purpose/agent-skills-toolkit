@@ -1,3 +1,7 @@
+// what-it-is:   the index-drift check (G4)
+// what-it-does: G4 (Gold): INDEX.md is generated from library.json + component frontmatter (gen-index) and drift-checked - a hand-edited generated INDEX is an error (Standard sec 2.6 G4)
+// why:          enforces the Standard requirement G4 deterministically, one module per reqId, so the gate stays model-free
+// used-by:      registered in scripts/lib/registry.mjs; run by scripts/check.mjs and tier-report.mjs
 import { finding, SEVERITY } from "../lib/findings.mjs";
 import { renderIndex } from "../generators/gen-index.mjs";
 import { existsSync, readFileSync } from "node:fs";

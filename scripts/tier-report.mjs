@@ -1,3 +1,7 @@
+// what-it-is:   the tier report
+// what-it-does: reports the highest tier a plugin satisfies plus the burndown (blocked requirements) to the next, keyed by reqId
+// why:          the burndown turns the climb into a worklist instead of a guess
+// used-by:      run by contributors, askit-capability-advisor, and the docs that show the tier ladder
 import { loadPlugin } from "./lib/load-plugin.mjs";
 import { runAllChecks } from "./lib/registry.mjs";
 import { TIER_ORDER, tierForReq } from "./lib/tier.mjs";

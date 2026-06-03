@@ -35,5 +35,6 @@ One module per Standard requirement (reqId); each exports meta plus a synchronou
 - `reference-links.mjs` - the reference-links module.
 - `release-notes.mjs` - the release-notes module.
 - `self-hosting.mjs` - the self-hosting module.
+- `source-doc.mjs` - the source-doc (G9) check module.
 - `version-match.mjs` - the version-match module.
 - `workflow-skills.mjs` - the workflow-skills module.

@@ -1,3 +1,7 @@
+// what-it-is:   the per-target-presence check (S6)
+// what-it-does: asserts each convergent component is present in the correct format for every declared target agent
+// why:          enforces the Standard requirement S6 deterministically, one module per reqId, so the gate stays model-free
+// used-by:      registered in scripts/lib/registry.mjs; run by scripts/check.mjs and tier-report.mjs
 import path from "node:path";
 import { finding, SEVERITY } from "../lib/findings.mjs";
 import { fileExists } from "../lib/fs-utils.mjs";

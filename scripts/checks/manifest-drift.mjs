@@ -1,3 +1,7 @@
+// what-it-is:   the manifest-drift check (U8)
+// what-it-does: asserts the committed native per-agent manifests match what gen-manifest produces from library.json
+// why:          enforces the Standard requirement U8 deterministically, one module per reqId, so the gate stays model-free
+// used-by:      registered in scripts/lib/registry.mjs; run by scripts/check.mjs and tier-report.mjs
 import { finding, SEVERITY } from "../lib/findings.mjs";
 
 export const meta = { id: "manifest-drift", tier: "universal", reqId: "U8" };

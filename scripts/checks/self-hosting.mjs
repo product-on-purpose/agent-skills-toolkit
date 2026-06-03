@@ -1,3 +1,7 @@
+// what-it-is:   the self-hosting check (G2)
+// what-it-does: asserts a workflow under .github/workflows/ runs the conformance gate, so the plugin passes its own validators in CI
+// why:          enforces the Standard requirement G2 deterministically, one module per reqId, so the gate stays model-free
+// used-by:      registered in scripts/lib/registry.mjs; run by scripts/check.mjs and tier-report.mjs
 import { finding, SEVERITY } from "../lib/findings.mjs";
 import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import path from "node:path";

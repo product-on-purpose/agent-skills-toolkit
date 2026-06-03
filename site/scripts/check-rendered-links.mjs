@@ -1,3 +1,7 @@
+// what-it-is:   the clause-14.11(a) rendered-link guard
+// what-it-does: asserts the built site has zero browser-broken internal links, resolving each href against its served URL
+// why:          a filesystem-correct relative link can still 404 in the browser (the trailing-slash class); this catches it
+// used-by:      run by .github/workflows/ci.yml on the built dist and locally after npm run build
 // check-rendered-links.mjs - assert the built site has zero browser-broken internal links.
 //
 // Clause 14.11(a) of the family Astro site standard: the rendered-link check with anchor

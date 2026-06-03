@@ -1,3 +1,7 @@
+// what-it-is:   the release-notes check (G5)
+// what-it-does: G5 (Gold): the plugin maintains a curated, user-facing RELEASE-NOTES.md at the root, distinct from the full technical CHANGELOG.md (Standard sec 2.6 G5, sec 10.6)
+// why:          enforces the Standard requirement G5 deterministically, one module per reqId, so the gate stays model-free
+// used-by:      registered in scripts/lib/registry.mjs; run by scripts/check.mjs and tier-report.mjs
 import { finding, SEVERITY } from "../lib/findings.mjs";
 import { existsSync, readFileSync, statSync } from "node:fs";
 import path from "node:path";

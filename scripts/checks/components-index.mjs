@@ -1,3 +1,7 @@
+// what-it-is:   the components-index check (S3)
+// what-it-does: asserts each library.json components entry (path, version, status) matches the component on disk
+// why:          enforces the Standard requirement S3 deterministically, one module per reqId, so the gate stays model-free
+// used-by:      registered in scripts/lib/registry.mjs; run by scripts/check.mjs and tier-report.mjs
 import { finding, SEVERITY } from "../lib/findings.mjs";
 
 export const meta = { id: "components-index", tier: "convergent", reqId: "S3" };

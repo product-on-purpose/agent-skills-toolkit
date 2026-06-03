@@ -1,3 +1,7 @@
+// what-it-is:   the library-regression check (G3)
+// what-it-does: asserts each chain edge and hook event carries at least one eval/regression case under evals/ (the deterministic regression signal)
+// why:          enforces the Standard requirement G3 deterministically, one module per reqId, so the gate stays model-free
+// used-by:      registered in scripts/lib/registry.mjs; run by scripts/check.mjs and tier-report.mjs
 import { finding, SEVERITY } from "../lib/findings.mjs";
 import { existsSync, readFileSync, readdirSync, statSync } from "node:fs";
 import path from "node:path";

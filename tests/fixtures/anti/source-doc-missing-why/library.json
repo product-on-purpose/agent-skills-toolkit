@@ -1,0 +1,7 @@
+{
+  "name": "source-doc-missing-why",
+  "version": "0.1.0",
+  "description": "A source-doc G9 fixture plugin whose scripts carry (or omit) the four-field docblock.",
+  "standard": "0.10",
+  "tier": "advanced"
+}

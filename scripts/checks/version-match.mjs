@@ -1,3 +1,7 @@
+// what-it-is:   the version-match check (U9)
+// what-it-does: library.json is the version source of truth (Standard sec 5)
+// why:          enforces the Standard requirement U9 deterministically, one module per reqId, so the gate stays model-free
+// used-by:      registered in scripts/lib/registry.mjs; run by scripts/check.mjs and tier-report.mjs
 import path from "node:path";
 import { readJsonSafe } from "../lib/fs-utils.mjs";
 import { finding, SEVERITY } from "../lib/findings.mjs";

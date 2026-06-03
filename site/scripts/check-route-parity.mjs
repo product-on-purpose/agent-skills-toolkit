@@ -1,4 +1,8 @@
 #!/usr/bin/env node
+// what-it-is:   the clause-14.11(b) route-parity guard
+// what-it-does: compares the built route set against the committed route-manifest.txt baseline and fails if a route was removed
+// why:          a removed or renamed URL is a Site-not-found for any existing external link or bookmark
+// used-by:      run by .github/workflows/ci.yml on the built dist; regenerate the baseline with --update
 // check-route-parity.mjs - guard against silently removing a published route.
 //
 // Clause 14.11(b) of the family Astro site standard. Compares the current built route set (every

@@ -1,3 +1,7 @@
+// what-it-is:   the check registry
+// what-it-does: imports every check module and exposes the ordered CHECKS array plus runAllChecks(ctx)
+// why:          one ordered registry is the single place a check is turned on, keeping the spine explicit and tier-grouped
+// used-by:      imported by scripts/check.mjs, tier-report.mjs, and the registry-sync test
 import * as libraryJson from "../checks/library-json.mjs";
 import * as anatomy from "../checks/anatomy.mjs";
 import * as frontmatterValid from "../checks/frontmatter-valid.mjs";
@@ -26,6 +30,7 @@ import * as releaseNotes from "../checks/release-notes.mjs";
 import * as indexDrift from "../checks/index-drift.mjs";
 import * as docsFrontmatter from "../checks/docs-frontmatter.mjs";
 import * as folderReadme from "../checks/folder-readme.mjs";
+import * as sourceDoc from "../checks/source-doc.mjs";
 
 /** Ordered checks. Each exports { meta:{id,tier,reqId}, check(ctx)->Finding[] }. */
 export const CHECKS = [
@@ -35,7 +40,7 @@ export const CHECKS = [
   perTargetPresence,
   versionMatch, noDashes, mermaidValid, mcpValid,
   libraryRegression, deprecation,
-  hookDocumentation, selfHosting, releaseNotes, indexDrift, docsFrontmatter, folderReadme,
+  hookDocumentation, selfHosting, releaseNotes, indexDrift, docsFrontmatter, folderReadme, sourceDoc,
 ];
 
 export function runAllChecks(ctx) {

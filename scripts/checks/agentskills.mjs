@@ -1,3 +1,7 @@
+// what-it-is:   the agentskills check
+// what-it-does: composes the agentskills.io base checks (anatomy plus frontmatter) over each skill, the Universal portability floor
+// why:          enforces a Standard requirement deterministically so the gate stays model-free
+// used-by:      registered in scripts/lib/registry.mjs; run by scripts/check.mjs and tier-report.mjs
 import { check as frontmatter } from "./frontmatter-valid.mjs";
 import { check as nameDir } from "./name-matches-dir.mjs";
 import { check as description } from "./description-score.mjs";

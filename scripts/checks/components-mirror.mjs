@@ -1,3 +1,7 @@
+// what-it-is:   the components-mirror check (S8)
+// what-it-does: asserts every component on disk is declared in library.json and every declared component exists (the bidirectional mirror, sec 5.1)
+// why:          enforces the Standard requirement S8 deterministically, one module per reqId, so the gate stays model-free
+// used-by:      registered in scripts/lib/registry.mjs; run by scripts/check.mjs and tier-report.mjs
 import { finding, SEVERITY } from "../lib/findings.mjs";
 
 export const meta = { id: "components-mirror", tier: "convergent", reqId: "S8" };
