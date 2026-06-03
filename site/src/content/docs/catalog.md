@@ -22,6 +22,6 @@ A reusable Claude-only delegate roster: `askit-skill-author`, `askit-evaluator` 
 
 ## The validation spine
 
-A zero-dependency Node spine grades a plugin against the Standard: Bronze checks `U1`-`U11`, Silver `S1`-`S8`, and Gold `G3` (eval/regression coverage) and `G6` (deprecation contract). The aggregate gate (`node scripts/check.mjs`) reports the tier and the burndown, runs in CI, and needs no model.
+A portable Node spine (one runtime dependency, a YAML parser) grades a plugin against the Standard: Bronze checks `U1`-`U11`, Silver `S1`-`S8`, and Gold `G1`-`G6` (a 25-check spine). The aggregate gate (`node scripts/check.mjs`) reports the tier and the burndown, runs in CI, and needs no model.
 
 See the full reference and how-to docs in the [GitHub repository](https://github.com/product-on-purpose/agent-skills-toolkit/tree/main/docs).
