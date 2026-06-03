@@ -19,6 +19,6 @@ The first public preview of `agent-skills-toolkit`. The toolkit self-validates a
 - A 21-check deterministic validation spine (Bronze, Silver, and the first Gold checks) that runs in CI with no model in the loop, so the grade is trustworthy.
 - Genuinely cross-agent (Claude Code and Codex), honest about each agent's limits.
 - An eval engine: a deterministic chain/hook regression check plus an opt-in behavioral and review layer beside the gate.
-- A live documentation site.
+- A live documentation site with brand-colored diagrams and a CI link-integrity guard, so no browser-broken link or silently dropped page ever ships.
 
 This is a Gold-grade `0.x` preview; the formal `v1.0.0` Gold release tag is pending.

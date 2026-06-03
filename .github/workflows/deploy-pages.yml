@@ -29,11 +29,11 @@ jobs:
         working-directory: site
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
-      - name: Setup Node
-        uses: actions/setup-node@v4
+        uses: actions/checkout@v5
+      - name: Setup Node from .nvmrc (pin 24; the committed pin is the single CI source of truth)
+        uses: actions/setup-node@v5
         with:
-          node-version: '24'
+          node-version-file: .nvmrc
           cache: npm
           cache-dependency-path: site/package-lock.json
       - name: Install dependencies
