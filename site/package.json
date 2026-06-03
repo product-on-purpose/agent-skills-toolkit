@@ -7,7 +7,8 @@
   "scripts": {
     "dev": "astro dev",
     "build": "astro build",
-    "preview": "astro preview"
+    "preview": "astro preview",
+    "gen": "node scripts/gen-docs-site.mjs"
   },
   "dependencies": {
     "@astrojs/starlight": "~0.39.0",

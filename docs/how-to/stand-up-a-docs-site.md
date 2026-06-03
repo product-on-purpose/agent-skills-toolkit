@@ -11,7 +11,7 @@ Build a plugin's Astro Starlight documentation site with `askit-build-docs` (sit
 
 ## Scaffold
 
-Invoke `askit-build-docs` (site mode). It copies the pinned stack (Astro 6 + Starlight ~0.39 + astro-mermaid ~2.0) per [docs-site-recipe](../../skills/askit-build-docs/references/docs-site-recipe.md): `package.json` deps + build script, `astro.config.mjs` (mermaid before starlight; `site` + `base` for GitHub Pages; the in-place `docs/` content loader; the Starlight 0.39 `items`-wrapped sidebar), `src/content.config.ts`, `src/styles/custom.css`, and `scripts/post-build-strip-md-links.mjs`.
+Invoke `askit-build-docs` (site mode). It copies the pinned stack (Astro 6 + Starlight ~0.39 + astro-mermaid ~2.0) per [docs-site-recipe](../../skills/askit-build-docs/references/docs-site-recipe.md): `package.json` deps, `astro.config.mjs` (mermaid before starlight; `site` + `base` for GitHub Pages; a `generate()` call at config load; the stock `docsLoader()` over `src/content/docs/`; the Starlight 0.39 `items`-wrapped sidebar with one autogenerate section per quadrant), `src/content.config.ts`, `src/styles/custom.css`, and the generated Pattern S setup: `scripts/gen-docs-site.mjs` (emits the public `docs/**` tree, link-rewritten, into the gitignored quadrant dirs) plus `scripts/check-generated-untracked.mjs`.
 
 ## Verify before publishing
 
