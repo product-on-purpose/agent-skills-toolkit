@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<!--
+  SAMPLE TEMPLATE: Migration assessment (demonstrates askit-migrate, not askit-evaluate).
+  Same design system as evaluation-report--plugin.html / --skill.html, repurposed for migration:
+  the subject is a loose folder of components that is NOT yet a plugin. The report answers
+  "what would it take to become a graded library?" - so the "improvement path" becomes a
+  STAGED Bronze -> Silver -> Gold migration plan, and the evidence ledger becomes a gap-by-tier ledger.
+  Self-contained: inline CSS + small inline JS (TOC scroll-spy, copy buttons). No tabs, no expanders.
+  Subject is HYPOTHETICAL. See docs/internal/backlog/enhancements.md E1.
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>acme-content-kit - Migration Assessment</title>
+<style>
+  :root {
+    --paper: #fbfbf8; --panel: #ffffff; --ink: #181821; --ink-soft: #4a4a57; --ink-faint: #7b7b88;
+    --line: #e7e6df; --line-strong: #d3d2c8; --brand: #5c7cfa; --brand-deep: #3f57c9;
+    --bronze: #a97142; --bronze-bg: #f6ede1; --silver: #6b7a84; --silver-bg: #edf0f2; --gold: #b8901f; --gold-bg: #fbf3d6;
+    --pass: #1f7a46; --pass-bg: #e7f3ea; --fail: #b0341d; --fail-bg: #fbeae6; --warn: #9a6b00; --warn-bg: #faf0d6;
+    --serif: "Iowan Old Style", "Palatino Linotype", Palatino, "Book Antiqua", Georgia, serif;
+    --sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, sans-serif;
+    --mono: ui-monospace, "SF Mono", "Cascadia Code", Menlo, Consolas, monospace; --rail: 286px;
+  }
+  * { box-sizing: border-box; } html { scroll-behavior: smooth; }
+  body { margin: 0; background: var(--paper); color: var(--ink); font-family: var(--sans); font-size: 16px; line-height: 1.62; -webkit-font-smoothing: antialiased; }
+  a { color: var(--brand-deep); text-underline-offset: 2px; }
+  .layout { display: grid; grid-template-columns: var(--rail) minmax(0, 1fr); }
+  .toc { position: sticky; top: 0; align-self: start; height: 100vh; overflow-y: auto; background: linear-gradient(180deg, #f4f4ee, #efeee6); border-right: 1px solid var(--line-strong); padding: 30px 22px; }
+  .toc .brandmark { display: flex; align-items: center; gap: 10px; margin-bottom: 6px; }
+  .toc .diamond { width: 14px; height: 14px; transform: rotate(45deg); background: var(--brand); border-radius: 2px; box-shadow: 3px 3px 0 rgba(92,124,250,.25); }
+  .toc .kicker { font-family: var(--mono); font-size: 11px; letter-spacing: .14em; text-transform: uppercase; color: var(--ink-faint); }
+  .toc h2 { font-family: var(--serif); font-size: 19px; margin: 2px 0 18px; line-height: 1.2; }
+  .toc nav { font-size: 13.5px; } .toc nav a { display: block; color: var(--ink-soft); text-decoration: none; padding: 5px 10px; border-left: 2px solid transparent; border-radius: 0 4px 4px 0; }
+  .toc nav a:hover { color: var(--ink); background: rgba(92,124,250,.08); }
+  .toc nav a.active { color: var(--brand-deep); border-left-color: var(--brand); background: rgba(92,124,250,.10); font-weight: 600; }
+  .toc .railnote { margin-top: 24px; padding-top: 16px; border-top: 1px solid var(--line-strong); font-size: 11.5px; color: var(--ink-faint); line-height: 1.5; }
+  .content { padding: 0 0 120px; } .wrap { max-width: 820px; margin: 0 auto; padding: 0 40px; }
+  section { padding: 46px 0 8px; border-top: 1px solid var(--line); } section:first-of-type { border-top: 0; }
+  h2.sec { font-family: var(--serif); font-size: 30px; line-height: 1.15; margin: 0 0 6px; letter-spacing: -.01em; }
+  h2.sec .num { font-family: var(--mono); font-size: 14px; color: var(--brand); margin-right: 12px; vertical-align: 5px; }
+  .lead { color: var(--ink-soft); font-size: 17px; margin: 6px 0 24px; } h3 { font-size: 16px; margin: 30px 0 10px; }
+  p { margin: 0 0 14px; } ul, ol { margin: 0 0 16px; padding-left: 22px; } li { margin: 5px 0; }
+  .masthead { background: radial-gradient(120% 140% at 88% -10%, rgba(92,124,250,.16), transparent 60%), #1c1c26; color: #f3f3ef; padding: 52px 0 46px; }
+  .masthead .kicker { font-family: var(--mono); font-size: 11.5px; letter-spacing: .18em; text-transform: uppercase; color: #aeb4f0; margin: 0 0 10px; }
+  .masthead h1 { font-family: var(--serif); font-size: 46px; line-height: 1.05; margin: 0 0 8px; letter-spacing: -.015em; }
+  .masthead .sub { color: #c9c9cf; font-size: 16px; margin: 0 0 30px; }
+  .verdict { display: grid; grid-template-columns: auto 1fr; gap: 26px; align-items: center; }
+  .grade { text-align: center; padding: 18px 26px; border-radius: 12px; background: var(--silver-bg); color: #20232a; }
+  .grade .tier { font-family: var(--serif); font-size: 26px; font-weight: 700; line-height: 1.1; }
+  .grade .tierlabel { font-family: var(--mono); font-size: 10.5px; letter-spacing: .14em; text-transform: uppercase; color: var(--silver); margin-top: 6px; }
+  .climb { font-size: 14.5px; color: #d7d7dd; } .climb b { color: #fff; }
+  .stats { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 26px; }
+  .stat { background: rgba(255,255,255,.07); border: 1px solid rgba(255,255,255,.12); border-radius: 8px; padding: 10px 14px; min-width: 110px; }
+  .stat .k { font-family: var(--mono); font-size: 10.5px; letter-spacing: .1em; text-transform: uppercase; color: #a8a8b6; } .stat .v { font-size: 18px; font-weight: 600; margin-top: 3px; }
+  .badge { display: inline-flex; align-items: center; gap: 6px; font-family: var(--mono); font-size: 11px; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; padding: 3px 9px; border-radius: 999px; border: 1px solid transparent; white-space: nowrap; }
+  .b-pass { color: var(--pass); background: var(--pass-bg); border-color: #bfe0c9; } .b-fail { color: var(--fail); background: var(--fail-bg); border-color: #f0c7bd; }
+  .b-warn { color: var(--warn); background: var(--warn-bg); border-color: #ecd9a0; } .b-na { color: var(--ink-faint); background: #f0efe9; border-color: var(--line-strong); }
+  .b-bronze { color: var(--bronze); background: var(--bronze-bg); border-color: #e3cdb0; } .b-silver { color: var(--silver); background: var(--silver-bg); border-color: #cdd5da; } .b-gold { color: var(--gold); background: var(--gold-bg); border-color: #ecd99a; }
+  .dot { width: 7px; height: 7px; border-radius: 50%; } .dot.pass { background: var(--pass); } .dot.fail { background: var(--fail); } .dot.warn { background: var(--warn); } .dot.na { background: var(--ink-faint); }
+  table { width: 100%; border-collapse: collapse; margin: 8px 0 20px; font-size: 14px; }
+  th, td { text-align: left; padding: 9px 12px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  th { font-family: var(--mono); font-size: 11px; letter-spacing: .06em; text-transform: uppercase; color: var(--ink-faint); border-bottom: 1px solid var(--line-strong); } tr:last-child td { border-bottom: 0; }
+  code, .mono { font-family: var(--mono); font-size: 13px; background: #f1f0ea; padding: 1px 5px; border-radius: 4px; }
+  .ledger { border: 1px solid var(--line); border-radius: 10px; overflow: hidden; margin: 0 0 10px; }
+  .ledger > .lhead { display: flex; align-items: center; gap: 12px; padding: 12px 16px; border-bottom: 1px solid var(--line-strong); }
+  .ledger > .lhead .tname { font-family: var(--serif); font-size: 18px; } .ledger > .lhead .tmeta { font-size: 13px; color: var(--ink-faint); margin-left: auto; }
+  .row { display: grid; grid-template-columns: 116px 1fr; border-bottom: 1px solid var(--line); } .row:last-child { border-bottom: 0; }
+  .row > .st { padding: 14px; border-right: 1px solid var(--line); display: flex; flex-direction: column; gap: 7px; } .row > .body { padding: 13px 16px; }
+  .row .rid { font-family: var(--mono); font-size: 11px; color: var(--ink-faint); } .row h4 { margin: 0 0 4px; font-size: 15px; }
+  .row .ev { font-size: 13.5px; color: var(--ink-soft); } .row .ev .src { font-family: var(--mono); font-size: 12px; color: var(--brand-deep); }
+  .row.is-gap { background: linear-gradient(90deg, var(--fail-bg), transparent 42%); }
+  .why { margin-top: 8px; font-size: 13.5px; padding: 9px 12px; border-left: 3px solid var(--fail); background: #fff; border-radius: 0 6px 6px 0; } .why b { font-variant: small-caps; letter-spacing: .03em; }
+  .why.ok { border-left-color: var(--pass); }
+  .stage { border: 1px solid var(--line-strong); border-radius: 14px; margin: 0 0 22px; overflow: hidden; background: var(--panel); }
+  .stage > .shead { display: grid; grid-template-columns: auto 1fr auto; gap: 14px; align-items: center; padding: 16px 20px; border-bottom: 1px solid var(--line); }
+  .stage > .shead.to-bronze { background: linear-gradient(90deg, var(--bronze-bg), transparent 70%); }
+  .stage > .shead.to-silver { background: linear-gradient(90deg, var(--silver-bg), transparent 70%); }
+  .stage > .shead.to-gold { background: linear-gradient(90deg, var(--gold-bg), transparent 70%); }
+  .stage .snum { width: 34px; height: 34px; border-radius: 50%; display: grid; place-items: center; font-family: var(--serif); font-size: 17px; font-weight: 700; background: #20202b; color: #fff; }
+  .stage .stitle { font-family: var(--serif); font-size: 20px; line-height: 1.15; } .stage .stitle small { display: block; font-family: var(--sans); font-size: 12.5px; color: var(--ink-faint); margin-top: 2px; letter-spacing: 0; text-transform: none; }
+  .stage .sbody { padding: 16px 20px; } .stage .sbody ul { margin: 2px 0 14px; }
+  .imp { border: 1px solid var(--line-strong); border-radius: 12px; padding: 18px 20px; margin: 0 0 16px; background: var(--panel); }
+  .imp .top { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 8px; } .imp h4 { margin: 0; font-size: 16px; flex: 1 1 auto; }
+  .pill { font-family: var(--mono); font-size: 10.5px; letter-spacing: .04em; text-transform: uppercase; padding: 2px 8px; border-radius: 6px; border: 1px solid var(--line-strong); color: var(--ink-soft); }
+  .pill.p-med { color: var(--warn); border-color: #ecd9a0; background: var(--warn-bg); }
+  .imp .fix { font-size: 14.5px; color: var(--ink-soft); margin: 4px 0 12px; }
+  .prompt { position: relative; background: #1d1d27; color: #e9e9f1; border-radius: 9px; padding: 14px 46px 14px 16px; font-family: var(--mono); font-size: 12.5px; line-height: 1.6; white-space: pre-wrap; }
+  .prompt .lbl { display: block; font-size: 10px; letter-spacing: .12em; text-transform: uppercase; color: #9aa0e6; margin-bottom: 7px; }
+  .copy { position: absolute; top: 10px; right: 10px; background: rgba(255,255,255,.1); color: #e9e9f1; border: 1px solid rgba(255,255,255,.18); border-radius: 6px; font-family: var(--mono); font-size: 11px; padding: 4px 9px; cursor: pointer; } .copy:hover { background: rgba(255,255,255,.2); }
+  .insight { display: grid; grid-template-columns: 30px 1fr; gap: 12px; padding: 14px 16px; border: 1px solid var(--line); border-left: 3px solid var(--brand); border-radius: 0 9px 9px 0; margin: 0 0 12px; background: #fcfcfa; }
+  .insight .ic { font-family: var(--serif); font-size: 22px; color: var(--brand); line-height: 1; }
+  .refs { font-size: 13.5px; } .refs li { margin: 7px 0; } .refs .tag { font-family: var(--mono); font-size: 11px; color: var(--ink-faint); margin-right: 8px; }
+  .meta-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 0 28px; font-size: 14px; }
+  .meta-grid .mk { color: var(--ink-faint); } .meta-grid div { padding: 7px 0; border-bottom: 1px solid var(--line); display: flex; justify-content: space-between; gap: 12px; }
+  .legend { display: flex; flex-wrap: wrap; gap: 10px 18px; margin: 12px 0; font-size: 13px; color: var(--ink-soft); } .legend span { display: inline-flex; align-items: center; gap: 7px; }
+  .toolbar { position: fixed; top: 16px; right: 20px; z-index: 5; }
+  .toolbar button { font-family: var(--mono); font-size: 12px; background: var(--panel); border: 1px solid var(--line-strong); border-radius: 7px; padding: 7px 12px; cursor: pointer; color: var(--ink-soft); box-shadow: 0 1px 3px rgba(0,0,0,.06); }
+  @media (max-width: 900px) { .layout { grid-template-columns: 1fr; } .toc { position: static; height: auto; border-right: 0; border-bottom: 1px solid var(--line-strong); } .toc nav { columns: 2; } .verdict { grid-template-columns: 1fr; } .stage > .shead { grid-template-columns: auto 1fr; } }
+  @media print { .toc, .toolbar, .copy { display: none !important; } .layout { grid-template-columns: 1fr; } .masthead { -webkit-print-color-adjust: exact; print-color-adjust: exact; } body { font-size: 11pt; } section, .imp, .row, .ledger, .stage { break-inside: avoid; } }
+</style>
+</head>
+<body>
+<div class="toolbar"><button onclick="window.print()">Print / Save PDF</button></div>
+<div class="layout">
+  <aside class="toc">
+    <div class="brandmark"><span class="diamond"></span><span class="kicker">Migration Assessment</span></div>
+    <h2>acme-content-kit</h2>
+    <nav id="toc">
+      <a href="#summary">Executive summary</a>
+      <a href="#overview">What was assessed</a>
+      <a href="#method">Methodology &amp; scope</a>
+      <a href="#gaps">Gap by tier</a>
+      <a href="#plan">Staged migration plan</a>
+      <a href="#insights">Insights</a>
+      <a href="#references">Evidence &amp; sources</a>
+      <a href="#meta">Report metadata</a>
+    </nav>
+    <div class="railnote">A migration assessment grades nothing yet. It measures the distance from a loose folder of components to a graded library, and lays out the staged path to get there.</div>
+  </aside>
+
+  <main class="content">
+    <header class="masthead"><div class="wrap">
+      <p class="kicker">Migration assessment &middot; against the Advanced Skill Library Standard v0.10</p>
+      <h1>acme-content-kit</h1>
+      <p class="sub">A folder of content skills &middot; not yet a plugin &middot; assessed 2026-06-03</p>
+      <div class="verdict">
+        <div class="grade"><div class="tier">Loose components</div><div class="tierlabel">not yet a library</div></div>
+        <div class="climb">
+          <p style="margin:0 0 8px"><b>Real, useful skills with no library around them.</b> There is no <code>library.json</code>, no manifests, and no cross-agent emission, so the gate cannot grade it. The components themselves are close to Bronze: most of the distance is packaging, not rewriting.</p>
+          <div class="stats">
+            <div class="stat"><div class="k">Components</div><div class="v">4 skills, 1 cmd</div></div>
+            <div class="stat"><div class="k">library.json</div><div class="v">Absent</div></div>
+            <div class="stat"><div class="k">Bronze ready</div><div class="v">~2 hours</div></div>
+            <div class="stat"><div class="k">Target</div><div class="v">Gold</div></div>
+          </div>
+        </div>
+      </div>
+    </div></header>
+
+    <div class="wrap">
+      <section id="summary">
+        <h2 class="sec"><span class="num">01</span>Executive summary</h2>
+        <p class="lead">The skills work; they just are not packaged as a library. Migration is mostly mechanical, and the first stage gets you a graded Bronze in about an afternoon.</p>
+        <p>acme-content-kit is four content skills and one command sitting in a hand-organized folder for a single agent (Claude Code). They run, but nothing declares them a library: there is no <code>library.json</code> at the root, the components are not normalized to agentskills.io anatomy, names and prefixes are inconsistent, and there is no manifest or cross-agent emission. Because the deterministic gate keys off <code>library.json</code> and the generated manifests, it has nothing to grade - hence "loose components," not a tier.</p>
+        <p>The good news is that the gap is packaging, not quality. The skill bodies are within budget and their descriptions are usable. <b>Recommended path:</b> run <code>askit-migrate</code> to adopt a <code>library.json</code> and normalize anatomy (Stage 1 -> Bronze), then add multi-agent emission and generated manifests (Stage 2 -> Silver), then wire the advanced spine - a documented hook, self-hosting, release automation, and docs frontmatter (Stage 3 -> Gold). Each stage ends at a real, gradeable tier, so you can stop at any landing.</p>
+      </section>
+
+      <section id="overview">
+        <h2 class="sec"><span class="num">02</span>What was assessed</h2>
+        <p>A <b>candidate library</b>: a directory of components that has not yet been declared or structured as a plugin. The assessment inventories what is present and maps it against the tier requirements.</p>
+        <ul>
+          <li><b>Skills (4):</b> <code>blog-post</code>, <code>writeNewsletter</code>, <code>seo_audit</code>, <code>content-calendar</code> - naming is mixed (kebab, camel, snake) and unprefixed.</li>
+          <li><b>Command (1):</b> a <code>/draft</code> command with no documented contract.</li>
+          <li><b>Root:</b> no <code>library.json</code>, no <code>INDEX.md</code>, no <code>scripts/</code>, no generated <code>manifests/</code>.</li>
+          <li><b>Targets:</b> a raw <code>.claude/</code> layout only - nothing emits for Codex or other agentskills.io agents.</li>
+          <li><b>Hygiene:</b> bodies are within the instruction budget; two descriptions are thin; no em or en dashes found.</li>
+        </ul>
+      </section>
+
+      <section id="method">
+        <h2 class="sec"><span class="num">03</span>Methodology &amp; scope</h2>
+        <p>A migration assessment is a <b>gap analysis</b>, not a grade. It runs the same requirement catalog the evaluator uses, but reads each requirement as "present / absent / to add" against the three tiers, then sequences the absent ones into the cheapest order that reaches each landing.</p>
+        <ul>
+          <li><b>Inventory.</b> Enumerate the components and the root layout, infer intended names and roles.</li>
+          <li><b>Gap by tier.</b> For Bronze (Universal), Silver (Convergent), and Gold (Advanced), mark each requirement present or to-add, with the evidence found.</li>
+          <li><b>Sequence.</b> Order the to-add work so every stage ends at a gradeable tier and earlier work is reused, not redone.</li>
+        </ul>
+        <div class="legend"><span><span class="dot pass"></span> present</span><span><span class="dot fail"></span> to add (blocks the tier)</span><span><span class="dot na"></span> not applicable</span></div>
+      </section>
+
+      <section id="gaps">
+        <h2 class="sec"><span class="num">04</span>Gap by tier</h2>
+        <p class="lead">What is already here, and what each tier still needs. "To add" is migration work, not a defect in an existing library.</p>
+
+        <div class="ledger">
+          <div class="lhead"><span class="badge b-bronze">Bronze</span><span class="tname">Universal</span><span class="tmeta">most of the distance is here</span></div>
+          <div class="row"><div class="st"><span class="rid">U1</span><span class="badge b-fail">To add</span></div><div class="body"><h4>library.json at the root</h4><p class="ev">No library manifest exists, so the gate has no subject to grade. <span class="src">library-json</span></p><div class="why"><b>why it blocks</b> - the whole standard keys off <code>library.json</code> (tier, version, agent-targets). Without it there is nothing to grade and no contract for the generators. This is the single most load-bearing step.</div></div></div>
+          <div class="row"><div class="st"><span class="rid">U2,U3</span><span class="badge b-fail">To add</span></div><div class="body"><h4>Anatomy and frontmatter normalization</h4><p class="ev">Components are not yet in agentskills.io anatomy; frontmatter is partial. <span class="src">anatomy, frontmatter-valid</span></p><div class="why"><b>why it blocks</b> - <code>askit-migrate</code> does this mechanically: it moves files into the expected layout and fills required frontmatter, which every later stage depends on.</div></div></div>
+          <div class="row is-gap"><div class="st"><span class="rid">U4,U8</span><span class="badge b-fail">To add</span></div><div class="body"><h4>Name discipline and prefix</h4><p class="ev">Mixed casing (<code>writeNewsletter</code>, <code>seo_audit</code>) and no shared prefix. <span class="src">name-matches-dir, prefix</span></p><div class="why"><b>why it blocks</b> - Bronze requires kebab-case names that equal their directory and a consistent library prefix (e.g. <code>acme-*</code>), so components are unambiguous once emitted alongside others.</div></div></div>
+          <div class="row"><div class="st"><span class="rid">U5</span><span class="badge b-warn">Tighten</span></div><div class="body"><h4>Description quality</h4><p class="ev">Two of four descriptions score below 0.70 (no use-when trigger). <span class="src">description-score</span></p><div class="why ok"><b>note</b> - not a hard blocker if reworded during migration; <code>askit-migrate</code> flags the weak ones so you fix them in the same pass.</div></div></div>
+          <div class="row"><div class="st"><span class="rid">U7,U10</span><span class="badge b-pass">Present</span></div><div class="body"><h4>Budget and house style</h4><p class="ev">Bodies are within the ~200-instruction budget; no em or en dashes. <span class="src">instruction-budget, no-dashes</span></p></div></div>
+        </div>
+
+        <div class="ledger">
+          <div class="lhead"><span class="badge b-silver">Silver</span><span class="tname">Convergent</span><span class="tmeta">multi-agent emission + manifests</span></div>
+          <div class="row is-gap"><div class="st"><span class="rid">S1,S5</span><span class="badge b-fail">To add</span></div><div class="body"><h4>agent-targets and per-target presence</h4><p class="ev">Only a raw <code>.claude/</code> layout exists; nothing emits for a second agent. <span class="src">agent-targets, per-target-presence</span></p><div class="why"><b>why it blocks</b> - Silver is about convergence: the same components emitting cleanly for every declared target. Declare <code>agent-targets</code> in <code>library.json</code> and let the build emit per target.</div></div></div>
+          <div class="row"><div class="st"><span class="rid">S2,S3</span><span class="badge b-fail">To add</span></div><div class="body"><h4>Generated manifests and components index</h4><p class="ev">No <code>manifests/</code> and no <code>INDEX.md</code>; nothing to diff against drift. <span class="src">manifest-drift, components-index</span></p><div class="why"><b>why it blocks</b> - the manifests and index are generated, then checked for drift. They make the library self-describing and let the gate catch hand-edits.</div></div></div>
+          <div class="row"><div class="st"><span class="rid">S6</span><span class="badge b-fail">To add</span></div><div class="body"><h4>Command contract</h4><p class="ev">The <code>/draft</code> command has no documented inputs or behavior. <span class="src">command-contract</span></p><div class="why"><b>why it blocks</b> - convergent commands must declare their contract so they emit predictably across agents.</div></div></div>
+        </div>
+
+        <div class="ledger">
+          <div class="lhead"><span class="badge b-gold">Gold</span><span class="tname">Advanced</span><span class="tmeta">the advanced spine</span></div>
+          <div class="row is-gap"><div class="st"><span class="rid">G2,G3</span><span class="badge b-fail">To add</span></div><div class="body"><h4>Hooks (documented) and self-hosting</h4><p class="ev">No hooks; the kit does not yet build or check itself. <span class="src">hook-documentation, self-hosting</span></p><div class="why"><b>why it blocks</b> - Gold expects an advanced surface (a documented hook) and that the library uses its own toolkit (self-hosting), proving the standard in practice.</div></div></div>
+          <div class="row"><div class="st"><span class="rid">G5</span><span class="badge b-fail">To add</span></div><div class="body"><h4>Release notes / automation</h4><p class="ev">No <code>CHANGELOG.md</code> or release flow. <span class="src">release-notes</span></p><div class="why"><b>why it blocks</b> - Gold libraries ship with versioned release notes so consumers can track changes.</div></div></div>
+          <div class="row"><div class="st"><span class="rid">G7</span><span class="badge b-fail">To add</span></div><div class="body"><h4>Docs with frontmatter taxonomy</h4><p class="ev">No <code>docs/</code> tree with audience/level frontmatter. <span class="src">docs-frontmatter</span></p><div class="why"><b>why it blocks</b> - Gold requires discoverable, typed documentation (audience, level, doc-role) so the docs are navigable and emit-ready.</div></div></div>
+        </div>
+      </section>
+
+      <section id="plan">
+        <h2 class="sec"><span class="num">05</span>Staged migration plan</h2>
+        <p class="lead">Three stages, each ending at a gradeable tier. Earlier work is reused by later stages; you can stop at any landing and still have a real, graded library.</p>
+
+        <div class="stage">
+          <div class="shead to-bronze"><span class="snum">1</span><div class="stitle">Become a Bronze library<small>declare it, normalize it, name it</small></div><span class="badge b-bronze">-> Bronze</span></div>
+          <div class="sbody">
+            <p>The biggest single step: go from a folder to a declared, normalized library. Mostly mechanical, mostly done by the migration skill.</p>
+            <ul>
+              <li>Adopt a root <code>library.json</code> (tier <code>universal</code>, a version, a prefix).</li>
+              <li>Normalize components to agentskills.io anatomy and fill required frontmatter.</li>
+              <li>Rename to kebab-case and apply the <code>acme-*</code> prefix; reword the two thin descriptions.</li>
+            </ul>
+            <div class="imp">
+              <div class="top"><h4>Run the migration</h4><span class="pill">~2 hrs</span><span class="pill p-med">Foundational</span></div>
+              <p class="fix">Let <code>askit-migrate</code> author <code>library.json</code>, restructure anatomy, and fill frontmatter; it flags weak descriptions and naming for you to confirm.</p>
+              <div class="prompt"><button class="copy" onclick="cp(this)">Copy</button><span class="lbl">Paste to your agent</span>Use askit-migrate on this folder: treat it as a candidate library targeting tier "universal" with prefix "acme". Author a root library.json, normalize the 4 skills and 1 command to agentskills.io anatomy, fill required frontmatter, and propose kebab-case names (writeNewsletter -> acme-write-newsletter, seo_audit -> acme-seo-audit). List every weak description so I can reword it. Then run node scripts/check.mjs and report the tier.</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="stage">
+          <div class="shead to-silver"><span class="snum">2</span><div class="stitle">Reach Silver - converge across agents<small>emit for every target, generate manifests</small></div><span class="badge b-silver">-> Silver</span></div>
+          <div class="sbody">
+            <p>Make the same components emit cleanly for more than one agent, and become self-describing.</p>
+            <ul>
+              <li>Declare <code>agent-targets</code> (e.g. <code>claude</code>, <code>codex</code>) in <code>library.json</code>.</li>
+              <li>Generate <code>manifests/</code> and <code>INDEX.md</code>; wire the drift checks.</li>
+              <li>Document the <code>/draft</code> command contract.</li>
+            </ul>
+            <div class="imp">
+              <div class="top"><h4>Add emission and manifests</h4><span class="pill">~3 hrs</span><span class="pill p-med">Convergence</span></div>
+              <p class="fix">Declare the targets, then let the build generate per-target output, manifests, and the index; document the command contract so it emits predictably.</p>
+              <div class="prompt"><button class="copy" onclick="cp(this)">Copy</button><span class="lbl">Paste to your agent</span>Set agent-targets to ["claude","codex"] in library.json and bump tier to "convergent". Use askit-build-command to document the /draft contract (inputs, behavior, outputs). Then regenerate manifests and INDEX (node scripts/gen-manifests.mjs and gen-index.mjs --write), run node scripts/check.mjs, and confirm Silver with no drift.</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="stage">
+          <div class="shead to-gold"><span class="snum">3</span><div class="stitle">Reach Gold - the advanced spine<small>a documented hook, self-hosting, release notes, typed docs</small></div><span class="badge b-gold">-> Gold</span></div>
+          <div class="sbody">
+            <p>Earn the advanced tier by proving the library in practice: it builds and checks itself, ships releases, and carries discoverable docs.</p>
+            <ul>
+              <li>Add one <b>documented</b> hook (e.g. a house-style guard) with its rationale.</li>
+              <li>Wire self-hosting so the kit builds and checks itself in CI.</li>
+              <li>Add <code>CHANGELOG.md</code> + release automation, and a <code>docs/</code> tree with audience/level/doc-role frontmatter (G7).</li>
+            </ul>
+            <div class="imp">
+              <div class="top"><h4>Wire the advanced surface</h4><span class="pill">~1 day</span><span class="pill p-med">Advanced</span></div>
+              <p class="fix">Add and document a hook, turn on self-hosting and release notes, and author a small typed docs tree; each closes one Gold requirement.</p>
+              <div class="prompt"><button class="copy" onclick="cp(this)">Copy</button><span class="lbl">Paste to your agent</span>Bump tier to "advanced". Add a documented PreToolUse hook (house-style guard) and record its rationale per hook-documentation. Wire self-hosting (the kit runs node scripts/check.mjs on itself in CI). Add CHANGELOG.md with release notes, and author docs/ pages with title/description/audience/level/doc-role frontmatter (G7). Run node scripts/check.mjs and confirm Gold.</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section id="insights">
+        <h2 class="sec"><span class="num">06</span>Insights</h2>
+        <div class="insight"><div class="ic">&#9670;</div><div><b>The distance is packaging, not rewriting.</b> The skills already pass the content checks (budget, house style); what is missing is the library scaffolding around them. That makes Bronze cheap and the whole climb low-risk - you are not reworking behavior.</div></div>
+        <div class="insight"><div class="ic">&#9670;</div><div><b>library.json is the keystone.</b> Until it exists the gate cannot grade anything, so every other gap is downstream of Stage 1. Do that first and the report flips from "loose components" to a real tier in one move.</div></div>
+        <div class="insight"><div class="ic">&#9670;</div><div><b>Every stage is a landing.</b> Bronze, Silver, and Gold are each shippable. If you only need cross-agent emission, stop at Silver; the advanced spine is optional until you want the Gold guarantees.</div></div>
+      </section>
+
+      <section id="references">
+        <h2 class="sec"><span class="num">07</span>Evidence &amp; sources</h2>
+        <ul class="refs">
+          <li><span class="tag">U1</span> <code>scripts/checks/library-json.mjs</code> &middot; Standard sec 2 &middot; no <code>library.json</code> at root.</li>
+          <li><span class="tag">U4</span> <code>scripts/checks/name-matches-dir.mjs</code> &middot; Standard sec 8.1 &middot; <code>writeNewsletter</code>, <code>seo_audit</code>.</li>
+          <li><span class="tag">S1</span> <code>scripts/checks/agent-targets.mjs</code> &middot; Standard sec 4 &middot; only <code>.claude/</code> present.</li>
+          <li><span class="tag">G7</span> <code>scripts/checks/docs-frontmatter.mjs</code> &middot; Standard sec 2.6 &middot; no <code>docs/</code> tree.</li>
+          <li><span class="tag">skill</span> <code>askit-migrate</code> &middot; performs Stage 1 mechanically; sequencing follows the Standard's tier order.</li>
+        </ul>
+      </section>
+
+      <section id="meta">
+        <h2 class="sec"><span class="num">08</span>Report metadata</h2>
+        <div class="meta-grid">
+          <div><span class="mk">Subject</span><span>acme-content-kit (candidate library)</span></div>
+          <div><span class="mk">Standard</span><span>v0.10</span></div>
+          <div><span class="mk">Current state</span><span>Loose components (ungraded)</span></div>
+          <div><span class="mk">Target tier</span><span>Gold (advanced)</span></div>
+          <div><span class="mk">Assessor</span><span>askit-migrate (gap analysis)</span></div>
+          <div><span class="mk">Generated</span><span>2026-06-03</span></div>
+        </div>
+        <p style="font-size:12.5px;color:var(--ink-faint);margin-top:18px">SAMPLE template. The subject is hypothetical; the structure mirrors the askit-migrate HTML renderer. A migration assessment grades nothing - it measures the gap and sequences the climb. The same report object and design system drive the evaluator, skill, and migration variants.</p>
+      </section>
+    </div>
+  </main>
+</div>
+<script>
+  function cp(btn){ var t = btn.parentElement.innerText.replace(/^Copy\s*/, '').replace(/^Paste to your agent\s*/i,'').trim(); navigator.clipboard && navigator.clipboard.writeText(t); var o = btn.textContent; btn.textContent = 'Copied'; setTimeout(function(){ btn.textContent = o; }, 1200); }
+  var links = Array.prototype.slice.call(document.querySelectorAll('#toc a')); var map = {}; links.forEach(function(a){ var id = a.getAttribute('href').slice(1); var el = document.getElementById(id); if (el) map[id] = a; });
+  var obs = new IntersectionObserver(function(entries){ entries.forEach(function(e){ if (e.isIntersecting) { links.forEach(function(a){ a.classList.remove('active'); }); var a = map[e.target.id]; if (a) a.classList.add('active'); } }); }, { rootMargin: '-10% 0px -80% 0px', threshold: 0 });
+  Object.keys(map).forEach(function(id){ obs.observe(document.getElementById(id)); });
+</script>
+</body>
+</html>

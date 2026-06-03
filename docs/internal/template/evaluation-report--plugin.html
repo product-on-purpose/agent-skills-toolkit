@@ -1,0 +1,418 @@
+<!DOCTYPE html>
+<!--
+  SAMPLE TEMPLATE: Plugin / skill-library evaluation report (whole-library tier compliance).
+  Self-contained: inline CSS + a little JS (scroll-spy TOC, copy buttons, print). No external assets, no tabs, no expanders.
+  Subject below is a HYPOTHETICAL plugin used to exercise every section of the information architecture.
+  Produced by the (proposed) askit-evaluate HTML report renderer. See docs/internal/backlog/enhancements.md E1.
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>acme-content-skills - Skill Library Evaluation</title>
+<style>
+  :root {
+    --paper: #fbfbf8;
+    --panel: #ffffff;
+    --ink: #181821;
+    --ink-soft: #4a4a57;
+    --ink-faint: #7b7b88;
+    --line: #e7e6df;
+    --line-strong: #d3d2c8;
+    --brand: #5c7cfa;
+    --brand-deep: #3f57c9;
+    --bronze: #a97142; --bronze-bg: #f6ede1;
+    --silver: #6b7a84; --silver-bg: #edf0f2;
+    --gold:   #b8901f; --gold-bg:   #fbf3d6;
+    --pass: #1f7a46; --pass-bg: #e7f3ea;
+    --fail: #b0341d; --fail-bg: #fbeae6;
+    --warn: #9a6b00; --warn-bg: #faf0d6;
+    --serif: "Iowan Old Style", "Palatino Linotype", Palatino, "Book Antiqua", Georgia, serif;
+    --sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, sans-serif;
+    --mono: ui-monospace, "SF Mono", "Cascadia Code", Menlo, Consolas, monospace;
+    --rail: 286px;
+  }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    margin: 0; background: var(--paper); color: var(--ink);
+    font-family: var(--sans); font-size: 16px; line-height: 1.62;
+    -webkit-font-smoothing: antialiased;
+  }
+  a { color: var(--brand-deep); text-underline-offset: 2px; }
+
+  /* Layout: fixed left TOC rail + centered content column */
+  .layout { display: grid; grid-template-columns: var(--rail) minmax(0, 1fr); }
+  .toc {
+    position: sticky; top: 0; align-self: start; height: 100vh; overflow-y: auto;
+    background: linear-gradient(180deg, #f4f4ee, #efeee6);
+    border-right: 1px solid var(--line-strong); padding: 30px 22px;
+  }
+  .toc .brandmark { display: flex; align-items: center; gap: 10px; margin-bottom: 6px; }
+  .toc .diamond { width: 14px; height: 14px; transform: rotate(45deg); background: var(--brand); border-radius: 2px; box-shadow: 3px 3px 0 rgba(92,124,250,.25); }
+  .toc .kicker { font-family: var(--mono); font-size: 11px; letter-spacing: .14em; text-transform: uppercase; color: var(--ink-faint); }
+  .toc h2 { font-family: var(--serif); font-size: 19px; margin: 2px 0 18px; line-height: 1.2; }
+  .toc nav { font-size: 13.5px; }
+  .toc nav a { display: block; color: var(--ink-soft); text-decoration: none; padding: 5px 10px; border-left: 2px solid transparent; border-radius: 0 4px 4px 0; }
+  .toc nav a:hover { color: var(--ink); background: rgba(92,124,250,.08); }
+  .toc nav a.sub { padding-left: 22px; font-size: 12.5px; color: var(--ink-faint); }
+  .toc nav a.active { color: var(--brand-deep); border-left-color: var(--brand); background: rgba(92,124,250,.10); font-weight: 600; }
+  .toc .railnote { margin-top: 24px; padding-top: 16px; border-top: 1px solid var(--line-strong); font-size: 11.5px; color: var(--ink-faint); line-height: 1.5; }
+
+  .content { padding: 0 0 120px; }
+  .wrap { max-width: 820px; margin: 0 auto; padding: 0 40px; }
+  section { padding: 46px 0 8px; border-top: 1px solid var(--line); }
+  section:first-of-type { border-top: 0; }
+  h2.sec { font-family: var(--serif); font-size: 30px; line-height: 1.15; margin: 0 0 6px; letter-spacing: -.01em; }
+  h2.sec .num { font-family: var(--mono); font-size: 14px; color: var(--brand); margin-right: 12px; vertical-align: 5px; }
+  .lead { color: var(--ink-soft); font-size: 17px; margin: 6px 0 24px; }
+  h3 { font-family: var(--sans); font-size: 16px; letter-spacing: .01em; margin: 30px 0 10px; }
+  p { margin: 0 0 14px; }
+  ul, ol { margin: 0 0 16px; padding-left: 22px; }
+  li { margin: 5px 0; }
+
+  /* Masthead */
+  .masthead { background: radial-gradient(120% 140% at 88% -10%, rgba(92,124,250,.16), transparent 60%), #1c1c26; color: #f3f3ef; padding: 52px 0 46px; }
+  .masthead .wrap { position: relative; }
+  .masthead .kicker { font-family: var(--mono); font-size: 11.5px; letter-spacing: .18em; text-transform: uppercase; color: #aeb4f0; margin: 0 0 10px; }
+  .masthead h1 { font-family: var(--serif); font-size: 46px; line-height: 1.05; margin: 0 0 8px; letter-spacing: -.015em; }
+  .masthead .sub { color: #c9c9cf; font-size: 16px; margin: 0 0 30px; }
+  .verdict { display: grid; grid-template-columns: auto 1fr; gap: 26px; align-items: center; }
+  .grade { text-align: center; padding: 18px 26px; border-radius: 12px; background: var(--silver-bg); color: #20232a; box-shadow: 0 1px 0 rgba(255,255,255,.4) inset; }
+  .grade .tier { font-family: var(--serif); font-size: 34px; font-weight: 700; line-height: 1; }
+  .grade .tierlabel { font-family: var(--mono); font-size: 10.5px; letter-spacing: .14em; text-transform: uppercase; color: var(--silver); margin-top: 6px; }
+  .climb { font-size: 14.5px; color: #d7d7dd; }
+  .climb b { color: #fff; }
+  .stats { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 26px; }
+  .stat { background: rgba(255,255,255,.07); border: 1px solid rgba(255,255,255,.12); border-radius: 8px; padding: 10px 14px; min-width: 110px; }
+  .stat .k { font-family: var(--mono); font-size: 10.5px; letter-spacing: .1em; text-transform: uppercase; color: #a8a8b6; }
+  .stat .v { font-size: 18px; font-weight: 600; margin-top: 3px; }
+
+  /* Badges + status */
+  .badge { display: inline-flex; align-items: center; gap: 6px; font-family: var(--mono); font-size: 11px; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; padding: 3px 9px; border-radius: 999px; border: 1px solid transparent; white-space: nowrap; }
+  .b-pass { color: var(--pass); background: var(--pass-bg); border-color: #bfe0c9; }
+  .b-fail { color: var(--fail); background: var(--fail-bg); border-color: #f0c7bd; }
+  .b-warn { color: var(--warn); background: var(--warn-bg); border-color: #ecd9a0; }
+  .b-na   { color: var(--ink-faint); background: #f0efe9; border-color: var(--line-strong); }
+  .dot { width: 7px; height: 7px; border-radius: 50%; }
+  .dot.pass { background: var(--pass); } .dot.fail { background: var(--fail); } .dot.warn { background: var(--warn); } .dot.na { background: var(--ink-faint); }
+
+  /* Component breakdown table */
+  table { width: 100%; border-collapse: collapse; margin: 8px 0 20px; font-size: 14.5px; }
+  th, td { text-align: left; padding: 9px 12px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  th { font-family: var(--mono); font-size: 11px; letter-spacing: .06em; text-transform: uppercase; color: var(--ink-faint); border-bottom: 1px solid var(--line-strong); }
+  tr:last-child td { border-bottom: 0; }
+  code, .mono { font-family: var(--mono); font-size: 13px; background: #f1f0ea; padding: 1px 5px; border-radius: 4px; }
+
+  /* Tier compliance blocks */
+  .tierhead { display: flex; align-items: center; gap: 14px; margin: 26px 0 14px; padding: 12px 16px; border-radius: 10px; border: 1px solid var(--line-strong); }
+  .tierhead.bronze { background: var(--bronze-bg); } .tierhead.silver { background: var(--silver-bg); } .tierhead.gold { background: var(--gold-bg); }
+  .tierhead .seal { font-family: var(--serif); font-weight: 700; font-size: 15px; padding: 4px 12px; border-radius: 6px; background: #fff; }
+  .tierhead.bronze .seal { color: var(--bronze); } .tierhead.silver .seal { color: var(--silver); } .tierhead.gold .seal { color: var(--gold); }
+  .tierhead .verdicttxt { font-size: 14.5px; color: var(--ink-soft); }
+  .tierhead .verdicttxt b { color: var(--ink); }
+
+  /* Evidence ledger */
+  .ledger { border: 1px solid var(--line); border-radius: 10px; overflow: hidden; margin: 0 0 10px; }
+  .row { display: grid; grid-template-columns: 96px 1fr; gap: 0; border-bottom: 1px solid var(--line); }
+  .row:last-child { border-bottom: 0; }
+  .row > .st { padding: 14px 14px; border-right: 1px solid var(--line); display: flex; flex-direction: column; gap: 7px; align-items: flex-start; }
+  .row > .body { padding: 13px 16px; }
+  .row .rid { font-family: var(--mono); font-size: 11px; color: var(--ink-faint); }
+  .row h4 { margin: 0 0 4px; font-size: 15px; font-family: var(--sans); }
+  .row .ev { font-size: 13.5px; color: var(--ink-soft); margin: 4px 0 0; }
+  .row .ev .src { font-family: var(--mono); font-size: 12px; color: var(--brand-deep); }
+  .row.is-fail { background: linear-gradient(90deg, var(--fail-bg), transparent 40%); }
+  .row.is-warn { background: linear-gradient(90deg, var(--warn-bg), transparent 40%); }
+  .why { margin-top: 8px; font-size: 13.5px; padding: 9px 12px; border-left: 3px solid var(--fail); background: #fff; border-radius: 0 6px 6px 0; }
+  .why.warn { border-left-color: var(--warn); }
+  .why b { font-variant: small-caps; letter-spacing: .03em; }
+
+  /* Improvement cards + copy-paste prompts */
+  .imp { border: 1px solid var(--line-strong); border-radius: 12px; padding: 18px 20px; margin: 0 0 16px; background: var(--panel); }
+  .imp .top { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 8px; }
+  .imp h4 { margin: 0; font-size: 16px; flex: 1 1 auto; }
+  .pill { font-family: var(--mono); font-size: 10.5px; letter-spacing: .04em; text-transform: uppercase; padding: 2px 8px; border-radius: 6px; border: 1px solid var(--line-strong); color: var(--ink-soft); }
+  .pill.p-high { color: var(--fail); border-color: #f0c7bd; background: var(--fail-bg); }
+  .pill.p-med  { color: var(--warn); border-color: #ecd9a0; background: var(--warn-bg); }
+  .imp .fix { font-size: 14.5px; color: var(--ink-soft); margin: 4px 0 12px; }
+  .prompt { position: relative; background: #1d1d27; color: #e9e9f1; border-radius: 9px; padding: 14px 46px 14px 16px; font-family: var(--mono); font-size: 12.5px; line-height: 1.6; white-space: pre-wrap; }
+  .prompt .lbl { display: block; font-size: 10px; letter-spacing: .12em; text-transform: uppercase; color: #9aa0e6; margin-bottom: 7px; }
+  .copy { position: absolute; top: 10px; right: 10px; background: rgba(255,255,255,.1); color: #e9e9f1; border: 1px solid rgba(255,255,255,.18); border-radius: 6px; font-family: var(--mono); font-size: 11px; padding: 4px 9px; cursor: pointer; }
+  .copy:hover { background: rgba(255,255,255,.2); }
+
+  /* Insights + references */
+  .insight { display: grid; grid-template-columns: 30px 1fr; gap: 12px; padding: 14px 16px; border: 1px solid var(--line); border-left: 3px solid var(--brand); border-radius: 0 9px 9px 0; margin: 0 0 12px; background: #fcfcfa; }
+  .insight .ic { font-family: var(--serif); font-size: 22px; color: var(--brand); line-height: 1; }
+  .refs { font-size: 13.5px; }
+  .refs li { margin: 7px 0; }
+  .refs .tag { font-family: var(--mono); font-size: 11px; color: var(--ink-faint); margin-right: 8px; }
+
+  .meta-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 0 28px; font-size: 14px; }
+  .meta-grid .mk { color: var(--ink-faint); }
+  .meta-grid div { padding: 7px 0; border-bottom: 1px solid var(--line); display: flex; justify-content: space-between; gap: 12px; }
+  .legend { display: flex; flex-wrap: wrap; gap: 10px 18px; margin: 12px 0; font-size: 13px; color: var(--ink-soft); }
+  .legend span { display: inline-flex; align-items: center; gap: 7px; }
+
+  .toolbar { position: fixed; top: 16px; right: 20px; z-index: 5; }
+  .toolbar button { font-family: var(--mono); font-size: 12px; background: var(--panel); border: 1px solid var(--line-strong); border-radius: 7px; padding: 7px 12px; cursor: pointer; color: var(--ink-soft); box-shadow: 0 1px 3px rgba(0,0,0,.06); }
+
+  @media (max-width: 900px) {
+    .layout { grid-template-columns: 1fr; }
+    .toc { position: static; height: auto; border-right: 0; border-bottom: 1px solid var(--line-strong); }
+    .toc nav { columns: 2; }
+    .verdict { grid-template-columns: 1fr; }
+  }
+  @media print {
+    .toc, .toolbar, .copy { display: none !important; }
+    .layout { grid-template-columns: 1fr; }
+    .masthead { background: #1c1c26 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    body { font-size: 11pt; }
+    section { break-inside: avoid-page; }
+    .imp, .row, .ledger { break-inside: avoid; }
+  }
+</style>
+</head>
+<body>
+<div class="toolbar"><button onclick="window.print()">Print / Save PDF</button></div>
+<div class="layout">
+
+  <aside class="toc">
+    <div class="brandmark"><span class="diamond"></span><span class="kicker">Skill Library Evaluation</span></div>
+    <h2>acme-content-skills</h2>
+    <nav id="toc">
+      <a href="#summary">Executive summary</a>
+      <a href="#overview">What was evaluated</a>
+      <a href="#components" class="sub">Component breakdown</a>
+      <a href="#method">Methodology &amp; scope</a>
+      <a href="#compliance">Tier compliance</a>
+      <a href="#bronze" class="sub">Bronze - Universal</a>
+      <a href="#silver" class="sub">Silver - Convergent</a>
+      <a href="#gold" class="sub">Gold - Advanced</a>
+      <a href="#burndown">The climb to Gold</a>
+      <a href="#improve">Improvement path</a>
+      <a href="#insights">Insights</a>
+      <a href="#references">Evidence &amp; sources</a>
+      <a href="#meta">Report metadata</a>
+    </nav>
+    <div class="railnote">Deterministic findings come from the portable gate (real exit codes). Behavioral and review findings are judgment, surfaced beside the gate and never deciding a pass or fail.</div>
+  </aside>
+
+  <main class="content">
+
+    <header class="masthead">
+      <div class="wrap">
+        <p class="kicker">Evaluation report &middot; against the Advanced Skill Library Standard v0.10</p>
+        <h1>acme-content-skills</h1>
+        <p class="sub">A content-marketing skill library for Claude Code and Codex &middot; version 0.4.0 &middot; evaluated 2026-06-03</p>
+        <div class="verdict">
+          <div class="grade">
+            <div class="tier">Silver</div>
+            <div class="tierlabel">Convergent</div>
+          </div>
+          <div class="climb">
+            <p style="margin:0 0 8px"><b>Earns Silver (Convergent)</b> and is <b>3 checks away from Gold</b>. Bronze and Silver pass; Gold is blocked by self-hosting CI, eval coverage, and release notes.</p>
+            <div class="stats">
+              <div class="stat"><div class="k">Checks passed</div><div class="v">23 / 26</div></div>
+              <div class="stat"><div class="k">Tier earned</div><div class="v">Convergent</div></div>
+              <div class="stat"><div class="k">Blockers to Gold</div><div class="v">3</div></div>
+              <div class="stat"><div class="k">Warnings</div><div class="v">2</div></div>
+              <div class="stat"><div class="k">Gate exit</div><div class="v">0</div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <div class="wrap">
+
+      <section id="summary">
+        <h2 class="sec"><span class="num">01</span>Executive summary</h2>
+        <p class="lead">acme-content-skills is a healthy, genuinely cross-agent plugin that has cleared the multi-agent bar and now sits one well-scoped push away from the self-proving Gold tier.</p>
+        <p>The plugin was graded against all 26 deterministic checks of the Standard, plus a behavioral triggering pass and a qualitative review. It <b>earns Silver (Convergent)</b>: its 12 skills, 2 subagents, and 1 command are portable, carry a consistent <code>acme-</code> prefix, declare both <code>claude</code> and <code>codex</code> targets, and emit clean per-agent manifests. Two Bronze warnings (a weak description and an over-budget skill) do not gate the build but are worth closing.</p>
+        <p>Gold is <b>blocked by three checks</b>, all structural rather than deep: there is no self-hosting CI that runs the gate (<code>G2</code>), two chains lack a regression eval (<code>G3</code>), and there is no curated <code>RELEASE-NOTES.md</code> (<code>G5</code>). Each is closeable in well under a day; the <a href="#improve">Improvement path</a> below gives a copy-paste prompt for every one.</p>
+        <p><b>Recommended next move:</b> run the three Gold-blocker prompts in order (CI, evals, release notes), then re-evaluate. That promotes the plugin to a self-proving Gold library without touching a single skill's behavior.</p>
+      </section>
+
+      <section id="overview">
+        <h2 class="sec"><span class="num">02</span>What was evaluated</h2>
+        <p>acme-content-skills is a <b>plugin</b> (the unit of release) graded as a <b>skill library</b> (the quality grade it earns). It packages content-marketing capabilities and targets two agents from one canonical <code>library.json</code>.</p>
+        <ul>
+          <li><b>Declared tier:</b> <code>convergent</code> (Silver) &middot; <b>version:</b> 0.4.0 &middot; <b>agent-targets:</b> <code>claude</code>, <code>codex</code> &middot; <b>prefix:</b> <code>acme-</code></li>
+          <li><b>On disk:</b> 12 skills, 2 subagents, 1 command, 3 chain contracts, 0 hooks.</li>
+          <li><b>Anatomy:</b> root <code>library.json</code> + <code>AGENTS.md</code>; <code>skills/</code>, <code>agents/</code>, <code>commands/</code>; both native manifests emitted.</li>
+        </ul>
+        <h3 id="components">Component breakdown</h3>
+        <table>
+          <thead><tr><th>Component</th><th>Type</th><th>Targets</th><th>What it does</th></tr></thead>
+          <tbody>
+            <tr><td><code>acme-write-blog-post</code></td><td>skill</td><td>both</td><td>Draft a long-form post from a brief, with an outline-first pass and an SEO check.</td></tr>
+            <tr><td><code>acme-repurpose-thread</code></td><td>skill</td><td>both</td><td>Turn one post into a platform-tuned social thread set.</td></tr>
+            <tr><td><code>acme-content-calendar</code></td><td>skill</td><td>both</td><td>Build a dated calendar from a campaign goal and cadence.</td></tr>
+            <tr><td><code>acme-style-critic</code></td><td>subagent</td><td>claude</td><td>Review drafts for voice and clarity; the delegate behind the writing skills.</td></tr>
+            <tr><td><code>/acme-write</code></td><td>command</td><td>claude</td><td>Slash entry point that maps to <code>acme-write-blog-post</code>.</td></tr>
+            <tr><td colspan="4" style="color:var(--ink-faint);font-size:13px">... 9 further skills and 1 subagent, all carrying the <code>acme-</code> prefix (full list in <a href="#references">references</a>).</td></tr>
+          </tbody>
+        </table>
+      </section>
+
+      <section id="method">
+        <h2 class="sec"><span class="num">03</span>Methodology &amp; scope</h2>
+        <p>Three layers, kept strictly separate so the verdict stays trustworthy:</p>
+        <ul>
+          <li><b>Deterministic conformance (decides the tier).</b> The portable Node gate ran all 26 checks (<code>U1-U11</code>, <code>S1-S8</code>, <code>G1-G7</code>) with real exit codes, no model in the loop. This is the only layer that decides a pass or fail.</li>
+          <li><b>Behavioral (advisory).</b> Each skill was run against its triggering eval set to confirm it fires when it should and stays silent when it should not. Surfaced as evidence, never as a gate result.</li>
+          <li><b>Review (advisory).</b> A qualitative pass over scoping, descriptions, and chain design.</li>
+        </ul>
+        <div class="legend">
+          <span><span class="dot pass"></span> pass</span>
+          <span><span class="dot fail"></span> fail (gates at the declared tier)</span>
+          <span><span class="dot warn"></span> warning (never gates)</span>
+          <span><span class="dot na"></span> not applicable / vacuous</span>
+        </div>
+        <p style="font-size:13.5px;color:var(--ink-faint)"><b>Confidence and limits.</b> Conformance findings are exact and reproducible (re-run the gate to confirm). Behavioral and review findings reflect judgment on the sampled cases. <code>G1</code> (hooks) and <code>G6</code> (deprecation) pass vacuously here because the plugin ships no hooks and deprecates nothing yet.</p>
+      </section>
+
+      <section id="compliance">
+        <h2 class="sec"><span class="num">04</span>Tier compliance</h2>
+        <p class="lead">The evidence ledger: every requirement, its status, what was found, and for each gap, why it matters.</p>
+
+        <div class="tierhead bronze" id="bronze">
+          <span class="seal">Bronze</span>
+          <span class="badge b-pass"><span class="dot pass"></span> Pass</span>
+          <span class="verdicttxt"><b>Universal (U1-U11).</b> Portable and self-describing on every agentskills.io agent. 11/11 pass, with 2 advisory warnings.</span>
+        </div>
+        <div class="ledger">
+          <div class="row"><div class="st"><span class="rid">U1-U4</span><span class="badge b-pass">Pass</span></div><div class="body"><h4>Manifest, anatomy, frontmatter, name discipline</h4><p class="ev">Valid <code>library.json</code> (name, version, tier); every skill's name equals its directory; root <code>AGENTS.md</code> present. <span class="src">library.json, skills/*/SKILL.md</span></p></div></div>
+          <div class="row is-warn"><div class="st"><span class="rid">U5</span><span class="badge b-warn">Warn</span></div><div class="body"><h4>Description quality bar</h4><p class="ev">One skill scores 0.62 (below 0.70). <span class="src">skills/acme-content-calendar/SKILL.md</span></p><div class="why warn"><b>why it matters</b> - the description is the one signal an agent uses to decide relevance. "Helps with content planning" states neither a concrete action nor a trigger, so the skill may fire late or not at all. A warning, not a gate.</div></div></div>
+          <div class="row is-warn"><div class="st"><span class="rid">U7</span><span class="badge b-warn">Warn</span></div><div class="body"><h4>Instruction budget</h4><p class="ev">One skill body is ~240 instructions, over the ~200 guidance. <span class="src">skills/acme-write-blog-post/SKILL.md</span></p><div class="why warn"><b>why it matters</b> - frontier models reliably follow on the order of 150-200 instructions; past that, later steps are dropped silently. Move the SEO checklist into a <code>references/</code> file loaded on demand.</div></div></div>
+          <div class="row"><div class="st"><span class="rid">U6,U8-U11</span><span class="badge b-pass">Pass</span></div><div class="body"><h4>Links, manifest agreement, version, no-dashes, MCP</h4><p class="ev">Reference links resolve; native manifests agree with <code>library.json</code>; versions match; no em/en dashes; no MCP servers to validate. <span class="src">gate U6, U8, U9, U10, U11</span></p></div></div>
+        </div>
+
+        <div class="tierhead silver" id="silver">
+          <span class="seal">Silver</span>
+          <span class="badge b-pass"><span class="dot pass"></span> Pass</span>
+          <span class="verdicttxt"><b>Convergent (S1-S8).</b> The multi-agent machinery emits cleanly for both targets. 8/8 pass.</span>
+        </div>
+        <div class="ledger">
+          <div class="row"><div class="st"><span class="rid">S1-S2</span><span class="badge b-pass">Pass</span></div><div class="body"><h4>Targets and prefix</h4><p class="ev"><code>agent-targets: ["claude","codex"]</code> declared; every component carries the <code>acme-</code> prefix. <span class="src">library.json</span></p></div></div>
+          <div class="row"><div class="st"><span class="rid">S3,S8</span><span class="badge b-pass">Pass</span></div><div class="body"><h4>Components index mirrors disk</h4><p class="ev">The index matches what is on disk in both directions - no orphan, no phantom. <span class="src">components-index, components-mirror</span></p></div></div>
+          <div class="row"><div class="st"><span class="rid">S4-S5</span><span class="badge b-pass">Pass</span></div><div class="body"><h4>Chain contracts and workflow refs</h4><p class="ev">3 edges in <code>agents/_chain-permitted.yaml</code>, no orphans or phantoms; workflow steps reference real skills. <span class="src">chain-contract, workflow-skills</span></p></div></div>
+          <div class="row"><div class="st"><span class="rid">S6-S7</span><span class="badge b-pass">Pass</span></div><div class="body"><h4>Per-target emission and command contract</h4><p class="ev">Both native manifests present; <code>/acme-write</code> maps to exactly one skill. <span class="src">per-target-presence, command-contract</span></p></div></div>
+        </div>
+
+        <div class="tierhead gold" id="gold">
+          <span class="seal">Gold</span>
+          <span class="badge b-fail"><span class="dot fail"></span> Blocked</span>
+          <span class="verdicttxt"><b>Advanced (G1-G7).</b> 4/7 satisfied; <b>3 block the tier.</b> The gaps are structural, not behavioral.</span>
+        </div>
+        <div class="ledger">
+          <div class="row is-fail"><div class="st"><span class="rid">G2</span><span class="badge b-fail">Fail</span></div><div class="body"><h4>Self-hosting CI that passes</h4><p class="ev">No workflow under <code>.github/workflows/</code> runs <code>node scripts/check.mjs</code>. <span class="src">self-hosting</span></p><div class="why"><b>why it matters</b> - self-hosting CI is what closes the credibility loop: a library that cannot run its own validators in CI cannot claim to be a self-proving reference. Without it, "Gold" would be a claim with no proof behind it.</div></div></div>
+          <div class="row is-fail"><div class="st"><span class="rid">G3</span><span class="badge b-fail">Fail</span></div><div class="body"><h4>Eval / regression coverage for chains</h4><p class="ev">2 of 3 chain edges have no eval case under <code>evals/</code>. <span class="src">library-regression: acme-write -&gt; acme-style-critic; acme-repurpose-thread -&gt; acme-style-critic</span></p><div class="why"><b>why it matters</b> - without a regression case per chain, changing one component can silently break a consumer downstream. The eval turns "this edit broke that skill" from a surprise into a CI failure.</div></div></div>
+          <div class="row is-fail"><div class="st"><span class="rid">G5</span><span class="badge b-fail">Fail</span></div><div class="body"><h4>Curated RELEASE-NOTES</h4><p class="ev">No <code>RELEASE-NOTES.md</code> distinct from <code>CHANGELOG.md</code>. <span class="src">release-notes</span></p><div class="why"><b>why it matters</b> - a user-facing release surface keeps the library's evolution legible to people who do not read the full technical changelog. It is a Gold lifecycle guarantee, cheap to add.</div></div></div>
+          <div class="row"><div class="st"><span class="rid">G1,G6</span><span class="badge b-na">N/A</span></div><div class="body"><h4>Hooks documented &middot; deprecation policy</h4><p class="ev">Pass vacuously: the plugin ships no hooks and deprecates nothing. <span class="src">hook-documentation, deprecation</span></p></div></div>
+          <div class="row"><div class="st"><span class="rid">G4,G7</span><span class="badge b-pass">Pass</span></div><div class="body"><h4>Generated-doc drift &middot; docs frontmatter</h4><p class="ev"><code>INDEX.md</code> and manifests are generated and drift-free; the published docs pages carry the frontmatter taxonomy. <span class="src">index-drift, docs-frontmatter</span></p></div></div>
+        </div>
+      </section>
+
+      <section id="burndown">
+        <h2 class="sec"><span class="num">05</span>The climb to Gold</h2>
+        <p class="lead">Exactly what blocks the next rung, in the order to close it. This is a worklist, not a guess.</p>
+        <ol>
+          <li><b><code>G2</code> - add self-hosting CI</b> (~20 min). Foundational: it also proves the other two fixes stay green.</li>
+          <li><b><code>G3</code> - add the two missing chain evals</b> (~30 min). Mechanical once the eval-set format is in place.</li>
+          <li><b><code>G5</code> - author RELEASE-NOTES</b> (~15 min). A curated surface promoted from the changelog.</li>
+        </ol>
+        <p>Closing all three flips the declared tier to <code>advanced</code> with an empty burndown. The two Bronze warnings (<code>U5</code>, <code>U7</code>) are optional polish that raise quality without affecting the tier.</p>
+      </section>
+
+      <section id="improve">
+        <h2 class="sec"><span class="num">06</span>Improvement path</h2>
+        <p class="lead">Each gap, the fix, and a copy-paste prompt that executes it with the toolkit's own skills.</p>
+
+        <div class="imp">
+          <div class="top"><h4><code>G2</code> - Self-hosting CI</h4><span class="pill p-high">Gold blocker</span><span class="pill">~20 min</span></div>
+          <p class="fix">Add a CI workflow that runs the portable gate on every push and PR, so the library proves itself.</p>
+          <div class="prompt"><button class="copy" onclick="cp(this)">Copy</button><span class="lbl">Paste to your agent</span>Use askit-build-settings (CI mode) on this plugin: add .github/workflows/ci.yml that checks out the repo, sets up Node from .nvmrc, runs npm ci, then runs `node scripts/check.mjs` as a required step. Keep the YAML free of validation logic - it only shells out to the portable script. Then run node scripts/check.mjs and confirm G2 (self-hosting) now passes.</div>
+        </div>
+
+        <div class="imp">
+          <div class="top"><h4><code>G3</code> - Chain regression evals</h4><span class="pill p-high">Gold blocker</span><span class="pill">~30 min</span></div>
+          <p class="fix">Add one eval case per uncovered chain edge so a component change cannot silently break a chained consumer.</p>
+          <div class="prompt"><button class="copy" onclick="cp(this)">Copy</button><span class="lbl">Paste to your agent</span>Use askit-build-samples to add G3 chain coverage: create evals/acme-write-to-style-critic.eval.json and evals/acme-repurpose-to-style-critic.eval.json, each with "covers": { "chain": ["&lt;caller&gt;", "&lt;callee&gt;"] } and at least one case describing the expected delegation. Then run node scripts/check.mjs and confirm G3 (library-regression) reports no uncovered chains.</div>
+        </div>
+
+        <div class="imp">
+          <div class="top"><h4><code>G5</code> - Curated release notes</h4><span class="pill p-high">Gold blocker</span><span class="pill">~15 min</span></div>
+          <p class="fix">Stand up a user-facing RELEASE-NOTES.md, distinct from the technical CHANGELOG.</p>
+          <div class="prompt"><button class="copy" onclick="cp(this)">Copy</button><span class="lbl">Paste to your agent</span>Use askit-release (notes mode) to create RELEASE-NOTES.md for acme-content-skills: a curated, user-facing summary of the current version's highlights, distinct from CHANGELOG.md (not byte-identical). Then run node scripts/check.mjs and confirm G5 (release-notes) passes.</div>
+        </div>
+
+        <div class="imp">
+          <div class="top"><h4><code>U5</code> - Sharpen one description</h4><span class="pill p-med">Warning</span><span class="pill">~10 min</span></div>
+          <p class="fix">Raise the under-bar description so the skill triggers reliably.</p>
+          <div class="prompt"><button class="copy" onclick="cp(this)">Copy</button><span class="lbl">Paste to your agent</span>Use askit-build-skill (improve mode) on skills/acme-content-calendar: rewrite the description to state the concrete action and the use-when trigger with real keywords (action verb + "Use when ..."), no colon-space, under 1024 chars. Then run node scripts/check.mjs and confirm U5 scores at or above 0.70.</div>
+        </div>
+      </section>
+
+      <section id="insights">
+        <h2 class="sec"><span class="num">07</span>Insights</h2>
+        <div class="insight"><div class="ic">&#9670;</div><div><b>One CI file from Gold.</b> The hard part - genuinely cross-agent emission and clean chains - is already done. The remaining gaps are lifecycle scaffolding, not capability. This library is closer to best-in-class than its current Silver grade suggests.</div></div>
+        <div class="insight"><div class="ic">&#9670;</div><div><b>Descriptions are the soft spot.</b> Only one trips the bar, but several sit in the 0.70-0.78 band - functional yet generic. A pass with askit-build-skill improve mode would lift triggering reliability across the set, which behavioral testing shows is where late-fires happen.</div></div>
+        <div class="insight"><div class="ic">&#9670;</div><div><b>The style-critic chain is the spine.</b> Both writing skills delegate to acme-style-critic, so it is the highest-leverage place to add eval coverage (G3): one regression case there protects the two most-used flows at once.</div></div>
+      </section>
+
+      <section id="references">
+        <h2 class="sec"><span class="num">08</span>Evidence &amp; sources</h2>
+        <p>Every finding above is grounded in a check module, a Standard clause, and a file. Re-run the gate to reproduce the deterministic ones.</p>
+        <ul class="refs">
+          <li><span class="tag">G2</span> <code>scripts/checks/self-hosting.mjs</code> &middot; Standard sec 2.6 (G2), sec 4 &middot; absence of <code>.github/workflows/*</code> running the gate.</li>
+          <li><span class="tag">G3</span> <code>scripts/checks/library-regression.mjs</code> &middot; Standard sec 2.6 (G3) &middot; <code>agents/_chain-permitted.yaml</code> vs <code>evals/</code>.</li>
+          <li><span class="tag">G5</span> <code>scripts/checks/release-notes.mjs</code> &middot; Standard sec 10.6 &middot; no <code>RELEASE-NOTES.md</code>.</li>
+          <li><span class="tag">U5</span> <code>scripts/checks/description-score.mjs</code> &middot; Standard sec 8.1 &middot; <code>skills/acme-content-calendar/SKILL.md:2</code> (score 0.62).</li>
+          <li><span class="tag">U7</span> <code>scripts/checks/instruction-budget.mjs</code> &middot; Standard sec 1.2 &middot; <code>skills/acme-write-blog-post/SKILL.md</code> (~240 instructions).</li>
+          <li><span class="tag">scope</span> full component inventory: <code>library.json</code> <code>components</code> &middot; behavioral cases: <code>evals/*.eval.json</code>.</li>
+        </ul>
+      </section>
+
+      <section id="meta">
+        <h2 class="sec"><span class="num">09</span>Report metadata</h2>
+        <div class="meta-grid">
+          <div><span class="mk">Subject</span><span>acme-content-skills 0.4.0</span></div>
+          <div><span class="mk">Declared tier</span><span>convergent</span></div>
+          <div><span class="mk">Earned tier</span><span>convergent (Silver)</span></div>
+          <div><span class="mk">Standard</span><span>v0.10</span></div>
+          <div><span class="mk">Evaluator</span><span>askit-evaluate (conformance + behavioral + review)</span></div>
+          <div><span class="mk">Gate</span><span>26 checks, exit 0</span></div>
+          <div><span class="mk">Generated</span><span>2026-06-03</span></div>
+          <div><span class="mk">Report</span><span>self-contained HTML, no external assets</span></div>
+        </div>
+        <p style="font-size:12.5px;color:var(--ink-faint);margin-top:18px">This is a SAMPLE template. The subject is hypothetical; the structure, severities, and prompt shapes mirror what the askit-evaluate HTML renderer would produce. The grade is a deterministic gate result; the behavioral and review notes sit beside it and never decide conformance.</p>
+      </section>
+
+    </div>
+  </main>
+</div>
+
+<script>
+  // Copy-paste prompts
+  function cp(btn){
+    var t = btn.parentElement.innerText.replace(/^Copy\s*/, '').replace(/^Paste to your agent\s*/i,'').trim();
+    navigator.clipboard && navigator.clipboard.writeText(t);
+    var o = btn.textContent; btn.textContent = 'Copied'; setTimeout(function(){ btn.textContent = o; }, 1200);
+  }
+  // Scroll-spy: highlight the TOC entry for the section in view (no tabs, just an active marker)
+  var links = Array.prototype.slice.call(document.querySelectorAll('#toc a'));
+  var map = {}; links.forEach(function(a){ var id = a.getAttribute('href').slice(1); var el = document.getElementById(id); if (el) map[id] = a; });
+  var obs = new IntersectionObserver(function(entries){
+    entries.forEach(function(e){
+      if (e.isIntersecting) {
+        links.forEach(function(a){ a.classList.remove('active'); });
+        var a = map[e.target.id]; if (a) a.classList.add('active');
+      }
+    });
+  }, { rootMargin: '-10% 0px -80% 0px', threshold: 0 });
+  Object.keys(map).forEach(function(id){ obs.observe(document.getElementById(id)); });
+</script>
+</body>
+</html>
