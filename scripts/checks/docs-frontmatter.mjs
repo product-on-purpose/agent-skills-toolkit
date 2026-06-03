@@ -76,7 +76,7 @@ export function check(ctx) {
     if (typeof fm.description !== "string" || fm.description.trim() === "") {
       out.push(finding(meta.id, SEVERITY.ERROR, `frontmatter "description" must be a non-empty string (Standard sec 8.4).`, { file: rel, reqId: meta.reqId }));
     } else if (fm.description.includes(": ")) {
-      out.push(finding(meta.id, SEVERITY.ERROR, `frontmatter "description" must not contain a colon-space; restructure with a comma or a space-hyphen-space (Standard sec 8.1/8.4).`, { file: rel, reqId: meta.reqId }));
+      out.push(finding(meta.id, SEVERITY.ERROR, `frontmatter "description" must not contain a colon-space; restructure with a comma or a space-hyphen-space (Standard sec 8.4).`, { file: rel, reqId: meta.reqId }));
     }
     if (!AUDIENCE.has(fm.audience)) {
       out.push(finding(meta.id, SEVERITY.ERROR, `frontmatter "audience" must be one of non-engineer, engineer, both (got ${JSON.stringify(fm.audience)}).`, { file: rel, reqId: meta.reqId }));

@@ -48,7 +48,7 @@ Two single-line edits to `library.json` clear the first two Silver checks.
 {
   "name": "my-plugin",
   "version": "0.2.0",
-  "standard": "0.9",
+  "standard": "0.10",
   "tier": "universal",
   "agent-targets": ["claude", "codex"],
   "prefix": "myp-"

@@ -14,11 +14,12 @@ test("a conformant docs page passes G7 with no findings", () => {
   assert.equal(check(loadPlugin(ok)).length, 0);
 });
 
-test("a docs page missing audience, with a colon-space description and a bad level, fails G7", () => {
+test("a docs page missing audience, with a colon-space description, a bad level, and non-array tags, fails G7", () => {
   const f = check(loadPlugin(bad));
   assert.ok(f.some((x) => /audience/.test(x.message)), "flags missing audience");
   assert.ok(f.some((x) => /colon-space/.test(x.message)), "flags the colon-space description");
   assert.ok(f.some((x) => /level/.test(x.message)), "flags the out-of-vocabulary level");
+  assert.ok(f.some((x) => /tags/.test(x.message)), "flags the non-array tags");
   assert.ok(f.length > 0 && f.every((x) => x.reqId === "G7" && x.severity === "error"));
 });
 
