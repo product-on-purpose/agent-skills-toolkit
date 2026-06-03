@@ -116,14 +116,14 @@ flowchart LR
 
 Non-empty, first line `flowchart LR` starts with `flowchart`, brackets balanced (the `(done)` is inside the quoted label so ignored, and the structural `["..."]` pair balances), no tabs. Zero findings.
 
-**Example fail (anti):**
+**Example fail (anti)** - shown in a `text` fence, not a real ` ```mermaid ` fence, so the toolkit's own repo-wide U12 scan does not flag this illustrative example (the same reason the anti TEST cases are built in a temp dir, never committed under `tests/fixtures/`):
 
-```mermaid
-flowchartt LR
+```text
+notadiagram LR
   A[unbalanced --> B]]
 ```
 
-First token `flowchartt` matches no `DIAGRAM_KEYWORDS` entry (rule 2 fails), and the brackets are unbalanced (`[` opens once, `]]` closes twice -> rule 3 fails). Two findings, both `reqId: U12`, both naming the file.
+First token `notadiagram` matches no `DIAGRAM_KEYWORDS` entry (rule 2 fails - note `flowchartt` would NOT fail rule 2, because `"flowchartt".startsWith("flowchart")` is true; the structural-only `startsWith` match is accepted per the edge-case note above), and the brackets are unbalanced (`[` opens once, `]]` closes twice -> rule 3 fails). Two findings, both `reqId: U12`, both naming the file.
 
 ## Content / artifacts to author
 

@@ -211,26 +211,17 @@ flowchart LR
 
 Also add a second valid block using `stateDiagram-v2` so the longer-keyword path is exercised.
 
-Create `tests/fixtures/anti/mermaid-bad/`:
+The anti cases are **NOT committed as a fixture**. Because U12 is repo-wide (it does not exclude `tests/fixtures/`), a committed `docs/diagram.md` containing an invalid ` ```mermaid ` block would be flagged by the toolkit's own self-scan and make the gate red. So the anti cases are constructed in a **temp dir inside the test** (the same pattern `no-dashes` uses for its forbidden-byte cases). The illustrative content each temp-dir case writes (shown here in a `text` fence, not a real ` ```mermaid ` fence, for the same reason):
 
-- `library.json` (mirror, `name: "mermaid-bad"`).
-- `docs/diagram.md` with one block per defect (or a few blocks, each isolating one rule) so each rule is provably bitten:
+```text
+notadiagram LR        <- first token unrecognized: rule 2 fails
+  A[unbalanced --> B]] <- ]] closes twice: rule 3 fails
 
-````
----
-title: "Bad diagram fixture"
----
-
-```mermaid
-flowchartt LR
-  A[unbalanced --> B]]
+(an empty block: ```mermaid immediately followed by ```)  <- rule 1 fails
+(a block whose body contains a literal \t)                <- rule 4 fails (build the tab from "\t" in the test)
 ```
 
-```mermaid
-```
-````
-
-The first block fails rule 2 (`flowchartt` unrecognized) and rule 3 (unbalanced `]]`); the second fails rule 1 (empty). Optionally add a third block with a literal tab to bite rule 4 (author the tab via an editor that preserves it, or the test can construct it in a temp dir instead, matching the `no-dashes` test pattern of building forbidden bytes programmatically).
+Each temp-dir case isolates one rule so the test can assert the specific message. Only the GOLDEN fixture (`tests/fixtures/golden/mermaid-ok/`, a valid diagram) is committed - it passes the self-scan.
 
 ### Step 8 - the unit test
 
