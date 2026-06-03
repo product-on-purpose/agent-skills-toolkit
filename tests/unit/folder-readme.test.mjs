@@ -46,6 +46,34 @@ test("a plugin with no allowlisted folders passes G8 vacuously", () => {
   }
 });
 
+test("a folder README with no inventory section fails G8", () => {
+  const dir = mkdtempSync(path.join(tmpdir(), "g8-noinv-"));
+  try {
+    mkdirSync(path.join(dir, "evals"), { recursive: true });
+    writeFileSync(path.join(dir, "evals", "a.eval.json"), "{}\n");
+    writeFileSync(path.join(dir, "evals", "README.md"), '---\ntitle: "evals"\n---\n\n# evals\n\nThe eval sets, with a title but no inventory section.\n');
+    assert.ok(check({ root: dir }).some((x) => /no inventory section/.test(x.message)));
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test("items under a deeper sub-heading of the inventory are still parsed (sticky scoping)", () => {
+  const dir = mkdtempSync(path.join(tmpdir(), "g8-sticky-"));
+  try {
+    mkdirSync(path.join(dir, "evals"), { recursive: true });
+    writeFileSync(path.join(dir, "evals", "a.eval.json"), "{}\n");
+    // The inventory has a deeper sub-heading; a phantom listed under it must still be caught.
+    writeFileSync(
+      path.join(dir, "evals", "README.md"),
+      '---\ntitle: "evals"\n---\n\n# evals\n\nThe eval sets.\n\n## Inventory\n\n- `a.eval.json` - a real set.\n\n### Planned\n\n- `ghost.eval.json` - not on disk yet.\n',
+    );
+    assert.ok(check({ root: dir }).some((x) => /phantom/.test(x.message)), "a phantom under a sub-heading must be caught");
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
 test("prose backticks outside the inventory section do not cause a phantom false-fail", () => {
   const dir = mkdtempSync(path.join(tmpdir(), "g8-prose-"));
   try {

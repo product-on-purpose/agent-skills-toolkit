@@ -58,25 +58,32 @@ function resolveFolders(root) {
   return out;
 }
 
-// The inventory is the set of FIRST backticked tokens of the list items under an inventory heading
+// Parse the inventory: the FIRST backticked token of each list item under an inventory heading
 // (Inventory / Contents / Repository map / Repository structure). Scoping to inventory-section list
 // items - and taking only the first backtick per item - means prose backticks (a `node:fs` mention, a
 // backticked word inside a child's description) never count as listed, so phantom detection is sound.
-function listedChildren(text) {
+// The section is STICKY: once opened, a DEEPER sub-heading (e.g. ### Subdirectories under ## Inventory)
+// stays inside it; only a heading at the same or shallower level closes it, so items under a sub-heading
+// are not silently dropped. Returns { names, found } so a README with no inventory section can be
+// flagged distinctly from a correctly-empty one.
+function parseInventory(text) {
   const names = new Set();
-  const lines = text.split(/\r?\n/);
-  let inInventory = false;
-  for (const line of lines) {
-    if (/^#{1,6}\s/.test(line)) {
-      inInventory = /^#{1,6}\s+(inventory|contents|repository\s+(map|structure))\b/i.test(line);
-      continue;
+  let invLevel = 0; // 0 = outside the inventory; otherwise the heading level that opened it
+  let found = false;
+  for (const line of text.split(/\r?\n/)) {
+    const h = line.match(/^(#{1,6})\s+(.*)$/);
+    if (h) {
+      const level = h[1].length;
+      if (/^(inventory|contents|repository\s+(map|structure))\b/i.test(h[2])) { invLevel = level; found = true; }
+      else if (invLevel && level <= invLevel) invLevel = 0; // a same-or-shallower heading closes it
+      continue; // a deeper sub-heading keeps us inside the inventory
     }
-    if (!inInventory) continue;
+    if (!invLevel) continue;
     if (!/^\s*[-*]\s/.test(line)) continue; // only list items count
     const m = line.match(/`([^`]+)`/); // the first backtick of the item is the child name
     if (m) names.add(m[1].replace(/\/$/, ""));
   }
-  return names;
+  return { names, found };
 }
 
 /**
@@ -105,7 +112,10 @@ export function check(ctx) {
       out.push(finding(meta.id, SEVERITY.ERROR, `folder README must carry a non-empty frontmatter "title" (ADR 0024 D1.1).`, { file: relReadme, reqId: meta.reqId }));
     }
     const onDisk = new Set(readdirSync(folder).filter((n) => !INVENTORY_SKIP.has(n)));
-    const listed = listedChildren(text);
+    const { names: listed, found: hasInventory } = parseInventory(text);
+    if (!hasInventory) {
+      out.push(finding(meta.id, SEVERITY.ERROR, `folder README has no inventory section (an "## Inventory" heading listing the immediate children); add one with askit-build-docs folder-readme mode.`, { file: relReadme, reqId: meta.reqId }));
+    }
     for (const name of onDisk) {
       if (!listed.has(name)) {
         out.push(finding(meta.id, SEVERITY.ERROR, `child "${name}" exists on disk but is not in the README inventory (under-listed); add it or refresh with askit-build-docs folder-readme mode.`, { file: relReadme, reqId: meta.reqId }));
