@@ -7,7 +7,7 @@ A plugin earns the highest tier it actually satisfies. The gate reports that tie
 
 ## Bronze (Universal)
 
-The plugin parses and self-describes. A `library.json` with the required fields, a root `AGENTS.md`, valid skill frontmatter, names that match directories, resolvable reference links, an instruction budget, and house style (no em-dashes or en-dashes). Checks `U1` through `U11`.
+The plugin parses and self-describes. A `library.json` with the required fields, a root `AGENTS.md`, valid skill frontmatter, names that match directories, resolvable reference links, an instruction budget, and house style (no em-dashes or en-dashes). Checks `U1` through `U12`.
 
 ## Silver (Convergent)
 

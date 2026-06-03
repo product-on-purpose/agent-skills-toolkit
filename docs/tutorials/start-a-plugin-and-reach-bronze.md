@@ -9,7 +9,7 @@ level: beginner
 
 This is a hands-on tutorial. By the end you will have a real plugin on disk, one or two working skills inside it, and a gate that prints `Tier: Universal` with zero errors. That is the Bronze grade: the smallest commitment that turns a loose pile of skills into a gradeable, portable plugin.
 
-You do not need to memorize the Standard first. You will meet each Universal check (`U1` through `U11`) at the moment it matters, as the tooling brings it up. The path here is the one the toolkit is built around: loose components, into a plugin, into a graded skill library.
+You do not need to memorize the Standard first. You will meet each Universal check (`U1` through `U12`) at the moment it matters, as the tooling brings it up. The path here is the one the toolkit is built around: loose components, into a plugin, into a graded skill library.
 
 ## What you are building, and why Bronze
 

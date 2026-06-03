@@ -33,7 +33,7 @@ Most skill collections are a flat, single-agent, ungoverned pile. This is the St
 <p>
   <img src="https://img.shields.io/badge/status-active-success?style=flat-square" alt="Status: Active">
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-Apache--2.0-blue?style=flat-square" alt="License: Apache-2.0"></a>
-  <img src="https://img.shields.io/badge/version-1.0.0-blue?style=flat-square" alt="Version 1.0.0">
+  <img src="https://img.shields.io/badge/version-1.1.0-blue?style=flat-square" alt="Version 1.1.0">
   <img src="https://img.shields.io/badge/tier-Gold%20(Advanced)-yellow?style=flat-square" alt="Tier: Gold (Advanced)">
   <a href="#the-catalog"><img src="https://img.shields.io/badge/skills-23-brightgreen?style=flat-square" alt="Skills: 23"></a>
   <img src="https://img.shields.io/badge/checks-30-brightgreen?style=flat-square" alt="Validation checks: 30">
@@ -240,6 +240,9 @@ Three rungs, monotonic - each includes everything below it (per-tier detail foll
   - `G5` - a curated `RELEASE-NOTES.md` distinct from `CHANGELOG.md`
   - `G6` - a deprecation policy with `status` / `deprecated-by` / `remove-in` that tooling recognizes
   - `G7` - every published `docs/**` page carries the frontmatter taxonomy (`title`, `description`, `audience`, `level`; sec 8.4)
+  - `G8` - every meaningful folder's `README.md` inventory set-equals its actual immediate children
+  - `G9` - every hand-authored source file carries a four-field header docblock (what it is / what it does / why / what uses it)
+  - `G10` - the Diataxis quadrants are non-empty, every ADR carries a `## TL;DR`, and the architecture overview links its detailed page
 - **Why it matters:** self-hosting CI (`G2`) closes the credibility loop - a Standard whose own reference plugin cannot pass its validators is not trustworthy, so the prover must be the proof. Regression coverage (`G3`) turns "changing X broke Y" from a surprise into a CI failure. Generating `INDEX` and the manifests from one authored source (`G4`) keeps the agent view and the human view from drifting apart at scale.
 - **Payoff:** a Gold plugin is a maintainable, best-in-class library that demonstrably conforms to the Standard. It is the tier this toolkit itself declares (`tier: advanced`) and passes against itself, with an empty blocked list as the proof.
 
@@ -350,9 +353,9 @@ The Claude slash commands that give the core flows an explicit `/command` entry 
 
 ## Status
 
-**`v1.0.0`, Gold grade, installable.** The repository declares `tier: advanced` and self-validates at Advanced in CI: the full gate is green and `tier-report` prints `advanced` with an empty burndown, so the toolkit is a self-proving example of the Standard it defines. Gold check `G1` (hooks) now grades the toolkit's own demonstrative no-dash `PreToolUse` hook; `G6` (deprecation) is still satisfied without exercise, since the toolkit ships no deprecated components yet. The toolkit installs from the `product-on-purpose` marketplace (see [Quick start](#quick-start)).
+**`v1.1.0`, Gold grade, installable.** The repository declares `tier: advanced` and self-validates at Advanced in CI: the full gate is green and `tier-report` prints `advanced` with an empty burndown, so the toolkit is a self-proving example of the Standard it defines. Gold check `G1` (hooks) now grades the toolkit's own demonstrative no-dash `PreToolUse` hook; `G6` (deprecation) is still satisfied without exercise, since the toolkit ships no deprecated components yet. The toolkit installs from the `product-on-purpose` marketplace (see [Install](#install)).
 
-- **Version** - `1.0.0` (Standard `v0.10`).
+- **Version** - `1.1.0` (Standard `v0.10`).
 - **Tier** - Advanced (Gold), self-validated.
 - **Install** - `product-on-purpose` marketplace (`agent-plugins`).
 - **Components** - 23 skills, 7 subagents, 2 commands.

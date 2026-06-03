@@ -29,7 +29,7 @@ Each term below is defined in one sentence. The terms are grouped by axis, then 
 
 **Tier** - a named rung of conformance the gate verifies and reports; the three tiers are monotonic, so each one includes every requirement of the tier below it and earlier work always still counts.
 
-**Bronze (Universal)** - the start line: certifies portable, agent-agnostic files (valid skills, a minimal `library.json`, an `AGENTS.md`) that run unchanged on any agentskills.io-compliant agent, backed by checks `U1` through `U11`.
+**Bronze (Universal)** - the start line: certifies portable, agent-agnostic files (valid skills, a minimal `library.json`, an `AGENTS.md`) that run unchanged on any agentskills.io-compliant agent, backed by checks `U1` through `U12`.
 
 **Silver (Convergent)** - the multi-agent rung: certifies the machinery (subagents, commands, workflows, chain contracts, per-target emission, semver governance) emitted in the right format for every target agent, backed by checks `S1` through `S8` on top of Bronze.
 

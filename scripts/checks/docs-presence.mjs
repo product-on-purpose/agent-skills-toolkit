@@ -27,9 +27,9 @@ function hasMarkdown(dir) {
   return false;
 }
 
-/** Strip fenced code blocks so a ## TL;DR inside a fence is not matched. */
+/** Strip fenced code blocks (backtick and tilde) so a ## TL;DR inside a fence is not matched. */
 function stripFences(text) {
-  return text.replace(/```[\s\S]*?```/g, "");
+  return text.replace(/```[\s\S]*?```|~~~[\s\S]*?~~~/g, "");
 }
 
 function hasTldr(text) {
@@ -114,7 +114,9 @@ export function check(ctx) {
     while ((m = linkRe.exec(overview.text)) !== null) {
       const target = m[1].split("#")[0].split("?")[0].trim();
       if (!target || /^[a-z]+:/i.test(target)) continue; // skip external schemes
-      const resolved = relPath(root, path.resolve(overviewDir, target));
+      // A leading-slash target is repo-root-relative (a docs-site absolute path), not filesystem-absolute.
+      const abs = target.startsWith("/") ? path.join(root, target.slice(1)) : path.resolve(overviewDir, target);
+      const resolved = relPath(root, abs);
       if (resolved === wantRel) { linked = true; break; }
     }
     if (!linked) {

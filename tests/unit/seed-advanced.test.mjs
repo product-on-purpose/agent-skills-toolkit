@@ -4,7 +4,7 @@ import { computeTierReport } from "../../scripts/tier-report.mjs";
 
 const REPO = process.cwd();
 
-// The toolkit self-validates at Gold: it declares tier advanced and passes G1-G7 (plus all
+// The toolkit self-validates at Gold: it declares tier advanced and passes G1-G10 (plus all
 // Bronze + Silver checks), so tier-report satisfies every tier with an empty burndown.
 test("repo tier-report: declares + satisfies Advanced (Gold); no blockers remain", () => {
   const t = computeTierReport(REPO);
