@@ -1,8 +1,12 @@
-# askit-build-skill (human overview)
+---
+title: "skills/askit-build-skill - folder guide"
+---
 
-Author and improve skills that conform to the Advanced Skill Library Standard.
+# skills/askit-build-skill
 
-**create:** interviews you briefly, scaffolds `skills/<name>/` from the template, and validates the result.
-**improve:** reads an `evaluate` report and fixes what it flags (samples, description, budget).
+The askit-build-skill skill. Creates and improves agentskills.io skills to the Advanced Skill Library Standard. Use when you need to author a new SKILL.md, scaffold a skill directory, or raise an existing skill's conformance and description quality.
 
-Works a la carte inside any plugin. Agent-canonical instructions are in `SKILL.md`; the authoring rubric is in `references/authoring-guide.md`.
+## Inventory
+
+- `SKILL.md` - the skill definition (frontmatter plus the procedure).
+- `references/` - supporting reference docs loaded on demand.

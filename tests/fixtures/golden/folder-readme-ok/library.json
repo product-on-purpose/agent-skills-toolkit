@@ -1,0 +1,7 @@
+{
+  "name": "folder-readme-ok",
+  "version": "0.1.0",
+  "description": "A folder-readme G8 fixture plugin, used to exercise the check against an allowlisted evals folder.",
+  "standard": "0.10",
+  "tier": "advanced"
+}

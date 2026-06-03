@@ -29,24 +29,24 @@ export function listSkillDirs(root) {
     .filter((dir) => statSync(dir).isDirectory() && fileExists(path.join(dir, "SKILL.md")));
 }
 
-/** Absolute paths of agents/*.md subagent definitions, excluding _-prefixed control files (_chain-permitted.yaml, _pairing.yaml). */
+/** Absolute paths of agents/*.md subagent definitions, excluding _-prefixed control files (_chain-permitted.yaml, _pairing.yaml) and a folder README.md (a folder guide is not a component). */
 export function listAgentFiles(root) {
   const agentsRoot = path.join(root, "agents");
   if (!existsSync(agentsRoot) || !statSync(agentsRoot).isDirectory()) return [];
   return readdirSync(agentsRoot)
-    .filter((name) => name.endsWith(".md") && !name.startsWith("_"))
+    .filter((name) => name.endsWith(".md") && !name.startsWith("_") && name !== "README.md")
     .map((name) => path.join(agentsRoot, name))
     // fileExists guards against a *directory* named "<x>.md" (it would pass the name
     // filter but is not a subagent); mirrors the isDirectory guard in listSkillDirs.
     .filter((p) => fileExists(p));
 }
 
-/** Absolute paths of commands/*.md definitions, excluding _-prefixed control files. */
+/** Absolute paths of commands/*.md definitions, excluding _-prefixed control files and a folder README.md. */
 export function listCommandFiles(root) {
   const commandsRoot = path.join(root, "commands");
   if (!existsSync(commandsRoot) || !statSync(commandsRoot).isDirectory()) return [];
   return readdirSync(commandsRoot)
-    .filter((name) => name.endsWith(".md") && !name.startsWith("_"))
+    .filter((name) => name.endsWith(".md") && !name.startsWith("_") && name !== "README.md")
     .map((name) => path.join(commandsRoot, name))
     // fileExists guards against a directory named "<x>.md" (mirrors listAgentFiles).
     .filter((p) => fileExists(p));
