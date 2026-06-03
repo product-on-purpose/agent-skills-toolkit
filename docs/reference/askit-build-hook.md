@@ -1,3 +1,10 @@
+---
+title: "askit-build-hook"
+description: "Authors a plugin's event-driven hooks (Advanced tier, Standard sec 3.5)."
+audience: engineer
+level: intermediate
+---
+
 # askit-build-hook (reference)
 
 Authors a plugin's event-driven hooks (Advanced tier, Standard sec 3.5). The skill is portable; the hooks it authors are primarily a Claude capability with a Codex subset.

@@ -1,3 +1,10 @@
+---
+title: "Build AGENTS.md"
+description: "Author the agent navigation + instructions entrypoint (Standard sec 3.10) and keep it in sync."
+audience: engineer
+level: intermediate
+---
+
 # How to build AGENTS.md
 
 Author the agent navigation + instructions entrypoint (Standard sec 3.10) and keep it in sync.

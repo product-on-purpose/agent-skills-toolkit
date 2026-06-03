@@ -1,3 +1,10 @@
+---
+title: "Build an output style"
+description: "Author a Claude Code output style (a response mode)."
+audience: engineer
+level: intermediate
+---
+
 # How to build an output style
 
 Author a Claude Code output style (a response mode). Claude-only (Standard sec 2.3).

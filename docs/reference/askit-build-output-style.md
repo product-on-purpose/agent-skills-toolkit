@@ -1,3 +1,10 @@
+---
+title: "askit-build-output-style"
+description: "Authors Claude Code output styles (Claude-only response-mode definitions, Standard sec 2.3)."
+audience: engineer
+level: intermediate
+---
+
 # askit-build-output-style (reference)
 
 Authors Claude Code output styles (Claude-only response-mode definitions, Standard sec 2.3). The build skill is portable; the artifact is Claude-only.

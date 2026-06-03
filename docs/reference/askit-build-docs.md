@@ -1,3 +1,10 @@
+---
+title: "askit-build-docs"
+description: "Creates and improves a plugin's documentation, including an Astro Starlight docs site, following the builder pattern."
+audience: engineer
+level: intermediate
+---
+
 # askit-build-docs (reference)
 
 Creates and improves a plugin's documentation, including an Astro Starlight docs site, following the builder pattern.

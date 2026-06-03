@@ -1,3 +1,10 @@
+---
+title: "askit-build-chain-contract"
+description: "Authors a plugin's chain contract (`agents/_chain-permitted.yaml`, Standard sec 3.6, Convergent tier) - the explicit declaration of which components may invoke which others."
+audience: engineer
+level: intermediate
+---
+
 # askit-build-chain-contract (reference)
 
 Authors a plugin's chain contract (`agents/_chain-permitted.yaml`, Standard sec 3.6, Convergent tier): the explicit declaration of which components may invoke which others.

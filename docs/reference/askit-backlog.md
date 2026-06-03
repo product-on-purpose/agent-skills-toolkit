@@ -1,3 +1,10 @@
+---
+title: "askit-backlog"
+description: "Manages a plugin's two backlogs (Standard sec 7.1) - `docs/internal/backlog/new-components.md` and `docs/internal/backlog/enhancements.md`."
+audience: engineer
+level: intermediate
+---
+
 # askit-backlog (reference)
 
 Manages a plugin's two backlogs (Standard sec 7.1): `docs/internal/backlog/new-components.md` and `docs/internal/backlog/enhancements.md`.

@@ -1,3 +1,10 @@
+---
+title: "askit-build-settings"
+description: "Creates and improves a plugin's settings and permissions per target, and recommends least-privilege allowlists."
+audience: engineer
+level: intermediate
+---
+
 # askit-build-settings (reference)
 
 Creates and improves a plugin's settings and permissions per target, and recommends least-privilege allowlists.

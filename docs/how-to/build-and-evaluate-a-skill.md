@@ -1,3 +1,10 @@
+---
+title: "Build and evaluate a skill"
+description: "A walkthrough of the core loop - create a skill, evaluate it, improve it."
+audience: engineer
+level: intermediate
+---
+
 # How to build and evaluate a skill
 
 A walkthrough of the core loop: create a skill, evaluate it, improve it.

@@ -1,3 +1,10 @@
+---
+title: "Build a chain contract"
+description: "Declare which components may invoke which others, so inter-component invocation is explicit and safe (Standard sec 3.6)."
+audience: engineer
+level: intermediate
+---
+
 # How to build a chain contract
 
 Declare which components may invoke which others, so inter-component invocation is explicit and safe (Standard sec 3.6).

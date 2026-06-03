@@ -1,3 +1,10 @@
+---
+title: "Cut a release"
+description: "Promote the changelog, curate notes, compute the version, and check readiness (Standard sec 4.3, 7.4, 10.6; ADR 0022)."
+audience: engineer
+level: intermediate
+---
+
 # How to cut a release
 
 Promote the changelog, curate notes, compute the version, and check readiness (Standard sec 4.3, 7.4, 10.6; ADR 0022).

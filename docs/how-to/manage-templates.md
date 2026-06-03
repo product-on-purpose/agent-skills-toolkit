@@ -1,3 +1,10 @@
+---
+title: "Manage templates"
+description: "Curate the global `templates/` directory with `askit-template-manager`."
+audience: engineer
+level: intermediate
+---
+
 # How to manage templates
 
 Curate the global `templates/` directory with `askit-template-manager`.

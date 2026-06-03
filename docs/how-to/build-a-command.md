@@ -1,3 +1,10 @@
+---
+title: "Build a command"
+description: "A walkthrough of creating a conformant `commands/<name>.md` slash command, wiring"
+audience: engineer
+level: intermediate
+---
+
 # How to build a command
 
 A walkthrough of creating a conformant `commands/<name>.md` slash command, wiring

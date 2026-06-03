@@ -125,22 +125,12 @@ Because the tiers are monotonic, the beginner's first Bronze plugin is the exact
 
 ## Use it
 
-Once installed, grade a plugin by invoking the **`askit-evaluate`** skill - run the **`/askit-evaluate`** command, or just ask your agent "grade this plugin against the Standard." It runs the deterministic core and presents the tier, the burndown to the next tier, and per-rule remediation. Start a new plugin with `askit-init-plugin`, build any component with the `askit-build-*` family, and bring an existing repo up to the bar with `askit-migrate`.
+No setup. Install the plugin and drive it through skills:
 
-Under the hood the same gate is a **portable script** you can run directly - in CI, a pre-commit hook, or a plain terminal, anywhere Node 22.12+ runs (one runtime dependency, a YAML parser). From a plugin's root:
+- **Grade a plugin** - invoke **`askit-evaluate`** (or `/askit-evaluate`, or just ask "grade this plugin against the Standard"). You get the tier it earns, the burndown to the next one, and per-rule remediation.
+- **Start, build, adopt, govern** - `askit-init-plugin` scaffolds a new plugin, the `askit-build-*` family adds any component conformant by construction, `askit-migrate` brings an existing repo up to the bar, and `askit-backlog` / `askit-decision` / `askit-release` / `askit-deprecate` run it over its lifetime.
 
-```bash
-node scripts/check.mjs              # the tier + what blocks the next one, on a real exit code
-node scripts/tier-report.mjs --json # the same result as JSON for tooling
-```
-
-```
-Tier: Advanced (no blockers detected)
-
-0 error(s), 0 warning(s).
-```
-
-**Why a script, not only a skill:** a model can present the grade, but only a deterministic gate with a real exit code can run in CI and let a plugin **prove itself** (Gold `G2`) - the whole point of "a portable gate, not an LLM opinion." The skill is the door; the script is the engine, and both run the same checks.
+The grade is trustworthy because it is deterministic: every skill runs the same model-free gate that also runs in CI, so a plugin proves itself instead of taking an agent's word for it (see [What makes it different](#what-makes-it-different)).
 
 <div align="right">(<a href="#readme-top">back to top</a>)</div>
 

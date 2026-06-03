@@ -1,3 +1,10 @@
+---
+title: "askit-build-agents-md"
+description: "Authors and syncs a plugin's `AGENTS.md` (the agent navigation + instructions entrypoint, Standard sec 3.10)."
+audience: engineer
+level: intermediate
+---
+
 # askit-build-agents-md (reference)
 
 Authors and syncs a plugin's `AGENTS.md` (the agent navigation + instructions entrypoint, Standard sec 3.10). Universal tier; the most portable cross-tool surface.

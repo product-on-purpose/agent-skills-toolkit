@@ -1,3 +1,10 @@
+---
+title: "askit-init-plugin"
+description: "Creates a starting plugin that satisfies the Bronze anatomy and onboards the maintainer."
+audience: engineer
+level: intermediate
+---
+
 # askit-init-plugin (reference)
 
 Creates a starting plugin that satisfies the Bronze anatomy and onboards the maintainer.

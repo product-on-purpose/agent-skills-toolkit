@@ -1,3 +1,10 @@
+---
+title: "Silver (Convergent) conformance checks"
+description: "Seven checks (S1-S7) earn Silver tier."
+audience: engineer
+level: advanced
+---
+
 # Reference: Silver (Convergent) conformance checks
 
 Seven checks (S1-S7) earn Silver tier. Each fires findings tagged `reqId: "S<n>"`; tier-report buckets them into the `convergent` tier and lists unmet ones in `blocked.convergent`.

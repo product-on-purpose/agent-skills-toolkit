@@ -1,3 +1,10 @@
+---
+title: "askit-build-command"
+description: "Creates and improves Claude slash commands (`commands/<name>.md`) to the Standard."
+audience: engineer
+level: intermediate
+---
+
 # Reference: askit-build-command
 
 Creates and improves Claude slash commands (`commands/<name>.md`) to the Standard.

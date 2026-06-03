@@ -1,3 +1,10 @@
+---
+title: "askit-evaluate"
+description: "Assesses a known, local skill or plugin against the Standard."
+audience: engineer
+level: intermediate
+---
+
 # Reference: askit-evaluate
 
 Assesses a known, local skill or plugin against the Standard.

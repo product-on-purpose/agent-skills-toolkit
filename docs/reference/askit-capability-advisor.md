@@ -1,3 +1,10 @@
+---
+title: "askit-capability-advisor"
+description: "Reports which component types a target agent can run and recommends a conformance tier, before a plugin is built."
+audience: engineer
+level: intermediate
+---
+
 # askit-capability-advisor (reference)
 
 Reports which component types a target agent can run and recommends a conformance tier, before a plugin is built.

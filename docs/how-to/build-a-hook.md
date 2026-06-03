@@ -1,3 +1,10 @@
+---
+title: "Build a hook"
+description: "Add an event-driven hook (Advanced tier) to a plugin - author it, register it, and document its behavior."
+audience: engineer
+level: intermediate
+---
+
 # How to build a hook
 
 Add an event-driven hook (Advanced tier) to a plugin: author it, register it, and document its behavior.

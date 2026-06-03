@@ -1,3 +1,10 @@
+---
+title: "Stand up a marketplace"
+description: "Catalog plugins for distribution with `askit-init-marketplace`."
+audience: engineer
+level: intermediate
+---
+
 # How to stand up a marketplace
 
 Catalog plugins for distribution with `askit-init-marketplace`.

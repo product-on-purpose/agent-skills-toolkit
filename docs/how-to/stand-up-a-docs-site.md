@@ -1,3 +1,10 @@
+---
+title: "Stand up a docs site"
+description: "Build a plugin's Astro Starlight documentation site with `askit-build-docs` (site mode)."
+audience: engineer
+level: intermediate
+---
+
 # How to stand up a docs site
 
 Build a plugin's Astro Starlight documentation site with `askit-build-docs` (site mode).

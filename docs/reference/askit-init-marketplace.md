@@ -1,3 +1,10 @@
+---
+title: "askit-init-marketplace"
+description: "Creates and validates a marketplace index that catalogs plugins for distribution."
+audience: engineer
+level: intermediate
+---
+
 # askit-init-marketplace (reference)
 
 Creates and validates a marketplace index that catalogs plugins for distribution.

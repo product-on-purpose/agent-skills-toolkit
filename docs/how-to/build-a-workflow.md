@@ -1,3 +1,10 @@
+---
+title: "Build a workflow"
+description: "Formalize a recurring multi-skill sequence as a workflow (Standard sec 3.4)."
+audience: engineer
+level: intermediate
+---
+
 # How to build a workflow
 
 Formalize a recurring multi-skill sequence as a workflow (Standard sec 3.4).
