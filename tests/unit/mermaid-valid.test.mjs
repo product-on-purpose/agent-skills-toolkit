@@ -103,6 +103,53 @@ test("stateDiagram-v2 is recognized (longer keyword wins)", () => {
   });
 });
 
+test("newer Mermaid diagram types are recognized (xychart-beta, C4Container)", () => {
+  inTmp("mermaid-newtypes-", (dir) => {
+    writeFileSync(path.join(dir, "a.md"), md('xychart-beta\n  title "x"\n  bar [1, 2, 3]'));
+    writeFileSync(path.join(dir, "b.md"), md("C4Container\n  Person(u, \"User\")"));
+    assert.equal(check({ root: dir }).length, 0);
+  });
+});
+
+test("an indented mermaid fence (inside a list/MDX) is still scanned", () => {
+  inTmp("mermaid-indent-", (dir) => {
+    writeFileSync(path.join(dir, "a.md"), "- a step:\n\n  ```mermaid\n  notadiagram\n    A[[\n  ```\n");
+    const r = check({ root: dir });
+    assert.ok(r.some((x) => /recognized diagram keyword/.test(x.message)), "indented bad block must be caught");
+  });
+});
+
+test("an info string after the keyword is allowed (block still validated)", () => {
+  inTmp("mermaid-info-", (dir) => {
+    writeFileSync(path.join(dir, "a.md"), "```mermaid theme=dark\nnotadiagram\n  A --> B\n```\n");
+    const r = check({ root: dir });
+    assert.ok(r.some((x) => /recognized diagram keyword/.test(x.message)), "info-string fence must be recognized and validated");
+  });
+});
+
+test("an unterminated quote in a label is flagged", () => {
+  inTmp("mermaid-quoteopen-", (dir) => {
+    writeFileSync(path.join(dir, "a.md"), md('flowchart LR\n  A["never closed --> B'));
+    const r = check({ root: dir });
+    assert.ok(r.some((x) => /unbalanced brackets|unterminated quote/.test(x.message)));
+  });
+});
+
+test("the generated Pattern S quadrant subtree is skipped; a landing page is still scanned", () => {
+  inTmp("mermaid-gen-", (dir) => {
+    // a generated quadrant copy with a bad block -> must be IGNORED (build-state independence)
+    const gen = path.join(dir, "site", "src", "content", "docs", "how-to");
+    mkdirSync(gen, { recursive: true });
+    writeFileSync(path.join(gen, "x.md"), md("notadiagram\n  A[["));
+    // a hand-authored landing page (a FILE directly under content/docs) with a bad block -> must be CAUGHT
+    const landing = path.join(dir, "site", "src", "content", "docs");
+    writeFileSync(path.join(landing, "index.md"), md("notadiagram\n  A[["));
+    const r = check({ root: dir });
+    assert.ok(r.every((x) => !x.file.includes("how-to")), "generated quadrant subtree must be skipped");
+    assert.ok(r.some((x) => x.file.replace(/\\/g, "/").endsWith("content/docs/index.md")), "landing page must be scanned");
+  });
+});
+
 test("a plugin with no diagrams passes vacuously", () => {
   assert.equal(check({ root: NO_DOCS }).length, 0);
 });

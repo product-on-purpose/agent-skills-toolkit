@@ -75,25 +75,28 @@ export const meta = { id: "mermaid-valid", tier: "universal", reqId: "U12" };
 const DIAGRAM_KEYWORDS = [
   "flowchart", "graph", "sequenceDiagram", "classDiagram",
   "stateDiagram-v2", "stateDiagram", "erDiagram", "journey",
-  "gantt", "pie", "mindmap", "timeline", "quadrantChart",
-  "gitGraph", "C4Context",
+  "gantt", "pie", "mindmap", "timeline", "quadrantChart", "gitGraph",
+  "C4Context", "C4Container", "C4Component", "C4Dynamic", "C4Deployment",
+  "xychart-beta", "sankey-beta", "block-beta", "block", "requirementDiagram",
+  "packet-beta", "packet", "kanban", "architecture-beta", "radar-beta",
+  "treemap", "zenuml", "info",
 ];
 ```
 
-Order matters for prefix matching: `stateDiagram-v2` MUST be tested before `stateDiagram` so the longer keyword wins. Rule 2 is satisfied when the first non-blank line of the block body, after trimming, **starts with** one of these keywords (a `startsWith` test, so `flowchart LR`, `graph TD`, `stateDiagram-v2` all pass). The set is the one named in CHECKS-SPEC; keep it in one place so a new diagram type is a one-line addition.
+The set MUST cover the current Mermaid registry (mermaid-js/mermaid `diagram-orchestration`): the classic types plus the full C4 family (`C4Context`/`C4Container`/`C4Component`/`C4Dynamic`/`C4Deployment`) and the newer `-beta` types - otherwise a legitimate diagram of an omitted type false-fails rule 2, and because U12 is Bronze it would block any downstream plugin shipping that type. Rule 2 is satisfied when the first non-blank line of the block body, after trimming, **starts with** one of these keywords (a `startsWith` test, so `flowchart LR`, `graph TD`, `stateDiagram-v2` all pass). Because the test ORs over every keyword, listing a shorter keyword that is a prefix of a longer one (`block` / `block-beta`) is harmless; order does not affect correctness. The set is the one named in CHECKS-SPEC; keep it in one place so a new diagram type is a one-line addition.
 
 **Exact asserts (per block, in order):**
 
 1. **Non-empty:** `body.trim() === ""` -> `finding(..., "mermaid block is empty (...)", { file, reqId })`.
 2. **Recognized first keyword:** let `first` be the first non-blank line trimmed; if no `DIAGRAM_KEYWORDS` entry satisfies `first.startsWith(kw)` -> `finding(..., "mermaid block does not start with a recognized diagram keyword (got '<first-token>'); ...", { file, reqId })`.
-3. **Balanced brackets ignoring quotes:** walk the body char by char; toggle an `inQuote` flag on `"`; while not `inQuote`, push on `[ ( {` and pop on `] ) }`, requiring the matching opener; a mismatch or a nonzero depth at end -> `finding(..., "mermaid block has unbalanced brackets (...)", { file, reqId })`.
+3. **Balanced brackets ignoring quotes:** walk the body char by char; toggle an `inQuote` flag on `"`; while not `inQuote`, push on `[ ( {` and pop on `] ) }`, requiring the matching opener; a mismatch, a nonzero depth at end, OR an unterminated quote span (`inQuote` still true at end) -> `finding(..., "mermaid block has unbalanced brackets [] () {} or an unterminated quote (...)", { file, reqId })`. The `!inQuote` end-guard catches a stray quote with no false positives, since Mermaid escapes a literal quote inside a label as `#quot;`, not `\"`; the odd-quote parity-inversion subset that still balances is delegated to the render layer.
 4. **No tabs:** `body.includes("\t")` -> `finding(..., "mermaid block contains a tab character; mermaid is whitespace-sensitive, use spaces", { file, reqId })`.
 
 All findings use `SEVERITY.ERROR`, `meta.id` as the check, `meta.reqId` (`"U12"`) as the reqId, and the repo-relative `file` via `relPath(root, f)`.
 
-**Block extraction.** The check reads each in-scope file and extracts fenced mermaid blocks. The opening fence is a line matching `/^```mermaid\s*$/` (allow trailing whitespace, ignore an info string beyond `mermaid`); the block body is every subsequent line until the next line matching `/^```\s*$/`; the closing fence ends the block. A file may contain multiple blocks; an unterminated block (opening fence with no closing fence before EOF) is itself a finding ("unterminated mermaid fence"). Quote handling for rule 3 is intra-block and resets per block.
+**Block extraction.** The check reads each in-scope file and extracts fenced mermaid blocks. The opening fence is a line matching `/^\s*```mermaid(\s.*)?$/` (allow **leading indentation**, for fences inside an MDX component or a list item, and ignore an info string after the word `mermaid`); the block body is every subsequent line until the next line matching `/^\s*```\s*$/` (an indented or column-0 closer); the closing fence ends the block. A file may contain multiple blocks; an unterminated block (opening fence with no closing fence before EOF) is itself a finding ("unterminated mermaid fence"). Quote handling for rule 3 is intra-block and resets per block. (Anchoring the opener at column 0 would silently skip indented fences - a vacuous-skip false pass on the `.mdx` surfaces this check exists to cover.)
 
-**Scope + the exact skip set.** Walk `ctx.root` recursively. Skip any directory whose basename is in the shared `SKIP_DIRS` set imported from `no-dashes.mjs` (`node_modules`, `.git`, `.memsearch`, `_local`, `_LOCAL`, `_agent-context`, `dist`, `.astro`). Collect files matching `/\.(md|mdx)$/`. There is deliberately **no** `docs/internal/**` exclusion: U12 is repo-wide Bronze content hygiene. There is no literal `site/node_modules` entry; a nested `node_modules` is matched by basename at any depth.
+**Scope + the exact skip set.** Walk `ctx.root` recursively. Skip any directory whose basename is in the shared `SKIP_DIRS` set imported from `no-dashes.mjs` (`node_modules`, `.git`, `.memsearch`, `_local`, `_LOCAL`, `_agent-context`, `dist`, `.astro`). **Also skip the generated Pattern S quadrant subtrees**: the immediate subdirectories of `site/src/content/docs/` are emitted from `docs/**` by `gen-docs-site.mjs` on every build and gitignored, so scanning them would make U12's result depend on whether the site was built (a non-determinism bug, and a duplicate finding pointing at an uneditable generated copy). Their mermaid blocks are verbatim copies already validated at their `docs/` source, so skipping them loses no coverage; the hand-authored landing pages (files directly under `site/src/content/docs/`, not in subdirectories) stay in scope. Collect files matching `/\.(md|mdx)$/`. There is deliberately **no** `docs/internal/**` exclusion: U12 is repo-wide Bronze content hygiene. There is no literal `site/node_modules` entry; a nested `node_modules` is matched by basename at any depth.
 
 **The conditional / vacuous rule.** A file with no mermaid blocks contributes no findings. A plugin with no mermaid blocks anywhere passes with zero findings. The check is conditional on the presence of mermaid blocks, the same precedent as `mcp-valid` / `deprecation`.
 
