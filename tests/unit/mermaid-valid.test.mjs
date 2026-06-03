@@ -150,6 +150,44 @@ test("the generated Pattern S quadrant subtree is skipped; a landing page is sti
   });
 });
 
+test("a leading %%{init}%% theming directive is allowed before the diagram keyword", () => {
+  inTmp("mermaid-init-", (dir) => {
+    writeFileSync(path.join(dir, "a.md"), md("%%{init: {'theme':'base'}}%%\nflowchart LR\n  A --> B"));
+    assert.equal(check({ root: dir }).length, 0, "an init-directive-led diagram must pass U12");
+  });
+});
+
+test("a leading %% comment is allowed before the diagram keyword", () => {
+  inTmp("mermaid-lead-comment-", (dir) => {
+    writeFileSync(path.join(dir, "a.md"), md("%% a branding note\nflowchart TD\n  A --> B"));
+    assert.equal(check({ root: dir }).length, 0);
+  });
+});
+
+test("a leading --- YAML config block is allowed before the diagram keyword", () => {
+  inTmp("mermaid-frontmatter-", (dir) => {
+    writeFileSync(path.join(dir, "a.md"), md("---\ntitle: My Diagram\nconfig:\n  theme: forest\n---\nsequenceDiagram\n  A->>B: hi"));
+    assert.equal(check({ root: dir }).length, 0);
+  });
+});
+
+test("a stray bracket inside a %% comment does not trip the balance rule", () => {
+  inTmp("mermaid-comment-bracket-", (dir) => {
+    writeFileSync(path.join(dir, "a.md"), md("flowchart LR\n  %% note: see step (3 of the runbook\n  A --> B"));
+    assert.equal(check({ root: dir }).length, 0, "a bracket in comment prose is ignored");
+  });
+});
+
+test("a directive with no real diagram keyword after it still fails, citing the diagram line", () => {
+  inTmp("mermaid-init-bad-", (dir) => {
+    // line 1 is the fence, line 2 the directive, line 3 the (bad) diagram line.
+    writeFileSync(path.join(dir, "a.md"), md("%%{init: {'theme':'base'}}%%\nnotadiagram\n  A --> B"));
+    const f = check({ root: dir }).find((x) => /recognized diagram keyword/.test(x.message));
+    assert.ok(f, "a directive-led block with no keyword must still fail");
+    assert.match(f.message, /line 3/, "the finding must cite the diagram line (3), not the fence opener");
+  });
+});
+
 test("a plugin with no diagrams passes vacuously", () => {
   assert.equal(check({ root: NO_DOCS }).length, 0);
 });

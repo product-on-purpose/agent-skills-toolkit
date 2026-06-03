@@ -85,7 +85,7 @@ export function check(ctx) {
       let text;
       try { text = readFileSync(full, "utf8"); } catch { continue; }
       if (!hasTldr(text)) {
-        out.push(finding(meta.id, SEVERITY.ERROR, `ADR ${relPath(root, full)} has no "## TL;DR" block; every decision record MUST carry the 3-line decision summary (Standard sec 10.4).`, { file: relPath(root, full), reqId: meta.reqId }));
+        out.push(finding(meta.id, SEVERITY.ERROR, `ADR ${relPath(root, full)} has no "## TL;DR" block; every decision record MUST carry a decision summary under a ## TL;DR heading (Standard sec 10.4).`, { file: relPath(root, full), reqId: meta.reqId }));
       }
     }
   }
@@ -93,19 +93,29 @@ export function check(ctx) {
   // Rule 3: the architecture pair exists, is marked, and the overview links the detailed page.
   const pages = [];
   collectPublic(docsDir, internal, pages);
-  let overview = null, detailed = null;
+  const overviews = [], detaileds = [];
   for (const f of pages) {
     let text;
     try { text = readFileSync(f, "utf8"); } catch { continue; }
     const { frontmatter } = parseFrontmatter(text);
     const role = frontmatter && frontmatter["doc-role"];
-    if (role === "architecture-overview") overview = { file: f, text };
-    else if (role === "architecture-detailed") detailed = { file: f };
+    if (role === "architecture-overview") overviews.push({ file: f, text });
+    else if (role === "architecture-detailed") detaileds.push({ file: f });
   }
+  // A duplicate marker would make rule 3 resolve the pair by readdir order (platform-dependent), so
+  // flag it explicitly. The listed names are sorted, so the message is identical across filesystems.
+  for (const [role, list] of [["architecture-overview", overviews], ["architecture-detailed", detaileds]]) {
+    if (list.length > 1) {
+      out.push(finding(meta.id, SEVERITY.ERROR, `more than one page carries doc-role: ${role} (${list.map((x) => relPath(root, x.file)).sort().join(", ")}); exactly one page MUST, or the architecture pair would resolve by filesystem order (G10 rule 3).`, { file: "docs", reqId: meta.reqId }));
+    }
+  }
+  const overview = overviews[0] || null;
+  const detailed = detaileds[0] || null;
   if (!overview || !detailed) {
     // Three-way presence rule: neither, or exactly one, marker present is an incomplete pair.
     out.push(finding(meta.id, SEVERITY.ERROR, `the architecture pair is incomplete: a page MUST carry doc-role: architecture-overview and another doc-role: architecture-detailed (found overview=${!!overview}, detailed=${!!detailed}); R-CONTENT-4 / G10 rule 3.`, { file: "docs", reqId: meta.reqId }));
-  } else {
+  } else if (overviews.length === 1 && detaileds.length === 1) {
+    // Only resolve the link when the pair is unambiguous; a duplicate is reported above instead.
     const overviewDir = path.dirname(overview.file);
     const wantRel = relPath(root, detailed.file);
     let linked = false;
