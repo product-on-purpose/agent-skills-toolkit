@@ -1,0 +1,1026 @@
+<!DOCTYPE html>
+<!--
+  SAMPLE TEMPLATE - Variant: "Command Dashboard v2" (the Command Dashboard with weight and wrapping refinements).
+  This is the improved version of the maintainer's favorite dashboard variant: a real weight hierarchy on a
+  system-font stack (not Inter), wider non-clipping matrix cells, and text-wrap balancing. It supersedes the
+  typographic treatment of evaluation-report--plugin--dashboard.html; everything else (subject, verdict, 30 checks,
+  10-section IA, inline JS) is identical to that original.
+  Whole-library tier-compliance evaluation report emitted by the (proposed) askit-evaluate renderer.
+  The subject (acme-content-skills 0.4.0) is HYPOTHETICAL and exists only to exercise every section.
+  Reflects the current 30-check spine (Standard v0.10): Bronze U1-U12, Silver S1-S8, Gold G1-G10.
+  Self-contained single file: inline CSS, tiny inline JS for (a) TOC scroll-spy, (b) copy buttons, (c) print.
+  No external assets, no web fonts, no tabs, no accordions. System sans stack for display + body; mono only for ids/code.
+  House style: no em-dash (U+2014) or en-dash (U+2013) anywhere.
+  Weight hierarchy tuned for a system sans (Segoe UI / system-ui), NOT Inter: body 400, labels 500-600,
+  headings 600-650, big data 700-760.
+  See docs/internal/backlog/enhancements.md E1.
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>acme-content-skills 0.4.0 - Skill Library Evaluation (Command Dashboard v2)</title>
+<style>
+  :root {
+    /* Cool slate / ink surfaces */
+    --bg:        #eef1f6;
+    --surface:   #ffffff;
+    --surface-2: #f6f8fb;
+    --surface-3: #eef2f7;
+    --ink:       #0f1726;
+    --ink-soft:  #3d4759;
+    --ink-faint: #6b7688;
+    --ink-ghost: #9aa3b2;
+    --line:      #e1e6ee;
+    --line-2:    #d3dae5;
+    --line-3:    #c2cad8;
+
+    --brand:      #5c7cfa;
+    --brand-deep: #3f57c9;
+    --brand-wash: #eef2ff;
+
+    --bronze: #a97142; --bronze-bg: #f7efe6; --bronze-line: #e6d3bd;
+    --silver: #6b7a84; --silver-bg: #eef1f4; --silver-line: #d4dde2;
+    --gold:   #b8901f; --gold-bg:   #fbf4dc; --gold-line:   #ecdca2;
+
+    --pass: #18794e; --pass-bg: #e6f4ec; --pass-line: #bce0cb;
+    --fail: #b42318; --fail-bg: #fbeae7; --fail-line: #f1c6bd;
+    --warn: #8a5a00; --warn-bg: #fbf1d8; --warn-line: #ecd8a0;
+    --na:   #6b7688; --na-bg:   #eef0f4; --na-line:   #d8dde6;
+
+    /* System sans stack (no web fonts); mono for ids/code */
+    --sans: system-ui, -apple-system, "Segoe UI", "Roboto", "Helvetica Neue", Arial, sans-serif;
+    --mono: ui-monospace, "Cascadia Code", "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+
+    --maxw: 1280px;
+    --rail: 264px;
+    --ink-panel: #11182a;
+  }
+
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    margin: 0; background: var(--bg); color: var(--ink);
+    font-family: var(--sans); font-size: 15.5px; line-height: 1.6; font-weight: 400;
+    -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility;
+    font-feature-settings: "tnum" 1;
+  }
+  a { color: var(--brand-deep); text-underline-offset: 2px; }
+
+  /*
+    WEIGHT HIERARCHY (tuned for a system sans, NOT Inter).
+    Headings sit at 600-650 so they read as structure, not as heavy slabs.
+    700-760 is reserved for the big data: KPI numbers, the verdict seal, masthead h1.
+    Letter-spacing stays at 0 (or slightly positive on mono eyebrows); only the large
+    masthead h1 is tightened, and only to -0.01em.
+    TEXT WRAPPING: balance headings and leads, prettify body paragraphs.
+  */
+  h1, h2, h3, h4 { font-family: var(--sans); font-weight: 600; letter-spacing: 0; text-wrap: balance; }
+  p { text-wrap: pretty; }
+  .lead { text-wrap: balance; }
+
+  /* ---------- Layout: sticky left rail + wide content ---------- */
+  .shell { display: grid; grid-template-columns: var(--rail) minmax(0, 1fr); }
+
+  .rail {
+    position: sticky; top: 0; align-self: start; height: 100vh; overflow-y: auto;
+    background: var(--ink-panel); color: #c9d2e3;
+    border-right: 1px solid #0a0f1c; padding: 24px 18px 30px;
+  }
+  .rail .mark { display: flex; align-items: center; gap: 10px; margin-bottom: 22px; }
+  .rail .glyph {
+    width: 30px; height: 30px; border-radius: 8px; flex: none;
+    background: linear-gradient(135deg, var(--brand), var(--brand-deep));
+    display: grid; place-items: center; color: #fff; font-weight: 750; font-size: 15px;
+    box-shadow: 0 2px 10px rgba(63,87,201,.5);
+  }
+  .rail .mark .nm { font-size: 13px; font-weight: 650; color: #fff; line-height: 1.15; }
+  .rail .mark .nm small { display: block; font-family: var(--mono); font-size: 10px; color: #7d88a0; font-weight: 400; letter-spacing: .08em; margin-top: 2px; }
+  .rail .railhead { font-family: var(--mono); font-size: 10px; letter-spacing: .16em; text-transform: uppercase; color: #6b7693; margin: 18px 6px 8px; font-weight: 500; }
+  .rail nav a {
+    display: flex; gap: 9px; align-items: baseline; text-decoration: none; color: #aab3c7;
+    padding: 6px 10px; border-radius: 7px; font-size: 13px; line-height: 1.3;
+    border-left: 2px solid transparent;
+  }
+  .rail nav a .ix { font-family: var(--mono); font-size: 10.5px; color: #6b7693; min-width: 18px; }
+  .rail nav a:hover { background: rgba(92,124,250,.16); color: #fff; }
+  .rail nav a.active { background: rgba(92,124,250,.22); color: #fff; border-left-color: var(--brand); }
+  .rail nav a.active .ix { color: #aeb9ff; }
+  .rail .railnote {
+    margin-top: 22px; padding-top: 16px; border-top: 1px solid rgba(255,255,255,.09);
+    font-size: 11px; line-height: 1.55; color: #7d88a0;
+  }
+
+  .content { min-width: 0; }
+  .wrap { max-width: var(--maxw); margin: 0 auto; padding: 0 40px; }
+  section { padding: 44px 0 6px; }
+  .seclabel { display: flex; align-items: center; gap: 12px; margin: 0 0 14px; }
+  .seclabel .num {
+    font-family: var(--mono); font-size: 12px; font-weight: 600; color: var(--brand-deep);
+    background: var(--brand-wash); border: 1px solid #d6ddff; border-radius: 6px; padding: 3px 8px;
+  }
+  h2.sec { font-size: 25px; margin: 0; line-height: 1.16; font-weight: 650; }
+  .lead { color: var(--ink-soft); font-size: 16.5px; margin: 4px 0 22px; max-width: 76ch; font-weight: 400; }
+  h3 { font-size: 16px; margin: 26px 0 10px; font-weight: 650; }
+  h4 { font-size: 14.5px; margin: 0; font-weight: 650; }
+  p { margin: 0 0 13px; }
+  ul, ol { margin: 0 0 14px; padding-left: 20px; }
+  li { margin: 4px 0; }
+  code, .mono { font-family: var(--mono); font-size: .86em; background: var(--surface-3); padding: 1px 5px; border-radius: 4px; color: #28324a; overflow-wrap: anywhere; }
+  .divider { height: 1px; background: var(--line); border: 0; margin: 6px 0 0; }
+
+  /* ---------- Masthead ---------- */
+  .masthead {
+    background:
+      radial-gradient(90% 130% at 92% -20%, rgba(92,124,250,.30), transparent 60%),
+      radial-gradient(70% 120% at 0% 120%, rgba(63,87,201,.22), transparent 55%),
+      var(--ink-panel);
+    color: #eef1f8; padding: 38px 0 34px; border-bottom: 1px solid #0a0f1c;
+  }
+  .mh-top { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 16px; }
+  .chip {
+    font-family: var(--mono); font-size: 11px; letter-spacing: .04em; padding: 4px 10px; border-radius: 999px;
+    background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.16); color: #c7cfe4; font-weight: 500;
+  }
+  .chip.live { color: #bff0d2; border-color: rgba(120,220,160,.35); background: rgba(40,160,90,.16); }
+  .mh-grid { display: grid; grid-template-columns: 1.35fr 1fr; gap: 34px; align-items: stretch; }
+  .mh-id h1 { font-size: 38px; line-height: 1.06; margin: 0 0 8px; color: #fff; font-weight: 750; letter-spacing: -.01em; }
+  .mh-id .vv { font-family: var(--mono); font-size: 14px; color: #aeb9ff; }
+  .mh-id .desc { color: #b9c2d8; font-size: 15.5px; margin: 12px 0 0; max-width: 56ch; }
+
+  .verdictcard {
+    background: rgba(255,255,255,.05); border: 1px solid rgba(255,255,255,.14); border-radius: 14px;
+    padding: 20px 22px; display: flex; flex-direction: column; gap: 14px;
+  }
+  .lockup { display: flex; align-items: center; gap: 16px; }
+  .seal {
+    width: 74px; height: 74px; border-radius: 14px; flex: none; display: grid; place-items: center; text-align: center;
+    background: linear-gradient(160deg, #8e9ba6, #5d6c77); color: #fff; box-shadow: 0 6px 18px rgba(0,0,0,.35);
+  }
+  .seal .tier { font-size: 21px; font-weight: 760; line-height: 1; letter-spacing: -.01em; }
+  .seal .tlbl { font-family: var(--mono); font-size: 8.5px; letter-spacing: .14em; text-transform: uppercase; margin-top: 4px; opacity: .92; font-weight: 600; }
+  .lockup .vtext .ve { font-family: var(--mono); font-size: 11px; letter-spacing: .12em; text-transform: uppercase; color: #9fb0ff; font-weight: 600; }
+  .lockup .vtext .vg { font-size: 22px; font-weight: 700; color: #fff; line-height: 1.12; }
+  .lockup .vtext .vsub { font-size: 13px; color: #b9c2d8; margin-top: 2px; }
+  .climb {
+    font-size: 13px; color: #cdd5e6; background: rgba(184,144,31,.16); border: 1px solid rgba(184,144,31,.4);
+    border-radius: 9px; padding: 10px 12px; line-height: 1.45;
+  }
+  .climb b { color: #f4d77a; }
+
+  /* KPI tiles */
+  .kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; margin-top: 26px; }
+  .kpi {
+    background: rgba(255,255,255,.055); border: 1px solid rgba(255,255,255,.13); border-radius: 12px; padding: 14px 16px;
+  }
+  .kpi .k { font-family: var(--mono); font-size: 10px; letter-spacing: .12em; text-transform: uppercase; color: #8b96b3; font-weight: 500; }
+  .kpi .v { font-size: 26px; font-weight: 750; color: #fff; line-height: 1.05; margin-top: 6px; letter-spacing: -.01em; white-space: nowrap; }
+  .kpi .v small { font-size: 14px; font-weight: 600; color: #9fa9c4; }
+  .kpi .n { font-size: 11.5px; color: #9aa4bd; margin-top: 3px; }
+  .kpi.accent-pass .v { color: #8ce6ad; } .kpi.accent-fail .v { color: #ff9f93; } .kpi.accent-warn .v { color: #f4cf7a; }
+
+  /* ---------- Status matrix (signature feature) ---------- */
+  .matrixzone { background: var(--surface); border-bottom: 1px solid var(--line); padding: 26px 0 30px; }
+  .matrixzone .barhead { display: flex; align-items: baseline; justify-content: space-between; flex-wrap: wrap; gap: 8px; margin-bottom: 4px; }
+  .matrixzone h2 { font-size: 17px; margin: 0; font-weight: 650; }
+  .matrixzone .barhead .hint { font-size: 12.5px; color: var(--ink-faint); }
+  .mx-legend { display: flex; flex-wrap: wrap; gap: 8px 16px; margin: 10px 0 18px; font-size: 12px; color: var(--ink-soft); }
+  .mx-legend span { display: inline-flex; align-items: center; gap: 6px; }
+  .swatch { width: 11px; height: 11px; border-radius: 3px; display: inline-block; border: 1px solid rgba(0,0,0,.08); }
+  .sw-pass { background: var(--pass); } .sw-fail { background: var(--fail); } .sw-warn { background: var(--warn); } .sw-na { background: var(--na); }
+
+  .mx-tier { margin-top: 16px; }
+  .mx-tier .th { display: flex; align-items: center; gap: 10px; margin: 0 0 10px; flex-wrap: wrap; }
+  .mx-tier .th .badge-tier {
+    font-family: var(--mono); font-size: 11px; font-weight: 650; letter-spacing: .04em; padding: 3px 9px; border-radius: 6px; text-transform: uppercase;
+  }
+  .badge-tier.bronze { color: var(--bronze); background: var(--bronze-bg); border: 1px solid var(--bronze-line); }
+  .badge-tier.silver { color: var(--silver); background: var(--silver-bg); border: 1px solid var(--silver-line); }
+  .badge-tier.gold   { color: var(--gold);   background: var(--gold-bg);   border: 1px solid var(--gold-line); }
+  .mx-tier .th .tname { font-size: 13.5px; font-weight: 600; }
+  .mx-tier .th .tcount { font-family: var(--mono); font-size: 12px; color: var(--ink-faint); }
+
+  /*
+    WRAPPING FIX: wider cells (min 160px) so long ids like library-regression and
+    per-target-presence read cleanly on two lines. The check name is allowed to wrap
+    with overflow-wrap: anywhere and hyphens off, and is never clipped. The ::before
+    color bar is preserved.
+  */
+  .mx-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 8px; }
+  .cell {
+    border-radius: 9px; padding: 9px 12px 9px 14px; border: 1px solid var(--line-2); background: var(--surface-2);
+    display: flex; flex-direction: column; gap: 3px; text-decoration: none; color: inherit; position: relative;
+  }
+  .cell::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 4px; border-radius: 9px 0 0 9px; }
+  .cell .cid { font-family: var(--mono); font-size: 12px; font-weight: 650; letter-spacing: .02em; }
+  .cell .cnm { font-size: 11.5px; color: var(--ink-faint); line-height: 1.3; overflow-wrap: anywhere; hyphens: none; }
+  .cell .cst { position: absolute; top: 8px; right: 9px; width: 8px; height: 8px; border-radius: 50%; }
+  .cell:hover { border-color: var(--line-3); box-shadow: 0 2px 8px rgba(15,23,38,.07); transform: translateY(-1px); transition: .12s; }
+  .cell.s-pass { background: var(--pass-bg); border-color: var(--pass-line); } .cell.s-pass::before { background: var(--pass); } .cell.s-pass .cst { background: var(--pass); }
+  .cell.s-fail { background: var(--fail-bg); border-color: var(--fail-line); } .cell.s-fail::before { background: var(--fail); } .cell.s-fail .cst { background: var(--fail); }
+  .cell.s-warn { background: var(--warn-bg); border-color: var(--warn-line); } .cell.s-warn::before { background: var(--warn); } .cell.s-warn .cst { background: var(--warn); }
+  .cell.s-na   { background: var(--na-bg);   border-color: var(--na-line); }   .cell.s-na::before   { background: var(--na); }   .cell.s-na .cst   { background: var(--na); }
+
+  /* ---------- Progress meters ---------- */
+  .meters { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 14px; margin: 4px 0 8px; }
+  .meter { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; }
+  .meter .mtop { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 9px; }
+  .meter .mname { font-size: 13.5px; font-weight: 600; display: inline-flex; align-items: center; gap: 8px; }
+  .meter .dotc { width: 9px; height: 9px; border-radius: 50%; }
+  .meter .dotc.bronze { background: var(--bronze); } .meter .dotc.silver { background: var(--silver); } .meter .dotc.gold { background: var(--gold); }
+  .meter .mfrac { font-family: var(--mono); font-size: 12.5px; font-weight: 650; white-space: nowrap; }
+  .track { height: 9px; border-radius: 999px; background: var(--surface-3); overflow: hidden; }
+  .fill { height: 100%; border-radius: 999px; }
+  .fill.bronze { background: var(--bronze); } .fill.silver { background: var(--silver); } .fill.gold { background: var(--gold); }
+  .meter .mnote { font-size: 11.5px; color: var(--ink-faint); margin-top: 8px; line-height: 1.5; }
+
+  /* ---------- Cards / panels ---------- */
+  .panel { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 18px 20px; }
+  .aside {
+    background: var(--brand-wash); border: 1px solid #d6ddff; border-left: 4px solid var(--brand);
+    border-radius: 0 10px 10px 0; padding: 14px 18px; margin: 0 0 20px;
+  }
+  .aside h4 { color: var(--brand-deep); margin-bottom: 6px; font-size: 13.5px; }
+  .aside p { margin: 0; font-size: 14px; color: var(--ink-soft); }
+  .guarantees { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 12px; margin: 6px 0 4px; }
+  .gtile { border: 1px solid var(--line); border-radius: 11px; padding: 14px 16px; background: var(--surface); }
+  .gtile .gt { font-size: 13.5px; font-weight: 650; display: inline-flex; align-items: center; gap: 8px; }
+  .gtile.bronze { border-top: 3px solid var(--bronze); } .gtile.silver { border-top: 3px solid var(--silver); } .gtile.gold { border-top: 3px solid var(--gold); }
+  .gtile p { font-size: 13px; color: var(--ink-soft); margin: 8px 0 0; }
+
+  /* ---------- Identity strip ---------- */
+  .idstrip { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; margin: 0 0 22px; }
+  .idstrip .ic { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 11px 14px; }
+  .idstrip .ick { font-family: var(--mono); font-size: 10px; letter-spacing: .1em; text-transform: uppercase; color: var(--ink-faint); font-weight: 500; }
+  .idstrip .icv { font-size: 14.5px; font-weight: 600; margin-top: 4px; overflow-wrap: anywhere; }
+
+  /* ---------- Tables ---------- */
+  .tablecard { border: 1px solid var(--line); border-radius: 12px; overflow: hidden; background: var(--surface); }
+  table { width: 100%; border-collapse: collapse; font-size: 14px; table-layout: fixed; }
+  thead th {
+    text-align: left; padding: 11px 14px; background: var(--surface-2); border-bottom: 1px solid var(--line-2);
+    font-family: var(--mono); font-size: 10.5px; letter-spacing: .06em; text-transform: uppercase; color: var(--ink-faint); font-weight: 600;
+  }
+  tbody td { padding: 10px 14px; border-bottom: 1px solid var(--line); vertical-align: top; overflow-wrap: anywhere; }
+  tbody tr:last-child td { border-bottom: 0; }
+  tbody tr:hover { background: var(--surface-2); }
+  td .cn { font-family: var(--mono); font-size: 13px; font-weight: 600; color: var(--ink); overflow-wrap: anywhere; }
+  .typetag { font-family: var(--mono); font-size: 11px; padding: 2px 7px; border-radius: 5px; white-space: nowrap; border: 1px solid var(--line-2); background: var(--surface-2); color: var(--ink-soft); }
+  .typetag.skill { color: var(--brand-deep); background: var(--brand-wash); border-color: #d6ddff; }
+  .typetag.subagent { color: #7a3ea3; background: #f4ecfb; border-color: #e2cdf0; }
+  .typetag.command { color: #0f6b6b; background: #e3f4f4; border-color: #c3e4e4; }
+  .tgt { font-family: var(--mono); font-size: 11px; color: var(--ink-faint); }
+  td .flag { display: inline-block; font-family: var(--mono); font-size: 10.5px; padding: 1px 6px; border-radius: 5px; margin-left: 6px; }
+  td .flag.warn { color: var(--warn); background: var(--warn-bg); border: 1px solid var(--warn-line); }
+
+  /* ---------- Status badges ---------- */
+  .badge { display: inline-flex; align-items: center; gap: 6px; font-family: var(--mono); font-size: 10.5px; font-weight: 650; letter-spacing: .04em; text-transform: uppercase; padding: 3px 9px; border-radius: 6px; border: 1px solid transparent; white-space: nowrap; }
+  .b-pass { color: var(--pass); background: var(--pass-bg); border-color: var(--pass-line); }
+  .b-fail { color: var(--fail); background: var(--fail-bg); border-color: var(--fail-line); }
+  .b-warn { color: var(--warn); background: var(--warn-bg); border-color: var(--warn-line); }
+  .b-na   { color: var(--na);   background: var(--na-bg);   border-color: var(--na-line); }
+  .dot { width: 7px; height: 7px; border-radius: 50%; }
+  .dot.pass { background: var(--pass); } .dot.fail { background: var(--fail); } .dot.warn { background: var(--warn); } .dot.na { background: var(--na); }
+
+  /* ---------- Evidence ledger ---------- */
+  .tierbar { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; margin: 26px 0 12px; padding: 13px 16px; border-radius: 11px; border: 1px solid var(--line-2); }
+  .tierbar.bronze { background: var(--bronze-bg); border-color: var(--bronze-line); }
+  .tierbar.silver { background: var(--silver-bg); border-color: var(--silver-line); }
+  .tierbar.gold   { background: var(--gold-bg);   border-color: var(--gold-line); }
+  .tierbar .ts { font-size: 16px; font-weight: 700; }
+  .tierbar.bronze .ts { color: var(--bronze); } .tierbar.silver .ts { color: var(--silver); } .tierbar.gold .ts { color: var(--gold); }
+  .tierbar .tv { font-size: 14px; color: var(--ink-soft); }
+  .tierbar .tv b { color: var(--ink); font-weight: 650; }
+  .tierbar .tfrac { margin-left: auto; font-family: var(--mono); font-size: 13px; font-weight: 650; color: var(--ink-soft); white-space: nowrap; }
+
+  .ledger { border: 1px solid var(--line); border-radius: 12px; overflow: hidden; background: var(--surface); margin-bottom: 10px; }
+  .lrow { display: grid; grid-template-columns: 168px 1fr; border-bottom: 1px solid var(--line); }
+  .lrow:last-child { border-bottom: 0; }
+  .lrow .lst { padding: 13px 14px; border-right: 1px solid var(--line); display: flex; flex-direction: column; gap: 8px; align-items: flex-start; background: var(--surface-2); }
+  .lrow .lst .rid { font-family: var(--mono); font-size: 11.5px; color: var(--ink-faint); }
+  .lrow .lst .rname { font-family: var(--mono); font-size: 12.5px; font-weight: 650; color: var(--ink); overflow-wrap: anywhere; }
+  .lrow .lbody { padding: 12px 16px; min-width: 0; }
+  .lrow .ev { font-size: 13.5px; color: var(--ink-soft); margin: 0; line-height: 1.55; }
+  .lrow .ev .src { font-family: var(--mono); font-size: 12px; color: var(--brand-deep); background: var(--brand-wash); padding: 1px 5px; border-radius: 4px; overflow-wrap: anywhere; }
+  .lrow.is-fail .lst { background: var(--fail-bg); }
+  .lrow.is-warn .lst { background: var(--warn-bg); }
+  .lrow.is-na .lst { background: var(--na-bg); }
+  .why { margin-top: 9px; font-size: 13px; padding: 9px 12px; border-left: 3px solid var(--fail); background: var(--surface-2); border-radius: 0 7px 7px 0; color: var(--ink-soft); line-height: 1.55; }
+  .why.warn { border-left-color: var(--warn); }
+  .why b { font-size: 10.5px; letter-spacing: .08em; text-transform: uppercase; color: var(--ink-faint); display: block; margin-bottom: 2px; font-weight: 600; }
+
+  /* ---------- Burndown ---------- */
+  .worklist { counter-reset: wl; display: grid; gap: 12px; }
+  .wlitem { display: grid; grid-template-columns: 40px 1fr auto; gap: 14px; align-items: center; background: var(--surface); border: 1px solid var(--line); border-radius: 11px; padding: 14px 16px; }
+  .wlitem .ord { counter-increment: wl; font-family: var(--mono); font-weight: 750; font-size: 16px; color: var(--brand-deep); width: 34px; height: 34px; border-radius: 8px; background: var(--brand-wash); display: grid; place-items: center; }
+  .wlitem .ord::before { content: counter(wl); }
+  .wlitem .wmeta h4 { margin: 0 0 3px; font-size: 14.5px; }
+  .wlitem .wmeta .wd { font-size: 13px; color: var(--ink-soft); line-height: 1.55; }
+  .wlitem .wmeta .wid { font-family: var(--mono); font-size: 11px; color: var(--fail); background: var(--fail-bg); border: 1px solid var(--fail-line); padding: 1px 6px; border-radius: 5px; margin-right: 6px; }
+  .wlitem .eff { font-family: var(--mono); font-size: 12px; color: var(--ink-soft); text-align: right; white-space: nowrap; }
+  .wlitem .eff small { display: block; font-size: 10px; color: var(--ink-ghost); text-transform: uppercase; letter-spacing: .08em; }
+
+  /* ---------- Improvement cards ---------- */
+  .imp { border: 1px solid var(--line-2); border-radius: 13px; padding: 18px 20px; margin: 0 0 16px; background: var(--surface); }
+  .imp .top { display: flex; align-items: center; gap: 9px; flex-wrap: wrap; margin-bottom: 9px; }
+  .imp h4 { font-size: 15.5px; flex: 1 1 auto; font-weight: 650; }
+  .imp .rtag { font-family: var(--mono); font-size: 11px; font-weight: 650; padding: 2px 7px; border-radius: 5px; }
+  .imp .rtag.gold { color: var(--gold); background: var(--gold-bg); border: 1px solid var(--gold-line); }
+  .imp .rtag.warn { color: var(--warn); background: var(--warn-bg); border: 1px solid var(--warn-line); }
+  .pill { font-family: var(--mono); font-size: 10px; letter-spacing: .03em; text-transform: uppercase; padding: 2px 8px; border-radius: 6px; border: 1px solid var(--line-2); color: var(--ink-soft); background: var(--surface-2); white-space: nowrap; }
+  .pill.p-high { color: var(--fail); border-color: var(--fail-line); background: var(--fail-bg); }
+  .pill.p-med  { color: var(--warn); border-color: var(--warn-line); background: var(--warn-bg); }
+  .imp .ifgrid { font-size: 13.5px; color: var(--ink-soft); margin: 2px 0 13px; line-height: 1.6; }
+  .imp .ifgrid b { color: var(--ink); font-weight: 650; }
+  .prompt { position: relative; background: #0c1322; color: #e7ecf7; border: 1px solid #1c2538; border-radius: 10px; padding: 30px 16px 15px; font-family: var(--mono); font-size: 12.5px; line-height: 1.62; white-space: pre-wrap; overflow-wrap: anywhere; }
+  .prompt .lbl { position: absolute; top: 9px; left: 14px; font-size: 9.5px; letter-spacing: .14em; text-transform: uppercase; color: #6f7da6; font-weight: 600; }
+  .copy { position: absolute; top: 8px; right: 9px; background: rgba(255,255,255,.07); color: #cdd6ec; border: 1px solid rgba(255,255,255,.16); border-radius: 6px; font-family: var(--mono); font-size: 11px; padding: 4px 10px; cursor: pointer; transition: .12s; }
+  .copy:hover { background: var(--brand); border-color: var(--brand); color: #fff; }
+  .copy.ok { background: var(--pass); border-color: var(--pass); color: #fff; }
+
+  /* ---------- Insights ---------- */
+  .insight { display: grid; grid-template-columns: 34px 1fr; gap: 13px; padding: 14px 16px; border: 1px solid var(--line); border-left: 3px solid var(--brand); border-radius: 0 10px 10px 0; margin: 0 0 12px; background: var(--surface); }
+  .insight .ic { font-family: var(--mono); font-size: 12px; font-weight: 700; color: var(--brand-deep); background: var(--brand-wash); border-radius: 8px; width: 32px; height: 32px; display: grid; place-items: center; }
+  .insight h4 { margin: 0 0 3px; font-size: 14.5px; }
+  .insight p { margin: 0; font-size: 13.5px; color: var(--ink-soft); }
+
+  /* ---------- References ---------- */
+  .refs { font-size: 13.5px; list-style: none; padding: 0; margin: 0; }
+  .refs li { display: grid; grid-template-columns: 132px 1fr; gap: 12px; padding: 9px 0; border-bottom: 1px solid var(--line); }
+  .refs li:last-child { border-bottom: 0; }
+  .refs .tag { font-family: var(--mono); font-size: 11px; color: var(--ink-faint); }
+  .refs .ck { font-family: var(--mono); color: var(--brand-deep); overflow-wrap: anywhere; }
+
+  /* ---------- Metadata ---------- */
+  .meta-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 0 32px; font-size: 14px; }
+  .meta-grid div { padding: 9px 0; border-bottom: 1px solid var(--line); display: flex; justify-content: space-between; gap: 14px; }
+  .meta-grid .mk { color: var(--ink-faint); }
+  .meta-grid .mv { font-weight: 600; font-family: var(--mono); font-size: 12.5px; text-align: right; overflow-wrap: anywhere; }
+  .legend { display: flex; flex-wrap: wrap; gap: 9px 18px; margin: 14px 0; font-size: 13px; color: var(--ink-soft); }
+  .legend span { display: inline-flex; align-items: center; gap: 7px; }
+  .samplenote { font-size: 12.5px; color: var(--ink-faint); background: var(--surface-2); border: 1px dashed var(--line-3); border-radius: 9px; padding: 12px 14px; margin-top: 16px; line-height: 1.6; }
+
+  /* ---------- Toolbar ---------- */
+  .toolbar { position: fixed; top: 14px; right: 18px; z-index: 20; display: flex; gap: 8px; }
+  .toolbar button {
+    font-family: var(--mono); font-size: 12px; background: var(--surface); border: 1px solid var(--line-3); border-radius: 8px;
+    padding: 8px 13px; cursor: pointer; color: var(--ink-soft); box-shadow: 0 2px 8px rgba(15,23,38,.12); font-weight: 600;
+  }
+  .toolbar button:hover { border-color: var(--brand); color: var(--brand-deep); }
+
+  .footnote { color: var(--ink-faint); font-size: 12.5px; padding: 30px 0 60px; line-height: 1.6; }
+
+  /* ---------- Responsive ---------- */
+  @media (max-width: 1080px) {
+    .mh-grid { grid-template-columns: 1fr; }
+  }
+  @media (max-width: 900px) {
+    .shell { grid-template-columns: 1fr; }
+    .rail { position: static; height: auto; overflow: visible; border-right: 0; border-bottom: 1px solid #0a0f1c; padding: 18px 20px; }
+    .rail nav { columns: 2; column-gap: 14px; }
+    .wrap { padding: 0 22px; }
+    .lrow { grid-template-columns: 1fr; }
+    .lrow .lst { border-right: 0; border-bottom: 1px solid var(--line); flex-direction: row; align-items: center; gap: 12px; flex-wrap: wrap; }
+    .wlitem { grid-template-columns: 36px 1fr; }
+    .wlitem .eff { grid-column: 1 / -1; text-align: left; padding-left: 50px; }
+    .toolbar { top: auto; bottom: 14px; right: 14px; }
+  }
+  @media (max-width: 560px) {
+    .wrap { padding: 0 16px; }
+    .mh-id h1 { font-size: 30px; }
+    .rail nav { columns: 1; }
+  }
+
+  /* ---------- Print ---------- */
+  @media print {
+    .rail, .toolbar, .copy { display: none !important; }
+    .shell { grid-template-columns: 1fr; }
+    body { background: #fff; font-size: 10.5pt; }
+    .wrap { max-width: none; padding: 0 8mm; }
+    .masthead, .matrixzone { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    .masthead { background: var(--ink-panel) !important; }
+    .prompt { background: #0c1322 !important; }
+    section { break-inside: avoid; }
+    .imp, .lrow, .ledger, .wlitem, .cell, .kpi, .meter, .gtile { break-inside: avoid; }
+    a { color: var(--ink); }
+  }
+</style>
+</head>
+<body>
+
+<div class="toolbar">
+  <button onclick="window.print()" title="Print or save as PDF">Print / Save PDF</button>
+</div>
+
+<div class="shell">
+
+  <!-- ===================== LEFT RAIL ===================== -->
+  <aside class="rail">
+    <div class="mark">
+      <div class="glyph">AS</div>
+      <div class="nm">agent-skills-toolkit<small>askit-evaluate</small></div>
+    </div>
+    <div class="railhead">Report Sections</div>
+    <nav id="toc">
+      <a href="#s01"><span class="ix">01</span><span>Verdict</span></a>
+      <a href="#matrix"><span class="ix">--</span><span>Status matrix</span></a>
+      <a href="#s02"><span class="ix">02</span><span>Executive summary</span></a>
+      <a href="#s03"><span class="ix">03</span><span>What was evaluated</span></a>
+      <a href="#s04"><span class="ix">04</span><span>Methodology and scope</span></a>
+      <a href="#s05"><span class="ix">05</span><span>Tier compliance ledger</span></a>
+      <a href="#s06"><span class="ix">06</span><span>The climb / burndown</span></a>
+      <a href="#s07"><span class="ix">07</span><span>Improvement path</span></a>
+      <a href="#s08"><span class="ix">08</span><span>Insights</span></a>
+      <a href="#s09"><span class="ix">09</span><span>Evidence and sources</span></a>
+      <a href="#s10"><span class="ix">10</span><span>Report metadata</span></a>
+    </nav>
+    <div class="railnote">
+      Sample report. Hypothetical subject. Conformance layer is deterministic and reproducible; re-run the gate to confirm.
+    </div>
+  </aside>
+
+  <!-- ===================== CONTENT ===================== -->
+  <main class="content">
+
+    <!-- ============ 01 MASTHEAD / VERDICT ============ -->
+    <header class="masthead" id="s01">
+      <div class="wrap">
+        <div class="mh-top">
+          <span class="chip">Skill Library Evaluation</span>
+          <span class="chip">Standard v0.10</span>
+          <span class="chip">Evaluated 2026-06-03</span>
+          <span class="chip live">Gate exit 0</span>
+        </div>
+        <div class="mh-grid">
+          <div class="mh-id">
+            <h1>acme-content-skills</h1>
+            <div class="vv">version 0.4.0 &nbsp;/&nbsp; declared tier: convergent</div>
+            <p class="desc">A content-marketing skill library for Claude Code and Codex. 12 skills, 2 subagents, 1 command, evaluated as a whole library against the Advanced Skill Library Standard.</p>
+
+            <div class="kpis">
+              <div class="kpi accent-pass"><div class="k">Checks passed</div><div class="v">27<small>/30</small></div><div class="n">90 percent conformance</div></div>
+              <div class="kpi"><div class="k">Tier earned</div><div class="v">Silver</div><div class="n">Convergent</div></div>
+              <div class="kpi accent-fail"><div class="k">Blockers to Gold</div><div class="v">3</div><div class="n">G2, G3, G5</div></div>
+              <div class="kpi accent-warn"><div class="k">Advisory warnings</div><div class="v">2</div><div class="n">U5, U7</div></div>
+              <div class="kpi accent-pass"><div class="k">Gate exit code</div><div class="v">0</div><div class="n">Silver satisfied</div></div>
+            </div>
+          </div>
+
+          <div class="verdictcard">
+            <div class="lockup">
+              <div class="seal">
+                <div>
+                  <div class="tier">Silver</div>
+                  <div class="tlbl">Convergent</div>
+                </div>
+              </div>
+              <div class="vtext">
+                <div class="ve">Verdict</div>
+                <div class="vg">Earns Silver</div>
+                <div class="vsub">Matches its declared tier. Bronze and Silver fully satisfied.</div>
+              </div>
+            </div>
+            <div class="climb">
+              <b>Climb to Gold:</b> 7 of 10 Advanced checks pass. Three remain - <b>self-hosting (G2)</b>, <b>library regression (G3)</b>, and <b>release notes (G5)</b>. Estimated about 65 minutes of focused work to close, all addressable with toolkit commands.
+            </div>
+
+            <div class="meters">
+              <div class="meter">
+                <div class="mtop"><span class="mname"><span class="dotc bronze"></span>Bronze</span><span class="mfrac">12 / 12</span></div>
+                <div class="track"><div class="fill bronze" style="width:100%"></div></div>
+                <div class="mnote">Universal floor satisfied. 2 advisory warnings do not gate.</div>
+              </div>
+              <div class="meter">
+                <div class="mtop"><span class="mname"><span class="dotc silver"></span>Silver</span><span class="mfrac">8 / 8</span></div>
+                <div class="track"><div class="fill silver" style="width:100%"></div></div>
+                <div class="mnote">Convergent. Tier earned.</div>
+              </div>
+              <div class="meter">
+                <div class="mtop"><span class="mname"><span class="dotc gold"></span>Gold</span><span class="mfrac">7 / 10</span></div>
+                <div class="track"><div class="fill gold" style="width:70%"></div></div>
+                <div class="mnote">3 checks block. Not yet self-proving.</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <!-- ============ STATUS MATRIX (signature) ============ -->
+    <section class="matrixzone" id="matrix">
+      <div class="wrap">
+        <div class="barhead">
+          <h2>30-check status matrix</h2>
+          <span class="hint">Whole-library state at a glance. The full itemized evidence ledger follows in section 05.</span>
+        </div>
+        <div class="mx-legend">
+          <span><i class="swatch sw-pass"></i> Pass</span>
+          <span><i class="swatch sw-fail"></i> Fail (blocks Gold)</span>
+          <span><i class="swatch sw-warn"></i> Warn (advisory)</span>
+          <span><i class="swatch sw-na"></i> N/A (vacuous pass)</span>
+        </div>
+
+        <div class="mx-tier">
+          <div class="th"><span class="badge-tier bronze">Bronze</span><span class="tname">Universal</span><span class="tcount">12 checks &middot; 10 pass &middot; 2 warn</span></div>
+          <div class="mx-grid">
+            <a class="cell s-pass" href="#u1"><span class="cst"></span><span class="cid">U1</span><span class="cnm">library-json</span></a>
+            <a class="cell s-pass" href="#u2"><span class="cst"></span><span class="cid">U2</span><span class="cnm">anatomy</span></a>
+            <a class="cell s-pass" href="#u3"><span class="cst"></span><span class="cid">U3</span><span class="cnm">frontmatter-valid</span></a>
+            <a class="cell s-pass" href="#u4"><span class="cst"></span><span class="cid">U4</span><span class="cnm">name-matches-dir</span></a>
+            <a class="cell s-warn" href="#u5"><span class="cst"></span><span class="cid">U5</span><span class="cnm">description-score</span></a>
+            <a class="cell s-pass" href="#u6"><span class="cst"></span><span class="cid">U6</span><span class="cnm">reference-links</span></a>
+            <a class="cell s-warn" href="#u7"><span class="cst"></span><span class="cid">U7</span><span class="cnm">instruction-budget</span></a>
+            <a class="cell s-pass" href="#u8"><span class="cst"></span><span class="cid">U8</span><span class="cnm">manifest-drift</span></a>
+            <a class="cell s-pass" href="#u9"><span class="cst"></span><span class="cid">U9</span><span class="cnm">version-match</span></a>
+            <a class="cell s-pass" href="#u10"><span class="cst"></span><span class="cid">U10</span><span class="cnm">no-dashes</span></a>
+            <a class="cell s-na" href="#u11"><span class="cst"></span><span class="cid">U11</span><span class="cnm">mcp-valid</span></a>
+            <a class="cell s-pass" href="#u12"><span class="cst"></span><span class="cid">U12</span><span class="cnm">mermaid-valid</span></a>
+          </div>
+        </div>
+
+        <div class="mx-tier">
+          <div class="th"><span class="badge-tier silver">Silver</span><span class="tname">Convergent</span><span class="tcount">8 checks &middot; 8 pass</span></div>
+          <div class="mx-grid">
+            <a class="cell s-pass" href="#s1"><span class="cst"></span><span class="cid">S1</span><span class="cnm">agent-targets</span></a>
+            <a class="cell s-pass" href="#s2"><span class="cst"></span><span class="cid">S2</span><span class="cnm">prefix</span></a>
+            <a class="cell s-pass" href="#s3"><span class="cst"></span><span class="cid">S3</span><span class="cnm">components-index</span></a>
+            <a class="cell s-pass" href="#s4"><span class="cst"></span><span class="cid">S4</span><span class="cnm">chain-contract</span></a>
+            <a class="cell s-pass" href="#s5"><span class="cst"></span><span class="cid">S5</span><span class="cnm">workflow-skills</span></a>
+            <a class="cell s-pass" href="#s6"><span class="cst"></span><span class="cid">S6</span><span class="cnm">per-target-presence</span></a>
+            <a class="cell s-pass" href="#s7"><span class="cst"></span><span class="cid">S7</span><span class="cnm">command-contract</span></a>
+            <a class="cell s-pass" href="#s8"><span class="cst"></span><span class="cid">S8</span><span class="cnm">components-mirror</span></a>
+          </div>
+        </div>
+
+        <div class="mx-tier">
+          <div class="th"><span class="badge-tier gold">Gold</span><span class="tname">Advanced</span><span class="tcount">10 checks &middot; 7 satisfied &middot; 3 block</span></div>
+          <div class="mx-grid">
+            <a class="cell s-na" href="#g1"><span class="cst"></span><span class="cid">G1</span><span class="cnm">hook-documentation</span></a>
+            <a class="cell s-fail" href="#g2"><span class="cst"></span><span class="cid">G2</span><span class="cnm">self-hosting</span></a>
+            <a class="cell s-fail" href="#g3"><span class="cst"></span><span class="cid">G3</span><span class="cnm">library-regression</span></a>
+            <a class="cell s-pass" href="#g4"><span class="cst"></span><span class="cid">G4</span><span class="cnm">index-drift</span></a>
+            <a class="cell s-fail" href="#g5"><span class="cst"></span><span class="cid">G5</span><span class="cnm">release-notes</span></a>
+            <a class="cell s-na" href="#g6"><span class="cst"></span><span class="cid">G6</span><span class="cnm">deprecation</span></a>
+            <a class="cell s-pass" href="#g7"><span class="cst"></span><span class="cid">G7</span><span class="cnm">docs-frontmatter</span></a>
+            <a class="cell s-pass" href="#g8"><span class="cst"></span><span class="cid">G8</span><span class="cnm">folder-readme</span></a>
+            <a class="cell s-pass" href="#g9"><span class="cst"></span><span class="cid">G9</span><span class="cnm">source-doc</span></a>
+            <a class="cell s-pass" href="#g10"><span class="cst"></span><span class="cid">G10</span><span class="cnm">docs-presence</span></a>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ 02 EXECUTIVE SUMMARY ============ -->
+    <div class="wrap">
+
+      <section id="s02">
+        <div class="seclabel"><span class="num">02</span><h2 class="sec">Executive summary</h2></div>
+        <p class="lead">For a reader who is not in the code: what this library is, how it scored, and the one move that moves it forward.</p>
+
+        <div class="aside">
+          <h4>How to read this report</h4>
+          <p>The colored matrix above is the whole verdict in one glance: each of the 30 checks is a chip, color-coded pass / fail / warn / not-applicable, grouped by tier. The tier a library earns is decided by a deterministic gate (a real program with a real exit code), not by opinion. Everything below the matrix expands that picture: a plain-language summary, the full component inventory, the methodology, a per-check evidence ledger, the exact work that blocks the next tier, and copy-paste prompts that fix each gap.</p>
+        </div>
+
+        <p><b>acme-content-skills</b> is a content-marketing toolkit of 12 skills, 2 review subagents, and 1 slash command, built to run on both Claude Code and Codex. It declared the <b>convergent (Silver)</b> tier, and it earns exactly that. Of the 30 checks in the Standard, 27 pass. The deterministic gate exits 0, which is the machine-readable way of saying the library meets every requirement of the tier it claimed. There are no surprises hiding behind the badge: Bronze (the universal floor) and Silver (clean convergence across both declared agents) are fully satisfied.</p>
+
+        <p>The two advisory warnings are quality nudges, not failures, and they do not affect the tier. One skill, <code>acme-content-calendar</code>, has a description that scores 0.62 against a 0.70 bar because it names neither a concrete action nor a use-when trigger, which makes it harder for an agent to route to it. A second skill, <code>acme-write-blog-post</code>, runs about 240 instructions, over the roughly 200 guidance, so its later steps (the SEO pass) risk being dropped when context gets tight. Both are ten-minute fixes and both have a ready prompt in section 07.</p>
+
+        <p>The interesting story is the climb to Gold. Seven of the ten Advanced checks already pass, including the entire documentation taxonomy that landed in this Standard version (folder READMEs, source docblocks, a full Diataxis docs tree, and docs frontmatter). What stands between this library and Gold is the self-proving discipline: there is no CI workflow that runs the gate (G2), two of the three chain edges have no regression eval (G3), and there is no curated, user-facing RELEASE-NOTES.md distinct from the changelog (G5). None of these are about the skills being weak; they are about the library being able to prove and maintain itself over time.</p>
+
+        <p><b>Recommended next move:</b> treat Gold as a single short session. Add the CI workflow that shells out to the gate (G2, about 20 minutes), add the two missing chain evals (G3, about 30 minutes), and write the release notes (G5, about 15 minutes). That is roughly one focused hour, after which a re-run of the gate should report Gold. Fold in the two warnings while you are there and the library is both higher-tier and cleaner. Concrete, copy-paste prompts for all five items are in the improvement path.</p>
+      </section>
+
+      <!-- ============ 03 WHAT WAS EVALUATED ============ -->
+      <section id="s03">
+        <div class="seclabel"><span class="num">03</span><h2 class="sec">What was evaluated</h2></div>
+        <p class="lead">The subject identity, then the complete inventory. Every one of the 15 components is listed, nothing truncated.</p>
+
+        <div class="idstrip">
+          <div class="ic"><div class="ick">Subject</div><div class="icv">acme-content-skills</div></div>
+          <div class="ic"><div class="ick">Version</div><div class="icv">0.4.0</div></div>
+          <div class="ic"><div class="ick">Declared tier</div><div class="icv">Convergent (Silver)</div></div>
+          <div class="ic"><div class="ick">Agent targets</div><div class="icv">claude, codex</div></div>
+          <div class="ic"><div class="ick">Prefix</div><div class="icv mono">acme-</div></div>
+          <div class="ic"><div class="ick">Chain edges</div><div class="icv">3</div></div>
+          <div class="ic"><div class="ick">Hooks / MCP</div><div class="icv">0 / 0</div></div>
+          <div class="ic"><div class="ick">Native manifests</div><div class="icv">Both emitted</div></div>
+        </div>
+
+        <p>Root carries <code>library.json</code> and <code>AGENTS.md</code>, with <code>skills/</code>, <code>agents/</code>, <code>commands/</code>, and <code>docs/</code> trees. Both native manifests (Claude and Codex) are generated, not hand-edited. The inventory below is what was found on disk and cross-checked against the components index.</p>
+
+        <h3>Skills (12) - all target claude + codex</h3>
+        <div class="tablecard">
+          <table>
+            <thead><tr><th style="width:210px">Name</th><th style="width:90px">Type</th><th style="width:108px">Targets</th><th>What it does</th></tr></thead>
+            <tbody>
+              <tr><td><span class="cn">acme-write-blog-post</span><span class="flag warn">U7</span></td><td><span class="typetag skill">skill</span></td><td class="tgt">claude, codex</td><td>Draft a long-form post from a brief, outline-first, with an SEO pass. Body runs about 240 instructions, over budget.</td></tr>
+              <tr><td><span class="cn">acme-repurpose-thread</span></td><td><span class="typetag skill">skill</span></td><td class="tgt">claude, codex</td><td>Turn one post into a set of platform-tuned social threads.</td></tr>
+              <tr><td><span class="cn">acme-content-calendar</span><span class="flag warn">U5</span></td><td><span class="typetag skill">skill</span></td><td class="tgt">claude, codex</td><td>Build a dated calendar from a campaign goal and cadence. Description scores 0.62, below the 0.70 bar.</td></tr>
+              <tr><td><span class="cn">acme-seo-audit</span></td><td><span class="typetag skill">skill</span></td><td class="tgt">claude, codex</td><td>Audit a draft or URL for on-page SEO and propose fixes.</td></tr>
+              <tr><td><span class="cn">acme-newsletter</span></td><td><span class="typetag skill">skill</span></td><td class="tgt">claude, codex</td><td>Draft an email newsletter issue from a topic and the back catalog.</td></tr>
+              <tr><td><span class="cn">acme-headline-lab</span></td><td><span class="typetag skill">skill</span></td><td class="tgt">claude, codex</td><td>Generate and score headline variants for a draft.</td></tr>
+              <tr><td><span class="cn">acme-brief-builder</span></td><td><span class="typetag skill">skill</span></td><td class="tgt">claude, codex</td><td>Turn a rough idea into a structured content brief.</td></tr>
+              <tr><td><span class="cn">acme-repurpose-video</span></td><td><span class="typetag skill">skill</span></td><td class="tgt">claude, codex</td><td>Turn a transcript into a blog post and a clips list.</td></tr>
+              <tr><td><span class="cn">acme-tone-tuner</span></td><td><span class="typetag skill">skill</span></td><td class="tgt">claude, codex</td><td>Rewrite a draft to a target voice and reading level.</td></tr>
+              <tr><td><span class="cn">acme-meta-pack</span></td><td><span class="typetag skill">skill</span></td><td class="tgt">claude, codex</td><td>Produce title tags, meta descriptions, and Open Graph fields.</td></tr>
+              <tr><td><span class="cn">acme-link-suggester</span></td><td><span class="typetag skill">skill</span></td><td class="tgt">claude, codex</td><td>Suggest internal links across the content set.</td></tr>
+              <tr><td><span class="cn">acme-cta-writer</span></td><td><span class="typetag skill">skill</span></td><td class="tgt">claude, codex</td><td>Draft calls-to-action tuned to funnel stage.</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <h3>Subagents (2) - claude only</h3>
+        <div class="tablecard">
+          <table>
+            <thead><tr><th style="width:210px">Name</th><th style="width:90px">Type</th><th style="width:108px">Targets</th><th>What it does</th></tr></thead>
+            <tbody>
+              <tr><td><span class="cn">acme-style-critic</span></td><td><span class="typetag subagent">subagent</span></td><td class="tgt">claude</td><td>Review drafts for voice and clarity; the delegate behind the writing skills.</td></tr>
+              <tr><td><span class="cn">acme-fact-checker</span></td><td><span class="typetag subagent">subagent</span></td><td class="tgt">claude</td><td>Flag unsupported claims in a draft for human review.</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <h3>Command (1) - claude</h3>
+        <div class="tablecard">
+          <table>
+            <thead><tr><th style="width:210px">Name</th><th style="width:90px">Type</th><th style="width:108px">Targets</th><th>What it does</th></tr></thead>
+            <tbody>
+              <tr><td><span class="cn">/acme-write</span></td><td><span class="typetag command">command</span></td><td class="tgt">claude</td><td>Slash entry point that maps to acme-write-blog-post.</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <h3>Chain edges (3)</h3>
+        <div class="tablecard">
+          <table>
+            <thead><tr><th style="width:280px">Caller</th><th style="width:40px"></th><th>Callee (delegate)</th><th style="width:140px">Regression eval</th></tr></thead>
+            <tbody>
+              <tr><td><span class="cn">acme-write-blog-post</span></td><td class="tgt">&rarr;</td><td><span class="cn">acme-style-critic</span></td><td><span class="badge b-fail"><span class="dot fail"></span>uncovered</span></td></tr>
+              <tr><td><span class="cn">acme-repurpose-thread</span></td><td class="tgt">&rarr;</td><td><span class="cn">acme-style-critic</span></td><td><span class="badge b-fail"><span class="dot fail"></span>uncovered</span></td></tr>
+              <tr><td><span class="cn">acme-write-blog-post</span></td><td class="tgt">&rarr;</td><td><span class="cn">acme-fact-checker</span></td><td><span class="badge b-pass"><span class="dot pass"></span>covered</span></td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p style="font-size:13px;color:var(--ink-faint);margin-top:10px">Two of the three edges have no regression eval under <code>evals/</code>; this is what G3 (library-regression) reports. See the climb in section 06.</p>
+      </section>
+
+      <!-- ============ 04 METHODOLOGY ============ -->
+      <section id="s04">
+        <div class="seclabel"><span class="num">04</span><h2 class="sec">Methodology and scope</h2></div>
+        <p class="lead">Three layers, kept strictly separate so the verdict stays honest. Only one of them decides the tier.</p>
+
+        <div class="guarantees">
+          <div class="gtile bronze">
+            <div class="gt"><span class="dotc bronze" style="display:inline-block;width:9px;height:9px;border-radius:50%"></span>Layer 1 - Conformance</div>
+            <p><b>Decides the tier.</b> The portable Node gate runs all 30 checks with real exit codes, no model in the loop. This is the only layer that decides pass or fail. Findings are exact and reproducible: re-run <code>node scripts/check.mjs .</code> to confirm.</p>
+          </div>
+          <div class="gtile silver">
+            <div class="gt"><span class="dotc silver" style="display:inline-block;width:9px;height:9px;border-radius:50%"></span>Layer 2 - Behavioral</div>
+            <p><b>Advisory only.</b> Each skill is run against its triggering eval set; results are surfaced as evidence and never decide a gate result. Reflects judgment on sampled cases, not a guarantee.</p>
+          </div>
+          <div class="gtile gold">
+            <div class="gt"><span class="dotc gold" style="display:inline-block;width:9px;height:9px;border-radius:50%"></span>Layer 3 - Review</div>
+            <p><b>Advisory only.</b> A qualitative pass over scoping, descriptions, and chain design. Informs the insights in section 08; it does not move the badge.</p>
+          </div>
+        </div>
+
+        <h3>Status legend</h3>
+        <div class="legend">
+          <span><span class="badge b-pass"><span class="dot pass"></span>Pass</span> requirement met</span>
+          <span><span class="badge b-fail"><span class="dot fail"></span>Fail</span> blocks the tier</span>
+          <span><span class="badge b-warn"><span class="dot warn"></span>Warn</span> advisory quality nudge</span>
+          <span><span class="badge b-na"><span class="dot na"></span>N/A</span> not applicable (vacuous pass)</span>
+        </div>
+
+        <div class="aside" style="margin-top:18px">
+          <h4>Confidence and limitations</h4>
+          <p>Conformance findings are exact and reproducible: the same gate on the same commit yields the same result. Behavioral and review findings reflect judgment on sampled cases and may shift with different inputs. Three checks pass vacuously because the library contains nothing for them to test: G1 (no hooks), G6 (no deprecations), and U11 (no MCP servers). A vacuous pass is a genuine pass under the Standard, not a gap.</p>
+        </div>
+
+        <h3>What each tier guarantees</h3>
+        <div class="guarantees">
+          <div class="gtile bronze"><div class="gt">Bronze - Universal</div><p>The library is portable and self-describing: it installs and reads correctly on any agentskills.io-compatible agent, with valid anatomy, frontmatter, and naming.</p></div>
+          <div class="gtile silver"><div class="gt">Silver - Convergent</div><p>On top of Bronze, the library converges cleanly across every agent it declares: prefixes, native manifests, chain contracts, and the components index all agree across targets.</p></div>
+          <div class="gtile gold"><div class="gt">Gold - Advanced</div><p>On top of Silver, the library is self-proving: it builds, checks, documents, and releases itself - CI runs the gate, chains are regression-covered, docs are complete, and releases are curated.</p></div>
+        </div>
+      </section>
+
+      <!-- ============ 05 TIER COMPLIANCE LEDGER ============ -->
+      <section id="s05">
+        <div class="seclabel"><span class="num">05</span><h2 class="sec">Tier compliance - evidence ledger</h2></div>
+        <p class="lead">One row per requirement, all 30 itemized. The evidence cites what was found and the check module or file behind it; every non-pass carries a why-it-matters note.</p>
+
+        <!-- BRONZE -->
+        <div class="tierbar bronze">
+          <span class="ts">Bronze</span>
+          <span class="tv"><b>Universal floor satisfied.</b> 10 pass, 2 advisory warnings, 0 fail.</span>
+          <span class="tfrac">12 / 12</span>
+        </div>
+        <div class="ledger">
+          <div class="lrow" id="u1"><div class="lst"><span class="rid">U1</span><span class="rname">library-json</span><span class="badge b-pass"><span class="dot pass"></span>Pass</span></div><div class="lbody"><p class="ev">Valid <code>library.json</code>: name, version 0.4.0, and tier convergent all present and well-formed. <span class="src">checks/library-json.mjs</span></p></div></div>
+          <div class="lrow" id="u2"><div class="lst"><span class="rid">U2</span><span class="rname">anatomy</span><span class="badge b-pass"><span class="dot pass"></span>Pass</span></div><div class="lbody"><p class="ev">AGENTS.md at root; <code>skills/</code>, <code>agents/</code>, <code>commands/</code> present; valid agentskills.io anatomy. <span class="src">checks/anatomy.mjs</span></p></div></div>
+          <div class="lrow" id="u3"><div class="lst"><span class="rid">U3</span><span class="rname">frontmatter-valid</span><span class="badge b-pass"><span class="dot pass"></span>Pass</span></div><div class="lbody"><p class="ev">Every SKILL.md frontmatter parses; required <code>name</code> and <code>description</code> present on all 12 skills. <span class="src">checks/frontmatter-valid.mjs</span></p></div></div>
+          <div class="lrow" id="u4"><div class="lst"><span class="rid">U4</span><span class="rname">name-matches-dir</span><span class="badge b-pass"><span class="dot pass"></span>Pass</span></div><div class="lbody"><p class="ev">Every component name equals its directory and is kebab-case. <span class="src">checks/name-matches-dir.mjs</span></p></div></div>
+          <div class="lrow is-warn" id="u5"><div class="lst"><span class="rid">U5</span><span class="rname">description-score</span><span class="badge b-warn"><span class="dot warn"></span>Warn</span></div><div class="lbody"><p class="ev"><code>acme-content-calendar</code> scores 0.62 (below the 0.70 bar): "Helps with content planning" states neither a concrete action nor a use-when trigger. <span class="src">checks/description-score.mjs</span></p><div class="why warn"><b>Why it matters</b>A vague description hurts routing: the agent is less likely to pick this skill at the right moment, so a capable skill goes unused. Advisory only - does not gate Bronze.</div></div></div>
+          <div class="lrow" id="u6"><div class="lst"><span class="rid">U6</span><span class="rname">reference-links</span><span class="badge b-pass"><span class="dot pass"></span>Pass</span></div><div class="lbody"><p class="ev">All links under <code>references/</code> resolve; no dangling pointers. <span class="src">checks/reference-links.mjs</span></p></div></div>
+          <div class="lrow is-warn" id="u7"><div class="lst"><span class="rid">U7</span><span class="rname">instruction-budget</span><span class="badge b-warn"><span class="dot warn"></span>Warn</span></div><div class="lbody"><p class="ev"><code>acme-write-blog-post</code> body is about 240 instructions, over the roughly 200 guidance; later steps (the SEO pass) risk being dropped. <span class="src">checks/instruction-budget.mjs</span></p><div class="why warn"><b>Why it matters</b>Overstuffed bodies degrade under context pressure: the model may silently drop the tail of the procedure, so the SEO pass quietly stops happening. Move detail behind a progressive-disclosure pointer. Advisory only.</div></div></div>
+          <div class="lrow" id="u8"><div class="lst"><span class="rid">U8</span><span class="rname">manifest-drift</span><span class="badge b-pass"><span class="dot pass"></span>Pass</span></div><div class="lbody"><p class="ev">Native manifests agree with <code>library.json</code> (generated, not hand-edited). <span class="src">checks/manifest-drift.mjs</span></p></div></div>
+          <div class="lrow" id="u9"><div class="lst"><span class="rid">U9</span><span class="rname">version-match</span><span class="badge b-pass"><span class="dot pass"></span>Pass</span></div><div class="lbody"><p class="ev">Component versions agree with the library version. <span class="src">checks/version-match.mjs</span></p></div></div>
+          <div class="lrow" id="u10"><div class="lst"><span class="rid">U10</span><span class="rname">no-dashes</span><span class="badge b-pass"><span class="dot pass"></span>Pass</span></div><div class="lbody"><p class="ev">No em or en dashes found anywhere in the library content. <span class="src">checks/no-dashes.mjs</span></p></div></div>
+          <div class="lrow is-na" id="u11"><div class="lst"><span class="rid">U11</span><span class="rname">mcp-valid</span><span class="badge b-na"><span class="dot na"></span>N/A</span></div><div class="lbody"><p class="ev">The library ships no MCP servers, so there is nothing to validate. Vacuous pass under the Standard. <span class="src">checks/mcp-valid.mjs</span></p></div></div>
+          <div class="lrow" id="u12"><div class="lst"><span class="rid">U12</span><span class="rname">mermaid-valid</span><span class="badge b-pass"><span class="dot pass"></span>Pass</span></div><div class="lbody"><p class="ev">The 3 mermaid diagrams in docs parse and render. <span class="src">checks/mermaid-valid.mjs</span></p></div></div>
+        </div>
+
+        <!-- SILVER -->
+        <div class="tierbar silver">
+          <span class="ts">Silver</span>
+          <span class="tv"><b>Convergent. Tier earned.</b> 8 pass, 0 warn, 0 fail.</span>
+          <span class="tfrac">8 / 8</span>
+        </div>
+        <div class="ledger">
+          <div class="lrow" id="s1"><div class="lst"><span class="rid">S1</span><span class="rname">agent-targets</span><span class="badge b-pass"><span class="dot pass"></span>Pass</span></div><div class="lbody"><p class="ev">agent-targets <code>["claude","codex"]</code> declared in <code>library.json</code>. <span class="src">checks/agent-targets.mjs</span></p></div></div>
+          <div class="lrow" id="s2"><div class="lst"><span class="rid">S2</span><span class="rname">prefix</span><span class="badge b-pass"><span class="dot pass"></span>Pass</span></div><div class="lbody"><p class="ev">Every component carries the <code>acme-</code> prefix. <span class="src">checks/prefix.mjs</span></p></div></div>
+          <div class="lrow" id="s3"><div class="lst"><span class="rid">S3</span><span class="rname">components-index</span><span class="badge b-pass"><span class="dot pass"></span>Pass</span></div><div class="lbody"><p class="ev">The components index lists what is on disk. <span class="src">checks/components-index.mjs</span></p></div></div>
+          <div class="lrow" id="s4"><div class="lst"><span class="rid">S4</span><span class="rname">chain-contract</span><span class="badge b-pass"><span class="dot pass"></span>Pass</span></div><div class="lbody"><p class="ev">3 edges declared in <code>agents/_chain-permitted.yaml</code>; no orphan or phantom edges. <span class="src">checks/chain-contract.mjs</span></p></div></div>
+          <div class="lrow" id="s5"><div class="lst"><span class="rid">S5</span><span class="rname">workflow-skills</span><span class="badge b-pass"><span class="dot pass"></span>Pass</span></div><div class="lbody"><p class="ev">Workflow steps reference real skills; no dangling references. <span class="src">checks/workflow-skills.mjs</span></p></div></div>
+          <div class="lrow" id="s6"><div class="lst"><span class="rid">S6</span><span class="rname">per-target-presence</span><span class="badge b-pass"><span class="dot pass"></span>Pass</span></div><div class="lbody"><p class="ev">Both native manifests present and complete (Claude and Codex). <span class="src">checks/per-target-presence.mjs</span></p></div></div>
+          <div class="lrow" id="s7"><div class="lst"><span class="rid">S7</span><span class="rname">command-contract</span><span class="badge b-pass"><span class="dot pass"></span>Pass</span></div><div class="lbody"><p class="ev"><code>/acme-write</code> maps to exactly one skill (acme-write-blog-post). <span class="src">checks/command-contract.mjs</span></p></div></div>
+          <div class="lrow" id="s8"><div class="lst"><span class="rid">S8</span><span class="rname">components-mirror</span><span class="badge b-pass"><span class="dot pass"></span>Pass</span></div><div class="lbody"><p class="ev">The index mirrors disk in both directions: no orphan, no phantom. <span class="src">checks/components-mirror.mjs</span></p></div></div>
+        </div>
+
+        <!-- GOLD -->
+        <div class="tierbar gold">
+          <span class="ts">Gold</span>
+          <span class="tv"><b>Not yet earned.</b> 7 satisfied, 3 block the tier.</span>
+          <span class="tfrac">7 / 10</span>
+        </div>
+        <div class="ledger">
+          <div class="lrow is-na" id="g1"><div class="lst"><span class="rid">G1</span><span class="rname">hook-documentation</span><span class="badge b-na"><span class="dot na"></span>N/A</span></div><div class="lbody"><p class="ev">The library ships no hooks, so there is nothing to document. Vacuous pass. <span class="src">checks/hook-documentation.mjs</span></p></div></div>
+          <div class="lrow is-fail" id="g2"><div class="lst"><span class="rid">G2</span><span class="rname">self-hosting</span><span class="badge b-fail"><span class="dot fail"></span>Fail</span></div><div class="lbody"><p class="ev">No workflow under <code>.github/workflows/</code> runs <code>node scripts/check.mjs</code>, so the library cannot prove itself in CI. <span class="src">checks/self-hosting.mjs</span></p><div class="why"><b>Why it matters</b>Without CI running the gate, conformance can silently rot on the next change. Gold means the library re-proves itself on every commit, not just once at evaluation time.</div></div></div>
+          <div class="lrow is-fail" id="g3"><div class="lst"><span class="rid">G3</span><span class="rname">library-regression</span><span class="badge b-fail"><span class="dot fail"></span>Fail</span></div><div class="lbody"><p class="ev">2 of the 3 chain edges have no regression eval under <code>evals/</code>: acme-write-blog-post &rarr; acme-style-critic and acme-repurpose-thread &rarr; acme-style-critic are uncovered. <span class="src">checks/library-regression.mjs</span></p><div class="why"><b>Why it matters</b>Uncovered chains can break invisibly when a delegate changes. Regression evals are how a library catches a broken handoff before users do.</div></div></div>
+          <div class="lrow" id="g4"><div class="lst"><span class="rid">G4</span><span class="rname">index-drift</span><span class="badge b-pass"><span class="dot pass"></span>Pass</span></div><div class="lbody"><p class="ev"><code>INDEX.md</code> is generated and drift-free. <span class="src">checks/index-drift.mjs</span></p></div></div>
+          <div class="lrow is-fail" id="g5"><div class="lst"><span class="rid">G5</span><span class="rname">release-notes</span><span class="badge b-fail"><span class="dot fail"></span>Fail</span></div><div class="lbody"><p class="ev">No <code>RELEASE-NOTES.md</code> distinct from <code>CHANGELOG.md</code>; there is no curated, user-facing release surface. <span class="src">checks/release-notes.mjs</span></p><div class="why"><b>Why it matters</b>A changelog is a raw log; release notes are a curated story for the people who install the library. Gold asks for both, so adopters know what changed and why it matters to them.</div></div></div>
+          <div class="lrow is-na" id="g6"><div class="lst"><span class="rid">G6</span><span class="rname">deprecation</span><span class="badge b-na"><span class="dot na"></span>N/A</span></div><div class="lbody"><p class="ev">The library deprecates nothing yet, so there is no deprecation surface to validate. Vacuous pass. <span class="src">checks/deprecation.mjs</span></p></div></div>
+          <div class="lrow" id="g7"><div class="lst"><span class="rid">G7</span><span class="rname">docs-frontmatter</span><span class="badge b-pass"><span class="dot pass"></span>Pass</span></div><div class="lbody"><p class="ev">Published docs pages carry the audience / level / doc-role frontmatter taxonomy. <span class="src">checks/docs-frontmatter.mjs</span></p></div></div>
+          <div class="lrow" id="g8"><div class="lst"><span class="rid">G8</span><span class="rname">folder-readme</span><span class="badge b-pass"><span class="dot pass"></span>Pass</span></div><div class="lbody"><p class="ev">Every component and top-level folder has a README guide. <span class="src">checks/folder-readme.mjs</span></p></div></div>
+          <div class="lrow" id="g9"><div class="lst"><span class="rid">G9</span><span class="rname">source-doc</span><span class="badge b-pass"><span class="dot pass"></span>Pass</span></div><div class="lbody"><p class="ev">Script files carry what-it-is / what-it-does / why docblocks. <span class="src">checks/source-doc.mjs</span></p></div></div>
+          <div class="lrow" id="g10"><div class="lst"><span class="rid">G10</span><span class="rname">docs-presence</span><span class="badge b-pass"><span class="dot pass"></span>Pass</span></div><div class="lbody"><p class="ev">A <code>docs/</code> tree with the required Diataxis quadrants (tutorials, how-to, reference, explanation) exists. <span class="src">checks/docs-presence.mjs</span></p></div></div>
+        </div>
+      </section>
+
+      <!-- ============ 06 THE CLIMB ============ -->
+      <section id="s06">
+        <div class="seclabel"><span class="num">06</span><h2 class="sec">The climb / burndown</h2></div>
+        <p class="lead">Exactly what blocks Gold, ordered as a worklist. Three items, about 65 minutes of focused work in total.</p>
+
+        <div class="worklist">
+          <div class="wlitem">
+            <div class="ord"></div>
+            <div class="wmeta">
+              <h4><span class="wid">G2</span>Add a CI workflow that runs the gate</h4>
+              <div class="wd">Add <code>.github/workflows/ci.yml</code> that checks out the repo, sets up Node from <code>.nvmrc</code>, runs <code>npm ci</code>, then runs <code>node scripts/check.mjs</code> as a required step. The YAML only shells out; it holds no validation logic.</div>
+            </div>
+            <div class="eff"><small>Effort</small>~20 min</div>
+          </div>
+          <div class="wlitem">
+            <div class="ord"></div>
+            <div class="wmeta">
+              <h4><span class="wid">G3</span>Cover the two uncovered chain edges</h4>
+              <div class="wd">Add <code>evals/acme-write-to-style-critic.eval.json</code> and <code>evals/acme-repurpose-to-style-critic.eval.json</code>, each setting <code>covers.chain</code> to caller and callee with at least one delegation case. The fact-checker edge is already covered.</div>
+            </div>
+            <div class="eff"><small>Effort</small>~30 min</div>
+          </div>
+          <div class="wlitem">
+            <div class="ord"></div>
+            <div class="wmeta">
+              <h4><span class="wid">G5</span>Write curated release notes</h4>
+              <div class="wd">Create <code>RELEASE-NOTES.md</code>: a curated, user-facing summary of the current version highlights, distinct from <code>CHANGELOG.md</code>.</div>
+            </div>
+            <div class="eff"><small>Effort</small>~15 min</div>
+          </div>
+        </div>
+        <p style="margin-top:14px;font-size:13.5px;color:var(--ink-soft)">After all three, re-run <code>node scripts/check.mjs .</code>; the Gold meter should read 10 / 10 and the gate should report Gold. The two advisory warnings (U5, U7) are not on the critical path but are worth folding into the same session.</p>
+      </section>
+
+      <!-- ============ 07 IMPROVEMENT PATH ============ -->
+      <section id="s07">
+        <div class="seclabel"><span class="num">07</span><h2 class="sec">Improvement path</h2></div>
+        <p class="lead">One card per gap: the issue, the fix, priority and effort, and a copy-paste prompt you can hand straight to an agent. Five cards - the 3 Gold blockers and the 2 advisory warnings.</p>
+
+        <!-- G2 -->
+        <div class="imp">
+          <div class="top">
+            <span class="rtag gold">G2</span>
+            <h4>Self-hosting: run the gate in CI</h4>
+            <span class="pill p-high">Priority high</span>
+            <span class="pill">~20 min</span>
+          </div>
+          <div class="ifgrid"><b>Issue:</b> no workflow runs the gate, so conformance is not re-proven on change. <b>Fix:</b> add a CI workflow that shells out to <code>scripts/check.mjs</code> as a required step.</div>
+          <div class="prompt"><span class="lbl">Copy-paste prompt</span><button class="copy" type="button">Copy</button><span class="ptext">Use askit-build-settings (CI mode) on this plugin: add .github/workflows/ci.yml that checks out the repo, sets up Node from .nvmrc, runs npm ci, then runs node scripts/check.mjs as a required step. Keep the YAML free of validation logic - it only shells out to the portable script. Then run node scripts/check.mjs and confirm G2 (self-hosting) now passes.</span></div>
+        </div>
+
+        <!-- G3 -->
+        <div class="imp">
+          <div class="top">
+            <span class="rtag gold">G3</span>
+            <h4>Library regression: cover the chain edges</h4>
+            <span class="pill p-high">Priority high</span>
+            <span class="pill">~30 min</span>
+          </div>
+          <div class="ifgrid"><b>Issue:</b> 2 of 3 chain edges have no regression eval. <b>Fix:</b> add an eval per uncovered edge with <code>covers.chain</code> and at least one delegation case.</div>
+          <div class="prompt"><span class="lbl">Copy-paste prompt</span><button class="copy" type="button">Copy</button><span class="ptext">Use askit-build-samples to add G3 chain coverage: create evals/acme-write-to-style-critic.eval.json and evals/acme-repurpose-to-style-critic.eval.json, each with covers.chain set to the caller and callee and at least one case describing the expected delegation. Then run node scripts/check.mjs and confirm G3 (library-regression) reports no uncovered chains.</span></div>
+        </div>
+
+        <!-- G5 -->
+        <div class="imp">
+          <div class="top">
+            <span class="rtag gold">G5</span>
+            <h4>Release notes: a curated user-facing surface</h4>
+            <span class="pill p-high">Priority high</span>
+            <span class="pill">~15 min</span>
+          </div>
+          <div class="ifgrid"><b>Issue:</b> no <code>RELEASE-NOTES.md</code> distinct from the changelog. <b>Fix:</b> write curated release notes for the current version.</div>
+          <div class="prompt"><span class="lbl">Copy-paste prompt</span><button class="copy" type="button">Copy</button><span class="ptext">Use askit-release (notes mode) to create RELEASE-NOTES.md for acme-content-skills: a curated, user-facing summary of the current version highlights, distinct from CHANGELOG.md. Then run node scripts/check.mjs and confirm G5 (release-notes) passes.</span></div>
+        </div>
+
+        <!-- U5 -->
+        <div class="imp">
+          <div class="top">
+            <span class="rtag warn">U5</span>
+            <h4>Description score: sharpen acme-content-calendar</h4>
+            <span class="pill p-med">Priority medium</span>
+            <span class="pill">~10 min</span>
+          </div>
+          <div class="ifgrid"><b>Issue:</b> description scores 0.62; no concrete action or use-when trigger. <b>Fix:</b> rewrite to name the action and the trigger with real keywords.</div>
+          <div class="prompt"><span class="lbl">Copy-paste prompt</span><button class="copy" type="button">Copy</button><span class="ptext">Use askit-build-skill (improve mode) on skills/acme-content-calendar: rewrite the description to state the concrete action and the use-when trigger with real keywords, no colon-space, under 1024 chars. Then run node scripts/check.mjs and confirm U5 scores at or above 0.70.</span></div>
+        </div>
+
+        <!-- U7 -->
+        <div class="imp">
+          <div class="top">
+            <span class="rtag warn">U7</span>
+            <h4>Instruction budget: trim acme-write-blog-post</h4>
+            <span class="pill p-med">Priority medium</span>
+            <span class="pill">~10 min</span>
+          </div>
+          <div class="ifgrid"><b>Issue:</b> body runs about 240 instructions, over the roughly 200 guidance. <b>Fix:</b> move the SEO checklist behind a progressive-disclosure pointer.</div>
+          <div class="prompt"><span class="lbl">Copy-paste prompt</span><button class="copy" type="button">Copy</button><span class="ptext">Use askit-build-skill (improve mode) on skills/acme-write-blog-post: extract the SEO checklist from SKILL.md into references/seo-checklist.md and reference it with a progressive-disclosure pointer, bringing the body under ~200 instructions. Then run node scripts/check.mjs and confirm U7 no longer warns.</span></div>
+        </div>
+      </section>
+
+      <!-- ============ 08 INSIGHTS ============ -->
+      <section id="s08">
+        <div class="seclabel"><span class="num">08</span><h2 class="sec">Insights</h2></div>
+        <p class="lead">Qualitative observations beyond pass and fail, from the advisory review layer.</p>
+
+        <div class="insight"><div class="ic">01</div><div><h4>The library is one short session from Gold</h4><p>All three blockers are infrastructure, not craft: CI, chain evals, and release notes. The skills themselves are already documented to the new taxonomy (G7 to G10 all pass). This is a mature library missing only the self-proving wrapper, which is unusually close.</p></div></div>
+        <div class="insight"><div class="ic">02</div><div><h4>Documentation is a genuine strength</h4><p>Folder READMEs, source docblocks, docs frontmatter, and a full Diataxis tree all pass. Many libraries at this size skip the explanation quadrant; this one carries it. The docs investment already made will make the Gold climb feel disproportionately cheap.</p></div></div>
+        <div class="insight"><div class="ic">03</div><div><h4>The two warnings share a root cause: scoping discipline</h4><p>A vague description (U5) and an over-budget body (U7) both point to skills that try to do or say a little too much in one place. Tightening the calendar description and pushing the blog-post SEO detail into a reference are small edits that also improve day-to-day routing and reliability.</p></div></div>
+        <div class="insight"><div class="ic">04</div><div><h4>Chain design is sound; only the safety net is missing</h4><p>The three edges are sensible (writing and repurposing both delegate to the style critic; writing also fact-checks). The contract is clean (S4 passes). The gap is purely that two edges lack a regression eval, so a future change to the style critic could break two callers unnoticed.</p></div></div>
+        <div class="insight"><div class="ic">05</div><div><h4>Cross-agent posture is honest</h4><p>Skills target both agents; subagents and the command are Claude-only and declared as such. Nothing pretends to be more portable than it is, which is exactly what Silver should look like. There is no convergence debt to pay down before Gold.</p></div></div>
+      </section>
+
+      <!-- ============ 09 EVIDENCE AND SOURCES ============ -->
+      <section id="s09">
+        <div class="seclabel"><span class="num">09</span><h2 class="sec">Evidence and sources</h2></div>
+        <p class="lead">Citations grounding the findings: the check module, Standard clause, or file behind each result.</p>
+        <ul class="refs">
+          <li><span class="tag">CHECK</span><span><span class="ck">scripts/check.mjs</span> - portable deterministic gate, run as <code>node scripts/check.mjs .</code> (root is positional); exit 0 on the declared tier.</span></li>
+          <li><span class="tag">MODULE</span><span><span class="ck">checks/self-hosting.mjs</span> - G2 source; looks for a workflow under <code>.github/workflows/</code> that invokes the gate.</span></li>
+          <li><span class="tag">MODULE</span><span><span class="ck">checks/library-regression.mjs</span> - G3 source; cross-references chain edges against <code>evals/*.eval.json</code> coverage.</span></li>
+          <li><span class="tag">MODULE</span><span><span class="ck">checks/release-notes.mjs</span> - G5 source; requires <code>RELEASE-NOTES.md</code> distinct from <code>CHANGELOG.md</code>.</span></li>
+          <li><span class="tag">MODULE</span><span><span class="ck">checks/description-score.mjs</span> - U5 source; scores each description for concrete action and use-when trigger against the 0.70 bar.</span></li>
+          <li><span class="tag">MODULE</span><span><span class="ck">checks/instruction-budget.mjs</span> - U7 source; counts SKILL.md body instructions against the roughly 200 guidance.</span></li>
+          <li><span class="tag">FILE</span><span><span class="ck">library.json</span> - declares name, version 0.4.0, tier convergent, agent-targets ["claude","codex"]; grounds U1, S1.</span></li>
+          <li><span class="tag">FILE</span><span><span class="ck">agents/_chain-permitted.yaml</span> - the 3-edge chain contract; grounds S4 and the chain inventory in section 03.</span></li>
+          <li><span class="tag">FILE</span><span><span class="ck">docs/</span> - Diataxis tree (tutorials, how-to, reference, explanation) with audience/level/doc-role frontmatter; grounds G7, G10.</span></li>
+          <li><span class="tag">CLAUSE</span><span><span class="ck">Standard v0.10</span> - the 30-check spine and the Bronze / Silver / Gold tier definitions this report grades against.</span></li>
+        </ul>
+      </section>
+
+      <!-- ============ 10 REPORT METADATA ============ -->
+      <section id="s10">
+        <div class="seclabel"><span class="num">10</span><h2 class="sec">Report metadata</h2></div>
+        <p class="lead">Provenance for this evaluation, plus the legends used throughout.</p>
+
+        <div class="panel" style="margin-bottom:18px">
+          <div class="meta-grid">
+            <div><span class="mk">Subject</span><span class="mv">acme-content-skills</span></div>
+            <div><span class="mk">Subject version</span><span class="mv">0.4.0</span></div>
+            <div><span class="mk">Standard version</span><span class="mv">v0.10</span></div>
+            <div><span class="mk">Spine</span><span class="mv">30 checks (U1-U12, S1-S8, G1-G10)</span></div>
+            <div><span class="mk">Declared tier</span><span class="mv">convergent</span></div>
+            <div><span class="mk">Tier earned</span><span class="mv">Silver (Convergent)</span></div>
+            <div><span class="mk">Evaluator</span><span class="mv">askit-evaluate (renderer)</span></div>
+            <div><span class="mk">Gate</span><span class="mv">node scripts/check.mjs .</span></div>
+            <div><span class="mk">Gate exit code</span><span class="mv">0</span></div>
+            <div><span class="mk">Evaluated</span><span class="mv">2026-06-03</span></div>
+            <div><span class="mk">Checks pass / total</span><span class="mv">27 / 30</span></div>
+            <div><span class="mk">Blockers / warnings</span><span class="mv">3 / 2</span></div>
+          </div>
+        </div>
+
+        <h3>Status legend</h3>
+        <div class="legend">
+          <span><span class="badge b-pass"><span class="dot pass"></span>Pass</span> requirement met</span>
+          <span><span class="badge b-fail"><span class="dot fail"></span>Fail</span> blocks the tier</span>
+          <span><span class="badge b-warn"><span class="dot warn"></span>Warn</span> advisory quality nudge</span>
+          <span><span class="badge b-na"><span class="dot na"></span>N/A</span> not applicable (vacuous pass)</span>
+        </div>
+
+        <h3>Severity legend</h3>
+        <div class="legend">
+          <span><span class="pill p-high">Priority high</span> blocks the next tier</span>
+          <span><span class="pill p-med">Priority medium</span> advisory; improves quality</span>
+        </div>
+
+        <div class="samplenote">
+          This is a SAMPLE report. The subject acme-content-skills 0.4.0 is hypothetical and exists only to exercise every section of the report. It reflects the current 30-check spine (Standard v0.10). Variant: Command Dashboard v2 (weight and wrapping refinements; supersedes the typographic treatment of evaluation-report--plugin--dashboard.html). See docs/internal/backlog/enhancements.md E1.
+        </div>
+
+        <p class="footnote">Generated by the proposed askit-evaluate HTML report renderer. Conformance layer is deterministic and reproducible; behavioral and review layers are advisory. Re-run <code>node scripts/check.mjs .</code> to reproduce the conformance findings.</p>
+      </section>
+
+    </div>
+  </main>
+</div>
+
+<script>
+  // (a) TOC scroll-spy active state
+  (function () {
+    var links = Array.prototype.slice.call(document.querySelectorAll('#toc a'));
+    var map = {};
+    links.forEach(function (a) {
+      var id = a.getAttribute('href').slice(1);
+      var el = document.getElementById(id);
+      if (el) map[id] = a;
+    });
+    var targets = Object.keys(map).map(function (id) { return document.getElementById(id); });
+    function setActive(id) {
+      links.forEach(function (a) { a.classList.remove('active'); });
+      if (map[id]) map[id].classList.add('active');
+    }
+    if ('IntersectionObserver' in window) {
+      var visible = {};
+      var obs = new IntersectionObserver(function (entries) {
+        entries.forEach(function (e) {
+          if (e.isIntersecting) visible[e.target.id] = e.boundingClientRect.top;
+          else delete visible[e.target.id];
+        });
+        var ids = Object.keys(visible);
+        if (ids.length) {
+          ids.sort(function (a, b) { return visible[a] - visible[b]; });
+          setActive(ids[0]);
+        }
+      }, { rootMargin: '-12% 0px -70% 0px', threshold: 0 });
+      targets.forEach(function (t) { obs.observe(t); });
+    } else {
+      // Fallback: nearest section by scroll position
+      window.addEventListener('scroll', function () {
+        var best = null, bestTop = -Infinity;
+        targets.forEach(function (t) {
+          var top = t.getBoundingClientRect().top;
+          if (top < 120 && top > bestTop) { bestTop = top; best = t.id; }
+        });
+        if (best) setActive(best);
+      }, { passive: true });
+    }
+  })();
+
+  // (b) Copy-to-clipboard on the improvement-prompt buttons
+  (function () {
+    var buttons = document.querySelectorAll('.imp .copy');
+    Array.prototype.forEach.call(buttons, function (btn) {
+      btn.addEventListener('click', function () {
+        var card = btn.closest('.prompt');
+        var textEl = card ? card.querySelector('.ptext') : null;
+        var text = textEl ? textEl.textContent : '';
+        function done() {
+          var prev = btn.textContent;
+          btn.textContent = 'Copied';
+          btn.classList.add('ok');
+          setTimeout(function () { btn.textContent = prev; btn.classList.remove('ok'); }, 1600);
+        }
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard.writeText(text).then(done, function () { fallback(text, done); });
+        } else {
+          fallback(text, done);
+        }
+      });
+    });
+    function fallback(text, done) {
+      var ta = document.createElement('textarea');
+      ta.value = text;
+      ta.setAttribute('readonly', '');
+      ta.style.position = 'absolute';
+      ta.style.left = '-9999px';
+      document.body.appendChild(ta);
+      ta.select();
+      try { document.execCommand('copy'); done(); } catch (e) {}
+      document.body.removeChild(ta);
+    }
+  })();
+</script>
+</body>
+</html>
