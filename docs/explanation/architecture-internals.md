@@ -12,7 +12,7 @@ Everything here lives under `scripts/`. The two entrypoints are `scripts/check.m
 
 ## A check module's shape
 
-A conformance check is a small ES module under `scripts/checks/` with exactly two exports: a `meta` object and a synchronous `check(ctx)` function. The contract is uniform across all 30 spine checks. Here is `scripts/checks/library-json.mjs` (the `U1` manifest check), trimmed to its shape:
+A conformance check is a small ES module under `scripts/checks/` with exactly two exports: a `meta` object and a synchronous `check(ctx)` function. The contract is uniform across all 29 spine checks. Here is `scripts/checks/library-json.mjs` (the `U1` manifest check), trimmed to its shape:
 
 ```js
 import { finding, SEVERITY } from "../lib/findings.mjs";
@@ -30,7 +30,7 @@ The `meta` fields:
 
 - `id` - a stable string name for the check (used in finding output and tests).
 - `tier` - the check's own tier (`universal` | `convergent` | `advanced`), used in burndown grouping and the declared-tier ceiling.
-- `reqId` - the Standard requirement the check backs (`U1`-`U12`, `S1`-`S8`, `G1`-`G10`). This is the single thread that ties a line of code to a clause in `STANDARD.md`.
+- `reqId` - the Standard requirement the check backs (`U1`-`U9`, `U11`-`U12`, `S1`-`S8`, `G1`-`G10`). This is the single thread that ties a line of code to a clause in `STANDARD.md`.
 
 The `check(ctx)` function MUST be synchronous and MUST return an array of `finding` objects (an empty array means "passes"). A `finding` is built by the helper in `scripts/lib/findings.mjs`:
 
@@ -69,9 +69,10 @@ export const CHECKS = [
   descriptionScore, referenceLinks, instructionBudget, manifestDrift,
   agentTargets, prefix, componentsIndex, componentsMirror, chainContract,
   commandContract, workflowSkills, perTargetPresence,
-  versionMatch, noDashes, mcpValid,
+  versionMatch, mcpValid,
   libraryRegression, deprecation,
   hookDocumentation, selfHosting, releaseNotes, indexDrift,
+  // ... abridged; see scripts/lib/registry.mjs for the full ordered 29-check list
 ];
 
 export function runAllChecks(ctx) {

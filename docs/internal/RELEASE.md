@@ -17,7 +17,7 @@ A public `0.x` tag ships at every wave boundary (RELEASE-PLAN v0.2 Section 5); `
 - [ ] **Decisions** recorded: any decision made this release is an ADR carrying its `## TL;DR` (ADR 0021 convention).
 - [ ] **Docs site** builds cleanly (Astro Starlight) and the Diataxis quadrants are non-empty.
 - [ ] **All tier-applicable conformance checks green** (`node scripts/check.mjs`).
-- [ ] **No em-dashes / en-dashes** anywhere in committed text (no-dashes check, Wave A).
+- [ ] **No em-dashes / en-dashes** in committed text (author-time hook; house style, retired as a gate check in Standard v0.11).
 - [ ] **Codex round-trip** run manually for this tag (Q-E gate): `CODEX_REQUIRED=1 npm test`; record the result in the release notes.
 
 ## One-command release (target)
@@ -26,6 +26,6 @@ A public `0.x` tag ships at every wave boundary (RELEASE-PLAN v0.2 Section 5); `
 
 ## Status of enforcement (incremental, per ADR 0022)
 
-- **Wave A:** version-equality + no-dashes + CHANGELOG-section-presence checks live.
+- **Wave A:** version-equality + CHANGELOG-section-presence checks live (the no-dashes check that was part of Wave A was retired in Standard v0.11; the dash preference is now the opt-in author-time hook).
 - **Wave B+:** README-status drift + INDEX/manifest drift (exists) + ADR TL;DR-presence wired into the release gate.
 - **Wave E:** RELEASE-NOTES + architecture-presence + docs-site build + docs-presence flip to error; `release-ready.mjs` becomes the full Advanced release gate.

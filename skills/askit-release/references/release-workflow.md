@@ -20,7 +20,7 @@ One plugin version. Its bump is the MAX of the component bumps since the last re
 ## Release-readiness gate (ADR 0022)
 
 Before tagging, all must hold (see `docs/internal/RELEASE.md`):
-version consistency (U9), a dated CHANGELOG section, RELEASE-NOTES present, README status current, generated surfaces drift-free (G4), conformance gate green, no em/en dashes (U10), and the manual Codex round-trip recorded. The gate is built incrementally: version + dash + CHANGELOG-section now; the full deterministic `release-ready` check lands at Gold.
+version consistency (U9), a dated CHANGELOG section, RELEASE-NOTES present, README status current, generated surfaces drift-free (G4), conformance gate green, and the manual Codex round-trip recorded. The gate is built incrementally: version + CHANGELOG-section now; the full deterministic `release-ready` check lands at Gold.
 
 ## Marketplace timing (D8)
 

@@ -155,7 +155,6 @@ Work the list top to bottom. The remaining Universal checks you might meet here:
 
 - **`U8`** flags a plugin with no skills yet (a warning - conformance is only meaningful once skills exist) and native-manifest drift, which you will not have at Bronze.
 - **`U9`** wants any `package.json` version to agree with `library.json` - they must not disagree about the most basic fact of the plugin.
-- **`U10`** enforces the house style: no em-dashes or en-dashes in authored text. Use " - " (space hyphen space) or restructure the sentence.
 - **`U11`** validates MCP server entries if you ship any, and refuses committed secrets. No MCP server, nothing to check.
 
 Re-run the gate after each fix. When it prints `Tier: Universal (no blockers detected)` with `0 error(s)`, you have a real Bronze plugin.

@@ -18,7 +18,6 @@ import * as commandContract from "../checks/command-contract.mjs";
 import * as workflowSkills from "../checks/workflow-skills.mjs";
 import * as perTargetPresence from "../checks/per-target-presence.mjs";
 import * as versionMatch from "../checks/version-match.mjs";
-import * as noDashes from "../checks/no-dashes.mjs";
 import * as mermaidValid from "../checks/mermaid-valid.mjs";
 import * as mcpValid from "../checks/mcp-valid.mjs";
 import * as libraryRegression from "../checks/library-regression.mjs";
@@ -39,7 +38,7 @@ export const CHECKS = [
   descriptionScore, referenceLinks, instructionBudget, manifestDrift,
   agentTargets, prefix, componentsIndex, componentsMirror, chainContract, commandContract, workflowSkills,
   perTargetPresence,
-  versionMatch, noDashes, mermaidValid, mcpValid,
+  versionMatch, mermaidValid, mcpValid,
   libraryRegression, deprecation,
   hookDocumentation, selfHosting, releaseNotes, indexDrift, docsFrontmatter, folderReadme, sourceDoc, docsPresence,
 ];

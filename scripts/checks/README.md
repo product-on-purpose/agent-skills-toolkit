@@ -30,7 +30,6 @@ One module per Standard requirement (reqId); each exports meta plus a synchronou
 - `mcp-valid.mjs` - the mcp-valid module.
 - `mermaid-valid.mjs` - the mermaid-valid module.
 - `name-matches-dir.mjs` - the name-matches-dir module.
-- `no-dashes.mjs` - the no-dash PreToolUse guard script.
 - `per-target-presence.mjs` - the per-target-presence module.
 - `prefix.mjs` - the prefix module.
 - `reference-links.mjs` - the reference-links module.

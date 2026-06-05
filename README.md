@@ -36,7 +36,7 @@ Most skill collections are a flat, single-agent, ungoverned pile. This is the St
   <img src="https://img.shields.io/badge/version-1.1.0-blue?style=flat-square" alt="Version 1.1.0">
   <img src="https://img.shields.io/badge/tier-Gold%20(Advanced)-yellow?style=flat-square" alt="Tier: Gold (Advanced)">
   <a href="#the-catalog"><img src="https://img.shields.io/badge/skills-23-brightgreen?style=flat-square" alt="Skills: 23"></a>
-  <img src="https://img.shields.io/badge/checks-30-brightgreen?style=flat-square" alt="Validation checks: 30">
+  <img src="https://img.shields.io/badge/checks-29-brightgreen?style=flat-square" alt="Validation checks: 29">
   <a href="https://agentskills.io/specification"><img src="https://img.shields.io/badge/spec-agentskills.io-orange?style=flat-square" alt="Agent Skills Spec"></a>
 </p>
 
@@ -186,15 +186,15 @@ flowchart TD
 
 A bare folder of agentskills.io skills is just **loose components**: the skills work a la carte, but the collection is not yet a plugin. The three tiers are the ladder that turns it into a best-in-class library, one rung at a time. They are **monotonic** - each tier includes everything below it - so a Bronze plugin grows into Silver and Gold without rework. The bar rises, and the earlier work still counts.
 
-A tier is reported only when its checks actually pass; the tooling flags any claim above what is met. The spine is **30 checks** total (`U1-U12`, `S1-S8`, `G1-G10`); the `G7` slot is the `docs-frontmatter` check (Standard v0.10). Tier inclusion (a Gold plugin satisfies every Bronze and Silver requirement) is a structural property of the monotonic tiers, not a numbered check.
+A tier is reported only when its checks actually pass; the tooling flags any claim above what is met. The spine is **29 checks** total (`U1-U9`, `U11-U12`, `S1-S8`, `G1-G10`); the `G7` slot is the `docs-frontmatter` check (assigned in Standard v0.10). Tier inclusion (a Gold plugin satisfies every Bronze and Silver requirement) is a structural property of the monotonic tiers, not a numbered check.
 
 ### At a glance
 
 Three rungs, monotonic - each includes everything below it (per-tier detail follows):
 
-- **Bronze - Universal (`U1-U12`, 12 checks).** Certifies identical, portable files that run unchanged on any agentskills.io agent. For the beginner on-ramp. Adds a minimal `library.json`, valid skill anatomy, and a description that clears the bar.
-- **Silver - Convergent (`+ S1-S8`, 20).** Certifies the multi-agent machinery emitted in the right format for every target agent. For real multi-component plugins on both Claude and Codex. Adds subagents, commands, workflows, chain contracts, per-agent emission, and semver governance.
-- **Gold - Advanced (`+ G1-G10`, 30).** Certifies that the plugin proves itself: deep lifecycle plus self-hosting CI. For maintainers running plugins at scale. Adds hooks, self-hosting CI, regression-covered chains, drift-checked generated docs, and a release and deprecation policy.
+- **Bronze - Universal (`U1-U9`, `U11-U12`, 11 checks).** Certifies identical, portable files that run unchanged on any agentskills.io agent. For the beginner on-ramp. Adds a minimal `library.json`, valid skill anatomy, and a description that clears the bar.
+- **Silver - Convergent (`+ S1-S8`, 19).** Certifies the multi-agent machinery emitted in the right format for every target agent. For real multi-component plugins on both Claude and Codex. Adds subagents, commands, workflows, chain contracts, per-agent emission, and semver governance.
+- **Gold - Advanced (`+ G1-G10`, 29).** Certifies that the plugin proves itself: deep lifecycle plus self-hosting CI. For maintainers running plugins at scale. Adds hooks, self-hosting CI, regression-covered chains, drift-checked generated docs, and a release and deprecation policy.
 
 > **Read it as a climb.** Bronze makes a plugin *portable*. Silver makes it *genuinely cross-agent*. Gold makes it *self-proving*. Each rung is the floor the next one builds on.
 
@@ -203,13 +203,13 @@ Three rungs, monotonic - each includes everything below it (per-tier detail foll
 > **Certifies:** the plugin parses and self-describes with portable, agent-agnostic files that run unchanged on any agentskills.io-compliant agent.
 
 - **For:** beginners and first-time authors. The smallest commitment that makes a pile of skills a real plugin.
-- **Requires (`U1-U12`):**
+- **Requires (`U1-U9`, `U11-U12`):**
   - `U1` - a minimal `library.json` carrying at least `name`, `version`, and `tier`
   - `U2-U4` - valid agentskills.io skill anatomy and frontmatter, with each skill's name equal to its directory; a root `AGENTS.md` entrypoint is part of the required anatomy
   - `U5` - a description that clears the what-plus-when-plus-trigger quality bar
   - `U6-U7` - reference links that resolve, and an instruction-budget warning so context stays scarce
-  - `U8-U10` - native-manifest and version agreement, plus the house no-em-dash / no-en-dash rule
-  - `U11` - well-formed MCP entries that commit no secrets
+  - `U8-U9` - native-manifest agreement, and `package.json` / `library.json` version agreement
+  - `U11-U12` - well-formed MCP entries that commit no secrets, and structurally valid mermaid blocks
 - **Why it matters:** the manifest (`U1`) is the line between a reusable folder and a release unit that carries a version, so tooling can grade and version it. The description bar protects the one signal an agent uses to decide relevance; the reference-link and budget rules keep context scarce and progressively disclosed, which is how frontier models actually follow instructions.
 - **Payoff:** a Bronze plugin is installable and behaves the same on Claude Code, Codex, and the broader agentskills.io ecosystem at once. Write once, run anywhere.
 
@@ -355,11 +355,11 @@ The Claude slash commands that give the core flows an explicit `/command` entry 
 
 **`v1.1.0`, Gold grade, installable.** The repository declares `tier: advanced` and self-validates at Advanced in CI: the full gate is green and `tier-report` prints `advanced` with an empty burndown, so the toolkit is a self-proving example of the Standard it defines. Gold check `G1` (hooks) now grades the toolkit's own demonstrative no-dash `PreToolUse` hook; `G6` (deprecation) is still satisfied without exercise, since the toolkit ships no deprecated components yet. The toolkit installs from the `product-on-purpose` marketplace (see [Install](#install)).
 
-- **Version** - `1.1.0` (Standard `v0.10`).
+- **Version** - `1.1.0` (Standard `v0.11`).
 - **Tier** - Advanced (Gold), self-validated.
 - **Install** - `product-on-purpose` marketplace (`agent-plugins`).
 - **Components** - 23 skills, 7 subagents, 2 commands.
-- **Validation spine** - 30 checks (`U1-U12`, `S1-S8`, `G1-G10`).
+- **Validation spine** - 29 checks (`U1-U9`, `U11-U12`, `S1-S8`, `G1-G10`).
 - **Agents** - Claude Code and Codex; agentskills.io-compatible at Bronze.
 - **License** - Apache-2.0.
 - **Docs site** - [product-on-purpose.github.io/agent-skills-toolkit](https://product-on-purpose.github.io/agent-skills-toolkit/).

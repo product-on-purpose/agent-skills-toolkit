@@ -43,7 +43,7 @@ Each term below is defined in one sentence. The terms are grouped by axis, then 
 
 **reqId** - the stable identifier a check backs, prefixed by tier - `U` for Universal, `S` for Convergent, `G` for Advanced (for example `U5` is the description-quality rule and `G2` is self-hosting CI) - so a finding points to exactly one requirement.
 
-**Spine** - the 30-check backbone the toolkit ships (`U1`-`U12`, `S1`-`S8`, `G1`-`G10`); the `G7` slot is the `docs-frontmatter` check (Standard v0.10), and tier inclusion of Bronze and Silver is a structural property of the monotonic tiers, not a numbered check.
+**Spine** - the 29-check backbone the toolkit ships (`U1`-`U9`, `U11`-`U12`, `S1`-`S8`, `G1`-`G10`); the `G7` slot is the `docs-frontmatter` check (Standard v0.10), and tier inclusion of Bronze and Silver is a structural property of the monotonic tiers, not a numbered check.
 
 **Burndown** - the actionable list the tier report hands back naming exactly what blocks the next tier, keyed to reqIds, so the climb reads as a worklist rather than a guess (for example `blocked.gold: ["G3: no eval cases for chain rs-synthesis"]`).
 

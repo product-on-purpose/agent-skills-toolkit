@@ -129,7 +129,7 @@ From here `node scripts/check.mjs` gates on Convergent errors too - the declared
 
 ## Part 2 - Silver to Gold (Advanced)
 
-Gold certifies that the plugin proves itself: deep lifecycle plus CI that runs the Standard against the plugin and passes. The Gold checks are `G1` through `G10` (`G7` is `docs-frontmatter`; `G8`-`G10` are folder-readme, source-doc, and docs-presence, all landed in Standard v0.10); tier inclusion of all Bronze and Silver is a structural property, not a numbered check. That is the full 30-check spine: `U1-U12`, `S1-S8`, `G1-G10`.
+Gold certifies that the plugin proves itself: deep lifecycle plus CI that runs the Standard against the plugin and passes. The Gold checks are `G1` through `G10` (`G7` is `docs-frontmatter`; `G8`-`G10` are folder-readme, source-doc, and docs-presence, all landed in Standard v0.10); tier inclusion of all Bronze and Silver is a structural property, not a numbered check. That is the full 29-check spine: `U1-U9`, `U11-U12`, `S1-S8`, `G1-G10`.
 
 Read the new worklist first:
 
