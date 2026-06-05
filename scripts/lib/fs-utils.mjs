@@ -5,6 +5,14 @@
 import { readFileSync, existsSync, readdirSync, statSync } from "node:fs";
 import path from "node:path";
 
+/**
+ * Directory names skipped by repo-wide content scanners, matched by basename at any depth:
+ * dependency dirs, gitignored scratch, and build-output / tool-cache dirs. Generated artifacts
+ * are not authored text, so content hygiene does not apply to them. Defined once here and shared
+ * by the repo-wide content checks (U12 mermaid-valid, G8 folder-readme).
+ */
+export const SKIP_DIRS = new Set(["node_modules", ".git", ".memsearch", "_local", "_LOCAL", "_agent-context", "dist", ".astro"]);
+
 /** Repo-relative, slash-normalized path. Falls back to abs if root is falsy. */
 export function relPath(root, abs) {
   return root ? path.relative(root, abs).split(path.sep).join("/") : abs;

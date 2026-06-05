@@ -46,7 +46,7 @@ Convergent (Silver) reqIds carry the `S` prefix. The current set:
 | S7 | Command-contract (maps-to resolves to one skill/workflow; description present) | sec 3.2 | yes |
 | S8 | Components index mirrors what is on disk, in both directions (no orphan or phantom entries) | sec 5.1 | no |
 
-Two Universal checks were added in the v0.2 hardening: **U9** (`version-match`: `package.json` version must equal `library.json` version, the source of truth) and **U10** (`no-dashes`: the house no-em-dash / no-en-dash rule, now CI-enforced for every contributor, not only a local hook).
+One Universal check was added in the v0.2 hardening: **U9** (`version-match`: `package.json` version must equal `library.json` version, the source of truth). A `U10` no-dashes check shipped at the same time; it was retired in Standard v0.11 as a stylistic house preference rather than a portability requirement, and now lives only as an opt-in author-time hook.
 
 S6 (per-target native-manifest presence) fires only when `agent-targets` is declared; it checks that each declared target has its generated native manifest on disk. The repository declares `agent-targets: ["claude", "codex"]` and emits both manifests. The `components` index (S3) is now present in `library.json`, so the Silver burndown is empty; the toolkit has since closed the Gold checks (G1-G10) too and declares `tier: advanced`.
 

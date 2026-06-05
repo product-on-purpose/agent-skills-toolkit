@@ -13,7 +13,6 @@ The Standard grades a plugin Bronze (Universal), Silver (Convergent), then Gold.
 - Each skill's `name` equals its directory (U4).
 - Each skill description scores at the quality bar (U5, a warning): a recognized action verb plus a "use when" clause.
 - Reference links in a `SKILL.md` body resolve (U6).
-- No em-dashes or en-dashes in committed `.md` / `.mjs` (U10).
 
 ### Silver (cross-agent shape)
 - `agent-targets` declared in `library.json` (S1): `claude`, `codex`, or both.

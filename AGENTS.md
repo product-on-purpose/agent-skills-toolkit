@@ -19,7 +19,7 @@ design and decision record is [`docs/internal/DESIGN.md`](docs/internal/DESIGN.m
 
 This repository declares `tier: advanced` (Gold) and **self-validates against its
 own Standard in CI** - the deterministic validation spine lives in `scripts/`. The
-full gate (Bronze U1-U12, Silver S1-S8, Gold G1-G10) is green and `tier-report`
+full gate (Bronze U1-U9, U11-U12, Silver S1-S8, Gold G1-G10) is green and `tier-report`
 reports `tier: advanced` with an empty burndown, so the toolkit is a self-proving
 example of the Standard. See
 [`docs/internal/BOOTSTRAP.md`](docs/internal/BOOTSTRAP.md) for historical context:

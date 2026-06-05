@@ -9,9 +9,8 @@
 // used-by:      scripts/lib/registry.mjs (the CHECKS array), scripts/check.mjs, scripts/tier-report.mjs
 import { readFileSync, readdirSync, statSync, existsSync } from "node:fs";
 import path from "node:path";
-import { relPath } from "../lib/fs-utils.mjs";
+import { relPath, SKIP_DIRS } from "../lib/fs-utils.mjs"; // SKIP_DIRS: shared directory skip set, matched by basename at any depth
 import { finding, SEVERITY } from "../lib/findings.mjs";
-import { SKIP_DIRS } from "./no-dashes.mjs"; // shared directory skip set, matched by basename at any depth
 
 export const meta = { id: "mermaid-valid", tier: "universal", reqId: "U12" };
 

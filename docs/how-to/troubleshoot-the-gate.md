@@ -38,7 +38,7 @@ These gate any plugin that declares `universal` or higher.
 
 - **Symptom:** `library.json is missing...` or `...is not valid JSON` or `...missing required field "<key>"`.
 - **Cause:** the manifest that makes a directory a plugin is absent, malformed, or missing one of the five required fields: `name`, `version`, `description`, `standard`, `tier` (Standard sec 5.1). A bare folder of skills with no `library.json` is loose components, not a Bronze plugin.
-- **Fix:** scaffold one with `askit-init-plugin`, or add the missing field by hand. `version` must be semver; `tier` must be `universal`, `convergent`, or `advanced`; `standard` is the Standard version you target (currently `"0.10"`).
+- **Fix:** scaffold one with `askit-init-plugin`, or add the missing field by hand. `version` must be semver; `tier` must be `universal`, `convergent`, or `advanced`; `standard` is the Standard version you target (currently `"0.11"`).
 
 ### U2 - AGENTS.md missing
 
@@ -91,12 +91,6 @@ node scripts/generators/gen-manifest.mjs . --write --target=all
 - **Symptom:** `package.json version (<x>) must equal library.json version (<y>)`.
 - **Cause:** a `package.json` with a `version` field disagrees with `library.json`, which is the version source of truth (Standard sec 5). This is conditional: no `package.json`, or no `version` field, means it does not apply.
 - **Fix:** set `package.json` `version` to match `library.json`. When you cut a release, bump in `library.json` first (or use `askit-release`, which keeps them aligned) and regenerate the native manifests (U8).
-
-### U10 - em-dash / en-dash present
-
-- **Symptom:** a `no-dashes` finding naming a file containing U+2014 or U+2013.
-- **Cause:** an em-dash or en-dash slipped into a tracked file.
-- **Fix:** replace with " - " (space hyphen space) or restructure the sentence; use plain hyphens for numeric ranges.
 
 ### U11 - .mcp.json invalid
 

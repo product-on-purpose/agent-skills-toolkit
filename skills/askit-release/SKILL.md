@@ -26,7 +26,7 @@ When the user asks to cut or tag a release, bump the version, update the CHANGEL
 1. Curate `RELEASE-NOTES.md`: a user-facing, highlights-first entry for the version, distinct from the full CHANGELOG (sec 10.6 / Gold G5).
 
 ## gate mode
-1. Run the release-readiness gate (ADR 0022 / `docs/internal/RELEASE.md`): version consistency (U9), a dated CHANGELOG section, RELEASE-NOTES present, README status current, generated surfaces drift-free (INDEX and manifests, G4), the conformance gate green (`node scripts/check.mjs`), no em-dashes or en-dashes (U10), and the manual Codex round-trip recorded. Stop with an actionable message on any failure.
+1. Run the release-readiness gate (ADR 0022 / `docs/internal/RELEASE.md`): version consistency (U9), a dated CHANGELOG section, RELEASE-NOTES present, README status current, generated surfaces drift-free (INDEX and manifests, G4), the conformance gate green (`node scripts/check.mjs`), and the manual Codex round-trip recorded. Stop with an actionable message on any failure.
 
 ## Scope
 `library.json` is the version source of truth; `package.json` follows (U9). The release-readiness gate is built incrementally (ADR 0022): version + dash + CHANGELOG-section now, the full Advanced gate at Gold. Marketplace registration happens only at the first Gold tag (D8); release does not register before then.

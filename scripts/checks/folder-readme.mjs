@@ -6,10 +6,9 @@
 // used-by:      scripts/lib/registry.mjs (the CHECKS array), via scripts/check.mjs and tier-report.mjs
 import { readFileSync, readdirSync, statSync, existsSync } from "node:fs";
 import path from "node:path";
-import { relPath } from "../lib/fs-utils.mjs";
+import { relPath, SKIP_DIRS } from "../lib/fs-utils.mjs";
 import { finding, SEVERITY } from "../lib/findings.mjs";
 import { parseFrontmatter } from "../lib/frontmatter.mjs";
-import { SKIP_DIRS } from "./no-dashes.mjs";
 
 export const meta = { id: "folder-readme", tier: "advanced", reqId: "G8" };
 
