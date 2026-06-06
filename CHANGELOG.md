@@ -9,8 +9,15 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [1.2.0] - 2026-06-06
+
+Retire the `U10` (no-dashes) house-style check from the conformance spine (Standard `v0.10 -> v0.11`, spine `30 -> 29`), and add a refined Command Dashboard v2 evaluation-report sample template.
+
 ### Removed
 - **`U10` (`no-dashes`) retired from the conformance spine; Standard `0.10 -> 0.11`.** The no-em-dash / no-en-dash rule was a stylistic house preference with no portability or vendor basis (agentskills.io, Claude Code, and Codex impose no such rule), so grading third-party plugins against it was out of scope for a skill and plugin standard. `scripts/checks/no-dashes.mjs` and `tests/unit/no-dashes.test.mjs` are removed; the shared `SKIP_DIRS` set moves to `scripts/lib/fs-utils.mjs` (where `U12` mermaid-valid and `G8` folder-readme now import it); the registry, the `registry-sync` spine count (`30 -> 29`), `STANDARD.md` (spine line + a v0.11 note), `library.json` `standard`, and the live docs are updated. The dash preference remains available as an **opt-in** author-time guard: the toolkit still ships the `PreToolUse` hook in `hooks/` (so Gold `G1` stays non-vacuous), and any maintainer-level global hook is unaffected. Spine **30 -> 29** (`U1-U9`, `U11-U12`, `S1-S8`, `G1-G10`).
+
+### Added
+- **Command Dashboard v2 evaluation-report sample template.** `docs/internal/template/evaluation-report--plugin--dashboard-v2.html`: the dashboard report variant with a real font-weight hierarchy on a system-font stack, wider non-clipping matrix cells, and text-wrap balancing; a self-contained sample with a hypothetical subject (#102).
 
 ## [1.1.0] - 2026-06-03
 

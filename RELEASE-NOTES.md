@@ -2,6 +2,20 @@
 
 Curated, user-facing highlights. For the full technical history see [`CHANGELOG.md`](CHANGELOG.md).
 
+## 1.2.0 - 2026-06-06
+
+A scope correction. The `U10` no-em-dash / no-en-dash check is retired from the conformance spine: it was a stylistic house preference with no portability or vendor basis (agentskills.io, Claude Code, and Codex impose no such rule), so grading other people's plugins against it was outside what a skill and plugin standard should decide. The spine is now **29 checks** (`U1-U9`, `U11-U12`, `S1-S8`, `G1-G10`) and the Standard moves to **v0.11**.
+
+### What changed
+
+- **`U10` (no-dashes) is gone from the gate.** Your plugin is no longer flagged for em-dashes or en-dashes. If you want a dash-free house style for yourself, the toolkit still ships an opt-in `PreToolUse` hook in `hooks/` you can adopt; it is no longer imposed on anything the gate grades.
+- **Standard v0.11, a 29-check spine.** This is a relaxation: every plugin that passed before still passes, and nothing newly fails.
+- **A refined report sample.** A Command Dashboard v2 evaluation-report template with cleaner typography and wrapping.
+
+### Upgrade
+
+Already installed? Update from the marketplace as usual; nothing breaks, and re-running the gate can only remove findings (the retired `U10`), never add them.
+
 ## 1.1.0 - 2026-06-03
 
 The documentation-depth release. `agent-skills-toolkit` now grades a plugin's documentation as rigorously as its code, and the toolkit proves it on itself: a dual-audience Diataxis docs set, a generated docs site, folder-by-folder and file-by-file self-documentation, and **Standard v0.10**.
