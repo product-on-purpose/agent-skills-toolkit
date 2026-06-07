@@ -2,6 +2,20 @@
 
 Curated, user-facing highlights. For the full technical history see [`CHANGELOG.md`](CHANGELOG.md).
 
+## 1.3.0 - 2026-06-06
+
+The gate-evolution release. The deterministic gate gets two upgrades that make it legitimate to point at other people's plugins: it now honors the Standard version a plugin pins, and it is configurable like a real linter. No new requirement is added, so the spine stays **29 checks** and the Standard stays **v0.11**, and a plugin with no config grades exactly as before.
+
+### What is new
+
+- **The gate honors your pinned Standard (ADR 0027).** Every check records the Standard version it was introduced at, and the gate reads `library.json.standard`. A plugin pinned to an older Standard is graded against the ruleset it actually adopted: a requirement added after your pinned version shows up as a `warn`, never a build-failing error, until you raise your pin. The Standard can now evolve without silently breaking downstream plugins.
+- **Configure how the gate grades, without forking it.** An optional `askit.config.json` lets you turn a rule down or off, grade against a lighter `plain-plugin` profile (the portable, vendor-grounded checks only, instead of the full askit library ladder), or durably waive a known finding with a recorded reason. Every check is tagged by provenance, so the report separates "real issues" (objective defects and vendor-backed rules) from "profile conformance" (askit conventions you may not have opted into). See `docs/reference/gate-config.md`.
+- **Tamper-proof published verdicts.** When the toolkit grades and publishes a verdict about someone else's plugin (`--mode published-verdict`), a subject cannot disable an objective check to dodge it: such a finding is surfaced as a warning with a notice, never silently dropped.
+
+### Upgrade
+
+Already installed? Update from the marketplace as usual. Nothing breaks: with no `askit.config.json` and a current pin, your gate result is identical to 1.2.0. The new behavior is opt-in (a config file) or only matters for older pins.
+
 ## 1.2.0 - 2026-06-06
 
 A scope correction. The `U10` no-em-dash / no-en-dash check is retired from the conformance spine: it was a stylistic house preference with no portability or vendor basis (agentskills.io, Claude Code, and Codex impose no such rule), so grading other people's plugins against it was outside what a skill and plugin standard should decide. The spine is now **29 checks** (`U1-U9`, `U11-U12`, `S1-S8`, `G1-G10`) and the Standard moves to **v0.11**.
