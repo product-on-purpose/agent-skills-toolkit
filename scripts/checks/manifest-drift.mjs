@@ -6,7 +6,7 @@
 // used-by:      registered in scripts/lib/registry.mjs; run by scripts/check.mjs and tier-report.mjs
 import { finding, SEVERITY } from "../lib/findings.mjs";
 
-export const meta = { id: "manifest-drift", tier: "universal", reqId: "U8" };
+export const meta = { id: "manifest-drift", tier: "universal", reqId: "U8", since: "0.x" };
 
 // Native manifests, keyed to their on-disk path. Mirrors MANIFEST_FOR in per-target-presence.mjs (S6); keep the two in sync.
 /** Native manifests generated from library.json; checked for name/version agreement. */

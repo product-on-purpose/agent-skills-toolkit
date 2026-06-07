@@ -4,7 +4,7 @@
 // used-by:      registered in scripts/lib/registry.mjs; run by scripts/check.mjs and tier-report.mjs
 import { finding, SEVERITY } from "../lib/findings.mjs";
 
-export const meta = { id: "agent-targets", tier: "convergent", reqId: "S1" };
+export const meta = { id: "agent-targets", tier: "convergent", reqId: "S1", since: "0.x" };
 
 const VALID = new Set(["claude", "codex"]);
 

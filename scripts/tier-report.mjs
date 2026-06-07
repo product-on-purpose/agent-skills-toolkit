@@ -4,9 +4,12 @@
 // used-by:      run by contributors, askit-capability-advisor, and the docs that show the tier ladder
 import { loadPlugin } from "./lib/load-plugin.mjs";
 import { runAllChecks } from "./lib/registry.mjs";
+import { applyStandardDowngrade } from "./lib/standard-gate.mjs";
 import { TIER_ORDER, tierForReq } from "./lib/tier.mjs";
 
-export function computeTierReport(root, ctx = loadPlugin(root), findings = runAllChecks(ctx)) {
+// ADR 0027: when a caller does not pass findings, default to the standard-aware (downgraded) set so the
+// burndown agrees with the gate. check.mjs and evaluate.mjs pass their already-downgraded findings in.
+export function computeTierReport(root, ctx = loadPlugin(root), findings = applyStandardDowngrade(runAllChecks(ctx), ctx.library?.data?.standard)) {
   const declaredTier = ctx.library?.data?.tier ?? null;
   const declaredIdx = declaredTier ? TIER_ORDER.indexOf(declaredTier) : -1;
 

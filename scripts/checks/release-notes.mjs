@@ -6,7 +6,7 @@ import { finding, SEVERITY } from "../lib/findings.mjs";
 import { existsSync, readFileSync, statSync } from "node:fs";
 import path from "node:path";
 
-export const meta = { id: "release-notes", tier: "advanced", reqId: "G5" };
+export const meta = { id: "release-notes", tier: "advanced", reqId: "G5", since: "0.x" };
 
 function isFile(p) { return existsSync(p) && statSync(p).isFile(); }
 

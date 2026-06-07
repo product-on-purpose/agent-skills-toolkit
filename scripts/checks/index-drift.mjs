@@ -7,7 +7,7 @@ import { renderIndex } from "../generators/gen-index.mjs";
 import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
 
-export const meta = { id: "index-drift", tier: "advanced", reqId: "G4" };
+export const meta = { id: "index-drift", tier: "advanced", reqId: "G4", since: "0.x" };
 
 // Normalize line endings (CRLF/LF) and trailing whitespace so the comparison is not flaky on
 // Windows/CI checkouts where git may rewrite line endings.

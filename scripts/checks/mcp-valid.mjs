@@ -4,7 +4,7 @@
 // used-by:      registered in scripts/lib/registry.mjs; run by scripts/check.mjs and tier-report.mjs
 import { finding, SEVERITY } from "../lib/findings.mjs";
 
-export const meta = { id: "mcp-valid", tier: "universal", reqId: "U11" };
+export const meta = { id: "mcp-valid", tier: "universal", reqId: "U11", since: "0.x" };
 
 // Inline values that look like a credential rather than an env/indirection reference.
 const SECRETISH_KEY = /(token|secret|key|password|passwd|api[_-]?key|bearer)/i;

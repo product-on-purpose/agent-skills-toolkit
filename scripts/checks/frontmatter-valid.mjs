@@ -5,7 +5,7 @@
 import { finding, SEVERITY } from "../lib/findings.mjs";
 import { relPath } from "../lib/fs-utils.mjs";
 
-export const meta = { id: "frontmatter-valid", tier: "universal", reqId: "U3" };
+export const meta = { id: "frontmatter-valid", tier: "universal", reqId: "U3", since: "0.x" };
 
 const NAME_RE = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 

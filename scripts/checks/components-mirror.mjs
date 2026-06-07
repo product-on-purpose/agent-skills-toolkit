@@ -4,7 +4,7 @@
 // used-by:      registered in scripts/lib/registry.mjs; run by scripts/check.mjs and tier-report.mjs
 import { finding, SEVERITY } from "../lib/findings.mjs";
 
-export const meta = { id: "components-mirror", tier: "convergent", reqId: "S8" };
+export const meta = { id: "components-mirror", tier: "convergent", reqId: "S8", since: "0.x" };
 
 /** The value of a frontmatter metadata field (undefined when metadata is absent or not a map). */
 function frontmatterField(comp, field) {

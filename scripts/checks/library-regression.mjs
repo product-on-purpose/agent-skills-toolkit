@@ -7,7 +7,7 @@ import { existsSync, readFileSync, readdirSync, statSync } from "node:fs";
 import path from "node:path";
 import { parse as parseYaml } from "yaml";
 
-export const meta = { id: "library-regression", tier: "advanced", reqId: "G3" };
+export const meta = { id: "library-regression", tier: "advanced", reqId: "G3", since: "0.x" };
 
 function isDir(p) { return existsSync(p) && statSync(p).isDirectory(); }
 function isFile(p) { return existsSync(p) && statSync(p).isFile(); }

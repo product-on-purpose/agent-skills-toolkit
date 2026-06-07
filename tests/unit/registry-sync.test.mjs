@@ -32,3 +32,24 @@ test("every registered check has a unique reqId", () => {
   const reqIds = CHECKS.map((m) => m.meta?.reqId).filter((r) => r != null);
   assert.equal(new Set(reqIds).size, reqIds.length, "duplicate reqId among registered checks");
 });
+
+// ADR 0027 (F1): every check declares the Standard version it was introduced at (meta.since), so the
+// standard-aware gate can downgrade a post-pin requirement to warn. A check that forgets `since` would
+// default to the baseline sentinel and silently never downgrade; this assertion makes the omission fail.
+test("every registered check declares a non-empty meta.since [R-SINCE-1]", () => {
+  for (const m of CHECKS) {
+    assert.equal(typeof m.meta?.since, "string", `check ${m.meta?.id} must declare a string meta.since`);
+    assert.ok(m.meta.since.length > 0, `check ${m.meta?.id} meta.since must be non-empty`);
+  }
+});
+
+// The since values are fixed by ADR 0027: only the five ADR 0024 checks (U12 + G7-G10) are "0.10";
+// every other check is the "0.x" pre-policy baseline (0.11 was a relaxation, so it adds no new since).
+// Diff this against the SPEC sec 3 table with zero discrepancies.
+test("the reqId -> since map matches the ADR 0027 baseline table [R-SINCE-2]", () => {
+  const since010 = new Set(["U12", "G7", "G8", "G9", "G10"]);
+  for (const m of CHECKS) {
+    const expected = since010.has(m.meta.reqId) ? "0.10" : "0.x";
+    assert.equal(m.meta.since, expected, `${m.meta.reqId} (${m.meta.id}) should be since ${expected}`);
+  }
+});

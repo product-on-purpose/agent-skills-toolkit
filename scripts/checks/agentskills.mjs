@@ -20,4 +20,4 @@ export function checkAgentskills(ctx) {
   return [...frontmatter(ctx), ...nameDir(ctx), ...description(ctx), ...refs(ctx), ...budget(ctx)];
 }
 
-export const meta = { id: "agentskills", tier: "universal", reqId: null };
+export const meta = { id: "agentskills", tier: "universal", reqId: null, since: "0.x" };
