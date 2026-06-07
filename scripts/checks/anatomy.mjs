@@ -4,7 +4,7 @@
 // used-by:      registered in scripts/lib/registry.mjs; run by scripts/check.mjs and tier-report.mjs
 import { finding, SEVERITY } from "../lib/findings.mjs";
 
-export const meta = { id: "anatomy", tier: "universal", reqId: "U2", since: "0.x" };
+export const meta = { id: "anatomy", tier: "universal", reqId: "U2", since: "0.x", provenance: "objective" };
 
 export function check(ctx) {
   const out = [];

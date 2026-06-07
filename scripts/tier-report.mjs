@@ -3,19 +3,29 @@
 // why:          the burndown turns the climb into a worklist instead of a guess
 // used-by:      run by contributors, askit-capability-advisor, and the docs that show the tier ladder
 import { loadPlugin } from "./lib/load-plugin.mjs";
-import { runAllChecks } from "./lib/registry.mjs";
+import { runAllChecks, provenanceByReq } from "./lib/registry.mjs";
 import { applyStandardDowngrade } from "./lib/standard-gate.mjs";
+import { loadConfig } from "./lib/config.mjs";
+import { resolveFindings } from "./lib/resolve-config.mjs";
 import { TIER_ORDER, tierForReq } from "./lib/tier.mjs";
 
-// ADR 0027: when a caller does not pass findings, default to the standard-aware (downgraded) set so the
-// burndown agrees with the gate. check.mjs and evaluate.mjs pass their already-downgraded findings in.
-export function computeTierReport(root, ctx = loadPlugin(root), findings = applyStandardDowngrade(runAllChecks(ctx), ctx.library?.data?.standard)) {
+// F1 + F3: when no findings are passed, default to the fully resolved set (the standard-aware downgrade,
+// then config/profile/suppression resolution), so the burndown agrees with the gate. check.mjs and
+// evaluate.mjs pass their already-resolved findings in.
+function defaultResolved(root, ctx) {
+  const downgraded = applyStandardDowngrade(runAllChecks(ctx), ctx.library?.data?.standard);
+  const { config, findings: configFindings } = loadConfig(root);
+  return resolveFindings([...configFindings, ...downgraded], config, provenanceByReq());
+}
+
+export function computeTierReport(root, ctx = loadPlugin(root), findings = defaultResolved(root, ctx)) {
   const declaredTier = ctx.library?.data?.tier ?? null;
   const declaredIdx = declaredTier ? TIER_ORDER.indexOf(declaredTier) : -1;
 
   const errorsByTier = { universal: [], convergent: [], advanced: [] };
   for (const f of findings) {
-    if (f.severity !== "error") continue;
+    const sev = f.effectiveSeverity ?? f.severity; // grade on the resolved severity, not the emitted one
+    if (sev !== "error" || f.suppressed) continue;
     const tier = tierForReq(f.reqId);
     errorsByTier[tier].push(`${f.reqId ?? "?"}: ${f.message}`);
   }

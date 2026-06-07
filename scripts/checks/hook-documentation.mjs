@@ -6,7 +6,7 @@ import { finding, SEVERITY } from "../lib/findings.mjs";
 import { existsSync, readFileSync, statSync } from "node:fs";
 import path from "node:path";
 
-export const meta = { id: "hook-documentation", tier: "advanced", reqId: "G1", since: "0.x" };
+export const meta = { id: "hook-documentation", tier: "advanced", reqId: "G1", since: "0.x", provenance: "house" };
 
 // Events whose hooks match against a target (a tool name); a matcher documents WHEN the hook fires.
 // Restricted to the tool-loop events, the only ones that meaningfully scope to a tool name

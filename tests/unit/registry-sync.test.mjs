@@ -3,7 +3,8 @@ import assert from "node:assert/strict";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { loadPlugin } from "../../scripts/lib/load-plugin.mjs";
-import { CHECKS, runAllChecks } from "../../scripts/lib/registry.mjs";
+import { CHECKS, runAllChecks, provenanceByReq } from "../../scripts/lib/registry.mjs";
+import { PROVENANCE } from "../../scripts/lib/findings.mjs";
 
 const REPO_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
 
@@ -52,4 +53,15 @@ test("the reqId -> since map matches the ADR 0027 baseline table [R-SINCE-2]", (
     const expected = since010.has(m.meta.reqId) ? "0.10" : "0.x";
     assert.equal(m.meta.since, expected, `${m.meta.reqId} (${m.meta.id}) should be since ${expected}`);
   }
+});
+
+// F3: every check declares a provenance in the allowed set, and provenanceByReq() covers the whole spine,
+// so the report's real-issues vs profile-conformance split (and the published-verdict clamp) can rely on
+// it. A future check that forgets `provenance` fails here rather than silently defaulting in production.
+test("every registered check declares a meta.provenance in the PROVENANCE enum [F3]", () => {
+  const allowed = new Set(Object.values(PROVENANCE));
+  for (const m of CHECKS) {
+    assert.ok(allowed.has(m.meta?.provenance), `check ${m.meta?.id} must declare a provenance in ${[...allowed].join("/")} (got ${m.meta?.provenance})`);
+  }
+  assert.equal(provenanceByReq().size, CHECKS.length, "provenanceByReq() covers every registered reqId");
 });

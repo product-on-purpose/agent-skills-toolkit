@@ -7,7 +7,7 @@ import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import path from "node:path";
 import { parseFrontmatter } from "../lib/frontmatter.mjs";
 
-export const meta = { id: "workflow-skills", tier: "convergent", reqId: "S5", since: "0.x" };
+export const meta = { id: "workflow-skills", tier: "convergent", reqId: "S5", since: "0.x", provenance: "house" };
 
 export function check(ctx) {
   const out = [];

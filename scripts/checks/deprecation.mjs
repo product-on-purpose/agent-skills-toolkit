@@ -4,7 +4,7 @@
 // used-by:      registered in scripts/lib/registry.mjs; run by scripts/check.mjs and tier-report.mjs
 import { finding, SEVERITY } from "../lib/findings.mjs";
 
-export const meta = { id: "deprecation", tier: "advanced", reqId: "G6", since: "0.x" };
+export const meta = { id: "deprecation", tier: "advanced", reqId: "G6", since: "0.x", provenance: "house" };
 
 const VALID_STATUS = new Set(["active", "deprecated", "experimental"]);
 

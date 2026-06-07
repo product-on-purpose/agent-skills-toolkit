@@ -4,6 +4,14 @@
 // used-by:      imported by every check module and by the aggregate gate
 export const SEVERITY = Object.freeze({ ERROR: "error", WARN: "warn" });
 
+// Provenance classifies WHY a check exists, so the report can split portable, defensible failures
+// (objective + vendor-cited) from askit-house conventions (F3, ADR 0028). `objective` = a defect true
+// regardless of any standard (a dead link, manifest drift, malformed JSON); `vendor-cited` = backed by
+// an external authority (Claude Code / Codex / agentskills.io) cited in the check's docblock; `house` =
+// an askit-Standard convention with no external mandate. A consumer may freely tune `house` rules; the
+// published-verdict clamp protects `objective`/`vendor-cited` truth.
+export const PROVENANCE = Object.freeze({ OBJECTIVE: "objective", VENDOR: "vendor-cited", HOUSE: "house" });
+
 /**
  * Build a normalized Finding.
  * @returns {{check:string,severity:"error"|"warn",message:string,file:string|null,reqId:string|null}}
