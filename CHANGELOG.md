@@ -9,6 +9,17 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [1.3.0] - 2026-06-06
+
+The gate-evolution release: the deterministic gate becomes Standard-version-aware (ADR 0027) and configurable like a real linter (per-rule severity, profiles, suppressions, provenance, a published-verdict mode). No new spine check and no tier requirement, so the spine stays **29** and the Standard stays **0.11**; an unconfigured plugin grades exactly as it did in 1.2.0.
+
+### Added
+- **Standard-aware gate (F1, ADR 0027).** Every check declares the Standard version it was introduced at (`meta.since`); the gate reads `library.json.standard` and downgrades any error from a check introduced AFTER the pinned version to a `warn` (surfaced, never gate-failing), so a plugin pinning an older Standard is graded against the ruleset it adopted rather than the newest spine. Pure version arithmetic in two new leaf modules (`scripts/lib/standard-version.mjs`, `scripts/lib/standard-gate.mjs`), wired through `check.mjs` / `tier-report.mjs` / `evaluate.mjs`. A `--strict` flag grades against the full live spine for authors validating the Standard itself. `STANDARD.md` gains sec 7.7 ("Standard versioning and compatibility"); ADR 0027 is Accepted.
+- **Configurable gate (F3).** An optional `askit.config.json` at the plugin root configures grading without editing source: per-rule severity (`error` / `warn` / `off`), named **profiles** (`askit-library` the default, `plain-plugin` the portable-checks-only rubric, and an opt-in empty `house-style` slot), and a **suppressions** baseline (`reqId` + file glob + optional message substring, each with a required reason). Each check carries a **`provenance`** tag (`objective` / `vendor-cited` / `house`), and the report splits "real issues" (objective + vendor-cited) from "profile conformance" (house conventions + downgrades). A **`published-verdict`** mode (the `--mode` flag) clamps an objective/vendor-cited finding a subject tried to disable back up to a `warn`, so a published conformance verdict cannot be gamed. New modules: `scripts/lib/config.mjs`, `profiles.mjs`, `resolve-config.mjs`, `suppressions.mjs`; `docs/reference/gate-config.md` documents the schema, profiles, suppressions, and the clamp.
+
+### Notes
+- No new conformance requirement: the spine stays 29 (`U1-U9`, `U11-U12`, `S1-S8`, `G1-G10`) and the Standard stays `0.11`. Config is consumer-side and non-normative for conformance (`STANDARD.md` sec 7.7). 308 tests; gate Advanced 0/0; both features shipped behind a clean 4-lens adversarial review.
+
 ## [1.2.0] - 2026-06-06
 
 Retire the `U10` (no-dashes) house-style check from the conformance spine (Standard `v0.10 -> v0.11`, spine `30 -> 29`), and add a refined Command Dashboard v2 evaluation-report sample template.

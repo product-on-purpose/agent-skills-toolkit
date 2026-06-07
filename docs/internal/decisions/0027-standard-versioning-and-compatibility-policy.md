@@ -3,9 +3,9 @@
 ## TL;DR
 - **Decision:** Adopt an explicit policy for how the Advanced Skill Library Standard versions itself: a new or tightened tier requirement (a new U#/S#/G#, or a stricter rule on an existing one) ships as a `warn` for one Standard minor version before it becomes a gate-failing `error`, and the gate grades a plugin against the Standard version it pins in `library.json.standard` rather than always against the live spine. A requirement may instead be introduced directly as an `error` only in a MAJOR Standard bump.
 - **Why:** Today the gate filters checks by declared tier but never reads `library.json.standard`, so a plugin pinned to an older Standard is silently re-graded against the newest spine. Adding four checks in v0.10 (the 1.1.0 release) as immediate errors means a plugin that was conformant under v0.9 can fail with zero changes to itself. The Standard is positioned as "a downstream contract every conformant plugin must meet," so it needs a stability promise.
-- **Status:** Proposed (NOT yet implemented; deferred from the v1.1.0 adversarial-review fix PR for maintainer ratification). The behavior change touches the public conformance contract and is sequenced as a fast-follow before any third party is invited to grade against the Standard.
+- **Status:** Accepted (implemented and shipped in v1.3.0: F1 added `meta.since` to every check, a `standard-version.mjs` / `standard-gate.mjs` pure-arithmetic downgrade pass wired through `check.mjs` / `tier-report.mjs` / `evaluate.mjs`, a `--strict` bypass, and the normative STANDARD.md sec 7.7). The standard-aware gate now reads `library.json.standard` and downgrades a post-pin requirement to `warn`. The recommended option 1 was adopted in full; the per-check `warn`-then-`error` burndown machinery ships but is unexercised (v0.11 was a relaxation, so no live tightening). The toolkit pins the current Standard, so its own gate is unchanged.
 
-- **Status:** Proposed
+- **Status:** Accepted (Proposed 2026-06-03, Accepted 2026-06-06)
 - **Date:** 2026-06-03
 - **Deciders:** maintainer (jprisant), with Claude (Opus 4.8)
 
