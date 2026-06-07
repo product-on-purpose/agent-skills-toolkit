@@ -6,6 +6,7 @@ import path from "node:path";
 import { existsSync, statSync } from "node:fs";
 import { loadPlugin, loadSkill } from "./lib/load-plugin.mjs";
 import { runAllChecks } from "./lib/registry.mjs";
+import { applyStandardDowngrade } from "./lib/standard-gate.mjs";
 import { computeTierReport } from "./tier-report.mjs";
 import { checkAgentskills } from "./checks/agentskills.mjs";
 import { finding, SEVERITY } from "./lib/findings.mjs";
@@ -60,7 +61,9 @@ export function evaluate(target) {
   }
   if (looksLikePlugin(target)) {
     const ctx = loadPlugin(target);
-    const findings = runAllChecks(ctx);
+    // ADR 0027: downgrade post-pin errors to warn so the report object, summary, and --json provenance
+    // (downgraded/since/pinned) reflect the Standard the plugin actually pins.
+    const findings = applyStandardDowngrade(runAllChecks(ctx), ctx.library?.data?.standard);
     const t = computeTierReport(target, ctx, findings);
     return { ...baseReport("plugin", target, findings), tier: t.tier, satisfies: t.satisfies, blocked: t.blocked };
   }

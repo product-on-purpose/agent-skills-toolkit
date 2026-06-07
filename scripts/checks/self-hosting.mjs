@@ -7,7 +7,7 @@ import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import path from "node:path";
 import { readJsonSafe } from "../lib/fs-utils.mjs";
 
-export const meta = { id: "self-hosting", tier: "advanced", reqId: "G2" };
+export const meta = { id: "self-hosting", tier: "advanced", reqId: "G2", since: "0.x" };
 
 // The gate entrypoint, anchored so a longer filename (scripts/check.mjsx, .mjs.bak) does not match.
 const GATE_PATH = /scripts\/check\.mjs(?![\w.])/;

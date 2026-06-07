@@ -5,7 +5,7 @@
 import { finding, SEVERITY } from "../lib/findings.mjs";
 import { relPath } from "../lib/fs-utils.mjs";
 
-export const meta = { id: "name-matches-dir", tier: "universal", reqId: "U4" };
+export const meta = { id: "name-matches-dir", tier: "universal", reqId: "U4", since: "0.x" };
 
 export function check(ctx) {
   const out = [];

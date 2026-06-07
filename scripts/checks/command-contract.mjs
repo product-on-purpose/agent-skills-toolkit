@@ -4,7 +4,7 @@
 // used-by:      registered in scripts/lib/registry.mjs; run by scripts/check.mjs and tier-report.mjs
 import { finding, SEVERITY } from "../lib/findings.mjs";
 
-export const meta = { id: "command-contract", tier: "convergent", reqId: "S7" };
+export const meta = { id: "command-contract", tier: "convergent", reqId: "S7", since: "0.x" };
 
 export function check(ctx) {
   const commands = ctx.commands || [];

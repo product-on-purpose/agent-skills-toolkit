@@ -7,7 +7,7 @@ import { statSync, existsSync, readdirSync, readFileSync } from "node:fs";
 import path from "node:path";
 import { relPath } from "../lib/fs-utils.mjs";
 
-export const meta = { id: "reference-links", tier: "universal", reqId: "U6" };
+export const meta = { id: "reference-links", tier: "universal", reqId: "U6", since: "0.x" };
 
 const LINK = /\[[^\]]*\]\(([^)]+)\)/g;
 

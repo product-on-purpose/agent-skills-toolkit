@@ -13,4 +13,6 @@ The shared library the checks, generators, and gate import: findings, frontmatte
 - `fs-utils.mjs` - filesystem helpers (relPath and friends).
 - `load-plugin.mjs` - loadPlugin() that builds the check context from a plugin root.
 - `registry.mjs` - the ordered CHECKS array and runAllChecks().
+- `standard-gate.mjs` - the ADR 0027 standard-aware downgrade: SINCE_BY_REQ and applyStandardDowngrade().
+- `standard-version.mjs` - Standard-version arithmetic (parseStandard, compareStandard, isAfter).
 - `tier.mjs` - the reqId-to-tier mapping and tier ordering.

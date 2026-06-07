@@ -10,7 +10,7 @@ import { relPath, SKIP_DIRS } from "../lib/fs-utils.mjs";
 import { finding, SEVERITY } from "../lib/findings.mjs";
 import { parseFrontmatter } from "../lib/frontmatter.mjs";
 
-export const meta = { id: "folder-readme", tier: "advanced", reqId: "G8" };
+export const meta = { id: "folder-readme", tier: "advanced", reqId: "G8", since: "0.10" };
 
 // Names that are never inventory items: the README itself, gitignored/scratch/tool dirs (reused from
 // the shared SKIP_DIRS, since readdirSync surfaces untracked entries like .git/_local/node_modules),

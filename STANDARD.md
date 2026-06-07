@@ -246,7 +246,7 @@ At **Convergent tier and above** the manifest MUST additionally declare:
 | `name` | string | REQUIRED | kebab-case; equals the plugin directory name. |
 | `version` | string (semver) | REQUIRED | The single plugin version (Section 7.4); the manifest's version is authoritative. |
 | `description` | string | REQUIRED | What the plugin is and when to use it; meets the 8.1 bar. |
-| `standard` | string | REQUIRED | The version of THIS Standard the plugin targets (e.g. `"0.10"`, the current version), so tooling can validate against the right ruleset. |
+| `standard` | string | REQUIRED | The version of THIS Standard the plugin targets (e.g. `"0.11"`, the current version), so tooling can validate against the right ruleset. The gate honors this pin per sec 7.7: a requirement introduced after the pinned version is surfaced as a `warn`, never a gate-failing `error`, until the plugin re-pins. |
 | `tier` | `"universal"` \| `"convergent"` \| `"advanced"` | REQUIRED | The declared target tier; tooling verifies the tier actually satisfied (Section 2.4) and MUST flag a claim above what is met. |
 | `agent-targets` | array of `"claude"` \| `"codex"` | REQUIRED at Convergent+ | Agents this plugin emits for. Omitted at Universal (skills are agent-agnostic). |
 | `prefix` | string | REQUIRED at Convergent+ | The multi-agent component name prefix (Section 8.2). |
@@ -311,6 +311,19 @@ A component MAY be marked `status: deprecated` with `deprecated-by` (its replace
 
 ### 7.6 Contribution
 A plugin SHOULD document how proposals enter the backlog, the gates they pass, and who decides. This keeps "best-in-class" reproducible by contributors, not just the original author.
+
+### 7.7 Standard versioning and compatibility
+This section governs how the Standard ITSELF evolves, distinct from sec 7.4, which governs a plugin's own version.
+
+**Versioning.** The Standard is versioned `MAJOR.MINOR`. Adding a new tier requirement (a new `U#`/`S#`/`G#`) or tightening an existing one (a stricter rule, or a `warn` promoted to `error`) is an additive change that bumps the MINOR. Removing or relaxing a requirement is also a MINOR (the always-safe direction). A breaking redefinition of an existing requirement is reserved for a MAJOR.
+
+**Burndown (warn-then-error, MUST for tightenings).** A newly introduced or tightened tier requirement SHOULD ship as a `warn` for the one Standard MINOR that introduces it, then become a gate-failing `error` in the next MINOR. This gives a downstream library a one-version migration window before a tightening can fail its build. A requirement MAY instead be introduced directly as an `error` only in a MAJOR bump.
+
+**Pinned-version grading (MUST).** Every check declares the Standard version it was introduced at (its `since`). Tooling MUST read `library.json.standard` and grade a plugin against the requirement set of the version it pins: a requirement introduced AFTER the pinned version is reported as a `warn` (surfaced, never gate-failing) for that run, not an `error`. A plugin opts into newer requirements by raising its pinned `standard`. This keeps the sec 5.1 promise that `standard` lets "tooling validate against the right ruleset."
+
+**Relaxations are always safe.** Removing a requirement cannot make a previously passing plugin newly fail, so a relaxation ships as a MINOR with no burndown (the v0.11 retirement of the no-dashes rule, ADR 0028, is the precedent).
+
+**Determinism.** This policy is enforced by pure version comparison (a `MAJOR.MINOR` ordering where a pre-policy baseline sentinel sorts below every real version), so the gate that applies it stays synchronous and model-free.
 
 ---
 

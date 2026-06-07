@@ -5,7 +5,7 @@
 import { finding, SEVERITY } from "../lib/findings.mjs";
 import { relPath } from "../lib/fs-utils.mjs";
 
-export const meta = { id: "prefix", tier: "convergent", reqId: "S2" };
+export const meta = { id: "prefix", tier: "convergent", reqId: "S2", since: "0.x" };
 
 const KEBAB_DASH = /^[a-z0-9]+(?:-[a-z0-9]+)*-$/;
 

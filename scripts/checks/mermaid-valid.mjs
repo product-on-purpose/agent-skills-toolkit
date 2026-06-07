@@ -12,7 +12,7 @@ import path from "node:path";
 import { relPath, SKIP_DIRS } from "../lib/fs-utils.mjs"; // SKIP_DIRS: shared directory skip set, matched by basename at any depth
 import { finding, SEVERITY } from "../lib/findings.mjs";
 
-export const meta = { id: "mermaid-valid", tier: "universal", reqId: "U12" };
+export const meta = { id: "mermaid-valid", tier: "universal", reqId: "U12", since: "0.10" };
 
 // The recognized Mermaid diagram-type keywords, kept in one named constant so a new diagram type is a
 // one-line addition. Covers the current Mermaid registry (mermaid-js/mermaid diagram-orchestration):
