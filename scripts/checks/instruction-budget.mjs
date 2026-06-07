@@ -5,7 +5,7 @@
 import { finding, SEVERITY } from "../lib/findings.mjs";
 import { relPath } from "../lib/fs-utils.mjs";
 
-export const meta = { id: "instruction-budget", tier: "universal", reqId: "U7", since: "0.x" };
+export const meta = { id: "instruction-budget", tier: "universal", reqId: "U7", since: "0.x", provenance: "vendor-cited" };
 export const MAX_LINES = 500; // approximate budget; a trailing newline is not counted
 
 export function check(ctx) {

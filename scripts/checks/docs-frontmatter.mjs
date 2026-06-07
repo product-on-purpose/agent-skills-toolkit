@@ -8,7 +8,7 @@ import { relPath } from "../lib/fs-utils.mjs";
 import { finding, SEVERITY } from "../lib/findings.mjs";
 import { parseFrontmatter } from "../lib/frontmatter.mjs";
 
-export const meta = { id: "docs-frontmatter", tier: "advanced", reqId: "G7", since: "0.10" };
+export const meta = { id: "docs-frontmatter", tier: "advanced", reqId: "G7", since: "0.10", provenance: "house" };
 
 const AUDIENCE = new Set(["non-engineer", "engineer", "both"]);
 const LEVEL = new Set(["beginner", "intermediate", "advanced"]);

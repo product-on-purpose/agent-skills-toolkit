@@ -6,7 +6,7 @@ import path from "node:path";
 import { finding, SEVERITY } from "../lib/findings.mjs";
 import { fileExists } from "../lib/fs-utils.mjs";
 
-export const meta = { id: "per-target-presence", tier: "convergent", reqId: "S6", since: "0.x" };
+export const meta = { id: "per-target-presence", tier: "convergent", reqId: "S6", since: "0.x", provenance: "house" };
 
 /** Each declared agent-target requires its native manifest on disk. */
 const MANIFEST_FOR = {

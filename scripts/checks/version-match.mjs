@@ -6,7 +6,7 @@ import path from "node:path";
 import { readJsonSafe } from "../lib/fs-utils.mjs";
 import { finding, SEVERITY } from "../lib/findings.mjs";
 
-export const meta = { id: "version-match", tier: "universal", reqId: "U9", since: "0.x" };
+export const meta = { id: "version-match", tier: "universal", reqId: "U9", since: "0.x", provenance: "objective" };
 
 /**
  * library.json is the version source of truth (Standard sec 5). When a package.json

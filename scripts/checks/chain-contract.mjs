@@ -7,7 +7,7 @@ import { existsSync, readFileSync, statSync } from "node:fs";
 import path from "node:path";
 import { parse as parseYaml } from "yaml";
 
-export const meta = { id: "chain-contract", tier: "convergent", reqId: "S4", since: "0.x" };
+export const meta = { id: "chain-contract", tier: "convergent", reqId: "S4", since: "0.x", provenance: "house" };
 
 function isDir(p) { return existsSync(p) && statSync(p).isDirectory(); }
 function isFile(p) { return existsSync(p) && statSync(p).isFile(); }

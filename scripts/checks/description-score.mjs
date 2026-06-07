@@ -5,7 +5,7 @@
 import { finding, SEVERITY } from "../lib/findings.mjs";
 import { relPath } from "../lib/fs-utils.mjs";
 
-export const meta = { id: "description-score", tier: "universal", reqId: "U5", since: "0.x" };
+export const meta = { id: "description-score", tier: "universal", reqId: "U5", since: "0.x", provenance: "vendor-cited" };
 export const THRESHOLD = 0.7;
 
 const ANTI = /\b(helps with|handles|deals with|manages stuff|various things)\b/i;

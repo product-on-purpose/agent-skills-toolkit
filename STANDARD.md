@@ -325,6 +325,8 @@ This section governs how the Standard ITSELF evolves, distinct from sec 7.4, whi
 
 **Determinism.** This policy is enforced by pure version comparison (a `MAJOR.MINOR` ordering where a pre-policy baseline sentinel sorts below every real version), so the gate that applies it stays synchronous and model-free.
 
+**Consumer-side configuration (non-normative for conformance).** A grader MAY accept consumer-side configuration (a local `askit.config.json` that selects a named profile, sets per-rule severities, and lists a suppressions baseline) to scope HOW it grades. This configuration is the grader's local preference, NOT part of the plugin contract: a plugin is conformant or not independent of how any grader is configured. A PUBLISHED conformance verdict MUST NOT let a graded subject disable an objective or vendor-cited finding to dodge it (a published-verdict mode clamps such an override to at least a `warn`, surfaced with a notice). This profile and suppression mechanism is also the opt-in home for house preferences a tier requirement should not impose (the home ADR 0028 named for the retired no-dashes rule).
+
 ---
 
 ## 8. Quality and discoverability

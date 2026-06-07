@@ -4,7 +4,7 @@
 // used-by:      registered in scripts/lib/registry.mjs; run by scripts/check.mjs and tier-report.mjs
 import { finding, SEVERITY } from "../lib/findings.mjs";
 
-export const meta = { id: "components-index", tier: "convergent", reqId: "S3", since: "0.x" };
+export const meta = { id: "components-index", tier: "convergent", reqId: "S3", since: "0.x", provenance: "house" };
 
 export function check(ctx) {
   const lib = ctx.library?.data;

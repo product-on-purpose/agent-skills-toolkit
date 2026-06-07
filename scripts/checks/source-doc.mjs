@@ -9,7 +9,7 @@ import path from "node:path";
 import { relPath } from "../lib/fs-utils.mjs";
 import { finding, SEVERITY } from "../lib/findings.mjs";
 
-export const meta = { id: "source-doc", tier: "advanced", reqId: "G9", since: "0.10" };
+export const meta = { id: "source-doc", tier: "advanced", reqId: "G9", since: "0.10", provenance: "house" };
 
 const HEADER_LINES = 30;
 const EXT = /\.(mjs|js|py)$/;

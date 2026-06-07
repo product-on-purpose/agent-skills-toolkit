@@ -46,3 +46,16 @@ export const CHECKS = [
 export function runAllChecks(ctx) {
   return CHECKS.flatMap((m) => m.check(ctx));
 }
+
+/** The set of every registered reqId, so the config loader (F3) validates rule keys against the real spine. */
+export const REQ_IDS = new Set(CHECKS.map((m) => m.meta.reqId).filter((r) => r != null));
+
+/**
+ * reqId -> provenance, built from each registered check's meta (F3). A check that forgets `provenance`
+ * defaults to "objective" (the strictest, never-waivable class), so the omission fails safe; the
+ * registry-sync provenance-coverage test makes a missing tag fail CI rather than silently default.
+ * @returns {Map<string, "objective"|"vendor-cited"|"house">}
+ */
+export function provenanceByReq() {
+  return new Map(CHECKS.filter((m) => m.meta.reqId != null).map((m) => [m.meta.reqId, m.meta.provenance ?? "objective"]));
+}

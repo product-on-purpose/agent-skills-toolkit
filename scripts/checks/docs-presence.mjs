@@ -9,7 +9,7 @@ import { relPath } from "../lib/fs-utils.mjs";
 import { finding, SEVERITY } from "../lib/findings.mjs";
 import { parseFrontmatter } from "../lib/frontmatter.mjs";
 
-export const meta = { id: "docs-presence", tier: "advanced", reqId: "G10", since: "0.10" };
+export const meta = { id: "docs-presence", tier: "advanced", reqId: "G10", since: "0.10", provenance: "house" };
 
 const DIATAXIS = ["tutorials", "how-to", "reference", "explanation"];
 
