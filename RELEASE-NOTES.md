@@ -2,6 +2,20 @@
 
 Curated, user-facing highlights. For the full technical history see [`CHANGELOG.md`](CHANGELOG.md).
 
+## 1.4.1 - 2026-06-09
+
+A hardening patch over v1.4.0. A Codex adversarial review of the new report renderer surfaced three edge cases on the advisory and migration paths; all three are fixed. Nothing changes for normal use: same commands, same output, same verdict.
+
+### What changed
+
+- A malformed advisory file (one missing its findings or cases) now renders a clean report instead of erroring.
+- The Markdown report escapes raw HTML from an advisory's model name or finding text, so an untrusted advisory file cannot inject markup into a `.md`.
+- An unknown `--target-tier` is rejected with a clear error instead of silently producing an empty migration plan.
+
+### Upgrade
+
+Already installed? Update from the marketplace as usual. This is a pure hardening patch: no behavior change for valid input.
+
 ## 1.4.0 - 2026-06-09
 
 The designed evaluation report. Until now an evaluation lived in a terminal or a JSON blob; now `agent-skills-toolkit` renders it as a polished, self-contained HTML page, or a Markdown twin for PR review, so you can hand a non-engineer a verdict they can read and act on. No requirement changes: the spine stays **29 checks** and the Standard stays **v0.11**.
