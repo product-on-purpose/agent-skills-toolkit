@@ -82,3 +82,13 @@ test("behavioral render: golden HTML snapshot", () => {
   const r = behavioralObject();
   assertSnapshot(renderHtml(r, optsFor(r, SF, "behavioral")), SNAP_DIR, "behavioral-silver.expected.html");
 });
+
+// --- v1.4.1 hardening (Codex review) ---
+
+test("behavioral render: a malformed advisory (missing cases and summary) renders without crashing", () => {
+  const r = { ...evaluate(SF), reportType: "behavioral", behavioral: { model: "x" } };
+  assert.doesNotThrow(() => {
+    renderMarkdown(r, optsFor(r, SF, "behavioral"));
+    renderHtml(r, optsFor(r, SF, "behavioral"));
+  });
+});

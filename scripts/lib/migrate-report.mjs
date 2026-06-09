@@ -18,6 +18,9 @@ export function migrateReport(target, opts = {}) {
   const base = evaluate(target, opts);
   const currentTier = base.tier ?? "none";
   const targetTier = opts.targetTier ?? "advanced";
+  if (!TIER_ORDER.includes(targetTier)) {
+    throw new Error(`invalid targetTier '${targetTier}'; expected one of ${TIER_ORDER.join(", ")}`);
+  }
 
   const errorsByTier = {};
   for (const f of base.findings ?? []) {

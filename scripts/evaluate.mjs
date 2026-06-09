@@ -175,6 +175,10 @@ async function runCli() {
     console.error(`invalid --report '${report}'; expected 'conformance', 'migration', 'release', 'review', or 'behavioral'`);
     process.exit(2);
   }
+  if (targetTier !== undefined && !["universal", "convergent", "advanced"].includes(targetTier)) {
+    console.error(`invalid --target-tier '${targetTier}'; expected 'universal', 'convergent', or 'advanced'`);
+    process.exit(2);
+  }
   // Build the chosen report object. migration/release decorate the conformance object deterministically; load
   // them lazily. review/behavioral merge an advisory block produced by an LLM layer (askit-reviewer /
   // askit-quality-grader) supplied via --advisory <file.json>; the renderer projects whatever it is given and

@@ -46,6 +46,10 @@ test("migrateReport: a target equal to the current tier yields no stages", () =>
   assert.deepEqual(r.migration.stages, []);
 });
 
+test("migrateReport: an invalid targetTier throws instead of producing an empty plan", () => {
+  assert.throws(() => migrateReport(SF, { targetTier: "bogus" }), /invalid targetTier/);
+});
+
 // --- B.3: the migration renderer ---
 
 test("migration render: MD and HTML are clean, self-contained, and show the staged plan", () => {
