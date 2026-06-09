@@ -87,3 +87,21 @@ test("review render: golden HTML snapshot", () => {
   const r = reviewObject();
   assertSnapshot(renderHtml(r, optsFor(r, SF, "review")), SNAP_DIR, "review-silver.expected.html");
 });
+
+// --- v1.4.1 hardening (Codex review) ---
+
+test("review render: a malformed advisory (missing findings) renders without crashing", () => {
+  const r = { ...evaluate(SF), reportType: "review", review: { model: "x" } };
+  assert.doesNotThrow(() => {
+    renderMarkdown(r, optsFor(r, SF, "review"));
+    renderHtml(r, optsFor(r, SF, "review"));
+  });
+});
+
+test("review render: a hostile advisory message and model are HTML-escaped in Markdown", () => {
+  const r = { ...evaluate(SF), reportType: "review", review: { model: "<img src=x onerror=alert(1)>", effort: "high", date: "2026-01-01", findings: [{ area: "scoping", severity: "major", message: "bad <script>alert(1)</script>", file: "f", provenance: "objective" }] } };
+  const md = renderMarkdown(r, optsFor(r, SF, "review"));
+  assert.ok(!md.includes("<script>alert(1)</script>"), "a raw script tag must not survive in the Markdown");
+  assert.ok(!md.includes("<img src=x"), "a raw img tag (the model name) must not survive in the Markdown");
+  assert.ok(md.includes("&lt;script&gt;"), "the angle brackets are escaped");
+});
