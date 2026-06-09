@@ -9,6 +9,19 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [1.4.0] - 2026-06-09
+
+The designed evaluation report (F2 / backlog E1): one pure renderer over the single `evaluate.mjs` report object emits a self-contained HTML page or a Markdown twin, in five report types, so a conformance result is consumable by a non-engineer and a PR reviewer, not only in a terminal. No new spine check and no Standard change: the spine stays **29** and the Standard stays **0.11**; the renderer is a presentation layer over the deterministic gate.
+
+### Added
+- **Designed conformance report (Phase A, #111).** `scripts/lib/report-render.mjs` (`renderMarkdown` / `renderHtml`) plus `scripts/lib/report-meta.mjs` (a per-reqId why-it-matters / fix-prompt / effort table) render the deterministic report object as a self-contained HTML page (inline CSS, one small inline script for the TOC scroll-spy / copy-prompt buttons / print, no external assets) or a Markdown twin, following a 10-section information architecture. `scripts/evaluate.mjs` gains `--format=md|html` and `--out`; terminal and `--json` are byte-for-byte unchanged. The renderer derives the spine and Standard version live, never hard-coded.
+- **Migration and release-readiness reports (Phase B, #112).** `--report=migration --target-tier=<tier>` renders a staged gap-by-tier plan (`scripts/lib/migrate-report.mjs`); `--report=release` renders a deterministic go / no-go (`scripts/lib/release-report.mjs`: a clean gate AND version-consistent manifests AND a present `RELEASE-NOTES.md`, mirroring the `release.yml` guard). Both are pure decorators over the conformance object.
+- **Review and behavioral advisory reports (Phase C, #113).** `--report=review|behavioral --advisory <file.json>` renders the two advisory reports, whose content is produced by an LLM layer (`askit-reviewer` / `askit-quality-grader`) and merged onto the conformance object by an allowlisting `applyAdvisory()`. The advisory layer is clearly labeled, carries a model/effort/date provenance stamp, and structurally cannot move the deterministic grade or the gate exit code.
+- **Public reference.** `docs/reference/evaluation-reports.md` documents all five report types, both formats, and the deterministic/advisory boundary.
+
+### Notes
+- The renderer is a pure projection: it adds no finding, runs no model, and never changes the tier or the gate exit code (Design Principle 3 / ADR 0023). Golden snapshots lock both formats. Each phase shipped behind a 4-lens adversarial review; the Phase C review caught a critical advisory-merge hole (an unbounded spread could let a malformed advisory file overwrite the verdict) that the `applyAdvisory` allowlist and a hostile-advisory regression test closed. 341 tests; gate Advanced 0/0. No spine or Standard change: 29 checks, Standard 0.11.
+
 ## [1.3.0] - 2026-06-06
 
 The gate-evolution release: the deterministic gate becomes Standard-version-aware (ADR 0027) and configurable like a real linter (per-rule severity, profiles, suppressions, provenance, a published-verdict mode). No new spine check and no tier requirement, so the spine stays **29** and the Standard stays **0.11**; an unconfigured plugin grades exactly as it did in 1.2.0.

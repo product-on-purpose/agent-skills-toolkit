@@ -2,6 +2,20 @@
 
 Curated, user-facing highlights. For the full technical history see [`CHANGELOG.md`](CHANGELOG.md).
 
+## 1.4.0 - 2026-06-09
+
+The designed evaluation report. Until now an evaluation lived in a terminal or a JSON blob; now `agent-skills-toolkit` renders it as a polished, self-contained HTML page, or a Markdown twin for PR review, so you can hand a non-engineer a verdict they can read and act on. No requirement changes: the spine stays **29 checks** and the Standard stays **v0.11**.
+
+### What is new
+
+- **A designed report in one command.** `node scripts/evaluate.mjs <path> --format=html --out report.html` produces a self-contained, on-brand page: a verdict masthead, a status matrix, a per-requirement evidence ledger, exactly what blocks the next tier, and a copy-paste prompt to fix each gap. `--format=md` gives a Markdown twin. It opens offline, has a print / Save-PDF button, and hides nothing behind tabs.
+- **Five report types, one renderer.** Beyond the conformance report, `--report=migration` renders a staged Bronze-to-Gold plan, `--report=release` a deterministic go / no-go readiness check, and `--report=review` / `--report=behavioral` render advisory (model-judged) layers beside the verdict. They all render from the one deterministic object, so the Markdown, HTML, JSON, and terminal never disagree.
+- **The verdict stays the gate's.** The HTML and Markdown are presentation only: they add no judgment, and the advisory layers are clearly labeled and stamped with their model, never moving the grade. See `docs/reference/evaluation-reports.md`.
+
+### Upgrade
+
+Already installed? Update from the marketplace as usual. Nothing breaks: the terminal and `--json` output are unchanged, and the report formats are new opt-in flags.
+
 ## 1.3.0 - 2026-06-06
 
 The gate-evolution release. The deterministic gate gets two upgrades that make it legitimate to point at other people's plugins: it now honors the Standard version a plugin pins, and it is configurable like a real linter. No new requirement is added, so the spine stays **29 checks** and the Standard stays **v0.11**, and a plugin with no config grades exactly as before.
