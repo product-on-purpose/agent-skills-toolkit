@@ -12,6 +12,9 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ### Added
 - **`--profile <name>` on `check.mjs` and `evaluate.mjs`.** Grade a plugin you do not own under a chosen profile (e.g. `--profile plain-plugin`) without writing `askit.config.json` into its tree. It mirrors `--mode`: a CLI value that overrides the loaded config's profile through the same resolution path (an explicit per-rule override in a present config still wins), and an unknown profile is rejected with exit 2. This closes the main friction the eval-target corpus run surfaced: pointing the gate at a third-party plugin previously graded it against the full askit library ladder, drowning portable defects in non-portable scaffolding findings. No spine or Standard change (29 checks, Standard 0.11).
 
+### Changed
+- **`U2` (root `AGENTS.md` anatomy) and `U5` (description scorer) reclassified from portable to `house` provenance (ADR 0029).** The eval-target corpus run showed both fire on well-built official targets on convention rather than defect (Anthropic's own `skills` ships no root `AGENTS.md`; good `use-when` descriptions cluster at 0.65 under the U5 scorer's 0.7 bar). As house checks they are now turned off by the `plain-plugin` profile, counted as profile conformance rather than real issues, and never clamped in published-verdict mode (a consumer may opt out of an askit convention). Both still fire under the default `askit-library` profile, so no plugin's conformance grade changes; the spine stays **29** and the Standard stays **0.11**. A new `house-provenance.test.mjs` invariant asserts the `plain-plugin` off-set equals the house-provenance set so the two never drift.
+
 ## [1.4.1] - 2026-06-09
 
 A hardening patch over `v1.4.0`, from a Codex adversarial review of the new report renderer. Three defensive fixes on the advisory and migration paths; no behavior change for valid input, and no spine or Standard change (spine stays **29**, Standard stays **0.11**).
