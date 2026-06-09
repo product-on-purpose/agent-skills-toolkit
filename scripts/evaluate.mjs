@@ -134,6 +134,17 @@ function optsFromTarget(target, exitCode, reportType = "conformance") {
   };
 }
 
+// Merge an advisory block (review / behavioral) onto the deterministic conformance object, allowlisting ONLY
+// the advisory's own namespaced keys. The advisory comes from a non-deterministic LLM layer and is untrusted:
+// spreading the whole object would let a stray top-level tier/findings/byRule key overwrite the gate verdict.
+// This mirrors the migrate/release decorators (base first, then one namespaced key) so the advisory can never
+// move the deterministic grade, the ledger, or the gate exit code.
+export function applyAdvisory(base, report, adv = {}) {
+  if (report === "review") return { ...base, reportType: "review", review: adv.review, insights: adv.insights };
+  if (report === "behavioral") return { ...base, reportType: "behavioral", behavioral: adv.behavioral };
+  return base;
+}
+
 // Run the CLI as an async function (not a top-level await), so evaluate.mjs finishes evaluating before the
 // lazily-imported migrate-report / release-report modules import it back (avoids a cyclic top-level-await deadlock).
 async function runCli() {
@@ -176,7 +187,7 @@ async function runCli() {
       console.error(`--report=${report} requires --advisory <file.json> carrying the advisory ${report} block (it comes from an LLM layer, not the deterministic gate)`);
       process.exit(2);
     }
-    r = { ...evaluate(target, { mode }), reportType: report, ...JSON.parse(readFileSync(advisory, "utf8")) };
+    r = applyAdvisory(evaluate(target, { mode }), report, JSON.parse(readFileSync(advisory, "utf8")));
   } else r = evaluate(target, { mode });
   // Honor the same declared-tier ceiling as check.mjs, gating on the RESOLVED effective severity so the
   // two CLIs agree on pass/fail. Plugin scope reads the declared tier; component/unknown have no ceiling.

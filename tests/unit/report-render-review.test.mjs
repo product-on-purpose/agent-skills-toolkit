@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { readFileSync } from "node:fs";
-import { evaluate } from "../../scripts/evaluate.mjs";
+import { evaluate, applyAdvisory } from "../../scripts/evaluate.mjs";
 import { renderMarkdown, renderHtml } from "../../scripts/lib/report-render.mjs";
 import { CHECKS } from "../../scripts/lib/registry.mjs";
 import { gateExitFromFindings } from "../../scripts/check.mjs";
@@ -61,8 +61,21 @@ test("review render: advisory findings and insights render, labeled advisory, wi
 test("review render: the advisory layer never moves the deterministic grade", () => {
   const r = reviewObject();
   const md = renderMarkdown(r, optsFor(r, SF, "review"));
-  assert.ok(md.includes("Silver"), "the gate-derived grade (Silver) is preserved");
+  assert.match(md, /Grade earned \| Silver \(Convergent\)/, "the gate-derived grade is preserved in the masthead");
   assert.equal(r.tier, "convergent", "the source tier is the gate's, unchanged by the review");
+});
+
+test("review: a hostile advisory cannot overwrite the gate tier, findings, or the masthead grade (applyAdvisory allowlist)", () => {
+  const base = evaluate(SF);
+  // A malformed or hallucinated advisory that also carries deterministic keys it must NOT be able to set.
+  const hostile = { review: { model: "x", effort: "high", date: "2026-01-01", findings: [] }, insights: [], tier: "advanced", findings: [], byRule: {}, summary: { errors: 0, warns: 0 }, satisfies: ["advanced"], blocked: {} };
+  const r = applyAdvisory(base, "review", hostile);
+  assert.equal(r.tier, base.tier, "the advisory cannot overwrite the gate tier");
+  assert.equal(r.findings.length, base.findings.length, "the advisory cannot overwrite the gate findings");
+  assert.equal(Object.keys(r.byRule).length, Object.keys(base.byRule).length, "the advisory cannot overwrite byRule");
+  const md = renderMarkdown(r, optsFor(r, SF, "review"));
+  assert.match(md, /Grade earned \| Silver \(Convergent\)/, "the masthead grade is the gate's, not laundered to Gold");
+  assert.ok(!md.includes("Gold (Advanced)"), "the advisory did not flip the grade to Gold");
 });
 
 test("review render: golden MD snapshot", () => {

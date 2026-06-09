@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { readFileSync } from "node:fs";
-import { evaluate } from "../../scripts/evaluate.mjs";
+import { evaluate, applyAdvisory } from "../../scripts/evaluate.mjs";
 import { renderMarkdown, renderHtml } from "../../scripts/lib/report-render.mjs";
 import { CHECKS } from "../../scripts/lib/registry.mjs";
 import { gateExitFromFindings } from "../../scripts/check.mjs";
@@ -58,8 +58,19 @@ test("behavioral render: cases and summary render, labeled advisory, with a mode
 test("behavioral render: the advisory layer never moves the deterministic grade", () => {
   const r = behavioralObject();
   const md = renderMarkdown(r, optsFor(r, SF, "behavioral"));
-  assert.ok(md.includes("Silver"), "the gate-derived grade (Silver) is preserved");
+  assert.match(md, /Grade earned \| Silver \(Convergent\)/, "the gate-derived grade is preserved in the masthead");
   assert.equal(r.tier, "convergent", "the source tier is the gate's, unchanged by the behavioral pass");
+});
+
+test("behavioral: a hostile advisory cannot overwrite the gate tier, findings, or the masthead grade (applyAdvisory allowlist)", () => {
+  const base = evaluate(SF);
+  const hostile = { behavioral: { model: "x", effort: "low", date: "2026-01-01", cases: [], summary: { fired: 0, missed: 0, behaviorPass: 0, behaviorFail: 0 } }, tier: "advanced", findings: [], byRule: {}, summary: { errors: 0, warns: 0 }, satisfies: ["advanced"], blocked: {} };
+  const r = applyAdvisory(base, "behavioral", hostile);
+  assert.equal(r.tier, base.tier, "the advisory cannot overwrite the gate tier");
+  assert.equal(r.findings.length, base.findings.length, "the advisory cannot overwrite the gate findings");
+  const md = renderMarkdown(r, optsFor(r, SF, "behavioral"));
+  assert.match(md, /Grade earned \| Silver \(Convergent\)/, "the masthead grade is the gate's, not laundered to Gold");
+  assert.ok(!md.includes("Gold (Advanced)"), "the advisory did not flip the grade to Gold");
 });
 
 test("behavioral render: golden MD snapshot", () => {
