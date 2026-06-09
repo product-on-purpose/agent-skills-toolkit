@@ -2,6 +2,19 @@
 
 Curated, user-facing highlights. For the full technical history see [`CHANGELOG.md`](CHANGELOG.md).
 
+## 1.5.0 - 2026-06-09
+
+The outward-grading release. The toolkit's gate was built to grade other people's plugins, but pointed at a real third-party plugin it buried the genuine defects under its own house scaffolding. This release fixes that, so you can grade a plugin you do not own and get a short, credible list of real issues. No requirement changes: the spine stays **29 checks** and the Standard stays **v0.11**, and a plugin graded the default way scores exactly as before.
+
+### What is new
+
+- **Grade a third-party plugin in one flag.** `node scripts/check.mjs <path> --profile plain-plugin` (also on `evaluate.mjs`) grades a plugin you do not own on portable defects only, without writing a config file into its tree. Pointed at Anthropic's own skills library, the result drops from 23 findings to one (a real description over the spec cap) instead of a wall of "missing the askit scaffolding" noise.
+- **The grader stops dinging house conventions as defects.** Two checks that fired on well-built official plugins on taste rather than correctness - requiring a root `AGENTS.md` (U2) and an automated description score (U5) - are reclassified as askit house conventions (ADR 0029). They still apply when you grade against the full askit ladder, but no longer count against a plain third-party plugin or a published verdict.
+
+### Upgrade
+
+Already installed? Update from the marketplace as usual. Nothing breaks: a plugin graded the default way scores exactly as before, and the new behavior is opt-in via `--profile`.
+
 ## 1.4.1 - 2026-06-09
 
 A hardening patch over v1.4.0. A Codex adversarial review of the new report renderer surfaced three edge cases on the advisory and migration paths; all three are fixed. Nothing changes for normal use: same commands, same output, same verdict.

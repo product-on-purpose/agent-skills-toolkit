@@ -9,6 +9,10 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [1.5.0] - 2026-06-09
+
+The outward-grading release. The first eval-target corpus run (the toolkit graded against real third-party plugins for the first time) turned the gate from self-proving to legitimately pointable at plugins you do not own. Two changes ship from it; nothing changes for a plugin graded under the default profile, so the spine stays **29** and the Standard stays **0.11**.
+
 ### Added
 - **`--profile <name>` on `check.mjs` and `evaluate.mjs`.** Grade a plugin you do not own under a chosen profile (e.g. `--profile plain-plugin`) without writing `askit.config.json` into its tree. It mirrors `--mode`: a CLI value that overrides the loaded config's profile through the same resolution path (an explicit per-rule override in a present config still wins), and an unknown profile is rejected with exit 2. This closes the main friction the eval-target corpus run surfaced: pointing the gate at a third-party plugin previously graded it against the full askit library ladder, drowning portable defects in non-portable scaffolding findings. No spine or Standard change (29 checks, Standard 0.11).
 
