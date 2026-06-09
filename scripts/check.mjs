@@ -6,6 +6,7 @@ import { loadPlugin } from "./lib/load-plugin.mjs";
 import { runAllChecks, provenanceByReq } from "./lib/registry.mjs";
 import { applyStandardDowngrade } from "./lib/standard-gate.mjs";
 import { loadConfig } from "./lib/config.mjs";
+import { PROFILES } from "./lib/profiles.mjs";
 import { resolveFindings, gatingFindings } from "./lib/resolve-config.mjs";
 import { computeTierReport, humanLine } from "./tier-report.mjs";
 import { TIER_ORDER, tierForReq, ceilingIndex } from "./lib/tier.mjs";
@@ -22,7 +23,7 @@ export function gateExitFromFindings(findings, declaredTier) {
   };
 }
 
-export function runGate(root, ctx = loadPlugin(root), { strict = false, mode } = {}) {
+export function runGate(root, ctx = loadPlugin(root), { strict = false, mode, profile } = {}) {
   const raw = runAllChecks(ctx);
   // F1 (ADR 0027): honor the plugin's pinned Standard by downgrading post-pin errors to warn, unless
   // --strict (which grades against the full live spine, for authors validating the Standard itself).
@@ -31,7 +32,7 @@ export function runGate(root, ctx = loadPlugin(root), { strict = false, mode } =
   // published-verdict clamp). With no config this is a no-op: effectiveSeverity === severity, nothing
   // suppressed, configFindings empty, so the gate exit equals the pre-F3 behavior (test G-BC).
   const { config, findings: configFindings } = loadConfig(root);
-  const effectiveConfig = mode ? { ...config, mode } : config; // CLI --mode overrides the file
+  const effectiveConfig = { ...config, ...(mode ? { mode } : {}), ...(profile ? { profile } : {}) }; // CLI --mode / --profile override the file
   const resolved = resolveFindings([...configFindings, ...downgraded], effectiveConfig, provenanceByReq());
   // Project effectiveSeverity onto .severity so gateExitFromFindings (the tier ceiling) is UNCHANGED.
   const forGate = gatingFindings(resolved).map((f) => ({ ...f, severity: f.effectiveSeverity }));
@@ -55,25 +56,31 @@ function format(findings) {
 
 /** Parse the CLI: the first non-flag token is the root; --strict and --mode <val> (or --mode=<val>) are flags. */
 function parseArgs(argv) {
-  let root, mode, strict = false;
+  let root, mode, profile, strict = false;
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
     if (a === "--strict") strict = true;
     else if (a === "--mode") mode = argv[++i];
     else if (a.startsWith("--mode=")) mode = a.slice("--mode=".length);
+    else if (a === "--profile") profile = argv[++i];
+    else if (a.startsWith("--profile=")) profile = a.slice("--profile=".length);
     else if (!a.startsWith("--") && root === undefined) root = a;
   }
-  return { root: root ?? process.cwd(), mode, strict };
+  return { root: root ?? process.cwd(), mode, profile, strict };
 }
 
 if (process.argv[1]?.endsWith("check.mjs")) {
-  const { root, mode, strict } = parseArgs(process.argv.slice(2));
+  const { root, mode, profile, strict } = parseArgs(process.argv.slice(2));
   if (mode !== undefined && mode !== "local" && mode !== "published-verdict") {
     console.error(`invalid --mode '${mode}'; expected 'local' or 'published-verdict'`);
     process.exit(2);
   }
+  if (profile !== undefined && !Object.prototype.hasOwnProperty.call(PROFILES, profile)) {
+    console.error(`invalid --profile '${profile}'; expected one of ${Object.keys(PROFILES).join(", ")}`);
+    process.exit(2);
+  }
   const ctx = loadPlugin(root);
-  const r = runGate(root, ctx, { strict, mode });
+  const r = runGate(root, ctx, { strict, mode, profile });
   if (r.findings.length) {
     const out = format(r.findings);
     if (out) console.log(out);
