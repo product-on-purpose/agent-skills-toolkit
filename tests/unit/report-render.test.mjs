@@ -137,6 +137,9 @@ for (const [name, render] of [["silver-fixture.expected.md", renderMarkdown], ["
       mkdirSync(SNAP_DIR, { recursive: true });
       writeFileSync(file, out);
     }
-    assert.equal(out, readFileSync(file, "utf8"), `${name} drifted; re-run with UPDATE_SNAPSHOTS=1 to regenerate and review`);
+    // Golden snapshots are canonical LF (the renderer emits LF); normalize away a Windows CRLF working
+    // copy (git autocrlf converts on checkout) so the byte comparison is cross-platform, not OS-dependent.
+    const norm = (s) => s.replace(/\r\n/g, "\n");
+    assert.equal(norm(out), norm(readFileSync(file, "utf8")), `${name} drifted; re-run with UPDATE_SNAPSHOTS=1 to regenerate and review`);
   });
 }

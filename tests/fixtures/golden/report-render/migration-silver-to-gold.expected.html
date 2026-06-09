@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>silver-fixture 0.1.0 - Skill Library Evaluation</title>
+<style>
+  :root{
+    --bg:#eef1f6; --surface:#fff; --surface-2:#f6f8fb; --surface-3:#eef2f7;
+    --ink:#0f1726; --ink-soft:#3d4759; --ink-faint:#6b7688; --ink-ghost:#9aa3b2;
+    --line:#e1e6ee; --line-2:#d3dae5; --line-3:#c2cad8;
+    --brand:#5c7cfa; --brand-deep:#3f57c9; --brand-wash:#eef2ff;
+    --bronze:#a97142; --bronze-bg:#f7efe6; --bronze-line:#e6d3bd;
+    --silver:#6b7a84; --silver-bg:#eef1f4; --silver-line:#d4dde2;
+    --gold:#b8901f; --gold-bg:#fbf4dc; --gold-line:#ecdca2;
+    --pass:#18794e; --pass-bg:#e6f4ec; --pass-line:#bce0cb;
+    --fail:#b42318; --fail-bg:#fbeae7; --fail-line:#f1c6bd;
+    --warn:#8a5a00; --warn-bg:#fbf1d8; --warn-line:#ecd8a0;
+    --na:#6b7688; --na-bg:#eef0f4; --na-line:#d8dde6;
+    --sans:system-ui,-apple-system,"Segoe UI","Roboto","Helvetica Neue",Arial,sans-serif;
+    --mono:ui-monospace,"Cascadia Code","SF Mono",Menlo,Consolas,"Liberation Mono",monospace;
+    --maxw:1280px; --rail:264px; --ink-panel:#11182a;
+  }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);font-size:15.5px;line-height:1.6;font-weight:400;-webkit-font-smoothing:antialiased}
+  a{color:var(--brand-deep);text-underline-offset:2px}
+  h1,h2,h3,h4{font-family:var(--sans);font-weight:600;letter-spacing:0;text-wrap:balance}
+  p{text-wrap:pretty;margin:0 0 13px}
+  ul,ol{margin:0 0 14px;padding-left:20px} li{margin:4px 0}
+  code,.mono{font-family:var(--mono);font-size:.86em;background:var(--surface-3);padding:1px 5px;border-radius:4px;color:#28324a;overflow-wrap:anywhere}
+  .shell{display:grid;grid-template-columns:var(--rail) minmax(0,1fr)}
+  .rail{position:sticky;top:0;align-self:start;height:100vh;overflow-y:auto;background:var(--ink-panel);color:#c9d2e3;border-right:1px solid #0a0f1c;padding:24px 18px 30px}
+  .rail .mark{display:flex;align-items:center;gap:10px;margin-bottom:22px}
+  .rail .glyph{width:30px;height:30px;border-radius:8px;flex:none;background:linear-gradient(135deg,var(--brand),var(--brand-deep));display:grid;place-items:center;color:#fff;font-weight:700;font-size:15px}
+  .rail .mark .nm{font-size:13px;font-weight:650;color:#fff;line-height:1.15}
+  .rail .mark .nm small{display:block;font-family:var(--mono);font-size:10px;color:#7d88a0;font-weight:400;letter-spacing:.08em;margin-top:2px}
+  .rail .railhead{font-family:var(--mono);font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:#6b7693;margin:18px 6px 8px;font-weight:500}
+  .rail nav a{display:flex;gap:9px;align-items:baseline;text-decoration:none;color:#aab3c7;padding:6px 10px;border-radius:7px;font-size:13px;line-height:1.3;border-left:2px solid transparent}
+  .rail nav a .ix{font-family:var(--mono);font-size:10.5px;color:#6b7693;min-width:18px}
+  .rail nav a:hover{background:rgba(92,124,250,.16);color:#fff}
+  .rail nav a.active{background:rgba(92,124,250,.22);color:#fff;border-left-color:var(--brand)}
+  .rail .railnote{margin-top:22px;padding-top:16px;border-top:1px solid rgba(255,255,255,.09);font-size:11px;line-height:1.55;color:#7d88a0}
+  .content{min-width:0}
+  .wrap{max-width:var(--maxw);margin:0 auto;padding:0 40px}
+  section{padding:44px 0 6px}
+  .seclabel{display:flex;align-items:center;gap:12px;margin:0 0 14px}
+  .seclabel .num{font-family:var(--mono);font-size:12px;font-weight:600;color:var(--brand-deep);background:var(--brand-wash);border:1px solid #d6ddff;border-radius:6px;padding:3px 8px}
+  h2.sec{font-size:25px;margin:0;line-height:1.16;font-weight:650}
+  .lead{color:var(--ink-soft);font-size:16.5px;margin:4px 0 22px;max-width:76ch;font-weight:400;text-wrap:balance}
+  h3{font-size:16px;margin:26px 0 10px;font-weight:650}
+  .masthead{background:radial-gradient(90% 130% at 92% -20%,rgba(92,124,250,.30),transparent 60%),radial-gradient(70% 120% at 0% 120%,rgba(63,87,201,.22),transparent 55%),var(--ink-panel);color:#eef1f8;padding:38px 0 34px;border-bottom:1px solid #0a0f1c}
+  .mh-top{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:16px}
+  .chip{font-family:var(--mono);font-size:11px;letter-spacing:.04em;padding:4px 10px;border-radius:999px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.16);color:#c7cfe4;font-weight:500}
+  .chip.live{color:#bff0d2;border-color:rgba(120,220,160,.35);background:rgba(40,160,90,.16)}
+  .mh-grid{display:grid;grid-template-columns:1.35fr 1fr;gap:34px;align-items:stretch}
+  .mh-id h1{font-size:38px;line-height:1.06;margin:0 0 8px;color:#fff;font-weight:750;letter-spacing:-.01em}
+  .mh-id .vv{font-family:var(--mono);font-size:14px;color:#aeb9ff}
+  .mh-id .desc{color:#b9c2d8;font-size:15.5px;margin:12px 0 0;max-width:56ch}
+  .kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-top:26px}
+  .kpi{background:rgba(255,255,255,.055);border:1px solid rgba(255,255,255,.13);border-radius:12px;padding:14px 16px}
+  .kpi .k{font-family:var(--mono);font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:#8b96b3;font-weight:500}
+  .kpi .v{font-size:26px;font-weight:750;color:#fff;line-height:1.05;margin-top:6px;letter-spacing:-.01em;white-space:nowrap}
+  .kpi .v small{font-size:14px;font-weight:600;color:#9fa9c4}
+  .kpi .n{font-size:11.5px;color:#9aa4bd;margin-top:3px}
+  .kpi.accent-pass .v{color:#8ce6ad} .kpi.accent-fail .v{color:#ff9f93} .kpi.accent-warn .v{color:#f4cf7a}
+  .verdictcard{background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.14);border-radius:14px;padding:20px 22px;display:flex;flex-direction:column;gap:14px}
+  .lockup{display:flex;align-items:center;gap:16px}
+  .seal{width:74px;height:74px;border-radius:14px;flex:none;display:grid;place-items:center;text-align:center;background:linear-gradient(160deg,#8e9ba6,#5d6c77);color:#fff}
+  .seal.bronze{background:linear-gradient(160deg,#c79a6b,#9a6634)} .seal.silver{background:linear-gradient(160deg,#9aa6ad,#69767f)} .seal.gold{background:linear-gradient(160deg,#e0bb55,#b8901f)}
+  .seal .tier{font-size:19px;font-weight:760;line-height:1;letter-spacing:-.01em}
+  .seal .tlbl{font-family:var(--mono);font-size:8.5px;letter-spacing:.14em;text-transform:uppercase;margin-top:4px;opacity:.92;font-weight:600}
+  .lockup .vtext .ve{font-family:var(--mono);font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:#9fb0ff;font-weight:600}
+  .lockup .vtext .vg{font-size:22px;font-weight:700;color:#fff;line-height:1.12}
+  .lockup .vtext .vsub{font-size:13px;color:#b9c2d8;margin-top:2px}
+  .climb{font-size:13px;color:#cdd5e6;background:rgba(184,144,31,.16);border:1px solid rgba(184,144,31,.4);border-radius:9px;padding:10px 12px;line-height:1.45}
+  .climb b{color:#f4d77a}
+  .meters{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:14px;margin:4px 0 0}
+  .meter{background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.13);border-radius:12px;padding:14px 16px}
+  .meter .mtop{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:9px}
+  .meter .mname{font-size:13px;font-weight:600;display:inline-flex;align-items:center;gap:8px;color:#dfe5f1}
+  .meter .dotc{width:9px;height:9px;border-radius:50%}
+  .meter .dotc.bronze{background:var(--bronze)} .meter .dotc.silver{background:var(--silver)} .meter .dotc.gold{background:var(--gold)}
+  .meter .mfrac{font-family:var(--mono);font-size:12.5px;font-weight:650;white-space:nowrap;color:#dfe5f1}
+  .track{height:9px;border-radius:999px;background:rgba(255,255,255,.12);overflow:hidden}
+  .fill{height:100%;border-radius:999px}
+  .fill.bronze{background:var(--bronze)} .fill.silver{background:var(--silver)} .fill.gold{background:var(--gold)}
+  .matrixzone{background:var(--surface);border-bottom:1px solid var(--line);padding:26px 0 30px}
+  .matrixzone .barhead{display:flex;align-items:baseline;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:4px}
+  .matrixzone h2{font-size:17px;margin:0;font-weight:650}
+  .matrixzone .barhead .hint{font-size:12.5px;color:var(--ink-faint)}
+  .mx-legend{display:flex;flex-wrap:wrap;gap:8px 16px;margin:10px 0 18px;font-size:12px;color:var(--ink-soft)}
+  .mx-legend span{display:inline-flex;align-items:center;gap:6px}
+  .swatch{width:11px;height:11px;border-radius:3px;display:inline-block;border:1px solid rgba(0,0,0,.08)}
+  .sw-pass{background:var(--pass)} .sw-fail{background:var(--fail)} .sw-warn{background:var(--warn)} .sw-na{background:var(--na)}
+  .mx-tier{margin-top:16px}
+  .mx-tier .th{display:flex;align-items:center;gap:10px;margin:0 0 10px;flex-wrap:wrap}
+  .mx-tier .th .badge-tier{font-family:var(--mono);font-size:11px;font-weight:650;letter-spacing:.04em;padding:3px 9px;border-radius:6px;text-transform:uppercase}
+  .badge-tier.bronze{color:var(--bronze);background:var(--bronze-bg);border:1px solid var(--bronze-line)}
+  .badge-tier.silver{color:var(--silver);background:var(--silver-bg);border:1px solid var(--silver-line)}
+  .badge-tier.gold{color:var(--gold);background:var(--gold-bg);border:1px solid var(--gold-line)}
+  .mx-tier .th .tname{font-size:13.5px;font-weight:600} .mx-tier .th .tcount{font-family:var(--mono);font-size:12px;color:var(--ink-faint)}
+  .mx-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:8px}
+  .cell{border-radius:9px;padding:9px 12px 9px 14px;border:1px solid var(--line-2);background:var(--surface-2);display:flex;flex-direction:column;gap:3px;text-decoration:none;color:inherit;position:relative}
+  .cell::before{content:"";position:absolute;left:0;top:0;bottom:0;width:4px;border-radius:9px 0 0 9px}
+  .cell .cid{font-family:var(--mono);font-size:12px;font-weight:650;letter-spacing:.02em}
+  .cell .cnm{font-size:11.5px;color:var(--ink-faint);line-height:1.3;overflow-wrap:anywhere;hyphens:none}
+  .cell .cst{position:absolute;top:8px;right:9px;width:8px;height:8px;border-radius:50%}
+  .cell.s-pass{background:var(--pass-bg);border-color:var(--pass-line)} .cell.s-pass::before{background:var(--pass)} .cell.s-pass .cst{background:var(--pass)}
+  .cell.s-fail{background:var(--fail-bg);border-color:var(--fail-line)} .cell.s-fail::before{background:var(--fail)} .cell.s-fail .cst{background:var(--fail)}
+  .cell.s-warn{background:var(--warn-bg);border-color:var(--warn-line)} .cell.s-warn::before{background:var(--warn)} .cell.s-warn .cst{background:var(--warn)}
+  .cell.s-na{background:var(--na-bg);border-color:var(--na-line)} .cell.s-na::before{background:var(--na)} .cell.s-na .cst{background:var(--na)}
+  .idstrip{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin:0 0 22px}
+  .idstrip .ic{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:11px 14px}
+  .idstrip .ick{font-family:var(--mono);font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-faint);font-weight:500}
+  .idstrip .icv{font-size:14.5px;font-weight:600;margin-top:4px;overflow-wrap:anywhere}
+  .aside{background:var(--brand-wash);border:1px solid #d6ddff;border-left:4px solid var(--brand);border-radius:0 10px 10px 0;padding:14px 18px;margin:0 0 20px}
+  .aside h4{color:var(--brand-deep);margin:0 0 6px;font-size:13.5px} .aside p{margin:0;font-size:14px;color:var(--ink-soft)}
+  .guarantees{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px;margin:6px 0 4px}
+  .gtile{border:1px solid var(--line);border-radius:11px;padding:14px 16px;background:var(--surface)}
+  .gtile.bronze{border-top:3px solid var(--bronze)} .gtile.silver{border-top:3px solid var(--silver)} .gtile.gold{border-top:3px solid var(--gold)}
+  .gtile .gt{font-size:13.5px;font-weight:650} .gtile p{font-size:13px;color:var(--ink-soft);margin:8px 0 0}
+  .tablecard{border:1px solid var(--line);border-radius:12px;overflow:hidden;background:var(--surface)}
+  table{width:100%;border-collapse:collapse;font-size:14px}
+  thead th{text-align:left;padding:11px 14px;background:var(--surface-2);border-bottom:1px solid var(--line-2);font-family:var(--mono);font-size:10.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-faint);font-weight:600}
+  tbody td{padding:10px 14px;border-bottom:1px solid var(--line);vertical-align:top;overflow-wrap:anywhere}
+  tbody tr:last-child td{border-bottom:0} tbody tr:hover{background:var(--surface-2)}
+  td .cn{font-family:var(--mono);font-size:13px;font-weight:600}
+  .badge{display:inline-flex;align-items:center;gap:6px;font-family:var(--mono);font-size:10.5px;font-weight:650;letter-spacing:.04em;text-transform:uppercase;padding:3px 9px;border-radius:6px;border:1px solid transparent;white-space:nowrap}
+  .b-pass{color:var(--pass);background:var(--pass-bg);border-color:var(--pass-line)}
+  .b-fail{color:var(--fail);background:var(--fail-bg);border-color:var(--fail-line)}
+  .b-warn{color:var(--warn);background:var(--warn-bg);border-color:var(--warn-line)}
+  .b-na{color:var(--na);background:var(--na-bg);border-color:var(--na-line)}
+  .dot{width:7px;height:7px;border-radius:50%} .dot.pass{background:var(--pass)} .dot.fail{background:var(--fail)} .dot.warn{background:var(--warn)} .dot.na{background:var(--na)}
+  .tierbar{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin:26px 0 12px;padding:13px 16px;border-radius:11px;border:1px solid var(--line-2)}
+  .tierbar.bronze{background:var(--bronze-bg);border-color:var(--bronze-line)} .tierbar.silver{background:var(--silver-bg);border-color:var(--silver-line)} .tierbar.gold{background:var(--gold-bg);border-color:var(--gold-line)}
+  .tierbar .ts{font-size:16px;font-weight:700}
+  .tierbar.bronze .ts{color:var(--bronze)} .tierbar.silver .ts{color:var(--silver)} .tierbar.gold .ts{color:var(--gold)}
+  .tierbar .tv{font-size:14px;color:var(--ink-soft)} .tierbar .tfrac{margin-left:auto;font-family:var(--mono);font-size:13px;font-weight:650;color:var(--ink-soft);white-space:nowrap}
+  .ledger{border:1px solid var(--line);border-radius:12px;overflow:hidden;background:var(--surface);margin-bottom:10px}
+  .lrow{display:grid;grid-template-columns:200px 1fr;border-bottom:1px solid var(--line)} .lrow:last-child{border-bottom:0}
+  .lrow .lst{padding:13px 14px;border-right:1px solid var(--line);display:flex;flex-direction:column;gap:8px;align-items:flex-start;background:var(--surface-2)}
+  .lrow .lst .rid{font-family:var(--mono);font-size:11.5px;color:var(--ink-faint)}
+  .lrow .lst .rname{font-family:var(--mono);font-size:12.5px;font-weight:650;color:var(--ink);overflow-wrap:anywhere}
+  .lrow .lbody{padding:12px 16px;min-width:0} .lrow .ev{font-size:13.5px;color:var(--ink-soft);margin:0;line-height:1.55}
+  .lrow .ev .src{font-family:var(--mono);font-size:12px;color:var(--brand-deep);background:var(--brand-wash);padding:1px 5px;border-radius:4px;overflow-wrap:anywhere}
+  .lrow.is-fail .lst{background:var(--fail-bg)} .lrow.is-warn .lst{background:var(--warn-bg)} .lrow.is-na .lst{background:var(--na-bg)}
+  .why{margin-top:9px;font-size:13px;padding:9px 12px;border-left:3px solid var(--fail);background:var(--surface-2);border-radius:0 7px 7px 0;color:var(--ink-soft);line-height:1.55}
+  .why.warn{border-left-color:var(--warn)}
+  .why b{font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-faint);display:block;margin-bottom:2px;font-weight:600}
+  .worklist{counter-reset:wl;display:grid;gap:12px}
+  .wlitem{display:grid;grid-template-columns:40px 1fr auto;gap:14px;align-items:center;background:var(--surface);border:1px solid var(--line);border-radius:11px;padding:14px 16px}
+  .wlitem .ord{counter-increment:wl;font-family:var(--mono);font-weight:750;font-size:16px;color:var(--brand-deep);width:34px;height:34px;border-radius:8px;background:var(--brand-wash);display:grid;place-items:center}
+  .wlitem .ord::before{content:counter(wl)}
+  .wlitem .wmeta h4{margin:0 0 3px;font-size:14.5px} .wlitem .wmeta .wd{font-size:13px;color:var(--ink-soft);line-height:1.55}
+  .wlitem .wmeta .wid{font-family:var(--mono);font-size:11px;color:var(--fail);background:var(--fail-bg);border:1px solid var(--fail-line);padding:1px 6px;border-radius:5px;margin-right:6px}
+  .wlitem .eff{font-family:var(--mono);font-size:12px;color:var(--ink-soft);text-align:right;white-space:nowrap} .wlitem .eff small{display:block;font-size:10px;color:var(--ink-ghost);text-transform:uppercase;letter-spacing:.08em}
+  .imp{border:1px solid var(--line-2);border-radius:13px;padding:18px 20px;margin:0 0 16px;background:var(--surface)}
+  .imp .top{display:flex;align-items:center;gap:9px;flex-wrap:wrap;margin-bottom:9px}
+  .imp h4{font-size:15.5px;flex:1 1 auto;font-weight:650;margin:0}
+  .imp .rtag{font-family:var(--mono);font-size:11px;font-weight:650;padding:2px 7px;border-radius:5px}
+  .imp .rtag.gold{color:var(--gold);background:var(--gold-bg);border:1px solid var(--gold-line)} .imp .rtag.warn{color:var(--warn);background:var(--warn-bg);border:1px solid var(--warn-line)}
+  .pill{font-family:var(--mono);font-size:10px;letter-spacing:.03em;text-transform:uppercase;padding:2px 8px;border-radius:6px;border:1px solid var(--line-2);color:var(--ink-soft);background:var(--surface-2);white-space:nowrap}
+  .pill.p-high{color:var(--fail);border-color:var(--fail-line);background:var(--fail-bg)} .pill.p-med{color:var(--warn);border-color:var(--warn-line);background:var(--warn-bg)}
+  .imp .ifgrid{font-size:13.5px;color:var(--ink-soft);margin:2px 0 13px;line-height:1.6} .imp .ifgrid b{color:var(--ink);font-weight:650}
+  .prompt{position:relative;background:#0c1322;color:#e7ecf7;border:1px solid #1c2538;border-radius:10px;padding:30px 16px 15px;font-family:var(--mono);font-size:12.5px;line-height:1.62;white-space:pre-wrap;overflow-wrap:anywhere}
+  .prompt .lbl{position:absolute;top:9px;left:14px;font-size:9.5px;letter-spacing:.14em;text-transform:uppercase;color:#6f7da6;font-weight:600}
+  .copy{position:absolute;top:8px;right:9px;background:rgba(255,255,255,.07);color:#cdd6ec;border:1px solid rgba(255,255,255,.16);border-radius:6px;font-family:var(--mono);font-size:11px;padding:4px 10px;cursor:pointer;transition:.12s}
+  .copy:hover{background:var(--brand);border-color:var(--brand);color:#fff} .copy.ok{background:var(--pass);border-color:var(--pass);color:#fff}
+  .insight{display:grid;grid-template-columns:34px 1fr;gap:13px;padding:14px 16px;border:1px solid var(--line);border-left:3px solid var(--brand);border-radius:0 10px 10px 0;margin:0 0 12px;background:var(--surface)}
+  .insight .ic{font-family:var(--mono);font-size:12px;font-weight:700;color:var(--brand-deep);background:var(--brand-wash);border-radius:8px;width:32px;height:32px;display:grid;place-items:center}
+  .insight h4{margin:0 0 3px;font-size:14.5px} .insight p{margin:0;font-size:13.5px;color:var(--ink-soft)}
+  .refs{font-size:13.5px;list-style:none;padding:0;margin:0}
+  .refs li{display:grid;grid-template-columns:96px 1fr;gap:12px;padding:9px 0;border-bottom:1px solid var(--line)} .refs li:last-child{border-bottom:0}
+  .refs .tag{font-family:var(--mono);font-size:11px;color:var(--ink-faint)} .refs .ck{font-family:var(--mono);color:var(--brand-deep);overflow-wrap:anywhere}
+  .meta-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:0 32px;font-size:14px}
+  .meta-grid div{padding:9px 0;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;gap:14px}
+  .meta-grid .mk{color:var(--ink-faint)} .meta-grid .mv{font-weight:600;font-family:var(--mono);font-size:12.5px;text-align:right;overflow-wrap:anywhere}
+  .panel{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:18px 20px;margin-bottom:18px}
+  .legend{display:flex;flex-wrap:wrap;gap:9px 18px;margin:14px 0;font-size:13px;color:var(--ink-soft)} .legend span{display:inline-flex;align-items:center;gap:7px}
+  .toolbar{position:fixed;top:14px;right:18px;z-index:20;display:flex;gap:8px}
+  .toolbar button{font-family:var(--mono);font-size:12px;background:var(--surface);border:1px solid var(--line-3);border-radius:8px;padding:8px 13px;cursor:pointer;color:var(--ink-soft);box-shadow:0 2px 8px rgba(15,23,38,.12);font-weight:600}
+  .toolbar button:hover{border-color:var(--brand);color:var(--brand-deep)}
+  .footnote{color:var(--ink-faint);font-size:12.5px;padding:30px 0 60px;line-height:1.6}
+  @media (max-width:1080px){.mh-grid{grid-template-columns:1fr}}
+  @media (max-width:900px){.shell{grid-template-columns:1fr}.rail{position:static;height:auto;overflow:visible;border-right:0;border-bottom:1px solid #0a0f1c;padding:18px 20px}.rail nav{columns:2;column-gap:14px}.wrap{padding:0 22px}.lrow{grid-template-columns:1fr}.lrow .lst{border-right:0;border-bottom:1px solid var(--line);flex-direction:row;align-items:center;gap:12px;flex-wrap:wrap}.wlitem{grid-template-columns:36px 1fr}.toolbar{top:auto;bottom:14px;right:14px}}
+  @media print{.rail,.toolbar,.copy{display:none!important}.shell{grid-template-columns:1fr}body{background:#fff;font-size:10.5pt}.wrap{max-width:none;padding:0 8mm}.masthead,.matrixzone{-webkit-print-color-adjust:exact;print-color-adjust:exact}.masthead{background:var(--ink-panel)!important}.prompt{background:#0c1322!important}section{break-inside:avoid}.imp,.lrow,.ledger,.wlitem,.cell,.kpi,.meter,.gtile{break-inside:avoid}a{color:var(--ink)}}
+</style>
+</head>
+<body>
+<div class="toolbar"><button onclick="window.print()" title="Print or save as PDF">Print / Save PDF</button></div>
+<div class="shell">
+  <aside class="rail">
+    <div class="mark"><div class="glyph">AS</div><div class="nm">agent-skills-toolkit<small>askit-evaluate</small></div></div>
+    <div class="railhead">Report Sections</div>
+    <nav id="toc">
+    <a href="#s01"><span class="ix">01</span><span>Verdict</span></a>
+    <a href="#matrix"><span class="ix">--</span><span>Status matrix</span></a>
+    <a href="#s02"><span class="ix">02</span><span>Executive summary</span></a>
+    <a href="#s03"><span class="ix">03</span><span>What was evaluated</span></a>
+    <a href="#s04"><span class="ix">04</span><span>Methodology and scope</span></a>
+    <a href="#s05"><span class="ix">05</span><span>Tier compliance ledger</span></a>
+    <a href="#s06"><span class="ix">06</span><span>The climb / burndown</span></a>
+    <a href="#s07"><span class="ix">07</span><span>Improvement path</span></a>
+    <a href="#s08"><span class="ix">08</span><span>Insights</span></a>
+    <a href="#s09"><span class="ix">09</span><span>Evidence and sources</span></a>
+    <a href="#s10"><span class="ix">10</span><span>Report metadata</span></a>
+  </nav>
+    <div class="railnote">Conformance is deterministic and reproducible; re-run the gate to confirm. This renderer adds no judgment.</div>
+  </aside>
+  <main class="content">
+    <header class="masthead" id="s01"><div class="wrap">
+    <div class="mh-top"><span class="chip">Skill Library Evaluation</span>
+<span class="chip">Standard v0.8</span>
+<span class="chip">Evaluated 2026-01-01</span>
+<span class="chip live">Gate exit 0</span></div>
+    <div class="mh-grid">
+      <div class="mh-id"><h1>silver-fixture</h1><div class="vv">version 0.1.0 &nbsp;/&nbsp; declared tier: convergent</div>
+      <p class="desc">Whole-library tier-compliance evaluation against the Advanced Skill Library Standard. Rendered from the one deterministic report object; the verdict is the gate's.</p><div class="kpis">
+    <div class="kpi accent-pass"><div class="k">Checks passed</div><div class="v">26<small>/29</small></div><div class="n">non-failing checks</div></div>
+    <div class="kpi"><div class="k">Tier earned</div><div class="v">Silver</div><div class="n">Convergent</div></div>
+    <div class="kpi accent-fail"><div class="k">Blockers</div><div class="v">3</div><div class="n">G2, G5, G4</div></div>
+    <div class="kpi accent-warn"><div class="k">Advisory warnings</div><div class="v">1</div><div class="n">G8</div></div>
+    <div class="kpi accent-pass"><div class="k">Gate exit code</div><div class="v">0</div><div class="n">declared tier satisfied</div></div>
+  </div></div>
+      <div class="verdictcard">
+    <div class="lockup"><div class="seal silver"><div><div class="tier">Silver</div><div class="tlbl">Convergent</div></div></div>
+    <div class="vtext"><div class="ve">Verdict</div><div class="vg">Earns Silver</div><div class="vsub">Declared Convergent; matches its declared tier.</div></div></div>
+    <div class="climb"><b>Climb to Gold:</b> 3 requirement(s) remain - <b>G2</b>, <b>G5</b>, <b>G4</b>. See the burndown in section 06.</div><div class="meters"><div class="meter"><div class="mtop"><span class="mname"><span class="dotc bronze"></span>Bronze</span><span class="mfrac">11 / 11</span></div><div class="track"><div class="fill bronze" style="width:100%"></div></div></div><div class="meter"><div class="mtop"><span class="mname"><span class="dotc silver"></span>Silver</span><span class="mfrac">8 / 8</span></div><div class="track"><div class="fill silver" style="width:100%"></div></div></div><div class="meter"><div class="mtop"><span class="mname"><span class="dotc gold"></span>Gold</span><span class="mfrac">7 / 10</span></div><div class="track"><div class="fill gold" style="width:70%"></div></div></div></div></div>
+    </div></div></header>
+    <section class="matrixzone" id="matrix"><div class="wrap"><div class="barhead"><h2>29-check status matrix</h2><span class="hint">Whole-library state at a glance. The itemized evidence ledger follows in section 05.</span></div>
+  <div class="mx-legend"><span><i class="swatch sw-pass"></i> Pass</span><span><i class="swatch sw-fail"></i> Fail (blocks its tier)</span><span><i class="swatch sw-warn"></i> Warn (advisory)</span><span><i class="swatch sw-na"></i> N/A (vacuous pass)</span></div>
+  <div class="mx-tier"><div class="th"><span class="badge-tier bronze">Bronze</span><span class="tname">Universal</span><span class="tcount">11 checks / 10 pass / 1 n/a</span></div><div class="mx-grid"><a class="cell s-pass" href="#row-U1"><span class="cst"></span><span class="cid">U1</span><span class="cnm">library-json</span></a>
+<a class="cell s-pass" href="#row-U2"><span class="cst"></span><span class="cid">U2</span><span class="cnm">anatomy</span></a>
+<a class="cell s-pass" href="#row-U3"><span class="cst"></span><span class="cid">U3</span><span class="cnm">frontmatter-valid</span></a>
+<a class="cell s-pass" href="#row-U4"><span class="cst"></span><span class="cid">U4</span><span class="cnm">name-matches-dir</span></a>
+<a class="cell s-pass" href="#row-U5"><span class="cst"></span><span class="cid">U5</span><span class="cnm">description-score</span></a>
+<a class="cell s-pass" href="#row-U6"><span class="cst"></span><span class="cid">U6</span><span class="cnm">reference-links</span></a>
+<a class="cell s-pass" href="#row-U7"><span class="cst"></span><span class="cid">U7</span><span class="cnm">instruction-budget</span></a>
+<a class="cell s-pass" href="#row-U8"><span class="cst"></span><span class="cid">U8</span><span class="cnm">manifest-drift</span></a>
+<a class="cell s-pass" href="#row-U9"><span class="cst"></span><span class="cid">U9</span><span class="cnm">version-match</span></a>
+<a class="cell s-pass" href="#row-U12"><span class="cst"></span><span class="cid">U12</span><span class="cnm">mermaid-valid</span></a>
+<a class="cell s-na" href="#row-U11"><span class="cst"></span><span class="cid">U11</span><span class="cnm">mcp-valid</span></a></div></div>
+<div class="mx-tier"><div class="th"><span class="badge-tier silver">Silver</span><span class="tname">Convergent</span><span class="tcount">8 checks / 8 pass</span></div><div class="mx-grid"><a class="cell s-pass" href="#row-S1"><span class="cst"></span><span class="cid">S1</span><span class="cnm">agent-targets</span></a>
+<a class="cell s-pass" href="#row-S2"><span class="cst"></span><span class="cid">S2</span><span class="cnm">prefix</span></a>
+<a class="cell s-pass" href="#row-S3"><span class="cst"></span><span class="cid">S3</span><span class="cnm">components-index</span></a>
+<a class="cell s-pass" href="#row-S8"><span class="cst"></span><span class="cid">S8</span><span class="cnm">components-mirror</span></a>
+<a class="cell s-pass" href="#row-S4"><span class="cst"></span><span class="cid">S4</span><span class="cnm">chain-contract</span></a>
+<a class="cell s-pass" href="#row-S7"><span class="cst"></span><span class="cid">S7</span><span class="cnm">command-contract</span></a>
+<a class="cell s-pass" href="#row-S5"><span class="cst"></span><span class="cid">S5</span><span class="cnm">workflow-skills</span></a>
+<a class="cell s-pass" href="#row-S6"><span class="cst"></span><span class="cid">S6</span><span class="cnm">per-target-presence</span></a></div></div>
+<div class="mx-tier"><div class="th"><span class="badge-tier gold">Gold</span><span class="tname">Advanced</span><span class="tcount">10 checks / 4 pass / 1 warn / 3 fail / 2 n/a</span></div><div class="mx-grid"><a class="cell s-pass" href="#row-G3"><span class="cst"></span><span class="cid">G3</span><span class="cnm">library-regression</span></a>
+<a class="cell s-na" href="#row-G6"><span class="cst"></span><span class="cid">G6</span><span class="cnm">deprecation</span></a>
+<a class="cell s-na" href="#row-G1"><span class="cst"></span><span class="cid">G1</span><span class="cnm">hook-documentation</span></a>
+<a class="cell s-fail" href="#row-G2"><span class="cst"></span><span class="cid">G2</span><span class="cnm">self-hosting</span></a>
+<a class="cell s-fail" href="#row-G5"><span class="cst"></span><span class="cid">G5</span><span class="cnm">release-notes</span></a>
+<a class="cell s-fail" href="#row-G4"><span class="cst"></span><span class="cid">G4</span><span class="cnm">index-drift</span></a>
+<a class="cell s-pass" href="#row-G7"><span class="cst"></span><span class="cid">G7</span><span class="cnm">docs-frontmatter</span></a>
+<a class="cell s-warn" href="#row-G8"><span class="cst"></span><span class="cid">G8</span><span class="cnm">folder-readme</span></a>
+<a class="cell s-pass" href="#row-G9"><span class="cst"></span><span class="cid">G9</span><span class="cnm">source-doc</span></a>
+<a class="cell s-pass" href="#row-G10"><span class="cst"></span><span class="cid">G10</span><span class="cnm">docs-presence</span></a></div></div></div></section>
+    <div class="wrap">
+      <section id="s02"><div class="seclabel"><span class="num">02</span><h2 class="sec">Executive summary</h2></div><p class="lead">A derived, plain-language read of the deterministic result.</p><div class="aside"><h4>How to read this report</h4><p>The colored matrix above is the whole verdict in one glance: every check is a chip, color-coded pass / fail / warn / not-applicable, grouped by tier. The tier is decided by a deterministic gate with a real exit code, not by opinion. Everything below expands that picture.</p></div>
+      <p>silver-fixture declares the <b>Silver (Convergent)</b> tier and earns <b>Silver</b>. Of the 29 checks in the spine, 26 do not fail (22 pass, 1 warn, 3 not applicable) and 3 fail. The deterministic gate exits 0.</p>
+      <p>3 requirement(s) block Gold: G2, G5, G4. Section 06 orders the climb; section 07 gives a copy-paste fix for each.</p>
+      <p>1 advisory warning(s) surfaced (G8); they do not gate but are worth folding in.</p></section>
+      <section id="s03"><div class="seclabel"><span class="num">03</span><h2 class="sec">What was evaluated</h2></div><p class="lead">The subject identity, then the component inventory.</p><div class="idstrip"><div class="ic"><div class="ick">Subject</div><div class="icv">silver-fixture</div></div><div class="ic"><div class="ick">Version</div><div class="icv">0.1.0</div></div><div class="ic"><div class="ick">Declared tier</div><div class="icv">Convergent (Silver)</div></div><div class="ic"><div class="ick">Agent targets</div><div class="icv">claude, codex</div></div><div class="ic"><div class="ick">Prefix</div><div class="icv">sf-</div></div><div class="ic"><div class="ick">Grading profile</div><div class="icv">askit-library</div></div></div><div class="tablecard"><table><thead><tr><th>Component</th><th style="width:120px">Type</th><th style="width:120px">Version</th></tr></thead><tbody><tr><td><span class="cn">sf-do-thing</span></td><td>skill</td><td>0.1.0</td></tr></tbody></table></div></section>
+      <section id="s04"><div class="seclabel"><span class="num">04</span><h2 class="sec">Methodology and scope</h2></div><p class="lead">Three layers, kept separate so the verdict stays honest. Only the deterministic gate decides the tier.</p><div class="guarantees">
+    <div class="gtile bronze"><div class="gt">Layer 1 - Conformance</div><p><b>Decides the tier.</b> The portable Node gate runs every check with a real exit code, no model in the loop. Re-run <code>node scripts/check.mjs .</code> to reproduce it.</p></div>
+    <div class="gtile silver"><div class="gt">Layer 2 - Behavioral</div><p><b>Advisory only.</b> A skill is run against its eval set; results are evidence and never decide a gate result.</p></div>
+    <div class="gtile gold"><div class="gt">Layer 3 - Review</div><p><b>Advisory only.</b> A qualitative pass over scoping and design; it informs the insights, it does not move the badge.</p></div></div>
+    <h3>Status legend</h3>
+    <div class="legend"><span><span class="badge b-pass"><span class="dot pass"></span>Pass</span> requirement met</span><span><span class="badge b-fail"><span class="dot fail"></span>Fail</span> blocks the tier</span><span><span class="badge b-warn"><span class="dot warn"></span>Warn</span> advisory</span><span><span class="badge b-na"><span class="dot na"></span>N/A</span> vacuous pass</span></div>
+    <div class="aside" style="margin-top:18px"><h4>Confidence and limitations</h4><p>Conformance findings are exact and reproducible: the same gate on the same commit yields the same result. Vacuous passes (U11, G6, G1) mean there was nothing to validate, not that a feature was exercised.</p></div></section>
+      <section id="s05"><div class="seclabel"><span class="num">05</span><h2 class="sec">Tier compliance - evidence ledger</h2></div><p class="lead">One row per requirement, all 29 itemized and grouped by tier. Every non-pass carries a why-it-matters note.</p><div class="tierbar bronze"><span class="ts">Bronze</span><span class="tv">Tier satisfied.</span><span class="tfrac">11 / 11</span></div><div class="ledger"><div class="lrow" id="row-U1"><div class="lst"><span class="rid">U1</span><span class="rname">library-json</span><span class="badge b-pass"><span class="dot pass"></span>Pass</span></div><div class="lbody"><p class="ev">Requirement satisfied; no finding raised. <span class="src">checks/library-json.mjs</span></p></div></div>
+<div class="lrow" id="row-U2"><div class="lst"><span class="rid">U2</span><span class="rname">anatomy</span><span class="badge b-pass"><span class="dot pass"></span>Pass</span></div><div class="lbody"><p class="ev">Requirement satisfied; no finding raised. <span class="src">checks/anatomy.mjs</span></p></div></div>
+<div class="lrow" id="row-U3"><div class="lst"><span class="rid">U3</span><span class="rname">frontmatter-valid</span><span class="badge b-pass"><span class="dot pass"></span>Pass</span></div><div class="lbody"><p class="ev">Requirement satisfied; no finding raised. <span class="src">checks/frontmatter-valid.mjs</span></p></div></div>
+<div class="lrow" id="row-U4"><div class="lst"><span class="rid">U4</span><span class="rname">name-matches-dir</span><span class="badge b-pass"><span class="dot pass"></span>Pass</span></div><div class="lbody"><p class="ev">Requirement satisfied; no finding raised. <span class="src">checks/name-matches-dir.mjs</span></p></div></div>
+<div class="lrow" id="row-U5"><div class="lst"><span class="rid">U5</span><span class="rname">description-score</span><span class="badge b-pass"><span class="dot pass"></span>Pass</span></div><div class="lbody"><p class="ev">Requirement satisfied; no finding raised. <span class="src">checks/description-score.mjs</span></p></div></div>
+<div class="lrow" id="row-U6"><div class="lst"><span class="rid">U6</span><span class="rname">reference-links</span><span class="badge b-pass"><span class="dot pass"></span>Pass</span></div><div class="lbody"><p class="ev">Requirement satisfied; no finding raised. <span class="src">checks/reference-links.mjs</span></p></div></div>
+<div class="lrow" id="row-U7"><div class="lst"><span class="rid">U7</span><span class="rname">instruction-budget</span><span class="badge b-pass"><span class="dot pass"></span>Pass</span></div><div class="lbody"><p class="ev">Requirement satisfied; no finding raised. <span class="src">checks/instruction-budget.mjs</span></p></div></div>
+<div class="lrow" id="row-U8"><div class="lst"><span class="rid">U8</span><span class="rname">manifest-drift</span><span class="badge b-pass"><span class="dot pass"></span>Pass</span></div><div class="lbody"><p class="ev">Requirement satisfied; no finding raised. <span class="src">checks/manifest-drift.mjs</span></p></div></div>
+<div class="lrow" id="row-U9"><div class="lst"><span class="rid">U9</span><span class="rname">version-match</span><span class="badge b-pass"><span class="dot pass"></span>Pass</span></div><div class="lbody"><p class="ev">Requirement satisfied; no finding raised. <span class="src">checks/version-match.mjs</span></p></div></div>
+<div class="lrow" id="row-U12"><div class="lst"><span class="rid">U12</span><span class="rname">mermaid-valid</span><span class="badge b-pass"><span class="dot pass"></span>Pass</span></div><div class="lbody"><p class="ev">Requirement satisfied; no finding raised. <span class="src">checks/mermaid-valid.mjs</span></p></div></div>
+<div class="lrow is-na" id="row-U11"><div class="lst"><span class="rid">U11</span><span class="rname">mcp-valid</span><span class="badge b-na"><span class="dot na"></span>N/A</span></div><div class="lbody"><p class="ev">Nothing to validate for this subject (vacuous pass). <span class="src">checks/mcp-valid.mjs</span></p></div></div></div>
+<div class="tierbar silver"><span class="ts">Silver</span><span class="tv">Tier satisfied.</span><span class="tfrac">8 / 8</span></div><div class="ledger"><div class="lrow" id="row-S1"><div class="lst"><span class="rid">S1</span><span class="rname">agent-targets</span><span class="badge b-pass"><span class="dot pass"></span>Pass</span></div><div class="lbody"><p class="ev">Requirement satisfied; no finding raised. <span class="src">checks/agent-targets.mjs</span></p></div></div>
+<div class="lrow" id="row-S2"><div class="lst"><span class="rid">S2</span><span class="rname">prefix</span><span class="badge b-pass"><span class="dot pass"></span>Pass</span></div><div class="lbody"><p class="ev">Requirement satisfied; no finding raised. <span class="src">checks/prefix.mjs</span></p></div></div>
+<div class="lrow" id="row-S3"><div class="lst"><span class="rid">S3</span><span class="rname">components-index</span><span class="badge b-pass"><span class="dot pass"></span>Pass</span></div><div class="lbody"><p class="ev">Requirement satisfied; no finding raised. <span class="src">checks/components-index.mjs</span></p></div></div>
+<div class="lrow" id="row-S8"><div class="lst"><span class="rid">S8</span><span class="rname">components-mirror</span><span class="badge b-pass"><span class="dot pass"></span>Pass</span></div><div class="lbody"><p class="ev">Requirement satisfied; no finding raised. <span class="src">checks/components-mirror.mjs</span></p></div></div>
+<div class="lrow" id="row-S4"><div class="lst"><span class="rid">S4</span><span class="rname">chain-contract</span><span class="badge b-pass"><span class="dot pass"></span>Pass</span></div><div class="lbody"><p class="ev">Requirement satisfied; no finding raised. <span class="src">checks/chain-contract.mjs</span></p></div></div>
+<div class="lrow" id="row-S7"><div class="lst"><span class="rid">S7</span><span class="rname">command-contract</span><span class="badge b-pass"><span class="dot pass"></span>Pass</span></div><div class="lbody"><p class="ev">Requirement satisfied; no finding raised. <span class="src">checks/command-contract.mjs</span></p></div></div>
+<div class="lrow" id="row-S5"><div class="lst"><span class="rid">S5</span><span class="rname">workflow-skills</span><span class="badge b-pass"><span class="dot pass"></span>Pass</span></div><div class="lbody"><p class="ev">Requirement satisfied; no finding raised. <span class="src">checks/workflow-skills.mjs</span></p></div></div>
+<div class="lrow" id="row-S6"><div class="lst"><span class="rid">S6</span><span class="rname">per-target-presence</span><span class="badge b-pass"><span class="dot pass"></span>Pass</span></div><div class="lbody"><p class="ev">Requirement satisfied; no finding raised. <span class="src">checks/per-target-presence.mjs</span></p></div></div></div>
+<div class="tierbar gold"><span class="ts">Gold</span><span class="tv">7 satisfied, 3 block the tier.</span><span class="tfrac">7 / 10</span></div><div class="ledger"><div class="lrow" id="row-G3"><div class="lst"><span class="rid">G3</span><span class="rname">library-regression</span><span class="badge b-pass"><span class="dot pass"></span>Pass</span></div><div class="lbody"><p class="ev">Requirement satisfied; no finding raised. <span class="src">checks/library-regression.mjs</span></p></div></div>
+<div class="lrow is-na" id="row-G6"><div class="lst"><span class="rid">G6</span><span class="rname">deprecation</span><span class="badge b-na"><span class="dot na"></span>N/A</span></div><div class="lbody"><p class="ev">Nothing to validate for this subject (vacuous pass). <span class="src">checks/deprecation.mjs</span></p></div></div>
+<div class="lrow is-na" id="row-G1"><div class="lst"><span class="rid">G1</span><span class="rname">hook-documentation</span><span class="badge b-na"><span class="dot na"></span>N/A</span></div><div class="lbody"><p class="ev">Nothing to validate for this subject (vacuous pass). <span class="src">checks/hook-documentation.mjs</span></p></div></div>
+<div class="lrow is-fail" id="row-G2"><div class="lst"><span class="rid">G2</span><span class="rname">self-hosting</span><span class="badge b-fail"><span class="dot fail"></span>Fail</span></div><div class="lbody"><p class="ev">no CI workflow under .github/workflows/; Gold requires self-hosting CI that runs the conformance gate (Standard sec 2.6 G2, sec 4). <span class="src">.github/workflows/</span> <span class="src">checks/self-hosting.mjs</span></p><div class="why"><b>Why it matters</b>Without CI running the gate, conformance is a claim, not a proof. Any change can silently regress the library, and a consumer cannot point to a green badge that says the standard held on the latest commit.</div></div></div>
+<div class="lrow is-fail" id="row-G5"><div class="lst"><span class="rid">G5</span><span class="rname">release-notes</span><span class="badge b-fail"><span class="dot fail"></span>Fail</span></div><div class="lbody"><p class="ev">RELEASE-NOTES.md is missing at the repository root; Gold requires a curated, user-facing RELEASE-NOTES.md distinct from CHANGELOG.md (Standard sec 2.6 G5, sec 10.6). <span class="src">RELEASE-NOTES.md</span> <span class="src">checks/release-notes.mjs</span></p><div class="why"><b>Why it matters</b>A changelog is for maintainers; release notes are for users. Without a curated RELEASE-NOTES.md, adopters have no human-readable summary of what changed and why they should upgrade.</div></div></div>
+<div class="lrow is-fail" id="row-G4"><div class="lst"><span class="rid">G4</span><span class="rname">index-drift</span><span class="badge b-fail"><span class="dot fail"></span>Fail</span></div><div class="lbody"><p class="ev">INDEX.md is missing; at Gold it is generated by gen-index and drift-checked (Standard sec 2.6 G4). Generate it: node scripts/generators/gen-index.mjs . --write <span class="src">INDEX.md</span> <span class="src">checks/index-drift.mjs</span></p><div class="why"><b>Why it matters</b>A stale INDEX.md misrepresents the library to anyone reading the catalog; generating it and drift-checking in CI keeps the published index honest on every commit.</div></div></div>
+<div class="lrow" id="row-G7"><div class="lst"><span class="rid">G7</span><span class="rname">docs-frontmatter</span><span class="badge b-pass"><span class="dot pass"></span>Pass</span></div><div class="lbody"><p class="ev">Requirement satisfied; no finding raised. <span class="src">checks/docs-frontmatter.mjs</span></p></div></div>
+<div class="lrow is-warn" id="row-G8"><div class="lst"><span class="rid">G8</span><span class="rname">folder-readme</span><span class="badge b-warn"><span class="dot warn"></span>Warn</span></div><div class="lbody"><p class="ev">meaningful folder has no README.md (ADR 0024 D1.1); scaffold one with askit-build-docs folder-readme mode. <span class="src">skills/sf-do-thing/README.md</span> <span class="src">checks/folder-readme.mjs</span></p><div class="why warn"><b>Why it matters</b>A meaningful folder with no README leaves a reader guessing what it holds; a short folder guide is the cheapest orientation a contributor or consumer gets.</div></div></div>
+<div class="lrow" id="row-G9"><div class="lst"><span class="rid">G9</span><span class="rname">source-doc</span><span class="badge b-pass"><span class="dot pass"></span>Pass</span></div><div class="lbody"><p class="ev">Requirement satisfied; no finding raised. <span class="src">checks/source-doc.mjs</span></p></div></div>
+<div class="lrow" id="row-G10"><div class="lst"><span class="rid">G10</span><span class="rname">docs-presence</span><span class="badge b-pass"><span class="dot pass"></span>Pass</span></div><div class="lbody"><p class="ev">Requirement satisfied; no finding raised. <span class="src">checks/docs-presence.mjs</span></p></div></div></div></section>
+      <section id="s06"><div class="seclabel"><span class="num">06</span><h2 class="sec">The climb / burndown</h2></div><p class="lead">The staged ladder from Silver to Gold.</p><h3>To Gold</h3><div class="ledger"><div class="lrow is-fail"><div class="lst"><span class="rid">G2</span><span class="badge b-fail"><span class="dot fail"></span>~20 min</span></div><div class="lbody"><p class="ev">no CI workflow under .github/workflows/; Gold requires self-hosting CI that runs the conformance gate (Standard sec 2.6 G2, sec 4).</p></div></div><div class="lrow is-fail"><div class="lst"><span class="rid">G5</span><span class="badge b-fail"><span class="dot fail"></span>~15 min</span></div><div class="lbody"><p class="ev">RELEASE-NOTES.md is missing at the repository root; Gold requires a curated, user-facing RELEASE-NOTES.md distinct from CHANGELOG.md (Standard sec 2.6 G5, sec 10.6).</p></div></div><div class="lrow is-fail"><div class="lst"><span class="rid">G4</span><span class="badge b-fail"><span class="dot fail"></span>~5 min</span></div><div class="lbody"><p class="ev">INDEX.md is missing; at Gold it is generated by gen-index and drift-checked (Standard sec 2.6 G4). Generate it: node scripts/generators/gen-index.mjs . --write</p></div></div></div></section>
+      <section id="s07"><div class="seclabel"><span class="num">07</span><h2 class="sec">Improvement path</h2></div><p class="lead">The staged plan, one copy-paste prompt per blocker, ordered by stage.</p><h3>Stage: reach Gold</h3><div class="imp"><div class="top"><span class="rtag gold">G2</span><h4>Reach Gold</h4><span class="pill">~20 min</span></div><div class="ifgrid"><b>Issue:</b> no CI workflow under .github/workflows/; Gold requires self-hosting CI that runs the conformance gate (Standard sec 2.6 G2, sec 4).</div><div class="prompt"><span class="lbl">Copy-paste prompt</span><button class="copy" type="button">Copy</button><span class="ptext">Use askit-build-settings (CI mode) on this plugin: add .github/workflows/ci.yml that checks out the repo, sets up Node, runs npm ci, then runs node scripts/check.mjs as a required step. Then run node scripts/check.mjs and confirm G2 passes.</span></div></div><div class="imp"><div class="top"><span class="rtag gold">G5</span><h4>Reach Gold</h4><span class="pill">~15 min</span></div><div class="ifgrid"><b>Issue:</b> RELEASE-NOTES.md is missing at the repository root; Gold requires a curated, user-facing RELEASE-NOTES.md distinct from CHANGELOG.md (Standard sec 2.6 G5, sec 10.6).</div><div class="prompt"><span class="lbl">Copy-paste prompt</span><button class="copy" type="button">Copy</button><span class="ptext">Use askit-release (notes mode) to create a curated, user-facing RELEASE-NOTES.md distinct from CHANGELOG.md. Then run node scripts/check.mjs and confirm G5 passes.</span></div></div><div class="imp"><div class="top"><span class="rtag gold">G4</span><h4>Reach Gold</h4><span class="pill">~5 min</span></div><div class="ifgrid"><b>Issue:</b> INDEX.md is missing; at Gold it is generated by gen-index and drift-checked (Standard sec 2.6 G4). Generate it: node scripts/generators/gen-index.mjs . --write</div><div class="prompt"><span class="lbl">Copy-paste prompt</span><button class="copy" type="button">Copy</button><span class="ptext">Regenerate INDEX.md: run node scripts/generators/gen-index.mjs . --write. Then run node scripts/check.mjs and confirm G4 passes.</span></div></div></section>
+      <section id="s08"><div class="seclabel"><span class="num">08</span><h2 class="sec">Insights</h2></div><p class="lead">None for a deterministic conformance report.</p><div class="aside"><h4>No insights in a conformance report</h4><p>Insights are produced by the advisory review layer (askit-reviewer), which a deterministic conformance report does not run. Run review mode to populate this section; a conformance report does not fabricate qualitative notes.</p></div></section>
+      <section id="s09"><div class="seclabel"><span class="num">09</span><h2 class="sec">Evidence and sources</h2></div><p class="lead">Citations grounding the findings: the check module, Standard clause, or subject file.</p><ul class="refs"><li><span class="tag">CHECK</span><span><span class="ck">scripts/check.mjs</span> - the portable deterministic gate (<code>node scripts/check.mjs .</code>); its exit code drives the verdict.</span></li><li><span class="tag">MODULE</span><span><span class="ck">checks/self-hosting.mjs</span> - the check behind a non-pass row above.</span></li><li><span class="tag">MODULE</span><span><span class="ck">checks/release-notes.mjs</span> - the check behind a non-pass row above.</span></li><li><span class="tag">MODULE</span><span><span class="ck">checks/index-drift.mjs</span> - the check behind a non-pass row above.</span></li><li><span class="tag">MODULE</span><span><span class="ck">checks/folder-readme.mjs</span> - the check behind a non-pass row above.</span></li><li><span class="tag">CLAUSE</span><span><span class="ck">Standard v0.8</span> - the 29-check spine and the Bronze / Silver / Gold tier definitions.</span></li><li><span class="tag">FILE</span><span><span class="ck">library.json</span> - the subject identity (name, version, tier, agent-targets, prefix).</span></li></ul></section>
+      <section id="s10"><div class="seclabel"><span class="num">10</span><h2 class="sec">Report metadata</h2></div><p class="lead">Provenance for this evaluation, plus the legend.</p><div class="panel"><div class="meta-grid"><div><span class="mk">Subject</span><span class="mv">silver-fixture v0.1.0</span></div><div><span class="mk">Standard version</span><span class="mv">v0.8</span></div><div><span class="mk">Spine</span><span class="mv">29 checks</span></div><div><span class="mk">Declared tier</span><span class="mv">convergent</span></div><div><span class="mk">Grade earned</span><span class="mv">Silver (Convergent)</span></div><div><span class="mk">Grading profile</span><span class="mv">askit-library</span></div><div><span class="mk">Verdict mode</span><span class="mv">local</span></div><div><span class="mk">Evaluator</span><span class="mv">askit-evaluate (renderer)</span></div><div><span class="mk">Gate exit code</span><span class="mv">0</span></div><div><span class="mk">Evaluated</span><span class="mv">2026-01-01</span></div><div><span class="mk">Checks</span><span class="mv">22 PASS / 3 FAIL / 1 WARN / 3 N/A</span></div></div></div>
+    <h3>Status legend</h3><div class="legend"><span><span class="badge b-pass"><span class="dot pass"></span>Pass</span> requirement met</span><span><span class="badge b-fail"><span class="dot fail"></span>Fail</span> blocks the tier</span><span><span class="badge b-warn"><span class="dot warn"></span>Warn</span> advisory</span><span><span class="badge b-na"><span class="dot na"></span>N/A</span> vacuous pass</span></div>
+    <p class="footnote">Generated by the askit-evaluate report renderer. The conformance layer is deterministic and reproducible; re-run <code>node scripts/check.mjs .</code> to reproduce every finding. This report adds no judgment and does not change the verdict.</p></section>
+    </div>
+  </main>
+</div>
+<script>
+  (function(){
+    var links=Array.prototype.slice.call(document.querySelectorAll('#toc a'));
+    var map={};links.forEach(function(a){var id=a.getAttribute('href').slice(1);var el=document.getElementById(id);if(el)map[id]=a;});
+    var targets=Object.keys(map).map(function(id){return document.getElementById(id);});
+    function setActive(id){links.forEach(function(a){a.classList.remove('active');});if(map[id])map[id].classList.add('active');}
+    if('IntersectionObserver' in window){
+      var visible={};
+      var obs=new IntersectionObserver(function(entries){
+        entries.forEach(function(e){if(e.isIntersecting)visible[e.target.id]=e.boundingClientRect.top;else delete visible[e.target.id];});
+        var ids=Object.keys(visible);if(ids.length){ids.sort(function(a,b){return visible[a]-visible[b];});setActive(ids[0]);}
+      },{rootMargin:'-12% 0px -70% 0px',threshold:0});
+      targets.forEach(function(t){obs.observe(t);});
+    }else{
+      window.addEventListener('scroll',function(){var best=null,bestTop=-Infinity;targets.forEach(function(t){var top=t.getBoundingClientRect().top;if(top<120&&top>bestTop){bestTop=top;best=t.id;}});if(best)setActive(best);},{passive:true});
+    }
+  })();
+  (function(){
+    var buttons=document.querySelectorAll('.imp .copy');
+    Array.prototype.forEach.call(buttons,function(btn){
+      btn.addEventListener('click',function(){
+        var card=btn.closest('.prompt');var textEl=card?card.querySelector('.ptext'):null;var text=textEl?textEl.textContent:'';
+        function done(){var prev=btn.textContent;btn.textContent='Copied';btn.classList.add('ok');setTimeout(function(){btn.textContent=prev;btn.classList.remove('ok');},1600);}
+        if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(text).then(done,function(){fallback(text,done);});}else{fallback(text,done);}
+      });
+    });
+    function fallback(text,done){var ta=document.createElement('textarea');ta.value=text;ta.setAttribute('readonly','');ta.style.position='absolute';ta.style.left='-9999px';document.body.appendChild(ta);ta.select();try{document.execCommand('copy');done();}catch(e){}document.body.removeChild(ta);}
+  })();
+</script>
+</body>
+</html>

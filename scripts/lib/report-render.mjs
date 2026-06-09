@@ -103,7 +103,9 @@ function deriveModel(report, opts = {}) {
     mode: report.mode ?? null,
     date: opts.date ?? "",
     exitCode: opts.exitCode ?? 0,
-    reportType: opts.reportType ?? "conformance",
+    reportType: report.reportType ?? opts.reportType ?? "conformance",
+    migration: report.migration ?? null,
+    release: report.release ?? null,
     rows, tiers, counts, blockers, improvements,
     nextTier, nextTierName: nextTier ? TIER_NAME[nextTier] : null,
     insights: Array.isArray(report.insights) ? report.insights : null,
@@ -133,7 +135,12 @@ function renderMarkdown(report, opts = {}) {
   // 01 Masthead
   out.push("## 01 Masthead / verdict");
   out.push("");
-  if (m.isPlugin) {
+  if (m.reportType === "release" && m.release) {
+    out.push(`**Summary: ${m.subject}${m.version ? " v" + m.version : ""} is a ${m.release.goNoGo.toUpperCase()} for release. Gate exit ${m.release.gateExit}, release notes ${m.release.notesPresent ? "present" : "missing"}, versions ${m.release.versionConsistency.ok ? "consistent" : "inconsistent"}.**`);
+  } else if (m.reportType === "migration" && m.migration) {
+    const tb = m.migration.stages.reduce((n, s) => n + s.blockers.length, 0);
+    out.push(`**Summary: migration of ${m.subject} from ${TIER_NAME[m.migration.currentTier] ?? m.migration.currentTier} to ${TIER_NAME[m.migration.targetTier] ?? m.migration.targetTier}: ${m.migration.stages.length} stage(s), ${tb} blocker(s) to close.**`);
+  } else if (m.isPlugin) {
     out.push(`**Summary: ${m.subject}${m.version ? " v" + m.version : ""} ${gradeLine}. ${m.counts.passedHeadline} of ${m.counts.total} checks pass, ${m.counts.fail} block${m.nextTierName ? " " + m.nextTierName : ""}, ${m.counts.warn} advisory warning${m.counts.warn === 1 ? "" : "s"}, gate exit code ${m.exitCode}.**`);
   } else {
     out.push(`**Summary: ${m.subject} ${gradeLine}. ${m.counts.fail} error${m.counts.fail === 1 ? "" : "s"}, ${m.counts.warn} warning${m.counts.warn === 1 ? "" : "s"}.**`);
@@ -142,7 +149,7 @@ function renderMarkdown(report, opts = {}) {
   const mhRows = [
     ["Subject", m.subject],
     ["Version", m.version ?? "(unspecified)"],
-    ["Report type", "Whole-library tier-compliance evaluation"],
+    ["Report type", m.reportType === "migration" ? "Migration assessment (gap-by-tier)" : m.reportType === "release" ? "Release-readiness assessment" : "Whole-library tier-compliance evaluation"],
     ["Evaluated", m.date],
     ["Standard", m.standard ? "v" + m.standard : "(unspecified)"],
     ["Spine", `${m.counts.total} checks`],
@@ -154,6 +161,22 @@ function renderMarkdown(report, opts = {}) {
   }
   out.push(mdTable(["Field", "Value"], mhRows));
   out.push("");
+
+  // Release readiness (release reports only): a prominent go / no-go right after the masthead.
+  if (m.reportType === "release" && m.release) {
+    out.push("## Release readiness");
+    out.push("");
+    out.push(`**Verdict: ${m.release.goNoGo.toUpperCase()} for release.**`);
+    out.push("");
+    out.push(mdTable(["Gate", "Result"], [
+      ["Go / no-go", m.release.goNoGo.toUpperCase()],
+      ["Gate exit code", `${m.release.gateExit}${m.release.gateExit === 0 ? " (clean)" : " (fails)"}`],
+      ["Version consistency", `${m.release.versionConsistency.ok ? "OK" : "MISMATCH"}: ${m.release.versionConsistency.detail}`],
+      ["Release notes", m.release.notesPresent ? "present" : "missing"],
+      ["Notes summary", m.release.summary ?? "(none)"],
+    ]));
+    out.push("");
+  }
 
   // 02 Executive summary
   out.push("## 02 Executive summary");
@@ -235,7 +258,16 @@ function renderMarkdown(report, opts = {}) {
 
     out.push("## 06 The climb / burndown");
     out.push("");
-    if (m.blockers.length) {
+    if (m.reportType === "migration" && m.migration) {
+      out.push(`**Summary: the staged ladder from ${TIER_NAME[m.migration.currentTier] ?? m.migration.currentTier} to ${TIER_NAME[m.migration.targetTier] ?? m.migration.targetTier}.**`);
+      out.push("");
+      for (const s of m.migration.stages) {
+        out.push(`### To ${TIER_NAME[s.tier] ?? s.tier}`);
+        out.push("");
+        out.push(s.blockers.length ? mdTable(["Blocker", "Check", "Effort"], s.blockers.map((b) => [b.message, b.reqId, b.effort])) : "No blockers at this stage.");
+        out.push("");
+      }
+    } else if (m.blockers.length) {
       out.push(`**Summary: ${m.blockers.length} requirement(s) stand between ${m.tierEarnedName} and ${m.nextTierName}.**`);
       out.push("");
       out.push(mdTable(["Order", "Blocker", "Check", "Effort"], m.blockers.map((b, i) => [String(i + 1), b.message, b.reqId, b.effort])));
@@ -249,26 +281,50 @@ function renderMarkdown(report, opts = {}) {
   // 07 Improvement path
   out.push("## 07 Improvement path");
   out.push("");
-  out.push("**Summary: one card per gap: the issue, the fix priority and effort, and a copy-paste prompt that drives the matching askit builder and re-runs the gate.**");
-  out.push("");
-  if (m.improvements.length) {
-    for (const c of m.improvements) {
-      out.push(`### ${c.reqId} - ${c.id} (${c.status === "FAIL" ? "blocker" : "advisory warning"})`);
+  if (m.reportType === "migration" && m.migration) {
+    out.push("**Summary: the staged plan, one copy-paste prompt per blocker, ordered by stage.**");
+    out.push("");
+    for (const s of m.migration.stages) {
+      out.push(`### Stage: reach ${TIER_NAME[s.tier] ?? s.tier}`);
       out.push("");
-      out.push(`- Issue: ${c.message}`);
-      out.push(`- Priority: ${c.priority}${c.status === "FAIL" ? " (blocks the tier)" : " (advisory)"}.`);
-      if (c.effort) out.push(`- Effort: ${c.effort}.`);
-      out.push("");
-      if (c.fixPrompt) {
-        out.push("```text");
-        out.push(c.fixPrompt);
-        out.push("```");
+      if (!s.blockers.length) {
+        out.push("Nothing blocks this stage.");
         out.push("");
+        continue;
+      }
+      for (const b of s.blockers) {
+        out.push(`- **${b.reqId}** (${b.effort}): ${b.message}`);
+        if (b.fixPrompt) {
+          out.push("");
+          out.push("```text");
+          out.push(b.fixPrompt);
+          out.push("```");
+          out.push("");
+        }
       }
     }
   } else {
-    out.push("No action required; nothing failed or warned.");
+    out.push("**Summary: one card per gap: the issue, the fix priority and effort, and a copy-paste prompt that drives the matching askit builder and re-runs the gate.**");
     out.push("");
+    if (m.improvements.length) {
+      for (const c of m.improvements) {
+        out.push(`### ${c.reqId} - ${c.id} (${c.status === "FAIL" ? "blocker" : "advisory warning"})`);
+        out.push("");
+        out.push(`- Issue: ${c.message}`);
+        out.push(`- Priority: ${c.priority}${c.status === "FAIL" ? " (blocks the tier)" : " (advisory)"}.`);
+        if (c.effort) out.push(`- Effort: ${c.effort}.`);
+        out.push("");
+        if (c.fixPrompt) {
+          out.push("```text");
+          out.push(c.fixPrompt);
+          out.push("```");
+          out.push("");
+        }
+      }
+    } else {
+      out.push("No action required; nothing failed or warned.");
+      out.push("");
+    }
   }
 
   // 08 Insights
@@ -588,6 +644,41 @@ function htmlSection(id, num, title, lead, body) {
   return `<section id="${id}"><div class="seclabel"><span class="num">${num}</span><h2 class="sec">${escapeHtml(title)}</h2></div><p class="lead">${escapeHtml(lead)}</p>${body}</section>`;
 }
 
+// Release readiness band (release reports): a prominent go / no-go right after the masthead.
+function htmlReleaseReadiness(m) {
+  const rel = m.release;
+  const rows = [
+    ["Go / no-go", rel.goNoGo.toUpperCase()],
+    ["Gate exit code", `${rel.gateExit}${rel.gateExit === 0 ? " (clean)" : " (fails)"}`],
+    ["Version consistency", `${rel.versionConsistency.ok ? "OK" : "MISMATCH"}: ${rel.versionConsistency.detail}`],
+    ["Release notes", rel.notesPresent ? "present" : "missing"],
+    ["Notes summary", rel.summary ?? "(none)"],
+  ];
+  return `<section class="matrixzone" id="readiness"><div class="wrap"><div class="barhead"><h2>Release readiness: ${escapeHtml(rel.goNoGo.toUpperCase())}</h2><span class="hint">A deterministic go / no-go: a clean gate, version consistency across the manifests, and release notes present.</span></div><div class="panel"><div class="meta-grid">${rows.map(([k, v]) => `<div><span class="mk">${escapeHtml(k)}</span><span class="mv">${escapeHtml(v)}</span></div>`).join("")}</div></div></div></section>`;
+}
+
+// Migration ladder (section 06 body for migration reports): each stage and its blockers.
+function htmlMigrationLadderBody(m) {
+  return m.migration.stages.map((s) => {
+    const tn = TIER_NAME[s.tier] ?? s.tier;
+    const body = s.blockers.length
+      ? `<div class="ledger">${s.blockers.map((b) => `<div class="lrow is-fail"><div class="lst"><span class="rid">${escapeHtml(b.reqId)}</span><span class="badge b-fail"><span class="dot fail"></span>${escapeHtml(b.effort || "")}</span></div><div class="lbody"><p class="ev">${escapeHtml(b.message)}</p></div></div>`).join("")}</div>`
+      : `<p>No blockers at this stage.</p>`;
+    return `<h3>To ${escapeHtml(tn)}</h3>${body}`;
+  }).join("");
+}
+
+// Migration plan (section 07 body for migration reports): a copy-paste card per blocker, grouped by stage.
+function htmlMigrationPlanBody(m) {
+  return m.migration.stages.map((s) => {
+    const tn = TIER_NAME[s.tier] ?? s.tier;
+    const cards = s.blockers.length
+      ? s.blockers.map((b) => `<div class="imp"><div class="top"><span class="rtag gold">${escapeHtml(b.reqId)}</span><h4>Reach ${escapeHtml(tn)}</h4>${b.effort ? `<span class="pill">${escapeHtml(b.effort)}</span>` : ""}</div><div class="ifgrid"><b>Issue:</b> ${escapeHtml(b.message)}</div>${b.fixPrompt ? `<div class="prompt"><span class="lbl">Copy-paste prompt</span><button class="copy" type="button">Copy</button><span class="ptext">${escapeHtml(b.fixPrompt)}</span></div>` : ""}</div>`).join("")
+      : `<p>Nothing blocks this stage.</p>`;
+    return `<h3>Stage: reach ${escapeHtml(tn)}</h3>${cards}`;
+  }).join("");
+}
+
 function renderHtml(report, opts = {}) {
   const m = deriveModel(report, opts);
   const sealCls = m.isPlugin ? (TIER_CLASS[m.tierEarned] ?? "") : "";
@@ -662,12 +753,19 @@ function renderHtml(report, opts = {}) {
   const climbBody = m.isPlugin && m.blockers.length
     ? `<div class="worklist">${m.blockers.map((b) => `<div class="wlitem"><div class="ord"></div><div class="wmeta"><h4><span class="wid">${escapeHtml(b.reqId)}</span>${escapeHtml(metaFor(b.reqId).why ? b.message.split(";")[0] : b.message)}</h4><div class="wd">${escapeHtml(b.message)}</div></div><div class="eff"><small>Effort</small>${escapeHtml(b.effort || "")}</div></div>`).join("")}</div><p style="margin-top:14px;font-size:13.5px;color:var(--ink-soft)">After these, re-run <code>node scripts/check.mjs .</code>; the ${escapeHtml(m.nextTierName ?? "next")} tier should clear.</p>`
     : `<p>No blockers: the declared tier is satisfied. There is nothing to climb.</p>`;
-  const climbSection = m.isPlugin
+  const climbSection = (m.reportType === "migration" && m.migration)
+    ? htmlSection("s06", "06", "The climb / burndown", `The staged ladder from ${TIER_NAME[m.migration.currentTier] ?? m.migration.currentTier} to ${TIER_NAME[m.migration.targetTier] ?? m.migration.targetTier}.`, htmlMigrationLadderBody(m))
+    : m.isPlugin
     ? htmlSection("s06", "06", "The climb / burndown", m.blockers.length ? `Exactly what blocks ${m.nextTierName}, ordered as a worklist.` : "No blockers; the declared tier is satisfied.", climbBody)
     : htmlSection("s06", "06", "The climb / burndown", "Not applicable to a single component.", `<p>A component carries no tier, so there is no climb.</p>`);
 
   // 07 improvement
-  const impBody = m.improvements.length
+  const impLead = (m.reportType === "migration" && m.migration)
+    ? "The staged plan, one copy-paste prompt per blocker, ordered by stage."
+    : "One card per gap: the issue, priority and effort, and a copy-paste prompt that drives the matching askit builder and re-runs the gate.";
+  const impBody = (m.reportType === "migration" && m.migration)
+    ? htmlMigrationPlanBody(m)
+    : m.improvements.length
     ? m.improvements.map((c) => `<div class="imp"><div class="top"><span class="rtag ${c.status === "FAIL" ? "gold" : "warn"}">${escapeHtml(c.reqId)}</span><h4>${escapeHtml(c.id)}</h4><span class="pill ${c.status === "FAIL" ? "p-high" : "p-med"}">Priority ${c.priority.toLowerCase()}</span>${c.effort ? `<span class="pill">${escapeHtml(c.effort)}</span>` : ""}</div><div class="ifgrid"><b>Issue:</b> ${escapeHtml(c.message)}</div>${c.fixPrompt ? `<div class="prompt"><span class="lbl">Copy-paste prompt</span><button class="copy" type="button">Copy</button><span class="ptext">${escapeHtml(c.fixPrompt)}</span></div>` : ""}</div>`).join("")
     : `<p>No action required; nothing failed or warned.</p>`;
 
@@ -734,14 +832,14 @@ function renderHtml(report, opts = {}) {
   </aside>
   <main class="content">
     ${masthead}
-    ${htmlMatrix(m)}
+    ${m.reportType === "release" && m.release ? htmlReleaseReadiness(m) : ""}${htmlMatrix(m)}
     <div class="wrap">
       ${htmlSection("s02", "02", "Executive summary", "A derived, plain-language read of the deterministic result.", execBody)}
       ${htmlSection("s03", "03", "What was evaluated", "The subject identity, then the component inventory.", idstrip + invTable)}
       ${htmlSection("s04", "04", "Methodology and scope", "Three layers, kept separate so the verdict stays honest. Only the deterministic gate decides the tier.", methodBody)}
       ${ledgerSection}
       ${climbSection}
-      ${htmlSection("s07", "07", "Improvement path", "One card per gap: the issue, priority and effort, and a copy-paste prompt that drives the matching askit builder and re-runs the gate.", impBody)}
+      ${htmlSection("s07", "07", "Improvement path", impLead, impBody)}
       ${htmlSection("s08", "08", "Insights", insLead, insBody)}
       ${htmlSection("s09", "09", "Evidence and sources", "Citations grounding the findings: the check module, Standard clause, or subject file.", `<ul class="refs">${refItems.join("")}</ul>`)}
       ${htmlSection("s10", "10", "Report metadata", "Provenance for this evaluation, plus the legend.", metaBody)}
