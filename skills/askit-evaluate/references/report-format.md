@@ -25,3 +25,13 @@ With `--out <file>` the report is written to the file and a `Wrote <file>` line 
 The HTML and Markdown share one 10-section information architecture: (01) masthead and verdict, (02) executive summary, (03) what was evaluated, (04) methodology and scope, (05) tier-compliance evidence ledger, (06) the climb and burndown, (07) improvement path with copy-paste prompts, (08) insights, (09) evidence and sources, (10) report metadata. The HTML is a linear scroll with a left-docked sticky table of contents and a print affordance; nothing is hidden behind tabs or accordions. The spine and the Standard version are read from the live registry and `library.json` at render time, never hard-coded.
 
 The renderer (`scripts/lib/report-render.mjs`) is a pure projection over the deterministic conformance object: it adds no finding, runs no model, and never changes the tier or the gate exit code. Sample templates that show the target visual language live under `docs/internal/template/`.
+
+## Report types (--report)
+
+`node scripts/evaluate.mjs <path> --report=<conformance|migration|release> [--target-tier=<tier>]` selects which report object the chosen format renders. All three reuse the one renderer (the same information architecture), parameterized by report type:
+
+- `conformance` (default): the tier-compliance evaluation above.
+- `migration`: a gap-by-tier assessment. Sections 06 and 07 become a staged plan from the current tier to `--target-tier` (default `advanced`), one copy-paste prompt per blocker. Built by `scripts/lib/migrate-report.mjs`.
+- `release`: a release-readiness assessment with a deterministic go / no-go (go only when the gate is clean, the version-bearing manifests agree, and a RELEASE-NOTES.md is present, mirroring the `release.yml` guard). Built by `scripts/lib/release-report.mjs`.
+
+Each report is a pure decorator over the conformance object: it adds a typed `migration` or `release` block, never a model judgment, and never changes the gate exit code. Combine with `--format` and `--out`, for example `--report=migration --target-tier=advanced --format=html --out plan.html`.

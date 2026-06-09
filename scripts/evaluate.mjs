@@ -123,20 +123,22 @@ export function formatReport(r) {
 // The options bag the pure renderer needs that is not on the bare report object: the subject identity,
 // the live spine (so the ledger lists every requirement and the count is never hard-coded), the
 // vacuous-pass set, the injected date, and the gate exit code. Built by the CLI so the renderer stays pure.
-function optsFromTarget(target, exitCode) {
+function optsFromTarget(target, exitCode, reportType = "conformance") {
   return {
     library: readJsonSafe(path.join(target, "library.json")).data ?? null,
     spine: CHECKS.map((m) => ({ reqId: m.meta.reqId, id: m.meta.id, tier: m.meta.tier })),
     conditional: new Set(["G1", "G6", "U11"]), // checks that pass vacuously when their artifact is absent
     date: new Date().toISOString().slice(0, 10),
     exitCode,
-    reportType: "conformance",
+    reportType,
   };
 }
 
-if (process.argv[1]?.endsWith("evaluate.mjs")) {
+// Run the CLI as an async function (not a top-level await), so evaluate.mjs finishes evaluating before the
+// lazily-imported migrate-report / release-report modules import it back (avoids a cyclic top-level-await deadlock).
+async function runCli() {
   const argv = process.argv.slice(2);
-  const valueFlags = new Set(["--mode", "--out", "--format"]); // flags that consume the following arg
+  const valueFlags = new Set(["--mode", "--out", "--format", "--report", "--target-tier"]); // flags that consume the following arg
   const getFlag = (name) => {
     const eq = argv.find((a) => a.startsWith(name + "="));
     if (eq) return eq.slice(name.length + 1);
@@ -146,6 +148,8 @@ if (process.argv[1]?.endsWith("evaluate.mjs")) {
   const target = argv.find((a, i) => !a.startsWith("--") && !(i > 0 && valueFlags.has(argv[i - 1]))) ?? process.cwd();
   const mode = getFlag("--mode");
   const out = getFlag("--out");
+  const report = getFlag("--report") ?? "conformance";
+  const targetTier = getFlag("--target-tier");
   const format = getFlag("--format") ?? (argv.includes("--json") ? "json" : "text"); // --json stays an alias
   if (mode !== undefined && mode !== "local" && mode !== "published-verdict") {
     console.error(`invalid --mode '${mode}'; expected 'local' or 'published-verdict'`);
@@ -155,7 +159,15 @@ if (process.argv[1]?.endsWith("evaluate.mjs")) {
     console.error(`invalid --format '${format}'; expected 'text', 'json', 'md', or 'html'`);
     process.exit(2);
   }
-  const r = evaluate(target, { mode });
+  if (!["conformance", "migration", "release"].includes(report)) {
+    console.error(`invalid --report '${report}'; expected 'conformance', 'migration', or 'release'`);
+    process.exit(2);
+  }
+  // Build the chosen report object. migration/release decorate the conformance object; load them lazily.
+  let r;
+  if (report === "migration") r = (await import("./lib/migrate-report.mjs")).migrateReport(target, { mode, targetTier });
+  else if (report === "release") r = (await import("./lib/release-report.mjs")).releaseReport(target, { mode });
+  else r = evaluate(target, { mode });
   // Honor the same declared-tier ceiling as check.mjs, gating on the RESOLVED effective severity so the
   // two CLIs agree on pass/fail. Plugin scope reads the declared tier; component/unknown have no ceiling.
   // Computed before rendering so a designed report carries the same exit code the process returns.
@@ -169,7 +181,7 @@ if (process.argv[1]?.endsWith("evaluate.mjs")) {
   } else if (format === "md" || format === "html") {
     // Load the renderer only when a designed format is requested, keeping the hot json/terminal path light.
     const { renderMarkdown, renderHtml } = await import("./lib/report-render.mjs");
-    const opts = optsFromTarget(target, exitCode);
+    const opts = optsFromTarget(target, exitCode, report);
     output = format === "md" ? renderMarkdown(r, opts) : renderHtml(r, opts);
   } else {
     output = formatReport(r);
@@ -184,3 +196,5 @@ if (process.argv[1]?.endsWith("evaluate.mjs")) {
   // Rendering a report is orthogonal to the gate verdict: the exit code always reflects the gate, never the format.
   process.exit(exitCode);
 }
+
+if (process.argv[1]?.endsWith("evaluate.mjs")) runCli();
