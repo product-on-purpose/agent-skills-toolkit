@@ -8,11 +8,14 @@
 // used-by:      scripts/lib/config.mjs (validates the profile name), scripts/lib/resolve-config.mjs (applies it)
 
 // The reqIds whose checks are askit-house conventions (provenance "house"): the askit manifest contract
-// (U1), the entire Convergent set (S1-S8), and the entire Gold set (G1-G10). plain-plugin turns these off
-// so a vanilla plugin is graded only on the portable, vendor-grounded universal checks. Listed as exact
-// reqIds (never a wildcard) so adding a future check does not silently change a profile's meaning.
+// (U1), the repo-root AGENTS.md anatomy file (U2) and the description-quality scorer (U5) - both
+// reclassified from portable to house per ADR 0029 - the entire Convergent set (S1-S8), and the entire
+// Gold set (G1-G10). plain-plugin turns these off so a vanilla plugin is graded only on the portable,
+// vendor-grounded universal checks. Listed as exact reqIds (never a wildcard) so adding a future check does
+// not silently change a profile's meaning; the house-provenance.test.mjs invariant keeps this list in
+// lockstep with the per-check provenance so the two never drift.
 const HOUSE_REQIDS = [
-  "U1",
+  "U1", "U2", "U5",
   "S1", "S2", "S3", "S4", "S5", "S6", "S7", "S8",
   "G1", "G2", "G3", "G4", "G5", "G6", "G7", "G8", "G9", "G10",
 ];

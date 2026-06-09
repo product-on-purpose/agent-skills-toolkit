@@ -38,8 +38,8 @@ All keys are optional; an absent file, an empty `{}`, or any absent key falls ba
 Every check declares a `provenance`, so the report can separate portable, defensible failures from askit conventions:
 
 - **`objective`**: a defect true regardless of any standard (a dead reference link, manifest drift, malformed JSON, a structurally broken diagram).
-- **`vendor-cited`**: backed by an external authority (Claude Code, Codex, agentskills.io), for example the `SKILL.md` frontmatter and description rules.
-- **`house`**: an askit-Standard convention with no external mandate (the library manifest, the Convergent set, and the Gold self-documentation checks).
+- **`vendor-cited`**: backed by an external authority (Claude Code, Codex, agentskills.io), for example the `SKILL.md` frontmatter validity and instruction-budget rules.
+- **`house`**: an askit-Standard convention with no external mandate (the library manifest, the root `AGENTS.md` anatomy and the description scorer, the Convergent set, and the Gold self-documentation checks; see ADR 0029 for the `U2`/`U5` reclassification).
 
 The report splits **real issues** (objective + vendor-cited errors that survive config) from **profile conformance** (house failures and anything a profile or rule downgraded), so a consumer sees what is broken apart from what merely does not meet the askit ladder.
 
@@ -48,7 +48,7 @@ The report splits **real issues** (objective + vendor-cited errors that survive 
 A profile selects a base severity map applied before `rules`. The built-in profiles:
 
 - **`askit-library`** (default): the full Bronze/Silver/Gold spine, every check at its declared severity. A no-op, so omitting `profile` reproduces the default grading.
-- **`plain-plugin`**: grades a vanilla plugin on the portable, vendor-grounded universal checks only; the askit library-ladder (`U1`, `S1-S8`) and Gold (`G1-G10`) house checks are turned off. Use this to grade a plain Claude Code or Codex plugin as itself, not against the askit library contract.
+- **`plain-plugin`**: grades a vanilla plugin on the portable, vendor-grounded universal checks only; the askit house checks are turned off - the manifest contract (`U1`), the root `AGENTS.md` anatomy (`U2`) and the description scorer (`U5`), the Convergent ladder (`S1-S8`), and Gold (`G1-G10`) (ADR 0029). Use this to grade a plain Claude Code or Codex plugin as itself, not against the askit library contract.
 - **`house-style`**: the opt-in slot reserved (ADR 0028) for re-homed house preferences. Empty today; the dash preference remains the shipped `hooks/no-dashes.mjs` hook.
 
 Resolution precedence is **per-rule override > profile > the severity the check emitted** (which already reflects the pinned-Standard downgrade of STANDARD.md sec 7.7).
