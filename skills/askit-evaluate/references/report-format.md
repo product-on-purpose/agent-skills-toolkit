@@ -35,3 +35,21 @@ The renderer (`scripts/lib/report-render.mjs`) is a pure projection over the det
 - `release`: a release-readiness assessment with a deterministic go / no-go (go only when the gate is clean, the version-bearing manifests agree, and a RELEASE-NOTES.md is present, mirroring the `release.yml` guard). Built by `scripts/lib/release-report.mjs`.
 
 Each report is a pure decorator over the conformance object: it adds a typed `migration` or `release` block, never a model judgment, and never changes the gate exit code. Combine with `--format` and `--out`, for example `--report=migration --target-tier=advanced --format=html --out plan.html`.
+
+## Advisory report types (review, behavioral)
+
+`--report=review` and `--report=behavioral` render the two ADVISORY reports. Unlike conformance/migration/release (deterministic decorators over the gate), their content is produced by an LLM layer at runtime (`askit-reviewer` and `askit-quality-grader`) and supplied to the renderer via a file:
+
+```
+node scripts/evaluate.mjs <path> --report=review --advisory <file.json> --format=html --out review.html
+```
+
+`--advisory <file.json>` carries the advisory block the skill produced: `{ "review": { model, effort, date, findings: [...] }, "insights": [...] }` for review, or `{ "behavioral": { model, effort, date, cases: [...], summary } }` for behavioral. The renderer merges it onto the conformance object.
+
+The renderer holds the advisory layer to the linter-vs-judge discipline (Design Principle 3 / ADR 0023):
+
+- The deterministic conformance grade in the masthead and ledger is the gate's; the advisory layer NEVER changes it or the gate exit code.
+- The advisory content renders in a clearly-labeled block ("Review (advisory)" / "Behavioral evidence (advisory)"), and the methodology section carries a provenance stamp naming the generating model, effort, and date.
+- Review findings carry a per-finding `provenance` (objective / vendor-cited / house-preference) so a reader knows which survive a re-run; behavioral cases carry a fire/no-fire and an output-quality verdict.
+
+A review or behavioral report therefore shows the same deterministic verdict as a conformance report, with a stamped advisory layer beside it, never on top of it. The public reference is [`docs/reference/evaluation-reports.md`](../../../docs/reference/evaluation-reports.md).

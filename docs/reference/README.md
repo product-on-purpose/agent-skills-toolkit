@@ -35,6 +35,7 @@ Reference material: one page per askit-* skill plus the per-tier conformance-che
 - `askit-release.md` - the "askit release" page.
 - `askit-template-manager.md` - the "askit template manager" page.
 - `builder-pattern.md` - the "builder pattern" page.
+- `evaluation-reports.md` - the "evaluation reports (--format, --report)" page.
 - `frontmatter-taxonomy.md` - the "frontmatter taxonomy" page.
 - `gate-config.md` - the "gate configuration (askit.config.json)" page.
 - `gold-checks.md` - the "gold checks" page.

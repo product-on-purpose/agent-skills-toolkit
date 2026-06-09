@@ -3,7 +3,7 @@
 // why:          a single report object keeps the terminal, JSON, and future MD/HTML renderers from diverging
 // used-by:      run by the askit-evaluate skill and askit-build-docs improve mode
 import path from "node:path";
-import { existsSync, statSync, writeFileSync } from "node:fs";
+import { existsSync, statSync, writeFileSync, readFileSync } from "node:fs";
 import { loadPlugin, loadSkill } from "./lib/load-plugin.mjs";
 import { runAllChecks, provenanceByReq, CHECKS } from "./lib/registry.mjs";
 import { applyStandardDowngrade } from "./lib/standard-gate.mjs";
@@ -138,7 +138,7 @@ function optsFromTarget(target, exitCode, reportType = "conformance") {
 // lazily-imported migrate-report / release-report modules import it back (avoids a cyclic top-level-await deadlock).
 async function runCli() {
   const argv = process.argv.slice(2);
-  const valueFlags = new Set(["--mode", "--out", "--format", "--report", "--target-tier"]); // flags that consume the following arg
+  const valueFlags = new Set(["--mode", "--out", "--format", "--report", "--target-tier", "--advisory"]); // flags that consume the following arg
   const getFlag = (name) => {
     const eq = argv.find((a) => a.startsWith(name + "="));
     if (eq) return eq.slice(name.length + 1);
@@ -150,6 +150,7 @@ async function runCli() {
   const out = getFlag("--out");
   const report = getFlag("--report") ?? "conformance";
   const targetTier = getFlag("--target-tier");
+  const advisory = getFlag("--advisory");
   const format = getFlag("--format") ?? (argv.includes("--json") ? "json" : "text"); // --json stays an alias
   if (mode !== undefined && mode !== "local" && mode !== "published-verdict") {
     console.error(`invalid --mode '${mode}'; expected 'local' or 'published-verdict'`);
@@ -159,15 +160,24 @@ async function runCli() {
     console.error(`invalid --format '${format}'; expected 'text', 'json', 'md', or 'html'`);
     process.exit(2);
   }
-  if (!["conformance", "migration", "release"].includes(report)) {
-    console.error(`invalid --report '${report}'; expected 'conformance', 'migration', or 'release'`);
+  if (!["conformance", "migration", "release", "review", "behavioral"].includes(report)) {
+    console.error(`invalid --report '${report}'; expected 'conformance', 'migration', 'release', 'review', or 'behavioral'`);
     process.exit(2);
   }
-  // Build the chosen report object. migration/release decorate the conformance object; load them lazily.
+  // Build the chosen report object. migration/release decorate the conformance object deterministically; load
+  // them lazily. review/behavioral merge an advisory block produced by an LLM layer (askit-reviewer /
+  // askit-quality-grader) supplied via --advisory <file.json>; the renderer projects whatever it is given and
+  // never lets the advisory move the gate verdict.
   let r;
   if (report === "migration") r = (await import("./lib/migrate-report.mjs")).migrateReport(target, { mode, targetTier });
   else if (report === "release") r = (await import("./lib/release-report.mjs")).releaseReport(target, { mode });
-  else r = evaluate(target, { mode });
+  else if (report === "review" || report === "behavioral") {
+    if (!advisory) {
+      console.error(`--report=${report} requires --advisory <file.json> carrying the advisory ${report} block (it comes from an LLM layer, not the deterministic gate)`);
+      process.exit(2);
+    }
+    r = { ...evaluate(target, { mode }), reportType: report, ...JSON.parse(readFileSync(advisory, "utf8")) };
+  } else r = evaluate(target, { mode });
   // Honor the same declared-tier ceiling as check.mjs, gating on the RESOLVED effective severity so the
   // two CLIs agree on pass/fail. Plugin scope reads the declared tier; component/unknown have no ceiling.
   // Computed before rendering so a designed report carries the same exit code the process returns.
