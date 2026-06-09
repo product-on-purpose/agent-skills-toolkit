@@ -9,7 +9,7 @@ A hardening patch over v1.4.0. A Codex adversarial review of the new report rend
 ### What changed
 
 - A malformed advisory file (one missing its findings or cases) now renders a clean report instead of erroring.
-- The Markdown report escapes raw HTML from an advisory's model name or finding text, so an untrusted advisory file cannot inject markup into a `.md`.
+- The Markdown report escapes raw HTML from every part of an advisory (model name, finding text, insights, and summary), so an untrusted advisory file cannot inject markup into a `.md`.
 - An unknown `--target-tier` is rejected with a clear error instead of silently producing an empty migration plan.
 
 ### Upgrade

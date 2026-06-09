@@ -15,11 +15,11 @@ A hardening patch over `v1.4.0`, from a Codex adversarial review of the new repo
 
 ### Fixed
 - **A malformed advisory no longer crashes the renderer.** An advisory block missing its `findings` (review) or `cases` / `summary` (behavioral) is normalized to empty defaults in `deriveModel`, so `--report=review|behavioral` renders a clean report instead of throwing a `TypeError`. The advisory comes from a non-deterministic LLM layer, so a missing field is expected input, not a fault in the caller.
-- **The Markdown twin escapes raw HTML in advisory stamps.** A hostile or hallucinated advisory `model` / `effort` / `date` or finding `message` is escaped (angle brackets and table pipes; newlines collapsed) before it reaches the Markdown, so a raw `<script>` or `<img onerror=...>` in an advisory file cannot survive into a rendered `.md`. The HTML renderer already escaped; this closes the Markdown gap.
+- **The Markdown twin escapes raw HTML in every advisory interpolation.** A hostile or hallucinated advisory `model` / `effort` / `date`, finding `message`, insight, or behavioral summary is escaped (angle brackets and table pipes; newlines collapsed) before it reaches the Markdown, so a raw `<script>` or `<img onerror=...>` in an advisory file cannot survive into a rendered `.md`. The review caught that the first cut escaped the stamps and table cells but left the insights list and behavioral summary raw; both are now escaped, so the Markdown twin matches the HTML renderer (which already escaped everywhere).
 - **An invalid target tier is rejected, not silently empty.** `--target-tier` is validated at the CLI (exit 2 on an unknown tier), and `migrateReport` throws on a `targetTier` outside `TIER_ORDER` instead of returning an empty migration plan that would read as "already at the target."
 
 ### Notes
-- All three are defensive hardening on untrusted or edge input; the central invariant is unchanged - the advisory layer still structurally cannot move the deterministic grade or the gate exit code. 345 tests (was 341, +4 regression tests); gate Advanced 0/0. Shipped behind a focused adversarial re-review.
+- All three are defensive hardening on untrusted or edge input; the central invariant is unchanged - the advisory layer still structurally cannot move the deterministic grade or the gate exit code. 346 tests (was 341, +5 regression tests); gate Advanced 0/0. Shipped behind a focused adversarial re-review that itself completed the Markdown escaping.
 
 ## [1.4.0] - 2026-06-09
 
