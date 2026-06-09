@@ -9,6 +9,9 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Added
+- **`--profile <name>` on `check.mjs` and `evaluate.mjs`.** Grade a plugin you do not own under a chosen profile (e.g. `--profile plain-plugin`) without writing `askit.config.json` into its tree. It mirrors `--mode`: a CLI value that overrides the loaded config's profile through the same resolution path (an explicit per-rule override in a present config still wins), and an unknown profile is rejected with exit 2. This closes the main friction the eval-target corpus run surfaced: pointing the gate at a third-party plugin previously graded it against the full askit library ladder, drowning portable defects in non-portable scaffolding findings. No spine or Standard change (29 checks, Standard 0.11).
+
 ## [1.4.1] - 2026-06-09
 
 A hardening patch over `v1.4.0`, from a Codex adversarial review of the new report renderer. Three defensive fixes on the advisory and migration paths; no behavior change for valid input, and no spine or Standard change (spine stays **29**, Standard stays **0.11**).

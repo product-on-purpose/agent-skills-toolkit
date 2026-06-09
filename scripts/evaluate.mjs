@@ -8,6 +8,7 @@ import { loadPlugin, loadSkill } from "./lib/load-plugin.mjs";
 import { runAllChecks, provenanceByReq, CHECKS } from "./lib/registry.mjs";
 import { applyStandardDowngrade } from "./lib/standard-gate.mjs";
 import { loadConfig } from "./lib/config.mjs";
+import { PROFILES } from "./lib/profiles.mjs";
 import { resolveFindings } from "./lib/resolve-config.mjs";
 import { computeTierReport } from "./tier-report.mjs";
 import { checkAgentskills } from "./checks/agentskills.mjs";
@@ -88,7 +89,9 @@ export function evaluate(target, opts = {}) {
     // F3: resolve config (profile + per-rule override + suppressions + published-verdict clamp), so the
     // report object, summary, dispositions split, and --json all reflect the consumer's grading config.
     const { config, findings: configFindings } = loadConfig(target);
-    const cfg = opts.mode ? { ...config, mode: opts.mode } : config;
+    // CLI --mode / --profile override the file (so a third-party plugin can be graded under a chosen
+    // profile without writing askit.config.json into its tree); an explicit per-rule override still wins.
+    const cfg = { ...config, ...(opts.mode ? { mode: opts.mode } : {}), ...(opts.profile ? { profile: opts.profile } : {}) };
     const resolved = resolveFindings([...configFindings, ...downgraded], cfg, provenanceByReq());
     const t = computeTierReport(target, ctx, resolved);
     return {
@@ -149,7 +152,7 @@ export function applyAdvisory(base, report, adv = {}) {
 // lazily-imported migrate-report / release-report modules import it back (avoids a cyclic top-level-await deadlock).
 async function runCli() {
   const argv = process.argv.slice(2);
-  const valueFlags = new Set(["--mode", "--out", "--format", "--report", "--target-tier", "--advisory"]); // flags that consume the following arg
+  const valueFlags = new Set(["--mode", "--out", "--format", "--report", "--target-tier", "--advisory", "--profile"]); // flags that consume the following arg
   const getFlag = (name) => {
     const eq = argv.find((a) => a.startsWith(name + "="));
     if (eq) return eq.slice(name.length + 1);
@@ -162,6 +165,7 @@ async function runCli() {
   const report = getFlag("--report") ?? "conformance";
   const targetTier = getFlag("--target-tier");
   const advisory = getFlag("--advisory");
+  const profile = getFlag("--profile");
   const format = getFlag("--format") ?? (argv.includes("--json") ? "json" : "text"); // --json stays an alias
   if (mode !== undefined && mode !== "local" && mode !== "published-verdict") {
     console.error(`invalid --mode '${mode}'; expected 'local' or 'published-verdict'`);
@@ -179,20 +183,24 @@ async function runCli() {
     console.error(`invalid --target-tier '${targetTier}'; expected 'universal', 'convergent', or 'advanced'`);
     process.exit(2);
   }
+  if (profile !== undefined && !Object.prototype.hasOwnProperty.call(PROFILES, profile)) {
+    console.error(`invalid --profile '${profile}'; expected one of ${Object.keys(PROFILES).join(", ")}`);
+    process.exit(2);
+  }
   // Build the chosen report object. migration/release decorate the conformance object deterministically; load
   // them lazily. review/behavioral merge an advisory block produced by an LLM layer (askit-reviewer /
   // askit-quality-grader) supplied via --advisory <file.json>; the renderer projects whatever it is given and
   // never lets the advisory move the gate verdict.
   let r;
-  if (report === "migration") r = (await import("./lib/migrate-report.mjs")).migrateReport(target, { mode, targetTier });
-  else if (report === "release") r = (await import("./lib/release-report.mjs")).releaseReport(target, { mode });
+  if (report === "migration") r = (await import("./lib/migrate-report.mjs")).migrateReport(target, { mode, targetTier, profile });
+  else if (report === "release") r = (await import("./lib/release-report.mjs")).releaseReport(target, { mode, profile });
   else if (report === "review" || report === "behavioral") {
     if (!advisory) {
       console.error(`--report=${report} requires --advisory <file.json> carrying the advisory ${report} block (it comes from an LLM layer, not the deterministic gate)`);
       process.exit(2);
     }
-    r = applyAdvisory(evaluate(target, { mode }), report, JSON.parse(readFileSync(advisory, "utf8")));
-  } else r = evaluate(target, { mode });
+    r = applyAdvisory(evaluate(target, { mode, profile }), report, JSON.parse(readFileSync(advisory, "utf8")));
+  } else r = evaluate(target, { mode, profile });
   // Honor the same declared-tier ceiling as check.mjs, gating on the RESOLVED effective severity so the
   // two CLIs agree on pass/fail. Plugin scope reads the declared tier; component/unknown have no ceiling.
   // Computed before rendering so a designed report carries the same exit code the process returns.

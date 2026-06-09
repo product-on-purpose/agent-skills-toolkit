@@ -53,6 +53,8 @@ A profile selects a base severity map applied before `rules`. The built-in profi
 
 Resolution precedence is **per-rule override > profile > the severity the check emitted** (which already reflects the pinned-Standard downgrade of STANDARD.md sec 7.7).
 
+To grade a plugin you do not own under a profile, pass `--profile <name>` on the CLI instead of writing a config file into its tree (see [CLI](#cli)). This is the intended path for grading a third-party plugin: `--profile plain-plugin` drops the askit library-ladder findings so only portable defects remain.
+
 ## Suppressions
 
 A suppression durably waives a known finding so a team accepts it once instead of re-triaging every run. Each entry needs a `reqId` and a human `reason`; it may narrow by a `file` glob (`**` for any, `*` for any non-slash segment) and an optional case-sensitive `message` substring.
@@ -69,10 +71,14 @@ A suppressed finding is removed from gating and the counts and is listed separat
 
 ## CLI
 
-Both `scripts/check.mjs` and `scripts/evaluate.mjs` read `askit.config.json` automatically. A `--mode <local|published-verdict>` flag overrides the file for one run:
+Both `scripts/check.mjs` and `scripts/evaluate.mjs` read `askit.config.json` automatically. A `--mode <local|published-verdict>` and a `--profile <name>` flag override the file for one run, so you can grade a plugin you do not own under a chosen profile without writing a config file into its tree (an explicit per-rule override in a present config still wins):
 
 ```
 node scripts/check.mjs .
 node scripts/check.mjs . --mode published-verdict
+node scripts/check.mjs <path> --profile plain-plugin
 node scripts/evaluate.mjs <path> --json
+node scripts/evaluate.mjs <path> --format=html --profile plain-plugin --out report.html
 ```
+
+An unknown `--profile` or `--mode` is rejected with exit code 2.
