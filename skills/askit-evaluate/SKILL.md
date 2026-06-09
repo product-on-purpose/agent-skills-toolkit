@@ -23,7 +23,8 @@ When the user asks to evaluate, audit, or check a skill or plugin, asks "what ti
 1. Determine the target path (a plugin root with `library.json`, or a single skill directory with `SKILL.md`).
 2. Run: `node scripts/evaluate.mjs <path> --json`.
 3. Present the findings grouped by rule, the tier (for a plugin), and the remediation. Lead with errors, then warnings.
-4. If there are warnings or errors, point the user at `askit-build-skill` in `improve` mode to fix them.
+4. For a shareable, designed report, render the same object: `node scripts/evaluate.mjs <path> --format=html --out report.html` (a self-contained page for a non-engineer) or `--format=md` (the Markdown twin for PR review and agents). It renders the same deterministic object the terminal shows, adds no judgment, and does not change the verdict. See [references/report-format.md](references/report-format.md).
+5. If there are warnings or errors, point the user at `askit-build-skill` in `improve` mode to fix them.
 
 ## behavioral mode (opt-in, LLM-judged)
 1. Locate the target's eval-set under `evals/` (triggering `{query, should_trigger}` cases and `{given, expect}` behavior cases).
