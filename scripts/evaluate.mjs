@@ -3,9 +3,9 @@
 // why:          a single report object keeps the terminal, JSON, and future MD/HTML renderers from diverging
 // used-by:      run by the askit-evaluate skill and askit-build-docs improve mode
 import path from "node:path";
-import { existsSync, statSync } from "node:fs";
+import { existsSync, statSync, writeFileSync } from "node:fs";
 import { loadPlugin, loadSkill } from "./lib/load-plugin.mjs";
-import { runAllChecks, provenanceByReq } from "./lib/registry.mjs";
+import { runAllChecks, provenanceByReq, CHECKS } from "./lib/registry.mjs";
 import { applyStandardDowngrade } from "./lib/standard-gate.mjs";
 import { loadConfig } from "./lib/config.mjs";
 import { resolveFindings } from "./lib/resolve-config.mjs";
@@ -120,24 +120,67 @@ export function formatReport(r) {
   return lines.join("\n");
 }
 
+// The options bag the pure renderer needs that is not on the bare report object: the subject identity,
+// the live spine (so the ledger lists every requirement and the count is never hard-coded), the
+// vacuous-pass set, the injected date, and the gate exit code. Built by the CLI so the renderer stays pure.
+function optsFromTarget(target, exitCode) {
+  return {
+    library: readJsonSafe(path.join(target, "library.json")).data ?? null,
+    spine: CHECKS.map((m) => ({ reqId: m.meta.reqId, id: m.meta.id, tier: m.meta.tier })),
+    conditional: new Set(["G1", "G6", "U11"]), // checks that pass vacuously when their artifact is absent
+    date: new Date().toISOString().slice(0, 10),
+    exitCode,
+    reportType: "conformance",
+  };
+}
+
 if (process.argv[1]?.endsWith("evaluate.mjs")) {
   const argv = process.argv.slice(2);
-  const target = argv.find((a, i) => !a.startsWith("--") && (i === 0 || argv[i - 1] !== "--mode")) ?? process.cwd();
-  let mode;
-  const mi = argv.indexOf("--mode");
-  if (mi >= 0) mode = argv[mi + 1];
-  const eq = argv.find((a) => a.startsWith("--mode="));
-  if (eq) mode = eq.slice("--mode=".length);
+  const valueFlags = new Set(["--mode", "--out", "--format"]); // flags that consume the following arg
+  const getFlag = (name) => {
+    const eq = argv.find((a) => a.startsWith(name + "="));
+    if (eq) return eq.slice(name.length + 1);
+    const i = argv.indexOf(name);
+    return i >= 0 ? argv[i + 1] : undefined;
+  };
+  const target = argv.find((a, i) => !a.startsWith("--") && !(i > 0 && valueFlags.has(argv[i - 1]))) ?? process.cwd();
+  const mode = getFlag("--mode");
+  const out = getFlag("--out");
+  const format = getFlag("--format") ?? (argv.includes("--json") ? "json" : "text"); // --json stays an alias
   if (mode !== undefined && mode !== "local" && mode !== "published-verdict") {
     console.error(`invalid --mode '${mode}'; expected 'local' or 'published-verdict'`);
     process.exit(2);
   }
+  if (!["text", "json", "md", "html"].includes(format)) {
+    console.error(`invalid --format '${format}'; expected 'text', 'json', 'md', or 'html'`);
+    process.exit(2);
+  }
   const r = evaluate(target, { mode });
-  console.log(argv.includes("--json") ? JSON.stringify(r, null, 2) : formatReport(r));
   // Honor the same declared-tier ceiling as check.mjs, gating on the RESOLVED effective severity so the
   // two CLIs agree on pass/fail. Plugin scope reads the declared tier; component/unknown have no ceiling.
+  // Computed before rendering so a designed report carries the same exit code the process returns.
   const declared = r.scope === "plugin" ? readJsonSafe(path.join(target, "library.json")).data?.tier : undefined;
   const forGate = r.findings.filter((f) => !f.suppressed).map((f) => ({ ...f, severity: effSev(f) }));
   const { exitCode } = gateExitFromFindings(forGate, declared);
+
+  let output;
+  if (format === "json") {
+    output = JSON.stringify(r, null, 2);
+  } else if (format === "md" || format === "html") {
+    // Load the renderer only when a designed format is requested, keeping the hot json/terminal path light.
+    const { renderMarkdown, renderHtml } = await import("./lib/report-render.mjs");
+    const opts = optsFromTarget(target, exitCode);
+    output = format === "md" ? renderMarkdown(r, opts) : renderHtml(r, opts);
+  } else {
+    output = formatReport(r);
+  }
+
+  if (out) {
+    writeFileSync(out, output);
+    console.error(`Wrote ${out}`); // confirmation to stderr so --out plus stdout redirection stays clean
+  } else {
+    console.log(output);
+  }
+  // Rendering a report is orthogonal to the gate verdict: the exit code always reflects the gate, never the format.
   process.exit(exitCode);
 }

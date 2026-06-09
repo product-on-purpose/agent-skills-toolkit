@@ -15,6 +15,8 @@ The shared library the checks, generators, and gate import: findings, frontmatte
 - `load-plugin.mjs` - loadPlugin() that builds the check context from a plugin root.
 - `profiles.mjs` - the built-in gate profiles (askit-library, plain-plugin, house-style).
 - `registry.mjs` - the ordered CHECKS array, runAllChecks(), REQ_IDS, and provenanceByReq().
+- `report-meta.mjs` - the per-reqId explanation table (why-it-matters, fix prompt, effort) the evaluation report renderer joins at render time.
+- `report-render.mjs` - renderMarkdown() and renderHtml(): the pure designed-report renderer over the evaluate() report object.
 - `resolve-config.mjs` - resolveFindings(): profile + per-rule override + suppressions + published-verdict clamp.
 - `suppressions.mjs` - the baseline matcher (reqId + file glob + message substring).
 - `standard-gate.mjs` - the ADR 0027 standard-aware downgrade: SINCE_BY_REQ and applyStandardDowngrade().
