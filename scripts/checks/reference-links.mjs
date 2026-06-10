@@ -11,13 +11,26 @@ export const meta = { id: "reference-links", tier: "universal", reqId: "U6", sin
 
 const LINK = /\[[^\]]*\]\(([^)]+)\)/g;
 
+// External or non-filesystem schemes (and protocol-relative // and pure #anchors) are never relative
+// repo paths, so U6 does not try to resolve them. Mirrors gen-docs-site.mjs SKIP_SCHEME, plus the
+// Cowork `computer:` local-artifact scheme and `file:`; both appear in real, well-built official plugins.
+const SKIP_SCHEME = /^(https?:|mailto:|tel:|ftp:|ws:|wss:|data:|javascript:|computer:|file:|#|\/\/)/i;
+
+// Strip fenced code blocks before scanning: a markdown link inside a ``` or ~~~ example is an
+// illustration, not a live reference (official plugins embed example SKILL.md links in fenced docs).
+// Mirrors the fence handling gen-docs-site.mjs / folder-readme.mjs already use in-repo.
+function stripFences(text) {
+  return (text || "").replace(/```[\s\S]*?```|~~~[\s\S]*?~~~/g, "");
+}
+
 /** Flag every relative markdown link in `text` that does not resolve from `baseDir`. */
 function scanLinks(text, baseDir, fileRel, out) {
   let m;
   LINK.lastIndex = 0;
-  while ((m = LINK.exec(text || ""))) {
+  const scanText = stripFences(text);
+  while ((m = LINK.exec(scanText))) {
     let target = m[1].trim();
-    if (/^(https?:|mailto:|#)/.test(target)) continue;
+    if (SKIP_SCHEME.test(target)) continue;
     target = target.split("#")[0];
     if (!target) continue;
     const resolved = path.resolve(baseDir, target);

@@ -46,7 +46,17 @@ export function check(ctx) {
       }
     }
     if (!isStdio && !isHttp) {
-      out.push(err(`.mcp.json server "${name}" must declare a non-empty "command" (stdio) or a valid http(s) "url" (http).`));
+      // A typed http server with an empty/absent url is the managed-connector pattern: the host
+      // (e.g. Claude Cowork) supplies the endpoint at runtime. Anthropic's official knowledge-work
+      // plugins ship gmail/google-calendar this way suite-wide, so it is a warning, not a tier-blocking
+      // error (the U10 / ADR 0028 lesson: do not fail the platform author's own deliberate convention).
+      // A genuinely underspecified server (no type, no command, no url) stays an error.
+      const urlEmpty = def.url === "" || def.url == null;
+      if (def.type === "http" && urlEmpty) {
+        out.push(finding(meta.id, SEVERITY.WARN, `.mcp.json server "${name}" declares type "http" with no url; treated as a host-resolved managed connector. If it is meant to be self-contained, add a url.`, { file: ".mcp.json", reqId: meta.reqId }));
+      } else {
+        out.push(err(`.mcp.json server "${name}" must declare a non-empty "command" (stdio) or a valid http(s) "url" (http).`));
+      }
     }
     // Secrets: an inline env value that looks like a credential is an error.
     const env = def.env;
