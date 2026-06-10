@@ -45,3 +45,56 @@
 - **Change:** the deferrals named out of F3 scope, recorded so they are not lost: (a) **autofix** for mechanical rules (apply the obvious repair rather than only reporting it); (b) **user-authored custom profiles** in `askit.config.json` (a `profiles` block defining new `reqId -> severity` maps, beyond the built-in `askit-library` / `plain-plugin` / `house-style`); (c) a **content-addressed fingerprint** suppression model with `expires` and stale/expired tracking (richer than the current `reqId` + glob + message-substring matcher), paired with an `askit suppress` helper; (d) an `info` severity level for advisory house findings that should surface without counting as a warning; (e) per-component (skill-scope) config.
 - **Why:** F3 shipped the high-leverage core (per-rule severity, the built-in profiles, the suppressions baseline, provenance, the report split, and the published-verdict clamp); these refinements wait until the core proves out. The `house-style` profile slot and the `{ "severity": ... }` rule object form were built to accommodate them without a breaking change.
 - **Status:** backlog (recorded 2026-06-06, alongside the v1.3.0 F3 ship).
+
+## Competitive gap-analysis intake (2026-06-10)
+
+The actionable output of the verified competitive comparison (`docs/internal/research/gap-analysis.md`), which graded agent-skills-toolkit against the field from primary sources. Each item cites the gap-analysis and the competitor profile(s) that motivate it; effort estimates (S/M/L) carry from the gap-analysis. Two existing items here are CORROBORATED by this evidence rather than duplicated: **E3(a) autofix** (gap-analysis Adopt 4 - `skill-check` `--fix` and `skills-check` `lint --fix` / `doctor` both ship it, so the competitive case for autofix is now externally evidenced), and **E2 MCP secret scanning** (complemented, not replaced, by E6 below). The **U5 description-scorer recalibration** (a gap-analysis honesty note) is an ADR 0029 follow-up already queued by the v1.5.0 corpus-run workstream; not duplicated here.
+
+### E4 - SARIF + GitHub-annotation output  [adopt, effort S]
+
+- **Target:** the shipped report renderer / evaluate output (`scripts/lib/report-render.mjs`, `scripts/evaluate.mjs`); extends the E1 renderer with CI-machine formats.
+- **Change:** add a SARIF 2.1.0 emitter and GitHub Actions `::error` / `::warning` annotations alongside the human / HTML / Markdown outputs, so findings land in the GitHub Security tab and inline on the PR diff. The provenance class (ADR 0029) rides along as a SARIF rule property (see E9).
+- **Why / source:** `gap-analysis.md` Adopt 1; askit is "no SARIF" (matrix dim 12) while `skill-check` and `skills-check` both emit it (dim 12). Pure serialization of data the gate already computes; deterministic, no verdict change.
+- **Status:** backlog.
+
+### E5 - semver-bump-vs-content-diff verification  [adopt, effort M]
+
+- **Target:** the gate (`scripts/check.mjs` plus a new check module, or an `evaluate` verify mode).
+- **Change:** given a declared version bump and the content diff against the prior version, verify the change magnitude justifies the bump. Keep it deterministic (structural + content-similarity heuristics; no LLM in the verdict).
+- **Why / source:** `gap-analysis.md` Adopt 2; `skills-check` `verify` (dim 9) is the standout, with a `--skip-llm` deterministic path. askit is semver-enforced but does not check the bump against the diff (matrix dim 9).
+- **Status:** backlog.
+
+### E6 - prompt-injection + curl-pipe-bash content scan  [adopt, effort M]
+
+- **Target:** the security checks (complements E2's MCP-secret scan; this one operates on skill content, not MCP config).
+- **Change:** deterministic pattern checks for pipe-to-shell installers (`curl|bash`, `wget|sh`, `bash <(curl ...)`) in prose and code blocks, plus a curated prompt-injection / dangerous-command pattern list, on the objective tier. Bundle the patterns; do not shell out.
+- **Why / source:** `gap-analysis.md` Adopt 3; `skills-validator` dim 11 (pipe-to-shell + semgrep), `skills-check` dim 11 (audit). askit has secret-scan only (matrix dim 11). `skill-check`'s external-`mcp-scan` adapter (defaults off because the dependency is unbundled) is the anti-pattern to avoid.
+- **Status:** backlog.
+
+### E7 - eval / regression harness hardening (selective borrow)  [adopt, effort M]
+
+- **Target:** `askit-evaluate` behavioral mode plus the `G3` regression check.
+- **Change:** borrow identity-safe deterministic scaffolding: held-out train/test split to prevent overfitting (skill-creator), baseline-diff regression with explicit accept / update, multi-trial with a pass threshold, cost caps. Keep the LLM as opt-in evidence beside the gate, never the verdict; do not adopt unsandboxed shell execution.
+- **Why / source:** `gap-analysis.md` Adopt 5; `skill-creator` dim 10 (train/test eval loop), `skills-check` dim 10 (eval suites). askit already has the spine (matrix dim 10).
+- **Status:** backlog.
+
+### E8 - published conformance suite  [build, effort M]
+
+- **Target:** the objective-tier check spine, packaged as a standalone runnable suite (may graduate to a new-component proposal when scoped).
+- **Change:** package askit's objective-tier checks plus a pass/fail fixture corpus as a portable conformance suite any author or competing tool can run to get the same deterministic verdict - the standard made executable and externally reproducible.
+- **Why / source:** `gap-analysis.md` Build 1; only askit is both deterministic AND self-proving (matrix dims 3, 6), so only askit can credibly publish reproducible conformance; competitors are not confirmed self-checked (dim 6).
+- **Status:** backlog.
+
+### E9 - provenance split as a consumable output contract  [build, effort S]
+
+- **Target:** the findings / output schema (ADR 0029 follow-up; pairs with E4).
+- **Change:** expose the objective / vendor-cited / house classification as first-class machine-readable output on every finding (JSON, and a SARIF rule property once E4 lands), documented as a stable contract so a consumer can filter to "portable objective failures only."
+- **Why / source:** `gap-analysis.md` Build 2; provenance taxonomy is the sole dimension where askit stands alone (matrix dim 16: askit "yes" vs the field's "no" / "partial" / "n/a"). The third-party-grading use case ADR 0029 was written for.
+- **Status:** backlog.
+
+### E10 - MCP-served-skill validation  [build, effort L, speculative]
+
+- **Target:** the gate (forward-looking; no committed target yet).
+- **Change:** validation for skills delivered over MCP (served, not on-disk) - schema, provenance, and budget checks when the "library" is a set of MCP-exposed capabilities.
+- **Why / source:** `gap-analysis.md` Build 3 (flagged speculative). No profiled tool validates MCP-served skills; askit's whole-library framing (matrix dim 1) is the closest start. Watch-and-prototype; revisit when the corpus surfaces a real MCP-served library.
+- **Status:** watch (do not start until there is a concrete target).
