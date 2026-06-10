@@ -387,6 +387,8 @@ git commit -m "docs(research): add folder README (human navigation)"
 > rendered reports to cite as live proof (DESIGN.md section 3b). Build them when that evidence exists.
 > They are fully specified here so they are ready.
 
+> **UPDATE 2026-06-10:** Tasks 16-17 were built as a lighter, methodology-backed v1 (the comparison page `docs/explanation/comparison.md` + the README mini-matrix), verified green (gate 0/0; site build + route-parity + rendered-links guards pass) and shipped in PR #122. The page links the verification methodology rather than not-yet-public corpus reports, and is honesty-guarded (no description-quality claim; the U5 caveat is carried). The remaining deferred piece is **Task 18 - the Evaluation Reports showcase** at the top-level path `/evaluation-reports/` (LOCKED decision): the gallery of askit's actual graded reports of real libraries. It is still gated on those reports being public/hostable, and must not be confused with the existing `/reference/evaluation-reports/` page (v1.5.0 reference docs ABOUT the report-renderer feature, a different thing).
+
 ### Task 16: Public comparison page (DEFERRED)
 
 **Files:**
