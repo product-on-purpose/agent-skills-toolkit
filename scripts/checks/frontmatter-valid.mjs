@@ -19,7 +19,11 @@ export function check(ctx) {
     }
     const fm = s.frontmatter || {};
     if (typeof fm.name !== "string") out.push(finding(meta.id, SEVERITY.ERROR, "frontmatter is missing required string \"name\" (Standard sec 3.1).", { file, reqId: "U3" }));
-    else if (fm.name.length > 64 || !NAME_RE.test(fm.name)) out.push(finding(meta.id, SEVERITY.ERROR, `"name" must be 1-64 chars, lowercase a-z/0-9/-, no leading/trailing/consecutive hyphen (got "${fm.name}").`, { file, reqId: "U3" }));
+    // Only format-check the name when it is the canonical identifier (equals the directory). A name that
+    // diverges from its directory is a display label or namespaced command (e.g. "gsd:add-backlog"); U4
+    // (name-matches-dir) owns that divergence, so U3 must not also flag the label's characters (Finding 4 /
+    // ADR 0031). A non-kebab name that DOES equal its directory is still a real defect and stays an error.
+    else if (fm.name === s.name && (fm.name.length > 64 || !NAME_RE.test(fm.name))) out.push(finding(meta.id, SEVERITY.ERROR, `"name" must be 1-64 chars, lowercase a-z/0-9/-, no leading/trailing/consecutive hyphen (got "${fm.name}").`, { file, reqId: "U3" }));
     if (typeof fm.description !== "string") out.push(finding(meta.id, SEVERITY.ERROR, "frontmatter is missing required string \"description\" (Standard sec 3.1).", { file, reqId: "U3" }));
     else if (fm.description.length < 1 || fm.description.length > 1024) out.push(finding(meta.id, SEVERITY.ERROR, `"description" must be 1-1024 chars (got ${fm.description.length}).`, { file, reqId: "U3" }));
   }
