@@ -143,7 +143,7 @@ Known phantoms to watch for, drawn from the current report set: a cited arXiv id
 Every file in `tool-profiles/` follows the same shape, so the matrix can be distilled mechanically and a reader can scan any two profiles side by side.
 
 1. **Header** - tool, repo URL, author/org, license, `last_verified: YYYY-MM-DD`, and the list of primary sources consulted.
-2. **The fifteen dimensions** - one short, sourced answer each, with an inline citation and a confidence label. These are the matrix columns; the mapping is 1:1 by design.
+2. **The sixteen dimensions** - one short, sourced answer each, with an inline citation and a confidence label. These are the matrix columns; the mapping is 1:1 by design.
 3. **Notes** - anything that does not fit a cell: caveats, divergences, things that were checked and found absent.
 4. **Open items** - claims we could not verify and what it would take to close them.
 
