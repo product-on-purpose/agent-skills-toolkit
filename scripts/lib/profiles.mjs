@@ -32,9 +32,15 @@ export const PROFILES = Object.freeze({
   // A lighter rubric: grade a vanilla plugin on the portable, vendor-grounded universal checks only
   // (the objective + vendor-cited set), turning the askit library-ladder and house checks off. This is
   // how a plain Claude Code / Codex plugin is graded as itself, not against the askit library contract.
+  // U4 (name-matches-dir) is downgraded to a warning here, not turned off: real third-party plugins
+  // deliberately use the skill name as a display label or namespaced command (gsd ships 83 "gsd:*"
+  // commands, hookify uses prose labels), so name-vs-dir divergence should inform a vanilla plugin, not
+  // fail it. It stays a hard error under the default askit-library ladder, which commits to the canonical
+  // name contract (Finding 4 / ADR 0031). Because U4 is "warn" (not "off"), the house-provenance invariant
+  // - which checks the OFF-set equals the house-provenance set - is unaffected; U4 remains vendor-cited.
   "plain-plugin": Object.freeze({
-    description: "Portable correctness only: the objective and vendor-grounded universal checks; the askit library-ladder (U1, S1-S8) and Gold (G1-G10) checks off.",
-    rules: offMap(HOUSE_REQIDS),
+    description: "Portable correctness only: the objective and vendor-grounded universal checks; the askit library-ladder (U1, S1-S8) and Gold (G1-G10) checks off, and name-matches-dir (U4) advisory.",
+    rules: Object.freeze({ ...offMap(HOUSE_REQIDS), U4: "warn" }),
   }),
   // The opt-in home ADR 0028 named for re-homed house preferences (e.g. a future dash rule). Empty in
   // v1.3.0 (no house check exists post-ADR-0028; the dash preference stays the shipped hooks/no-dashes.mjs
