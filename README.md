@@ -180,6 +180,20 @@ flowchart TD
   Q --> E --> N
 ```
 
+### How it compares
+
+Most tools grade one skill or plugin in isolation; the less-occupied position is grading a whole **library** on a climbable tier with a deterministic gate. A dated snapshot of the differentiators (verified 2026-06-10 against each tool's primary sources; full table, all ten tools, and per-cell citations in [the comparison](docs/explanation/comparison.md)):
+
+| Tool | Unit | Tiered + climbable | Verdict | Cross-agent | Self-proving |
+|---|---|---|---|---|---|
+| **agent-skills-toolkit** | whole-library | yes (Bronze/Silver/Gold) | deterministic | multi-format | yes (in CI) |
+| ccpi | per-plugin | score + badges | hybrid (advisory LLM) | Claude only | yes |
+| plugin-eval | per-skill | score + badges | hybrid (LLM judge) | multi-format | partial |
+| skill-check | per-skill | score, no tiers | deterministic | none | no |
+| vercel skills CLI | per-skill | n/a (installer) | n/a | multi-format | no |
+
+No single dimension is uniquely ours; the unoccupied position is the **combination** (whole-library, tiered, deterministic, cross-agent, self-proving, plus a provenance split no other tool has). See [the full comparison](docs/explanation/comparison.md) and [how it was verified](docs/internal/research/METHODOLOGY.md).
+
 <div align="right">(<a href="#readme-top">back to top</a>)</div>
 
 ## The tier model

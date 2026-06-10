@@ -2,6 +2,7 @@
 /catalog/index.html
 /explanation/architecture-internals/index.html
 /explanation/architecture/index.html
+/explanation/comparison/index.html
 /explanation/conformance-and-tiers/index.html
 /explanation/faq/index.html
 /explanation/glossary/index.html
@@ -58,7 +59,9 @@
 /reference/askit-release/index.html
 /reference/askit-template-manager/index.html
 /reference/builder-pattern/index.html
+/reference/evaluation-reports/index.html
 /reference/frontmatter-taxonomy/index.html
+/reference/gate-config/index.html
 /reference/gold-checks/index.html
 /reference/silver-checks/index.html
 /the-standard/index.html
