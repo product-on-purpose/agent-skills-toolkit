@@ -62,3 +62,13 @@ test("credentials embedded in the url are a secret error", () => {
   assert.ok(check({ mcpServers: [{ name: "c", def: { url: "https://user:pass@x.test/mcp" } }] }).some((f) => /secret|credential/i.test(f.message)));
   assert.ok(check({ mcpServers: [{ name: "q", def: { url: "https://x.test/mcp?api_key=AKIA1234567890ABCDEF" } }] }).some((f) => /secret/i.test(f.message)));
 });
+
+test("managed connector (type http, empty url) is a warning not an error (U11)", () => {
+  const r = check({ mcpServers: [{ name: "gmail", def: { type: "http", url: "" } }] });
+  assert.equal(r.filter((f) => f.severity === "error").length, 0);
+  assert.ok(r.some((f) => f.severity === "warn" && f.reqId === "U11"));
+});
+
+test("type http with a present-but-invalid url stays an error (U11)", () => {
+  assert.ok(check({ mcpServers: [{ name: "x", def: { type: "http", url: "not a url" } }] }).some((f) => f.severity === "error"));
+});
