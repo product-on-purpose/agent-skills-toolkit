@@ -51,6 +51,16 @@ test("a malformed canonical name (name === dir, non-kebab) is still a U3 error",
   assert.match(err.message, /name/);
 });
 
+// Pins the length half of the gated `&&` (the !NAME_RE half is covered above): an overlong name that
+// equals its directory must still error, so a regression dropping the length clause is caught.
+test("a canonical name longer than 64 chars (name === dir, valid charset) is still a U3 error", () => {
+  const long = "a".repeat(65);
+  const err = check(labelCtx(long, long)).find((f) => f.severity === "error");
+  assert.ok(err, "an overlong name that equals its dir is still flagged");
+  assert.equal(err.reqId, "U3");
+  assert.match(err.message, /1-64/);
+});
+
 test("a display-label name still gets the description check (only the NAME format is skipped)", () => {
   const ctx = { root: ".", skills: [{ name: "writing-rules", skillMdPath: "skills/writing-rules/SKILL.md", frontmatter: { name: "Writing Hookify Rules" }, parseError: null }] };
   assert.ok(check(ctx).some((f) => f.reqId === "U3" && /description/.test(f.message)), "missing description on a display-label skill still errors");
