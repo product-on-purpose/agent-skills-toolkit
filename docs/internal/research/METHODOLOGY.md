@@ -128,7 +128,7 @@ The point of the diagram is not the answer. It is that the answer is forced by p
 
 | Claim | Conflicting sources | Primary evidence | Ruling | Date |
 |---|---|---|---|---|
-| _e.g._ Agent Skills spec is AAIF-governed | Gemini/ChatGPT reports (yes) vs Claude report (no) | `agentskills/agentskills` LICENSE + README; `aaif.io` project list | _to be recorded in Phase 2_ | _pending_ |
+| Agent Skills spec is AAIF / LF-governed | Gemini + ChatGPT reports (yes) vs careful Claude report + this project's prior positioning note (no) | agentskills/agentskills LICENSE ("Copyright 2025 Anthropic, PBC") + README; aaif.io project list (MCP, goose, AGENTS.md, agentgateway - Agent Skills absent) | NOT AAIF/LF-governed as of 2026-06-10; Anthropic-stewarded open standard. Corrects the prior memory. | 2026-06-10 |
 
 ## The embellishment guard
 
