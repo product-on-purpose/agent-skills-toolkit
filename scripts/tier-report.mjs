@@ -43,10 +43,16 @@ export function computeTierReport(root, ctx = loadPlugin(root), findings = defau
   const blocked = {};
   const next = TIER_ORDER[satisfies.length <= ceiling ? satisfies.length : ceiling + 1];
   if (next && errorsByTier[next]?.length > 0) blocked[next] = errorsByTier[next];
-  return { tier, satisfies, blocked };
+  return { tier, satisfies, blocked, declaredTier };
 }
 
 export function humanLine(r) {
+  // A plugin that never declared an askit tier (no library.json tier) is not graded against the tier
+  // ladder; under plain-plugin (where U1/library.json is off) it would otherwise read as the top tier
+  // just for passing the objective checks. Report it honestly instead of asserting an earned tier.
+  if (r.declaredTier == null && r.tier !== "none") {
+    return `Objective checks pass (no askit tier declared; not graded against the tier ladder).`;
+  }
   const next = Object.keys(r.blocked)[0];
   const blockers = next ? r.blocked[next] : [];
   if (!next || blockers.length === 0) return `Tier: ${cap(r.tier)} (no blockers detected)`;

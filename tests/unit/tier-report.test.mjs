@@ -2,7 +2,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { computeTierReport } from "../../scripts/tier-report.mjs";
+import { computeTierReport, humanLine } from "../../scripts/tier-report.mjs";
 
 const FIXTURES = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../fixtures");
 const golden = path.join(FIXTURES, "golden/minimal-skill");
@@ -32,4 +32,19 @@ test("declared advanced but failing universal: reports none, blocked at universa
   assert.equal(r.tier, "none");
   assert.ok(r.blocked.universal?.length >= 1);
   assert.ok(r.blocked.universal.some((s) => s.startsWith("U2")));
+});
+
+test("computeTierReport exposes declaredTier (null when no library.json declares one)", () => {
+  assert.equal(computeTierReport(missing).declaredTier, null);
+  assert.equal(computeTierReport(golden).declaredTier, "universal");
+});
+
+test("humanLine: no declared tier with a non-none tier reads as objective-pass, not an earned tier", () => {
+  const line = humanLine({ tier: "advanced", satisfies: ["universal", "convergent", "advanced"], blocked: {}, declaredTier: null });
+  assert.doesNotMatch(line, /Tier: Advanced/);
+  assert.match(line, /objective/i);
+});
+
+test("humanLine: a declared tier that is satisfied still reads as that tier", () => {
+  assert.match(humanLine({ tier: "advanced", blocked: {}, declaredTier: "advanced" }), /Tier: Advanced \(no blockers/);
 });
