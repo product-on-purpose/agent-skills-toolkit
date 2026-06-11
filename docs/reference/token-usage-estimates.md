@@ -19,7 +19,7 @@ The single most important thing to understand first is that the toolkit has **tw
 The grade itself is produced by a deterministic, model-free gate. `scripts/check.mjs` (the gate), `scripts/tier-report.mjs` (the tier and burndown), and `scripts/evaluate.mjs` in its `--format=html|md`, `--report=migration`, `--report=release`, terminal, and `--json` modes run **no model at all**. They are plain Node over the plugin's files.
 
 - **Model tokens: 0.** There is nothing to estimate. A run costs the same whether you have a token budget of zero or infinite.
-- **Reproducible.** The same plugin at the same commit produces a byte-identical report every time.
+- **Reproducible.** The grade, the findings, and the gate exit code are deterministic - the same plugin at the same commit produces the same verdict every time. (One caveat for byte-level comparison: a rendered HTML or MD report stamps the current date, so its bytes differ from one day to the next even when the findings are identical. The verdict is reproducible; the rendered artifact is not byte-identical across days. The `--json` and terminal outputs carry no date.)
 - **Fast.** As a real anchor, grading `wshobson/agents` (82 plugins) took about 16 seconds and 0 model tokens.
 
 If all you want is the conformance grade and a rendered report, **your token budget is zero**. This is the regime you will use most, and it is free.
