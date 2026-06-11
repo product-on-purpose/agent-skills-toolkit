@@ -9,6 +9,12 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Added
+- **Historical evaluation-run record (`docs/internal/eval-runs/`).** The tracked log of every model-assisted evaluation run (the deterministic gate is free and reproducible, so it is never logged): one row per run with context, pinned target, report type, model, instruction-directed effort, measured tokens, wall-clock, output reference, and the toolkit findings the run surfaced. Seeded with the first measurement batch - five advisory runs (three review, two behavioral) across Opus/high, Sonnet/medium, and Haiku/low against a toolkit skill, a community corpus plugin, and two Anthropic skills - which also filed seven sensor readings on the evaluator itself (a silently-ignored `--profile` in component scope, the aspirational `evals/` convention, a `check.mjs`-vs-`evaluate.mjs` delegate inconsistency, new U5/U6 calibration data, a chain-vs-procedure gap in `askit-build-skill`, and underspecified behavioral summary semantics).
+
+### Changed
+- **Token-usage dossier advisory ranges are now MEASURED (`docs/reference/token-usage-estimates.md`).** The five measured advisory rows replace the provisional "not yet measured" advisory ranges (one run lands in roughly 33k-67k total tokens), with two measured lessons: total cost is dominated by target size rather than model tier, and the model/effort quality gradient matched the predicted ordering. The authoring (`askit-build-*`) ranges remain unmeasured.
+
 ## [1.5.1] - 2026-06-10
 
 The calibration patch from the second eval-target corpus run (the gate pointed at the official Anthropic plugin set and four community marketplaces under `--profile plain-plugin`): grading calibrations that remove systematic false positives on well-built third-party plugins, plus the verified competitive comparison and a token-usage dossier. Every grading change is to HOW a check fires under outward grading, not to WHAT the Standard requires - a plugin graded under the default `askit-library` profile is unaffected, the toolkit's own Gold grade stays Advanced 0/0, and the spine stays **29** and the Standard stays **0.11**.

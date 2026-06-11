@@ -89,13 +89,25 @@ These are **MEASURED** from this repository (not estimates):
 | Gate, 82-plugin marketplace | n/a | n/a | **0** | ~16s wall-clock, deterministic |
 | Render HTML or MD report | n/a | n/a | **0** | deterministic projection |
 | 4-lens adversarial review of a ~160-line diff | Opus 4.8 | high | **~232k total** | 4 agents, ~51k-65k each (a useful anchor for "a thorough pre-merge review") |
+| Review advisory, one skill (clean target) | Opus 4.8 | high | **~63k** | multi-pass verification; 118s wall-clock (run R1, batch 2026-06-10) |
+| Review advisory, one 15-skill plugin (failing gate) | Sonnet 4.6 | medium | **~67k** | the batch's largest target; 150s (run R2) |
+| Review advisory, one skill | Haiku 4.5 | low | **~39k** | single bounded pass; 49s (run R3) |
+| Behavioral advisory, one skill (12 derived cases) | Sonnet 4.6 | medium | **~36k** | 56s (run R4) |
+| Behavioral advisory, one skill (8 derived cases) | Haiku 4.5 | low | **~33k** | 24s (run R5) |
 
-The per-target **advisory** ranges (`--report=review` / `--report=behavioral`) and the **authoring** ranges (`askit-build-*`) are **not yet measured**. Filling them is an active task: see [How to keep this current](#how-to-keep-this-current).
+The advisory rows are the first measurement batch (five runs, 2026-06-10), recorded run by run in the historical evaluation-run record at `docs/internal/eval-runs/eval-runs.md` in the repository. Tokens are the harness-reported total for the dispatched advisory subagent (reading the target, running the free deterministic baseline, judging, emitting the advisory JSON); effort is instruction-directed depth.
+
+Two measured lessons worth more than the raw numbers:
+
+- **Total cost is dominated by target size, not model tier.** The Sonnet/medium review of a 15-skill plugin out-cost the Opus/high review of one skill, and the floor across the whole matrix was ~33k: reading the target dominates the bill. The model and effort dials move the **quality** of the advice far more than its total token cost - which makes "spend the model budget where judgment is open-ended" cheaper advice than it sounds.
+- **The quality gradient matched the predicted ordering.** Opus/high found a real cross-component defect in a clean, self-conformant target; Sonnet/medium delivered the most findings per token on a messy real plugin (including the only major findings of the batch); Haiku/low was accurate but minimal on review, and on behavioral produced an all-pass verdict from a soft case set - live evidence for the "never Haiku + low effort for a behavioral grade you will act on" rule below.
+
+The **authoring** ranges (`askit-build-*`) are **not yet measured**. Filling them is an active task: see [How to keep this current](#how-to-keep-this-current).
 
 ## How to estimate your run
 
 1. **The grade and any rendered report: budget 0 tokens.** This covers `check.mjs`, `tier-report.mjs`, and every `evaluate.mjs` format except the two advisory reports. At any scale.
-2. **Advisory reports: budget `N targets x (one advisory run)`** at your chosen model and effort. Until the measured ranges below are filled, treat one advisory run as roughly the scale of one focused review agent (the 4-lens anchor above is ~58k tokens per agent at Opus/high; a single Sonnet/medium advisory will be materially less).
+2. **Advisory reports: budget `N targets x (one advisory run)`** at your chosen model and effort. Measured (batch 2026-06-10): one advisory run lands in roughly **33k-67k total tokens**, with the position in that range set mostly by target size (a single skill sits near the floor, a multi-skill plugin near the ceiling) and only secondarily by model tier. Budget ~40k per single-skill target and ~70k per plugin-scale target as a planning ceiling, then re-check against your own first run.
 3. **Authoring: budget per component**, dominated by the component's size and how many revision rounds you allow.
 
 Worked example: grading a 200-plugin marketplace for conformance and rendering an HTML report for each costs **0 model tokens** (deterministic, a few minutes of compute). Adding an Opus/high-effort review advisory for the 10 plugins that failed is `10 x (one advisory run)` - a small, opt-in, bounded spend on top of a free grade.
@@ -120,6 +132,6 @@ These are the assumptions behind every number on this page. They are valid only 
 
 ## How to keep this current
 
-The honest way to fill the unmeasured ranges is to record real runs. The companion practice is a **historical evaluation-run record**: for each advisory or authoring run, log the context (what was evaluated), the skill or plugin name and version, the date, the model and effort, the measured token usage, and a pointer to the output. A handful of recorded runs across models and effort levels turns the provisional ranges above into measured ones.
+The honest way to fill the unmeasured ranges is to record real runs. The companion practice is a **historical evaluation-run record**, which now exists at `docs/internal/eval-runs/` in the repository: for each advisory or authoring run, it logs the context (what was evaluated), the skill or plugin name and pinned version, the date, the model and effort, the measured token usage, the wall-clock, and a pointer to the output. The advisory rows above came from its first batch (five runs, 2026-06-10); a handful more runs across models and effort levels turns each remaining provisional range into a measured one.
 
 When you add measured rows, mark them **MEASURED** and cite the run, and move the corresponding range out of "not yet measured". Keep the deterministic rows at **0** - that does not change.
