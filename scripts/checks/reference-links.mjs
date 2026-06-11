@@ -16,18 +16,24 @@ const LINK = /\[[^\]]*\]\(([^)]+)\)/g;
 // Cowork `computer:` local-artifact scheme and `file:`; both appear in real, well-built official plugins.
 const SKIP_SCHEME = /^(https?:|mailto:|tel:|ftp:|ws:|wss:|data:|javascript:|computer:|file:|#|\/\/)/i;
 
-// Strip fenced code blocks before scanning: a markdown link inside a ``` or ~~~ example is an
-// illustration, not a live reference (official plugins embed example SKILL.md links in fenced docs).
-// Mirrors the fence handling gen-docs-site.mjs / folder-readme.mjs already use in-repo.
-function stripFences(text) {
-  return (text || "").replace(/```[\s\S]*?```|~~~[\s\S]*?~~~/g, "");
+// Strip code before scanning for links: a markdown link (or a regex) written inside a fenced ``` / ~~~
+// block OR inside a single-backtick `inline code` span is an illustration of syntax, not a live
+// reference (skill docs routinely show `[text](path)` examples and capture regexes like `[^'"]+` as
+// inline code). Fences first (they span lines); then inline spans, restricted to a single line so an
+// unbalanced stray backtick cannot swallow a following line's real link. Mirrors the fence handling
+// gen-docs-site.mjs / folder-readme.mjs use in-repo, extended to inline code (Finding 5 / ADR 0032).
+// Stripping code can only REMOVE link matches, never add them, so it strictly reduces false positives.
+function stripCode(text) {
+  return (text || "")
+    .replace(/```[\s\S]*?```|~~~[\s\S]*?~~~/g, "")
+    .replace(/`[^`\r\n]*`/g, "");
 }
 
 /** Flag every relative markdown link in `text` that does not resolve from `baseDir`. */
 function scanLinks(text, baseDir, fileRel, out) {
   let m;
   LINK.lastIndex = 0;
-  const scanText = stripFences(text);
+  const scanText = stripCode(text);
   while ((m = LINK.exec(scanText))) {
     let target = m[1].trim();
     if (SKIP_SCHEME.test(target)) continue;

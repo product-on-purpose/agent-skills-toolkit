@@ -57,6 +57,23 @@ function collect(root, dir, out) {
   }
 }
 
+// Blank out HTML comments before extracting blocks: a ```mermaid block commented out in `<!-- ... -->`
+// is not rendered, so structurally validating it is a false positive (the C1 templates keep an
+// erDiagram EXAMPLE inside a comment). Replace every non-newline char of the comment with a space so
+// the fence no longer matches while line numbers (cited by findings) are preserved (Finding 5 / ADR 0032).
+function stripHtmlComments(text) {
+  return (text || "").replace(/<!--[\s\S]*?-->/g, (m) => m.replace(/[^\n]/g, " "));
+}
+
+// A mermaid block whose body is nothing but {{PLACEHOLDER}} token lines is a TEMPLATE SLOT: the skill
+// substitutes the real diagram at generation time, so there is no live diagram to structurally validate
+// (the C1 documentation templates are full of these). Require at least one non-blank line and that every
+// non-blank line be a lone `{{NAME}}` token (Finding 5 / ADR 0032).
+function isTemplatePlaceholder(bodyLines) {
+  const nonBlank = bodyLines.filter((l) => l.trim() !== "");
+  return nonBlank.length > 0 && nonBlank.every((l) => /^\s*\{\{[^{}]*\}\}\s*$/.test(l));
+}
+
 /** Extract fenced mermaid blocks: returns [{ startLine, body, unterminated? }]. Allows an indented
  *  fence and an info string after the word `mermaid` (e.g. inside MDX components); the closer is any
  *  indented or column-0 ``` line. */
@@ -151,7 +168,7 @@ export function check(ctx) {
     try { text = readFileSync(f, "utf8"); } catch { continue; }
     if (!text.includes("```mermaid")) continue; // fast skip: no diagram -> vacuous for this file
     const rel = relPath(root, f);
-    for (const b of extractMermaidBlocks(text)) {
+    for (const b of extractMermaidBlocks(stripHtmlComments(text))) {
       if (b.unterminated) {
         out.push(finding(meta.id, SEVERITY.ERROR, `unterminated mermaid fence starting at line ${b.startLine}.`, { file: rel, reqId: meta.reqId }));
         continue;
@@ -164,6 +181,7 @@ export function check(ctx) {
       // Find the diagram-type line, skipping any leading --- config block, %%{init}%% directive, and
       // %% comment lines (Mermaid strips these before detecting the type). Cite that line, not the fence.
       const bodyLines = body.split(/\r?\n/);
+      if (isTemplatePlaceholder(bodyLines)) continue; // a {{...}} template slot is not a live diagram
       const dl = diagramLine(bodyLines);
       const firstWord = dl.text.split(/\s+/)[0] ?? "";
       if (dl.index === -1 || !DIAGRAM_KEYWORDS.some((kw) => dl.text.startsWith(kw))) {
