@@ -64,6 +64,7 @@
 /reference/gate-config/index.html
 /reference/gold-checks/index.html
 /reference/silver-checks/index.html
+/reference/token-usage-estimates/index.html
 /the-standard/index.html
 /tiers/index.html
 /tutorials/build-your-first-skill/index.html
