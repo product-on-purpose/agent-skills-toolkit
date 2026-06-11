@@ -2,6 +2,28 @@
 
 > One row per model-assisted evaluation run. Conventions (what tokens/effort mean, where raw artifacts live) are in [README.md](README.md). Newest batch first. How quality is judged and how readings become calibrations: [METHODOLOGY.md](METHODOLOGY.md).
 
+## Batch 2026-06-11 (runs 10-11): the same-target model triple completed
+
+**Context:** maintainer request to "truly understand the variance in analysis and output" - Sonnet/high (R10) and Haiku/high (R11) dispatched with a prompt IDENTICAL to R9's Opus/high (same target, same effort wording, same output contract), completing the record's first full same-model-tier triple on `phuryn/pm-skills` `pm-toolkit` @ `d384f0c` (plugin scope, 4 skills + 5 commands, deterministic baseline 0E/0W under plain-plugin). Toolkit at v1.5.1 (`main` `f53e137` at dispatch).
+
+| Id | Model | Effort | Tokens (subagent) | Wall-clock | Tool uses | Advisory result | Output |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| R9 (prior batch) | Opus 4.8 | high | 100,320 | 123 s | 22 | 9 findings (2 major) - VIPA non-statute, inverted AmE data rule, BrE-as-error, command-vs-skill 10-list contradiction | `_local/audit/eval-runs/2026-06-10/r9-*` |
+| R10 | Sonnet 4.6 | high | 71,796 | 321 s | 46 | 13 findings (5 major) - everything material R9 found PLUS two verified new majors: the XYZ+S "S" defined differently in skill ("specific context") vs command ("skill/tool"), and tailor-resume commanding a full rewrite from a review-scoped skill; also capability overclaims (DOCX export, email drafts) and a URL slug typo | `_local/audit/eval-runs/2026-06-11/r10-*` |
+| R11 | Haiku 4.5 | high | 63,646 | 108 s | 44 | 1 finding (minor) - smelled the VIPA issue but CONFABULATED the correction (cites "VPBA", also not a real statute; the real one is VCDPA), graded it minor/house-preference, and asserted the OPPOSITE of two verified defects ("The review-resume skill delivers exactly the claimed 10 best practices... All cross-references are accurate") | `_local/audit/eval-runs/2026-06-11/r11-*` |
+
+**The variance picture (verified against ground truth where findings drove conclusions; the XYZ+S split and the 10-list divergence were re-verified by hand against the files).**
+
+- **The categorical boundary is Haiku-vs-frontier, not Opus-vs-Sonnet.** At identical effort and prompt, Sonnet matched Opus on every externally-verifiable content error and found two more verified majors at ~70% of Opus's token cost; Haiku found one of four majors, mis-graded it, hallucinated the correction, and confidently asserted internal consistency that is false. On this target, Sonnet/high is the value pick for knowledge-content review and Haiku is unusable for veracity claims at ANY effort - high effort made Haiku read more files (44 tool uses) but not verify better.
+- **Effort and cost do not move together across tiers:** Opus/high cost 1.4x Sonnet/high in tokens but ran in 40% of the wall-clock; Haiku/high read nearly as many files as Sonnet for one-thirteenth of the findings. Tool-use count is not a quality proxy.
+- **Cross-model unions beat any single run:** the verified-finding union of R9+R10 is larger than either alone (R9 uniquely framed the marketplace "42 chained workflows" overclaim; R10 uniquely found the XYZ+S split, scope creep, and overclaims). For decision-critical reviews, two frontier models on the same target is a measurably better harness than one - this is the panel pattern METHODOLOGY's rigor item 3 anticipated.
+- **Single-target caveat:** one plugin, one domain (PM utilities with legal/grammar content). The Opus-vs-Sonnet parity claim needs replication on a structurally-defective target (where R7-style triage depth matters) before it becomes guidance.
+
+### Sensor readings 16-17
+
+16. **Reading 14 refined by the completed triple:** "a cheaper tier's verified is not verification" now has its strong form - Haiku at HIGH effort still confabulates corrections and asserts false consistency, so the failure is not effort-starvation but capability. And the surprising half: Sonnet/high equaled-or-exceeded Opus/high here at lower cost, so the dossier's "Opus for decision-critical" guidance is refined to "at least one frontier model, ideally two as a panel; never Haiku for veracity." **Disposition: dossier guidance updated; replicate on a second target class before hardening further.**
+17. **U5 recalibration SHIPPED off readings 5/10 (ADR 0033, PR #133):** the observe -> verify -> calibrate loop closed its first full cycle - corpus evidence (the 0.65 cluster) -> RED tests from real recorded strings -> minimal scorer fix -> measured 98 -> 18 U5 warns across five corpora with survivors sampled as the intended catch. **Disposition: done; the residual 18 stay as honest signal.**
+
 ## Batch 2026-06-10b (runs 6-9): PM-skills corpora, three new model x effort cells, first same-target A/B
 
 **Context:** maintainer-requested analysis evals of three public PM skill libraries, chosen to extend the measurement matrix into unmeasured cells (Opus/medium, Sonnet/high, Haiku/medium) and onto larger targets. All three graded under `--profile plain-plugin`; the free deterministic conformance reports were rendered first. R9 was added on maintainer request as the record's **first same-target cross-model A/B** (the METHODOLOGY rigor item 2): Opus/high on the identical pm-toolkit target R8 had reviewed at Haiku/medium. Toolkit at v1.5.1 (`main` `82b38f5`).
