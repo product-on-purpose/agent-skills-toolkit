@@ -57,12 +57,42 @@ function collect(root, dir, out) {
   }
 }
 
-// Blank out HTML comments before extracting blocks: a ```mermaid block commented out in `<!-- ... -->`
-// is not rendered, so structurally validating it is a false positive (the C1 templates keep an
-// erDiagram EXAMPLE inside a comment). Replace every non-newline char of the comment with a space so
-// the fence no longer matches while line numbers (cited by findings) are preserved (Finding 5 / ADR 0032).
+const blankRun = (s) => s.replace(/[^\n]/g, " "); // keep newlines, blank everything else
+const FENCE_LINE = /^\s*(```|~~~)/;
+
+// Neutralize HTML comments before extracting blocks, but ONLY a comment that BEGINS OUTSIDE a code
+// fence. A ```mermaid block commented out in `<!-- ... -->` is not rendered, so validating it is a false
+// positive (the C1 templates keep an erDiagram EXAMPLE inside a comment) - that comment is blanked so the
+// fence no longer matches. But a `<!-- ... -->`-looking span INSIDE a live fence is diagram source the
+// renderer receives verbatim, NOT a Markdown comment, so it must be left intact and validated (the
+// adversarial-review catch: never validate a sanitized body the renderer will not see). Line-based state
+// machine tracking fence vs comment; blanking preserves newlines so finding line numbers are unchanged.
 function stripHtmlComments(text) {
-  return (text || "").replace(/<!--[\s\S]*?-->/g, (m) => m.replace(/[^\n]/g, " "));
+  const lines = (text || "").split("\n");
+  let inFence = false;
+  let inComment = false;
+  for (let i = 0; i < lines.length; i++) {
+    if (inComment) {
+      const end = lines[i].indexOf("-->");
+      if (end === -1) { lines[i] = blankRun(lines[i]); continue; }
+      lines[i] = blankRun(lines[i].slice(0, end + 3)) + lines[i].slice(end + 3);
+      inComment = false;
+      continue;
+    }
+    if (inFence) {
+      if (FENCE_LINE.test(lines[i])) inFence = false; // close the fence; leave its content untouched
+      continue;
+    }
+    // Outside a fence and a comment: blank complete inline comments, then detect an opening fence or an
+    // unclosed comment. A comment that opens here owns the rest of the document until --> (so a ``` it
+    // wraps is comment content, never a fence).
+    let line = lines[i].replace(/<!--[\s\S]*?-->/g, blankRun);
+    const open = line.indexOf("<!--");
+    if (open !== -1) { lines[i] = line.slice(0, open) + blankRun(line.slice(open)); inComment = true; continue; }
+    if (FENCE_LINE.test(line)) inFence = true;
+    lines[i] = line;
+  }
+  return lines.join("\n");
 }
 
 // A mermaid block whose body is nothing but {{PLACEHOLDER}} token lines is a TEMPLATE SLOT: the skill

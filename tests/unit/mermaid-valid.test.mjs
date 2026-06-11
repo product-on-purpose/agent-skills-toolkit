@@ -241,3 +241,14 @@ test("a live diagram is still validated when a commented bad diagram precedes it
     assert.ok(/recognized diagram keyword/.test(r[0].message));
   });
 });
+
+// Adversarial-review catch (ADR 0032): the HTML-comment skip must NOT reach inside a LIVE fence. A
+// `<!-- ... -->`-looking span inside a live ```mermaid block is diagram source the renderer receives
+// verbatim, not a Markdown comment - so malformed content hidden in it must still fail U12. (U12 must
+// validate exactly what renders, never a sanitized body.)
+test("an HTML-comment span INSIDE a live mermaid block is not stripped; its content is still validated (U12)", () => {
+  inTmp("mermaid-live-htmlcomment-", (dir) => {
+    writeFileSync(path.join(dir, "a.md"), md("flowchart LR\n  A --> B <!--\t-->"));
+    assert.ok(check({ root: dir }).some((x) => /tab character/.test(x.message)), "a tab hidden in a comment-span inside a LIVE fence is still caught");
+  });
+});
