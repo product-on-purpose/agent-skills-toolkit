@@ -201,3 +201,66 @@ test("skips node_modules and _local scratch", () => {
     assert.equal(check({ root: dir }).length, 0);
   });
 });
+
+// Finding 5 (batch-2 C1 triage): U12 validates only LIVE, rendered mermaid. A block whose body is a
+// {{TEMPLATE_PLACEHOLDER}} slot (the generator substitutes the real diagram later) and a block commented
+// out in HTML are not live diagrams, so structurally validating them is a false positive.
+test("a mermaid block that is a pure {{PLACEHOLDER}} template slot is skipped (U12)", () => {
+  inTmp("mermaid-tmpl-", (dir) => {
+    writeFileSync(path.join(dir, "a.md"), md("{{BUSINESS_CONTEXT_DIAGRAM}}"));
+    assert.equal(check({ root: dir }).length, 0, "a pure placeholder block is a template slot, not a malformed diagram");
+  });
+});
+
+test("an indented pure {{PLACEHOLDER}} block is skipped (U12)", () => {
+  inTmp("mermaid-tmpl2-", (dir) => {
+    writeFileSync(path.join(dir, "a.md"), md("    {{ER_DIAGRAM}}"));
+    assert.equal(check({ root: dir }).length, 0);
+  });
+});
+
+test("a block mixing a placeholder with a non-keyword first line is still validated (U12)", () => {
+  inTmp("mermaid-tmpl-mixed-", (dir) => {
+    writeFileSync(path.join(dir, "a.md"), md("notadiagram\n{{X}}"));
+    assert.ok(check({ root: dir }).some((x) => /recognized diagram keyword/.test(x.message)), "only a PURE placeholder body is skipped");
+  });
+});
+
+test("a mermaid block inside an HTML comment is not validated (U12)", () => {
+  inTmp("mermaid-comment-", (dir) => {
+    writeFileSync(path.join(dir, "a.md"), "Before.\n\n<!-- Example:\n```mermaid\nerDiagram\n    USERS ||--o{ ORDERS : places\n```\n-->\n\nAfter.\n");
+    assert.equal(check({ root: dir }).length, 0, "a commented-out diagram does not render, so U12 must not validate it");
+  });
+});
+
+test("a live diagram is still validated when a commented bad diagram precedes it (U12)", () => {
+  inTmp("mermaid-comment-live-", (dir) => {
+    writeFileSync(path.join(dir, "a.md"), "<!--\n```mermaid\nnotadiagram\n```\n-->\n\n```mermaid\nnotadiagram\n  A --> B\n```\n");
+    const r = check({ root: dir });
+    assert.equal(r.length, 1, "the live block is still validated; the commented one is not");
+    assert.ok(/recognized diagram keyword/.test(r[0].message));
+  });
+});
+
+// Adversarial-review catch (ADR 0032): the HTML-comment skip must NOT reach inside a LIVE fence. A
+// `<!-- ... -->`-looking span inside a live ```mermaid block is diagram source the renderer receives
+// verbatim, not a Markdown comment - so malformed content hidden in it must still fail U12. (U12 must
+// validate exactly what renders, never a sanitized body.)
+test("an HTML-comment span INSIDE a live mermaid block is not stripped; its content is still validated (U12)", () => {
+  inTmp("mermaid-live-htmlcomment-", (dir) => {
+    writeFileSync(path.join(dir, "a.md"), md("flowchart LR\n  A --> B <!--\t-->"));
+    assert.ok(check({ root: dir }).some((x) => /tab character/.test(x.message)), "a tab hidden in a comment-span inside a LIVE fence is still caught");
+  });
+});
+
+// Adversarial-review catch (ADR 0032): the comment-skip's fence tracker must use Markdown closer rules -
+// a line that merely STARTS with ``` but has trailing text is NOT a valid closer, so the fence is still
+// live and a comment-span on/after it must not be stripped. (Matches extractMermaidBlocks' closer rule.)
+test("a fence-like line that is not a valid closer does not desync the comment skip in a live block (U12)", () => {
+  inTmp("mermaid-fence-desync-", (dir) => {
+    // ```x has trailing text so it is NOT a valid closer; the fence stays live, and the tab in the
+    // <!-- --> on the FOLLOWING line must still be caught (a loose tracker would have closed early here).
+    writeFileSync(path.join(dir, "a.md"), "```mermaid\nflowchart LR\n```x not a closer\n  A --> B <!--\t-->\n```\n");
+    assert.ok(check({ root: dir }).some((x) => /tab character/.test(x.message)), "content after a non-closing fence-like line is still validated");
+  });
+});
