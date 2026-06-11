@@ -94,20 +94,24 @@ These are **MEASURED** from this repository (not estimates):
 | Review advisory, one skill | Haiku 4.5 | low | **~39k** | single bounded pass; 49s (run R3) |
 | Behavioral advisory, one skill (12 derived cases) | Sonnet 4.6 | medium | **~36k** | 56s (run R4) |
 | Behavioral advisory, one skill (8 derived cases) | Haiku 4.5 | low | **~33k** | 24s (run R5) |
+| Review advisory, 86-skill collection (sampled 13) | Opus 4.8 | medium | **~77k** | 121s (run R6); instructed sampling is the cost lever at collection scale |
+| Review advisory, 49-skill plugin (failing gate, full triage) | Sonnet 4.6 | high | **~103k** | 303s, 70 tool uses (run R7); the measured ceiling so far |
+| Review advisory, one 4-skill plugin | Haiku 4.5 | medium | **~55k** | 49s (run R8); ~40% over Haiku/low with materially deeper advice |
 
-The advisory rows are the first measurement batch (five runs, 2026-06-10), recorded run by run in the historical evaluation-run record at `docs/internal/eval-runs/eval-runs.md` in the repository. Tokens are the harness-reported total for the dispatched advisory subagent (reading the target, running the free deterministic baseline, judging, emitting the advisory JSON); effort is instruction-directed depth.
+The advisory rows come from the first two measurement batches (eight runs, 2026-06-10), recorded run by run in the historical evaluation-run record at `docs/internal/eval-runs/eval-runs.md` in the repository. Tokens are the harness-reported total for the dispatched advisory subagent (reading the target, running the free deterministic baseline, judging, emitting the advisory JSON); effort is instruction-directed depth.
 
-Two measured lessons worth more than the raw numbers:
+Three measured lessons worth more than the raw numbers:
 
 - **Total cost is dominated by target size, not model tier.** The Sonnet/medium review of a 15-skill plugin out-cost the Opus/high review of one skill, and the floor across the whole matrix was ~33k: reading the target dominates the bill. The model and effort dials move the **quality** of the advice far more than its total token cost - which makes "spend the model budget where judgment is open-ended" cheaper advice than it sounds.
 - **The quality gradient matched the predicted ordering.** Opus/high found a real cross-component defect in a clean, self-conformant target; Sonnet/medium delivered the most findings per token on a messy real plugin (including the only major findings of the batch); Haiku/low was accurate but minimal on review, and on behavioral produced an all-pass verdict from a soft case set - live evidence for the "never Haiku + low effort for a behavioral grade you will act on" rule below.
+- **Effort moves tool use and wall-clock more than raw tokens, and the Haiku low-to-medium step is high-leverage.** Sonnet/high on a defect-rich plugin used 70 tool calls over 5 minutes for ~103k tokens (the ceiling so far); Haiku at medium effort cost ~40% more than Haiku at low and produced materially deeper advice (veracity spot-checks it did not attempt at low). For scale runs on Haiku, instruct medium effort by default. One honesty note from the same batch: a strong model at high effort can still be confidently wrong - one high-effort advisory mis-triaged real link defects as checker false positives - so advisory recommendations about the gate itself are verified against ground truth before being acted on (the verification rule lives in the eval-run methodology, `docs/internal/eval-runs/METHODOLOGY.md`).
 
 The **authoring** ranges (`askit-build-*`) are **not yet measured**. Filling them is an active task: see [How to keep this current](#how-to-keep-this-current).
 
 ## How to estimate your run
 
 1. **The grade and any rendered report: budget 0 tokens.** This covers `check.mjs`, `tier-report.mjs`, and every `evaluate.mjs` format except the two advisory reports. At any scale.
-2. **Advisory reports: budget `N targets x (one advisory run)`** at your chosen model and effort. Measured (batch 2026-06-10): one advisory run lands in roughly **33k-67k total tokens**, with the position in that range set mostly by target size (a single skill sits near the floor, a multi-skill plugin near the ceiling) and only secondarily by model tier. Budget ~40k per single-skill target and ~70k per plugin-scale target as a planning ceiling, then re-check against your own first run.
+2. **Advisory reports: budget `N targets x (one advisory run)`** at your chosen model and effort. Measured (batches 2026-06-10): one advisory run lands in roughly **33k-103k total tokens**, with the position in that range set mostly by target size and instructed depth (a single skill sits near the floor; a defect-rich multi-skill plugin at high effort sets the ceiling) and only secondarily by model tier. Budget ~40k per single-skill target, ~70k per plugin-scale target at medium effort, and ~110k for a high-effort full triage of a large plugin, then re-check against your own first run. At collection scale (50+ skills), instruct sampling - it held an 86-skill review to ~77k.
 3. **Authoring: budget per component**, dominated by the component's size and how many revision rounds you allow.
 
 Worked example: grading a 200-plugin marketplace for conformance and rendering an HTML report for each costs **0 model tokens** (deterministic, a few minutes of compute). Adding an Opus/high-effort review advisory for the 10 plugins that failed is `10 x (one advisory run)` - a small, opt-in, bounded spend on top of a free grade.

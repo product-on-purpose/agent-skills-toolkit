@@ -98,3 +98,12 @@ The actionable output of the verified competitive comparison (`docs/internal/res
 - **Change:** validation for skills delivered over MCP (served, not on-disk) - schema, provenance, and budget checks when the "library" is a set of MCP-exposed capabilities.
 - **Why / source:** `gap-analysis.md` Build 3 (flagged speculative). No profiled tool validates MCP-served skills; askit's whole-library framing (matrix dim 1) is the closest start. Watch-and-prototype; revisit when the corpus surfaces a real MCP-served library.
 - **Status:** watch (do not start until there is a concrete target).
+
+## Eval-run practice intake (2026-06-10)
+
+### E11 - dependable eval-run pipeline (inputs, dispatch, capture, record)  [build, effort M]
+
+- **Target:** the eval-run practice (`docs/internal/eval-runs/`), `askit-evaluate` review/behavioral modes, and a small new runner script for the deterministic half.
+- **Change:** make the run lifecycle dependable end to end instead of hand-orchestrated: (a) a **tracked target manifest** (repo URL + pinned sha + shape + chosen profile per target - the missing piece the corpus runs also named); (b) a **deterministic runner** (portable Node) that clones/verifies the pin, runs the gate, renders the free conformance report, and emits the record-row skeleton with the artifact paths laid out under `_local/audit/eval-runs/<date>/` - zero model tokens, fully scriptable; (c) a **dispatch contract** for the advisory half: the askit-reviewer / askit-quality-grader role-prompt templates (including the effort-level wording, the sampling protocol for collection-scale targets, and the plain-ASCII output rule), the advisory JSON schema, and the token/wall-clock capture convention (`subagent_tokens` per dispatch) - documented so any session reproduces the same shape without re-deriving it; (d) **record + aggregate automation**: append the completed row to `eval-runs.md` and recompute the dossier's measured ranges from the record rather than by hand.
+- **Why:** batches 2026-06-10 and 2026-06-10b proved the loop's value (8 runs -> 13 sensor readings -> a measured dossier) but every step was manual; the marginal cost of a batch should be picking targets and reading results, not re-assembling the harness. Pairs with the `METHODOLOGY.md` rigor items (seeded-defect advisory fixtures, same-target A/B) which need exactly this reproducibility to be meaningful, and with E8 (published conformance suite), whose fixture corpus overlaps the target manifest.
+- **Status:** backlog (recorded 2026-06-10, from the batch-2 process notes).

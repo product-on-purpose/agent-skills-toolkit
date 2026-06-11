@@ -26,3 +26,4 @@ Measurement conventions:
 
 - `README.md` - this guide.
 - `eval-runs.md` - the run log and per-batch toolkit findings.
+- `METHODOLOGY.md` - how runs are judged for quality and how sensor readings become verified, shipped engine calibrations (the observe -> verify -> calibrate path).
