@@ -2,6 +2,20 @@
 
 Curated, user-facing highlights. For the full technical history see [`CHANGELOG.md`](CHANGELOG.md).
 
+## 1.5.1 - 2026-06-10
+
+A calibration patch from a second round of grading real third-party plugins. The gate was pointed at the official Anthropic plugin set and four community marketplaces, and a handful of cases where it flagged well-built plugins on authoring convention rather than real defects were fixed. Nothing changes for a plugin graded the default way: the spine stays **29 checks** and the Standard stays **v0.11**, and the toolkit still self-grades Gold.
+
+### What changed
+
+- **Grading a third-party plugin is quieter and more honest.** Four calibrations remove systematic false positives when you grade a plugin you do not own: a name used as a display label or a namespaced command is no longer double-flagged, a managed connector is a warning rather than a blocking error, and a link or a Mermaid diagram shown as an example (inside code, a template slot, or an HTML comment) is no longer treated as a live, broken reference. Real defects - a genuinely dangling link, a malformed live diagram, a name that should match its directory under the strict ladder - still fail.
+- **A new token-usage dossier.** A reference page (`docs/reference/token-usage-estimates.md`) explains what an evaluation costs in tokens. The short version: the grade and the rendered report are **free** (the gate runs no model), and only the optional AI review and authoring use a model, where your choice of model and effort trades off against advice quality without ever changing the grade.
+- **A verified competitive comparison.** A public page and a primary-source-verified research corpus position the toolkit against other skill and plugin builders and validators.
+
+### Upgrade
+
+Already installed? Update from the marketplace as usual. Nothing breaks: a plugin graded the default way scores exactly as before, and the new grading behavior applies under the opt-in `--profile plain-plugin`.
+
 ## 1.5.0 - 2026-06-09
 
 The outward-grading release. The toolkit's gate was built to grade other people's plugins, but pointed at a real third-party plugin it buried the genuine defects under its own house scaffolding. This release fixes that, so you can grade a plugin you do not own and get a short, credible list of real issues. No requirement changes: the spine stays **29 checks** and the Standard stays **v0.11**, and a plugin graded the default way scores exactly as before.
