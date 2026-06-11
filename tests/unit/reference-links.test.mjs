@@ -72,3 +72,16 @@ test("an unbalanced stray backtick does not swallow a following line's real brok
   const ctx = skillCtx("Inline `code` and a stray ` tick here\nthen [real](references/missing.md) on the next line");
   assert.ok(check(ctx).some((f) => f.reqId === "U6" && /missing\.md/.test(f.message)), "the real link on the next line is still caught");
 });
+
+// Adversarial-review catch (ADR 0032): inline code can be delimited by a run of N backticks (used when
+// the content itself contains a backtick), closed by the same-length run. A link-shaped example inside a
+// double/triple-backtick span must be treated as code too, not scanned as a live reference.
+test("a link inside a double-backtick inline code span is ignored (U6)", () => {
+  const ctx = skillCtx("Use ``[text](path)`` to show a link literally.");
+  assert.equal(check(ctx).filter((f) => f.severity === "error").length, 0);
+});
+
+test("a link inside a triple-backtick inline span is ignored (U6)", () => {
+  const ctx = skillCtx("Like ```[a](b.md)``` shown inline.");
+  assert.equal(check(ctx).filter((f) => f.severity === "error").length, 0);
+});

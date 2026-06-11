@@ -58,18 +58,20 @@ function collect(root, dir, out) {
 }
 
 const blankRun = (s) => s.replace(/[^\n]/g, " "); // keep newlines, blank everything else
-const FENCE_LINE = /^\s*(```|~~~)/;
+const FENCE_OPEN = /^\s*(`{3,}|~{3,})/; // an opener is >= 3 of the same marker (info string may follow)
 
 // Neutralize HTML comments before extracting blocks, but ONLY a comment that BEGINS OUTSIDE a code
 // fence. A ```mermaid block commented out in `<!-- ... -->` is not rendered, so validating it is a false
 // positive (the C1 templates keep an erDiagram EXAMPLE inside a comment) - that comment is blanked so the
 // fence no longer matches. But a `<!-- ... -->`-looking span INSIDE a live fence is diagram source the
 // renderer receives verbatim, NOT a Markdown comment, so it must be left intact and validated (the
-// adversarial-review catch: never validate a sanitized body the renderer will not see). Line-based state
-// machine tracking fence vs comment; blanking preserves newlines so finding line numbers are unchanged.
+// adversarial-review catch: never validate a sanitized body the renderer will not see). Fence tracking
+// follows CommonMark closer rules - the SAME marker, length >= the opener, and only whitespace after -
+// so a body line that merely starts with ``` (with trailing text) does not falsely close a live block.
+// Blanking preserves newlines so finding line numbers are unchanged.
 function stripHtmlComments(text) {
   const lines = (text || "").split("\n");
-  let inFence = false;
+  let fence = null; // { marker: "`"|"~", len } while inside a fenced block
   let inComment = false;
   for (let i = 0; i < lines.length; i++) {
     if (inComment) {
@@ -79,17 +81,19 @@ function stripHtmlComments(text) {
       inComment = false;
       continue;
     }
-    if (inFence) {
-      if (FENCE_LINE.test(lines[i])) inFence = false; // close the fence; leave its content untouched
-      continue;
+    if (fence) {
+      const close = lines[i].match(/^\s*(`{3,}|~{3,})\s*$/); // closer: marker run, only whitespace after
+      if (close && close[1][0] === fence.marker && close[1].length >= fence.len) fence = null;
+      continue; // leave fence content (incl. any <!--) untouched
     }
-    // Outside a fence and a comment: blank complete inline comments, then detect an opening fence or an
-    // unclosed comment. A comment that opens here owns the rest of the document until --> (so a ``` it
-    // wraps is comment content, never a fence).
+    // Outside a fence and a comment: an opening fence wins over inline-comment handling on this line (its
+    // ``` info string is fence syntax, not prose); else blank complete inline comments and, if a comment
+    // opens unclosed here, it owns the rest of the document until --> (a ``` it wraps is comment content).
+    const open = lines[i].match(FENCE_OPEN);
+    if (open) { fence = { marker: open[1][0], len: open[1].length }; continue; }
     let line = lines[i].replace(/<!--[\s\S]*?-->/g, blankRun);
-    const open = line.indexOf("<!--");
-    if (open !== -1) { lines[i] = line.slice(0, open) + blankRun(line.slice(open)); inComment = true; continue; }
-    if (FENCE_LINE.test(line)) inFence = true;
+    const c = line.indexOf("<!--");
+    if (c !== -1) { lines[i] = line.slice(0, c) + blankRun(line.slice(c)); inComment = true; continue; }
     lines[i] = line;
   }
   return lines.join("\n");

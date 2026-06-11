@@ -252,3 +252,15 @@ test("an HTML-comment span INSIDE a live mermaid block is not stripped; its cont
     assert.ok(check({ root: dir }).some((x) => /tab character/.test(x.message)), "a tab hidden in a comment-span inside a LIVE fence is still caught");
   });
 });
+
+// Adversarial-review catch (ADR 0032): the comment-skip's fence tracker must use Markdown closer rules -
+// a line that merely STARTS with ``` but has trailing text is NOT a valid closer, so the fence is still
+// live and a comment-span on/after it must not be stripped. (Matches extractMermaidBlocks' closer rule.)
+test("a fence-like line that is not a valid closer does not desync the comment skip in a live block (U12)", () => {
+  inTmp("mermaid-fence-desync-", (dir) => {
+    // ```x has trailing text so it is NOT a valid closer; the fence stays live, and the tab in the
+    // <!-- --> on the FOLLOWING line must still be caught (a loose tracker would have closed early here).
+    writeFileSync(path.join(dir, "a.md"), "```mermaid\nflowchart LR\n```x not a closer\n  A --> B <!--\t-->\n```\n");
+    assert.ok(check({ root: dir }).some((x) => /tab character/.test(x.message)), "content after a non-closing fence-like line is still validated");
+  });
+});

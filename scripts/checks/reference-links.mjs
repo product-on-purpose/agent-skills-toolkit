@@ -26,7 +26,10 @@ const SKIP_SCHEME = /^(https?:|mailto:|tel:|ftp:|ws:|wss:|data:|javascript:|comp
 function stripCode(text) {
   return (text || "")
     .replace(/```[\s\S]*?```|~~~[\s\S]*?~~~/g, "")
-    .replace(/`[^`\r\n]*`/g, "");
+    // inline code: a run of N backticks closed by the next run of the same length N (CommonMark), so a
+    // link in a double/triple-backtick example (`` `[x](y)` ``) is stripped too; `.` excludes line
+    // terminators, keeping the single-line restriction so a stray backtick cannot cross a newline.
+    .replace(/(`+)(.+?)\1/g, "");
 }
 
 /** Flag every relative markdown link in `text` that does not resolve from `baseDir`. */
