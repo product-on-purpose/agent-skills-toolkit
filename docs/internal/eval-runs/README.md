@@ -14,7 +14,9 @@ Two purposes, in priority order:
 
 ## The row schema
 
-Per run: id, date, context (why evaluated), target (name, version or commit), report type (review | behavioral), model, effort, token usage, wall-clock, output reference, verdict or findings summary, notes (any evaluator gap surfaced).
+Per run: id, date, context (why evaluated), target (name, version or commit), **evaluation scope** (component = a single skill directory graded by rule with no tier, vs plugin = a whole plugin/library graded against the tier ladder - `evaluate.mjs` auto-detects this from the target: `SKILL.md` with no `library.json`/`AGENTS.md`/`skills/` means component), report type (review | behavioral), model, effort, token usage, wall-clock, output reference, verdict or findings summary, notes (any evaluator gap surfaced).
+
+Scope matters to cost: target size dominates token usage, and scope is the coarse proxy for it - component-scope runs have measured near the ~33k floor, plugin-scope runs scale with skill count and instructed depth (up to ~103k measured). Record the scope so the dossier's ranges can be split per scope once enough rows exist.
 
 Measurement conventions:
 
