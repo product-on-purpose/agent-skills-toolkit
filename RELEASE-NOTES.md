@@ -2,6 +2,21 @@
 
 Curated, user-facing highlights. For the full technical history see [`CHANGELOG.md`](CHANGELOG.md).
 
+## 1.5.2 - 2026-06-12
+
+The eval-run patch. Every change in this release came out of pointing the toolkit's own evaluation layer at real third-party skills and plugins, recording what each run taught us, and fixing what was verified against ground truth. Nothing changes for a plugin graded the default way: the spine stays **29 checks**, the Standard stays **v0.11**, and the toolkit still self-grades Gold.
+
+### What changed
+
+- **The description scorer (U5) grades descriptions, not vocabulary.** Measured on five real corpora, strong skill descriptions were piling up cosmetic warnings because the scorer only recognized its own 12-verb word list. Recalibrated against the recorded corpus: warnings drop 98 to 18, and the survivors are the intended catch (descriptions with no real trigger clause). Unfinished placeholder descriptions ("TODO: ...") now score low instead of high.
+- **Grading a single skill under `--profile plain-plugin` actually works now.** The flag was accepted and then silently ignored in component scope, so a third-party skill was still held to the askit house conventions. It is now resolved exactly like plugin scope, the report records the active profile, and a file-scoped waiver in a skill-level `askit.config.json` is honored end to end (including the exit code).
+- **What an evaluation costs is now measured, not estimated.** The token-usage dossier carries eleven measured advisory runs (roughly 33k-103k tokens each, driven by target size more than model tier) and the honest model-tier lesson from running three models on the same target: a budget model's "verified" is not verification.
+- **Report tables scroll instead of crushing on narrow screens**, and the AI-review delegates' documentation now matches how they really run (including the documented fallback for targets that ship no eval-set - which today is all of them).
+
+### Upgrade
+
+Already installed? Update from the marketplace as usual. Expect fewer U5 warnings on well-written descriptions, and `--profile` to behave on single-skill targets; pass/fail verdicts do not move.
+
 ## 1.5.1 - 2026-06-10
 
 A calibration patch from a second round of grading real third-party plugins. The gate was pointed at the official Anthropic plugin set and four community marketplaces, and a handful of cases where it flagged well-built plugins on authoring convention rather than real defects were fixed. Nothing changes for a plugin graded the default way: the spine stays **29 checks** and the Standard stays **v0.11**, and the toolkit still self-grades Gold.
