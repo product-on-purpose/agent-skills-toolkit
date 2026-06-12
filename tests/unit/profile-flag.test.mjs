@@ -111,10 +111,11 @@ test("CLI evaluate.mjs component scope: a suppressed error does not fail the gat
 // --- the CLI surface on both entry points ---
 
 test("CLI evaluate.mjs --profile plain-plugin threads through to the JSON report", () => {
-  const { stdout } = runCli("scripts/evaluate.mjs", [SF, "--format=json", "--profile", "plain-plugin"]);
+  const { code, stdout } = runCli("scripts/evaluate.mjs", [SF, "--format=json", "--profile", "plain-plugin"]);
   const r = JSON.parse(stdout);
   assert.equal(r.profile, "plain-plugin");
   assert.equal(r.findings.find((f) => f.reqId === "G2")?.effectiveSeverity, "off");
+  assert.equal(code, 0, "the report and the process exit must agree after profile resolution");
 });
 
 test("CLI evaluate.mjs rejects an unknown --profile with exit 2", () => {
