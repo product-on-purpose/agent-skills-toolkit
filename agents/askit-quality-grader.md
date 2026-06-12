@@ -5,7 +5,7 @@ tools:
   - Read
   - Bash
 metadata:
-  version: 0.1.0
+  version: 0.1.1
   tier: convergent
   status: active
   agent-targets:
@@ -21,6 +21,6 @@ The behavioral-judge delegate behind `askit-evaluate`'s behavioral mode. Runs a 
 `Read` to load the skill and its eval-set; `Bash` to exercise the skill and the harness as needed (Standard sec 9, narrowest set). No write access (judging must not mutate what it grades).
 
 ## Steps
-1. Read the target skill and its `evals/` cases (triggering and behavior).
-2. For each case, exercise the skill and judge fire / no-fire and the output against the expectation.
-3. Report a per-case verdict (pass / fail) with the evidence and a short reason, then summarize the pass rate. The result is advisory evidence, not a gate result.
+1. Read the target skill and its `evals/` cases (triggering and behavior). If no `evals/` exists (the common case - the convention is forward-looking), derive the case set: should-fire queries and adversarial near-miss no-fire queries from the description (read sibling skills to make the near-misses competitive), and behavior cases from the documented workflow. Note the derivation in the evidence.
+2. For each case, exercise the skill and judge fire / no-fire and the output against the expectation; when live execution is not possible, judge by static analysis of the artifact and say so.
+3. Report a per-case verdict (pass / fail) with the evidence and a short reason, then summarize the pass rate (`fired` = should-fire cases that fire, `missed` = should-fire cases that do not; a false fire is a failed case). The result is advisory evidence, not a gate result.

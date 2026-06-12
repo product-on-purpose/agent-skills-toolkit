@@ -62,3 +62,5 @@ node scripts/evaluate.mjs <path> --report=review --advisory review.json --format
 ```
 
 where `review.json` is `{ "review": { "model", "effort", "date", "findings": [ { "area", "severity", "message", "file", "provenance" } ] }, "insights": [ ... ] }`, and a behavioral advisory file is `{ "behavioral": { "model", "effort", "date", "cases": [ { "kind", "id", "expected", "observed", "verdict", "evidence" } ], "summary": { "fired", "missed", "behaviorPass", "behaviorFail" } } }`.
+
+The behavioral `summary` counters have fixed semantics (so two graders fill them the same way): `fired` counts should-fire trigger cases that fired; `missed` counts should-fire trigger cases that did not fire; `behaviorPass` / `behaviorFail` count every other judged case - the `{given, expect}` behavior cases by their verdict, and a **false fire** (a should-NOT-fire trigger case that fires) counts in `behaviorFail`, since it is a failed case that is neither `fired` nor `missed`. Every case appears in exactly one counter.

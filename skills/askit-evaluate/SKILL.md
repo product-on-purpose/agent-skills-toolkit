@@ -6,7 +6,7 @@ chain:
   - askit-quality-grader
   - askit-reviewer
 metadata:
-  version: 0.1.0
+  version: 0.1.1
   tier: universal
   audience: intermediate
 ---
@@ -27,8 +27,8 @@ When the user asks to evaluate, audit, or check a skill or plugin, asks "what ti
 5. If there are warnings or errors, point the user at `askit-build-skill` in `improve` mode to fix them.
 
 ## behavioral mode (opt-in, LLM-judged)
-1. Locate the target's eval-set under `evals/` (triggering `{query, should_trigger}` cases and `{given, expect}` behavior cases).
-2. Delegate to `askit-quality-grader`: it runs the skill against the cases and judges fire / no-fire and output quality.
+1. Locate the target's eval-set under `evals/` (triggering `{query, should_trigger}` cases and `{given, expect}` behavior cases). The `evals/` convention is forward-looking: most real targets do not ship one. If it is absent, the grader DERIVES a case set instead - should-fire queries and adversarial near-misses from the target's description (read sibling skills' descriptions to make the no-fire cases genuinely competitive), plus behavior cases from the documented workflow - judges by static analysis of the artifact, and says so in the evidence.
+2. Delegate to `askit-quality-grader`: it runs the skill against the cases (on-disk or derived) and judges fire / no-fire and output quality.
 3. Report the verdict per case with evidence. This is evidence, not a gate result; it never fails CI.
 
 ## review mode (opt-in, qualitative)

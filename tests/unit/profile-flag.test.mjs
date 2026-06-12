@@ -52,13 +52,70 @@ test("runGate: opts.profile=plain-plugin resolves the house checks off", () => {
   }
 });
 
+// --- component scope (ADR 0034): --profile is resolved, not silently dropped ---
+// Before the fix, evaluateComponent() never saw opts: a third-party single skill graded with
+// --profile plain-plugin still got the house checks (U5), and report.profile was undefined.
+// The vague anti-fixture fires U5 (house) as a warn under the default ladder - the discriminating signal.
+
+const VAGUE = path.join(ROOT, "tests/fixtures/anti/weak-description/skills/vague");
+
+test("evaluate component: opts.profile=plain-plugin turns the house U5 off and records the profile", () => {
+  const r = evaluate(VAGUE, { profile: "plain-plugin" });
+  assert.equal(r.scope, "component");
+  assert.equal(r.profile, "plain-plugin", "the component report records the active profile");
+  assert.equal(sevOf(r, "U5"), "off", "U5 (house provenance) resolves off under plain-plugin");
+  assert.equal(r.summary.warns, 0, "an off finding is not counted as a warning");
+});
+
+test("evaluate component: default profile is askit-library and U5 still warns (regression guard)", () => {
+  const r = evaluate(VAGUE);
+  assert.equal(r.scope, "component");
+  assert.equal(r.profile, "askit-library");
+  assert.equal(sevOf(r, "U5"), "warn", "U5 still fires as a warn under the default ladder");
+});
+
+test("CLI evaluate.mjs component scope threads --profile through to the JSON report", () => {
+  const { code, stdout } = runCli("scripts/evaluate.mjs", [VAGUE, "--format=json", "--profile", "plain-plugin"]);
+  const r = JSON.parse(stdout);
+  assert.equal(r.scope, "component");
+  assert.equal(r.profile, "plain-plugin");
+  assert.equal(r.findings.find((f) => f.reqId === "U5")?.effectiveSeverity, "off");
+  assert.equal(code, 0, "an off finding must not fail the gate exit");
+});
+
+test("evaluate component: opts.mode threads through and defaults to local", () => {
+  assert.equal(evaluate(VAGUE).mode, "local");
+  assert.equal(evaluate(VAGUE, { mode: "published-verdict" }).mode, "published-verdict");
+});
+
+// --- component scope + a skill-dir config: file-scoped suppressions must match the finding paths ---
+// The config and the findings must share one root (the skill directory). If findings stay rooted at the
+// parent dir (file "linkrot/SKILL.md") while the config sits in the skill dir, a natural file glob
+// ("SKILL.md") never matches and the suppressed error still fails the gate.
+
+const LINKROT = path.join(ROOT, "tests/fixtures/anti/component-config/linkrot");
+
+test("evaluate component: a file-scoped suppression in the skill-dir config waives the error", () => {
+  const r = evaluate(LINKROT);
+  const u6 = r.findings.find((f) => f.reqId === "U6");
+  assert.ok(u6, "the dangling link fires U6");
+  assert.equal(u6.suppressed, true, "the file-scoped suppression matches the component finding path");
+  assert.equal(r.summary.errors, 0, "a suppressed error is not counted");
+});
+
+test("CLI evaluate.mjs component scope: a suppressed error does not fail the gate (exit 0)", () => {
+  const { code } = runCli("scripts/evaluate.mjs", [LINKROT, "--format=json"]);
+  assert.equal(code, 0);
+});
+
 // --- the CLI surface on both entry points ---
 
 test("CLI evaluate.mjs --profile plain-plugin threads through to the JSON report", () => {
-  const { stdout } = runCli("scripts/evaluate.mjs", [SF, "--format=json", "--profile", "plain-plugin"]);
+  const { code, stdout } = runCli("scripts/evaluate.mjs", [SF, "--format=json", "--profile", "plain-plugin"]);
   const r = JSON.parse(stdout);
   assert.equal(r.profile, "plain-plugin");
   assert.equal(r.findings.find((f) => f.reqId === "G2")?.effectiveSeverity, "off");
+  assert.equal(code, 0, "the report and the process exit must agree after profile resolution");
 });
 
 test("CLI evaluate.mjs rejects an unknown --profile with exit 2", () => {

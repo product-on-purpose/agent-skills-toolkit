@@ -25,7 +25,7 @@ function groupByRule(findings) {
   return byRule;
 }
 
-const effSev = (f) => f.effectiveSeverity ?? f.severity; // resolved findings carry effectiveSeverity; component findings fall back
+const effSev = (f) => f.effectiveSeverity ?? f.severity; // resolved findings carry effectiveSeverity; unknown-scope findings fall back
 
 function baseReport(scope, target, findings) {
   return {
@@ -58,10 +58,19 @@ function dispositions(resolved) {
   };
 }
 
-function evaluateComponent(target) {
+function evaluateComponent(target, opts = {}) {
   const skill = loadSkill(target);
-  const ctx = { root: path.dirname(target), skills: [skill] };
-  return baseReport("component", target, checkAgentskills(ctx));
+  // The skill directory is the one root for BOTH the finding paths and the config, mirroring plugin
+  // scope (root = the thing you graded). Rooting findings at the parent while loading config from the
+  // skill dir would break file-scoped suppressions: a "SKILL.md" glob can never match "<dir>/SKILL.md".
+  const ctx = { root: target, skills: [skill] };
+  // ADR 0034: component scope runs the same config resolution as plugin scope, so --profile / --mode
+  // are honored instead of silently dropped (a third-party single skill graded under plain-plugin
+  // must not be held to the house checks). Same precedence: file config, then CLI overrides.
+  const { config, findings: configFindings } = loadConfig(target);
+  const cfg = { ...config, ...(opts.mode ? { mode: opts.mode } : {}), ...(opts.profile ? { profile: opts.profile } : {}) };
+  const resolved = resolveFindings([...configFindings, ...checkAgentskills(ctx)], cfg, provenanceByReq());
+  return { ...baseReport("component", target, resolved), profile: cfg.profile, mode: cfg.mode };
 }
 
 function isDir(p) { return existsSync(p) && statSync(p).isDirectory(); }
@@ -80,7 +89,7 @@ export function evaluate(target, opts = {}) {
   const hasSkillMd = existsSync(path.join(target, "SKILL.md"));
 
   if (hasSkillMd && !hasLibrary) {
-    return evaluateComponent(target);
+    return evaluateComponent(target, opts);
   }
   if (looksLikePlugin(target)) {
     const ctx = loadPlugin(target);
