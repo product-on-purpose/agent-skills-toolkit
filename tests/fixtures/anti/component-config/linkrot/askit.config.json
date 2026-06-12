@@ -1,0 +1,9 @@
+{
+  "suppressions": [
+    {
+      "reqId": "U6",
+      "file": "SKILL.md",
+      "reason": "fixture: a file-scoped waiver in a skill-dir config must match the component finding path and the gate exit (ADR 0034)"
+    }
+  ]
+}

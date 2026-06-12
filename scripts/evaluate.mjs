@@ -60,7 +60,10 @@ function dispositions(resolved) {
 
 function evaluateComponent(target, opts = {}) {
   const skill = loadSkill(target);
-  const ctx = { root: path.dirname(target), skills: [skill] };
+  // The skill directory is the one root for BOTH the finding paths and the config, mirroring plugin
+  // scope (root = the thing you graded). Rooting findings at the parent while loading config from the
+  // skill dir would break file-scoped suppressions: a "SKILL.md" glob can never match "<dir>/SKILL.md".
+  const ctx = { root: target, skills: [skill] };
   // ADR 0034: component scope runs the same config resolution as plugin scope, so --profile / --mode
   // are honored instead of silently dropped (a third-party single skill graded under plain-plugin
   // must not be held to the house checks). Same precedence: file config, then CLI overrides.
