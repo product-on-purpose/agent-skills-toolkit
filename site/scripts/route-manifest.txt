@@ -6,6 +6,7 @@
 /explanation/conformance-and-tiers/index.html
 /explanation/faq/index.html
 /explanation/glossary/index.html
+/explanation/validation-and-improvement/index.html
 /getting-started/index.html
 /how-to/add-eval-coverage/index.html
 /how-to/adopt-a-foreign-repo/index.html
