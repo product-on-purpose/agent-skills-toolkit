@@ -15,7 +15,7 @@
 | Report type | Migration assessment (gap-by-tier) |
 | Evaluated | 2026-01-01 |
 | Standard | v0.8 |
-| Spine | 29 checks |
+| Spine | 30 checks |
 | Declared tier | Convergent (Silver) |
 | Grade earned | Silver (Convergent) |
 | Climb | 3 blocker(s) remain to Gold |
@@ -24,7 +24,7 @@
 
 **Summary: a derived, plain-language read of the deterministic result. silver-fixture earns Silver.**
 
-silver-fixture declares the Silver (Convergent) tier and earns Silver. Of the 29 checks in the spine, 26 do not fail (22 pass, 1 warn, 3 not applicable) and 3 fail. The deterministic gate exits 0.
+silver-fixture declares the Silver (Convergent) tier and earns Silver. Of the 30 checks in the spine, 27 do not fail (23 pass, 1 warn, 3 not applicable) and 3 fail. The deterministic gate exits 0.
 
 3 requirement(s) block Gold: G2, G5, G4. Section 06 orders the climb and section 07 gives a copy-paste fix prompt for each gap that drives the matching askit builder and re-runs the gate.
 
@@ -64,9 +64,9 @@ Vacuous passes here: U11, G6, G1. A vacuous pass means there was nothing to vali
 
 ## 05 Tier compliance - evidence ledger
 
-**Summary: one row per requirement, all 29 itemized, grouped by tier. Every non-pass carries a why-it-matters note.**
+**Summary: one row per requirement, all 30 itemized, grouped by tier. Every non-pass carries a why-it-matters note.**
 
-### Bronze / Universal (11 checks) - 11 of 11 satisfied
+### Bronze / Universal (12 checks) - 12 of 12 satisfied
 
 | Req | Status | Evidence |
 | --- | --- | --- |
@@ -81,6 +81,7 @@ Vacuous passes here: U11, G6, G1. A vacuous pass means there was nothing to vali
 | U9 version-match | PASS | Requirement satisfied; no finding raised. Module: checks/version-match.mjs. |
 | U12 mermaid-valid | PASS | Requirement satisfied; no finding raised. Module: checks/mermaid-valid.mjs. |
 | U11 mcp-valid | N/A | Nothing to validate for this subject (vacuous pass). Module: checks/mcp-valid.mjs. |
+| U13 skill-registration | PASS | Requirement satisfied; no finding raised. Module: checks/skill-registration.mjs. |
 
 ### Silver / Convergent (8 checks) - 8 of 8 satisfied
 
@@ -171,7 +172,7 @@ Run `askit-evaluate` in review mode to populate this section; a conformance repo
 | MODULE | checks/release-notes.mjs - the check behind a non-pass row above. |
 | MODULE | checks/index-drift.mjs - the check behind a non-pass row above. |
 | MODULE | checks/folder-readme.mjs - the check behind a non-pass row above. |
-| CLAUSE | Advanced Skill Library Standard v0.8 - the 29-check spine and the Bronze / Silver / Gold tier definitions this report grades against. |
+| CLAUSE | Advanced Skill Library Standard v0.8 - the 30-check spine and the Bronze / Silver / Gold tier definitions this report grades against. |
 | FILE | library.json - declares the subject identity (name, version, tier, agent-targets, prefix). |
 
 ## 10 Report metadata
@@ -182,7 +183,7 @@ Run `askit-evaluate` in review mode to populate this section; a conformance repo
 | --- | --- |
 | Subject | silver-fixture v0.1.0 |
 | Standard version | v0.8 |
-| Spine | 29 checks |
+| Spine | 30 checks |
 | Declared tier | convergent |
 | Grade earned | Silver (Convergent) |
 | Grading profile | askit-library |
@@ -190,6 +191,6 @@ Run `askit-evaluate` in review mode to populate this section; a conformance repo
 | Evaluator | askit-evaluate (deterministic gate, renderer) |
 | Gate exit code | 0 |
 | Evaluated | 2026-01-01 |
-| Checks | 22 PASS, 3 FAIL, 1 WARN, 3 N/A |
+| Checks | 23 PASS, 3 FAIL, 1 WARN, 3 N/A |
 
 The conformance layer is deterministic and reproducible: re-run `node scripts/check.mjs .` to reproduce every row above. This report adds no judgment and does not change the verdict.

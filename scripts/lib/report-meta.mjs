@@ -64,6 +64,11 @@ export const REPORT_META = Object.freeze({
     fixPrompt: "Use askit-build-docs (improve mode): fix the mermaid block so it parses (the toolkit validates every fenced mermaid diagram). Then run node scripts/check.mjs and confirm U12 passes.",
     effort: "~10 min",
   },
+  U13: {
+    why: "A skill on disk that the manifest does not register ships but is invisible to installers; the catalog must list everything the library delivers, and a registered skill with no directory cannot be delivered at all.",
+    fixPrompt: "Register the unregistered skill in library.json components.skills[] (or the marketplace plugins[] catalog), or remove a registration entry that has no skills/<name>/ directory. Then run node scripts/check.mjs and confirm U13 passes.",
+    effort: "~5 min",
+  },
   S1: {
     why: "Without a declared agent-targets list the library does not say which agents it converges across, so the Convergent guarantees (matching manifests, per-target presence) have nothing to check against.",
     fixPrompt: "Use askit-init-plugin (or edit library.json) to declare agent-targets, for example claude and codex. Then run node scripts/check.mjs and confirm S1 passes.",
