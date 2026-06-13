@@ -1,7 +1,8 @@
 # STATUS - agent-skills-toolkit
 
 > The single live source of truth for "where are we / what is next." Keep this current; treat session logs as history, not roadmap.
-> Last updated: 2026-06-10. Strategic context: [`release-plans/plan_v1.0.0/RELEASE-PLAN.md`](release-plans/plan_v1.0.0/RELEASE-PLAN.md) (v0.2). Decisions: [`release-plans/plan_v1.0.0/DECISIONS-OPEN.md`](release-plans/plan_v1.0.0/DECISIONS-OPEN.md) + the 2026-05-30 audit (`release-plans/plan_v1.0.0/audit/`).
+> **For the linear, value-framed narrative of what shipped and why (engineer + non-engineer), read [`RELEASE-HISTORY.md`](RELEASE-HISTORY.md) - this file is the dense accretive tracker; that one is the readable through-line.**
+> Last updated: 2026-06-13. Strategic context: [`release-plans/plan_v1.0.0/RELEASE-PLAN.md`](release-plans/plan_v1.0.0/RELEASE-PLAN.md) (v0.2). Decisions: [`release-plans/plan_v1.0.0/DECISIONS-OPEN.md`](release-plans/plan_v1.0.0/DECISIONS-OPEN.md) + the 2026-05-30 audit (`release-plans/plan_v1.0.0/audit/`).
 
 ## Current state
 
