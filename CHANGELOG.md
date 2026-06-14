@@ -9,6 +9,20 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [1.6.0] - 2026-06-14
+
+Manifest completeness, made actionable. The first growth of the Standard since the v1.2.0 relaxation: a new Universal check catches a plugin that ships skills it never registered (invisible to installers), and the evaluation report is made actionable with a per-check glossary and the missing Bronze reference page. The Standard moves **0.11 -> 0.12** and the spine **29 -> 30**; per the warn-for-one-minor burndown the new check ships as a warning (gating nobody) before it becomes a gate-failing error at 0.13, so no previously-passing plugin newly fails on the bump. The toolkit still self-grades Gold (Advanced 0/0, 418 tests).
+
+### Added
+- **U13 (`skill-registration`) - manifest-vs-disk completeness (ADR 0035).** A new Universal/Bronze check that compares the skills a plugin registers in its enumerating manifest (`library.json` `components.skills`, or a `.claude-plugin/marketplace.json` `plugins[]` catalog) against the skill directories on disk. A skill on disk but unregistered ships invisibly to installers; a registered skill with no directory cannot be delivered. It is objective and portable (it survives `--profile plain-plugin`), and distinct from `U8` (`manifest-drift`, which compares the generated native manifests to `library.json`). Introduced at Standard v0.12 and, per sec 7.7, shipped as a `warn` for the 0.12 minor - the first requirement to exercise the warn-for-one-minor burndown the v1.3.0 standard-aware gate introduced - graduating to a gate-failing `error` at v0.13.
+- **Per-check glossary in the evaluation report (backlog E12).** Every report (HTML and Markdown) now carries a consolidated glossary (report section 11) explaining what each spine check verifies, in one line, sourced from the report's static metadata (zero model tokens). It covers the passing and not-applicable rows the evidence ledger leaves unexplained, so a reader who has never read the Standard can still act on a grade.
+- **`docs/reference/universal-checks.md` - the Bronze reference page.** The Universal floor (`U1-U9`, `U11-U13`) now has the dedicated reference page the Silver and Gold tiers already had, including U13 and its burndown, linked from the conformance-and-tiers explanation.
+- **The v1.6.0 release plan packet (`docs/internal/release-plans/plan_v1.6.0/`).** A PROGRAM-PLAN plus per-feature SPEC and IMPL-PLAN for the five efforts (F1 manifest completeness and F4 report UX shipped here; F2/F3/F5 are continuous supporting work), restoring the full specs-and-implementation-plans rigor.
+
+### Changed
+- **The Standard grows to v0.12 and the spine to 30 checks** (`U1-U9`, `U11-U13`, `S1-S8`, `G1-G10`). This is the first Standard growth since `U10` (`no-dashes`) was retired in v0.11; the warn-for-one-minor burndown means the new requirement is a warning for one minor, so no previously-passing plugin newly fails. The toolkit pins `0.12` and grades at full strength.
+- **Evaluation reports are legible below 600px** (a single-column rail and content grids; the glossary table wraps instead of scrolling), completing the responsive work the `<=900px` table-scroll fix began.
+
 ## [1.5.2] - 2026-06-12
 
 The eval-run patch: the first release whose every change came out of the new historical evaluation-run record and its observe -> verify-against-ground-truth -> calibrate loop (eleven recorded advisory runs, seventeen sensor readings). Two calibrations (the U5 description-scorer recalibration and the component-scope `--profile` fix), a doc-fix batch aligning the advisory delegates with reality, the eval-run record and methodology themselves, the measured token dossier, and a responsive-table render fix. No requirement changes: a plugin graded the default way scores the same on pass/fail (U5 warns get quieter and more honest), the spine stays **29**, the Standard stays **0.11**, and the toolkit still self-grades Gold (Advanced 0/0, 401 tests).

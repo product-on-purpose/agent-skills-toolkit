@@ -2,6 +2,21 @@
 
 Curated, user-facing highlights. For the full technical history see [`CHANGELOG.md`](CHANGELOG.md).
 
+## 1.6.0 - 2026-06-14
+
+Manifest completeness, made actionable. The Standard grows for the first time since the v0.11 relaxation - and it does so without breaking anyone.
+
+### What changed
+
+- **A new check catches plugins that ship skills they never listed.** If your plugin has a skill folder on disk that is missing from your catalog (your `library.json` components, or your marketplace listing), that skill is invisible to anyone installing it. The new `U13` (`skill-registration`) check finds exactly that - a real library we graded ships 49 skills but lists only 47. It is portable (it grades any plugin, not just askit's) and it names the skills that are missing.
+- **The Standard moves to v0.12, and nobody's build breaks.** `U13` is the first check to use the toolkit's warn-for-one-minor policy: it ships as a warning for this version (it surfaces the problem but never fails your gate) and only becomes a hard error one version later. You get a migration window for free.
+- **Every evaluation report now explains itself.** A new per-check glossary lists what each check verifies in plain language - including the ones that passed - so you can act on a grade without having read the Standard. The foundational Bronze checks also get the dedicated reference page the higher tiers already had.
+- **Reports are readable on a phone.** The report layout now adapts below 600px instead of crowding.
+
+### Upgrade
+
+No action required. A plugin that pins Standard v0.11 keeps grading exactly as before; the new check surfaces as a warning until you re-pin to v0.12. Re-pin when you are ready to register every skill you ship.
+
 ## 1.5.2 - 2026-06-12
 
 The eval-run patch. Every change in this release came out of pointing the toolkit's own evaluation layer at real third-party skills and plugins, recording what each run taught us, and fixing what was verified against ground truth. Nothing changes for a plugin graded the default way: the spine stays **29 checks**, the Standard stays **v0.11**, and the toolkit still self-grades Gold.

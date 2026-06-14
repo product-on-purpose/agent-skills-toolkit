@@ -6,7 +6,7 @@
 
 ## The one-paragraph version
 
-The toolkit is a quality bar for AI skill libraries: it grades a plugin Bronze, Silver, or Gold against a written Standard, using a deterministic, model-free gate. It went public and installable at **v1.0.0**, hardened its own docs and gate through **v1.1-v1.4**, then turned outward at **v1.5.x** - learning to grade plugins it does not own, and improving itself from what those real plugins revealed. Today it is **v1.5.2**, self-grading Gold on every build, with a recorded feedback loop driving its improvements.
+The toolkit is a quality bar for AI skill libraries: it grades a plugin Bronze, Silver, or Gold against a written Standard, using a deterministic, model-free gate. It went public and installable at **v1.0.0**, hardened its own docs and gate through **v1.1-v1.4**, then turned outward at **v1.5.x** - learning to grade plugins it does not own, and improving itself from what those real plugins revealed. At **v1.6.0** it grew the Standard for the first time since v0.11 - adding a check that catches plugins shipping skills they never registered (invisible to installers) - while still self-grading Gold on every build, with a recorded feedback loop driving its improvements.
 
 ## The timeline at a glance
 
@@ -20,8 +20,9 @@ The toolkit is a quality bar for AI skill libraries: it grades a plugin Bronze, 
 | v1.5.0 | 2026-06-09 | Outward grading: grade plugins you do not own | 29 / 0.11 |
 | v1.5.1 | 2026-06-10 | Fewer false alarms on well-built third-party plugins | 29 / 0.11 |
 | v1.5.2 | 2026-06-12 | The eval-run patch: calibrations driven by recorded evidence | 29 / 0.11 |
+| v1.6.0 | 2026-06-14 | Manifest completeness: the Standard's first growth since v0.11 (added U13) | 30 / 0.12 |
 
-("Spine" = the number of checks the gate runs. "Standard" = the version of the written specification. They have been stable at 29 / 0.11 since v1.2.0 - recent releases changed *how* the gate grades and *what it can do*, not *what the Standard requires*.)
+("Spine" = the number of checks the gate runs. "Standard" = the version of the written specification. They were stable at 29 / 0.11 from v1.2.0 through v1.5.x; **v1.6.0 grew them to 30 / 0.12** - the first new requirement since v1.1.0, shipped under a warn-first burndown so no existing plugin newly fails.)
 
 ## The story, release by release
 
@@ -68,12 +69,17 @@ The toolkit is a quality bar for AI skill libraries: it grades a plugin Bronze, 
 ## The connecting thread (v1.5.x)
 The recent arc is one idea executed in steps: **a quality tool earns trust by grading the real world and improving from it, under a discipline that verifies before it changes anything.** v1.5.0 made outward grading possible; v1.5.1 and v1.5.2 are the improvements that grading the real world surfaced. The recorded loop (eleven advisory runs, seventeen sensor readings to date) is the engine, and it is now self-documenting.
 
+### v1.6.0 - the Standard grew, carefully (2026-06-14)
+**What:** the **first growth of the Standard since v0.11**. A new Universal check, **U13 (`skill-registration`)**, catches a plugin that ships a skill on disk it never registered in its catalog - a skill that is delivered but invisible to anyone installing it (a real library we graded ships 49 skills and lists 47). The same release made grades **actionable**: every report now carries a per-check glossary explaining what each check verifies, and the foundational Bronze checks finally have the reference page the higher tiers already had.
+**Value, plainly:** the tool now catches a real, common publishing mistake that no check caught before - and it grew its own rulebook to do so **without breaking anyone**. The new rule arrives as a warning for one version (a free migration window) before it can ever fail a build, and a plugin pinned to the old Standard keeps grading exactly as before.
+**Value, for engineers:** ADR 0035 (U13 as a new Universal spine check); spine 29 -> 30, Standard 0.11 -> 0.12 - the first live exercise of the warn-for-one-minor burndown the v1.3.0 standard-aware gate built. The check is objective and portable (it survives `--profile plain-plugin`) and distinct from `U8` (generated-manifest drift). The report glossary is sourced from static metadata (zero model tokens), and the new `docs/reference/universal-checks.md` completes the tier rubric. 418 tests, gate Advanced 0/0; both halves shipped behind clean adversarial reviews. The deferred half of the release plan (a reproducible eval-run pipeline, advisory-quality measurement, authoring-cost measurement) lands as continuous supporting work.
+
 ## Where we are now
-- **main `fdc1284`**, version **1.5.2**, Standard **0.11**, **29-check spine**, **401 tests**, gate **Advanced 0/0**. Self-grading Gold on every CI build; installable from the `product-on-purpose` marketplace.
+- Version **1.6.0**, Standard **0.12**, **30-check spine**, **418 tests**, gate **Advanced 0/0**. The v1.6.0 cut (F1 manifest completeness + F4 report UX) is merged to `main`; the version bump is prepared and the tag plus marketplace re-pin are pending. Self-grading Gold on every CI build; installable from the `product-on-purpose` marketplace.
 
 ## What's next, and why (the roadmap, in priority order)
-1. **Manifest-vs-disk drift check (the v1.6.0 headline).** Catch a plugin that ships more skills on disk than its manifest registers, so installers silently never receive the newest ones (a real case: deanpeters ships 49, registers 47). *Why:* it is a silent delivery failure no current check catches, and it needs no judgment - pure counting. It is a spine change, so it gets a deciding ADR first (new numbered check vs non-spine validator).
-2. **A dependable eval-run pipeline.** Make the grade-record-improve loop reproducible end to end (pinned targets, a deterministic runner, a recorded dispatch contract). *Why:* the loop has proven its value but every run is still hand-orchestrated; this multiplies everything after it.
-3. **Measure advisory quality, not just cost.** Build fixture plugins with known planted issues and a scoring key, so the AI review layer gets a real precision/recall number per model and effort. *Why:* today we measure what a review costs but only narrate how good it is.
-4. **Report glossary + the missing Bronze reference page + a fuller responsive pass.** *Why:* readers cannot tell what a check examines without leaving the report, and the rubric documents Silver and Gold but not Universal.
-5. **Carried:** authoring token measurements, a marketplace-scope evaluation mode, corpus batch 3, a Gemini emitter, and the competitive gap-analysis backlog.
+The v1.6.0 headline (the manifest-vs-disk drift check) and the report glossary + Bronze reference page both shipped above. The remaining v1.6.0-program work lands as continuous supporting effort:
+1. **A dependable eval-run pipeline (F2).** Make the grade-record-improve loop reproducible end to end (pinned targets, a deterministic runner, a recorded dispatch contract). *Why:* the loop has proven its value but every run is still hand-orchestrated; this multiplies everything after it. Build it right before the next corpus batch so it is exercised immediately.
+2. **Measure advisory quality, not just cost (F3).** Build fixture plugins with known planted issues and a scoring key, so the AI review layer gets a real precision/recall number per model and effort, and replicate the model triple on a defect-rich target. *Why:* today we measure what a review costs but only narrate how good it is.
+3. **Authoring token measurements (F5).** Fill the token dossier's last unmeasured range by measuring real `askit-build-*` runs. *Why:* a builder should be able to budget an authoring run.
+4. **Carried:** a marketplace-scope evaluation mode (the likely next headline - the gate has plugin and component scopes only), corpus batch 3, a Gemini emitter, and the competitive gap-analysis backlog (E4-E10).
