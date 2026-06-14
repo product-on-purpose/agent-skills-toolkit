@@ -3,7 +3,7 @@
 // why:          keeps human-facing remediation prose out of the deterministic check modules (the gate stays a thin linter, ADR 0028); one table the MD and HTML renderers share so they never diverge
 // used-by:      scripts/lib/report-render.mjs
 //
-// One entry per reqId currently in the spine (U1-U9, U11-U12, S1-S8, G1-G10). The registry-coverage
+// One entry per reqId currently in the spine (U1-U9, U11-U13, S1-S8, G1-G10). The registry-coverage
 // test in tests/unit/report-render.test.mjs fails CI if a future spine addition forgets its row, so a
 // new check cannot ship with a blank "why". The `why` strings for U5/U7/G2/G3/G5 are lifted from the
 // editorial sample's blockquotes; the rest are authored from each check's purpose and Standard clause.
@@ -63,6 +63,11 @@ export const REPORT_META = Object.freeze({
     why: "A mermaid diagram that does not parse renders as a broken block in the docs and the docs site, so a diagram meant to explain the library instead signals it is unmaintained.",
     fixPrompt: "Use askit-build-docs (improve mode): fix the mermaid block so it parses (the toolkit validates every fenced mermaid diagram). Then run node scripts/check.mjs and confirm U12 passes.",
     effort: "~10 min",
+  },
+  U13: {
+    why: "A skill on disk that the manifest does not register ships but is invisible to installers; the catalog must list everything the library delivers, and a registered skill with no directory cannot be delivered at all.",
+    fixPrompt: "Register the unregistered skill in library.json components.skills[] (or the marketplace plugins[] catalog), or remove a registration entry that has no skills/<name>/ directory. Then run node scripts/check.mjs and confirm U13 passes.",
+    effort: "~5 min",
   },
   S1: {
     why: "Without a declared agent-targets list the library does not say which agents it converges across, so the Convergent guarantees (matching manifests, per-target presence) have nothing to check against.",
