@@ -225,4 +225,41 @@ Run `askit-evaluate` in review mode to populate this section; a conformance repo
 | Evaluated | 2026-01-01 |
 | Checks | 23 PASS, 3 FAIL, 1 WARN, 3 N/A |
 
+## 11 Per-check glossary
+
+**Summary: what each of the 30 checks verifies, in one line. A plain-language reference for every PASS / FAIL / WARN / N/A row above.**
+
+| Check | Tier | What it verifies |
+| --- | --- | --- |
+| U1 library-json | Bronze | Without a valid library.json a tool cannot identify the library, its version, or the Standard it pins, so nothing downstream can grade, install, or emit it. |
+| U2 anatomy | Bronze | The agentskills.io anatomy (a root AGENTS.md and the standard component folders) is how any agent discovers what the library contains; a broken anatomy makes the library unreadable to the tools meant to load it. |
+| U3 frontmatter-valid | Bronze | A component whose frontmatter does not parse, or lacks a name or description, cannot be loaded or selected by an agent; the parse is the contract between the file and the runtime. |
+| U4 name-matches-dir | Bronze | When a component's declared name does not match its directory, references and manifests point at the wrong place; a kebab-case directory that equals the name keeps lookups unambiguous across agents. |
+| U5 description-score | Bronze | A description below the clarity bar makes a skill hard for an agent to select for the right job; it may fail to fire when it should, or fire when it should not. |
+| U6 reference-links | Bronze | A reference link that does not resolve sends the agent to a missing file mid-task, breaking progressive disclosure exactly when the detail is needed. |
+| U7 instruction-budget | Bronze | A body over the instruction budget risks the model dropping its later steps, so the exact step that differentiates the skill can be the one lost at runtime. |
+| U8 manifest-drift | Bronze | When a native manifest disagrees with library.json, the agent loads something other than what the library declares; generated (not hand-edited) manifests are what keep the two in lockstep. |
+| S1 agent-targets | Silver | Without a declared agent-targets list the library does not say which agents it converges across, so the Convergent guarantees (matching manifests, per-target presence) have nothing to check against. |
+| S2 prefix | Silver | A consistent prefix is how a multi-skill library avoids name collisions on a shared agent and signals which components belong to it; an unprefixed component is ambiguous once installed beside others. |
+| S3 components-index | Silver | When the components index does not list what is on disk, tools that read the index (install, emit, grade) miss real components or reference ones that do not exist. |
+| S8 components-mirror | Silver | A one-way index lets the index and disk drift apart silently; mirroring in both directions catches both an orphan on disk and a phantom in the index. |
+| S4 chain-contract | Silver | An orphan or phantom chain edge means a declared delegation points at nothing, or a real delegation is undeclared; the chain contract is what makes cross-component handoffs honest and reviewable. |
+| S7 command-contract | Silver | A command that maps to zero or many skills is ambiguous at invocation; one command to exactly one skill keeps the slash entry point predictable. |
+| S5 workflow-skills | Silver | A workflow step that references a skill which does not exist breaks the run at that step; validating the references keeps a multi-step workflow executable end to end. |
+| S6 per-target-presence | Silver | If a declared agent target is missing its native manifest, the library claims to converge on an agent it cannot actually load onto; per-target presence makes the cross-agent claim real. |
+| U9 version-match | Bronze | When a component version disagrees with library.json, release tooling and consumers cannot tell which version they actually have; the versions must agree to make a release honest. |
+| U12 mermaid-valid | Bronze | A mermaid diagram that does not parse renders as a broken block in the docs and the docs site, so a diagram meant to explain the library instead signals it is unmaintained. |
+| U11 mcp-valid | Bronze | An MCP server definition that is malformed or carries an inline secret either fails to connect or leaks a credential into the repository; validating it keeps the integration safe and loadable. |
+| U13 skill-registration | Bronze | A skill on disk that the manifest does not register ships but is invisible to installers; the catalog must list everything the library delivers, and a registered skill with no directory cannot be delivered at all. |
+| G3 library-regression | Gold | Chain edges are where delegation breaks quietly; a regression eval per edge turns the chain contract from a declaration into a tested guarantee that a refactor cannot sever unnoticed. |
+| G6 deprecation | Gold | A component removed or replaced without following the deprecation policy breaks consumers who depended on it; an explicit deprecation gives them a status, a reason, and a migration path. |
+| G1 hook-documentation | Gold | An undocumented hook changes the agent's behavior invisibly; documenting each hook is what lets a reviewer and a consumer see what fires and why before they install it. |
+| G2 self-hosting | Gold | Without CI running the gate, conformance is a claim, not a proof. Any change can silently regress the library, and a consumer cannot point to a green badge that says the standard held on the latest commit. |
+| G5 release-notes | Gold | A changelog is for maintainers; release notes are for users. Without a curated RELEASE-NOTES.md, adopters have no human-readable summary of what changed and why they should upgrade. |
+| G4 index-drift | Gold | A stale INDEX.md misrepresents the library to anyone reading the catalog; generating it and drift-checking in CI keeps the published index honest on every commit. |
+| G7 docs-frontmatter | Gold | The audience/level/doc-role frontmatter taxonomy is what lets the docs site route a reader to the right page; without it the generated site cannot organize the library's documentation. |
+| G8 folder-readme | Gold | A meaningful folder with no README leaves a reader guessing what it holds; a short folder guide is the cheapest orientation a contributor or consumer gets. |
+| G9 source-doc | Gold | A script with no what-it-is / what-it-does / why docblock forces a maintainer to reverse-engineer its purpose; the four-field header keeps the toolkit's own machinery legible. |
+| G10 docs-presence | Gold | A library without the Diataxis quadrants (tutorials, how-to, reference, explanation) leaves whole classes of reader unserved; their presence is what makes the documentation complete rather than incidental. |
+
 The conformance layer is deterministic and reproducible: re-run `node scripts/check.mjs .` to reproduce every row above. This report adds no judgment and does not change the verdict.
