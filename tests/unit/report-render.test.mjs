@@ -69,17 +69,38 @@ test("renderHtml is self-contained: no external asset, web font, or network refe
   assert.equal(scripts.length, 1, "exactly one inline <script> (TOC/copy/print)");
 });
 
-test("renderHtml renders all 10 IA section anchors in order", () => {
+test("renderHtml renders all 11 IA section anchors in order", () => {
   const r = evaluate(SF);
   const html = renderHtml(r, optsFor(r, SF));
   let last = -1;
-  for (let i = 1; i <= 10; i++) {
+  for (let i = 1; i <= 11; i++) {
     const id = `s${String(i).padStart(2, "0")}`;
     const at = html.indexOf(`id="${id}"`);
     assert.ok(at >= 0, `missing IA section ${id}`);
     assert.ok(at > last, `IA section ${id} out of order`);
     last = at;
   }
+});
+
+// F4 (E12): a consolidated per-check glossary, rendered once per report, covering EVERY spine check
+// (including the PASS/N/A rows that surface no inline why), sourced from REPORT_META (zero model tokens).
+test("renderMarkdown emits a per-check glossary (section 11) covering every spine check with its why", () => {
+  const r = evaluate(SF);
+  const md = renderMarkdown(r, optsFor(r, SF));
+  const gi = md.indexOf("## 11 Per-check glossary");
+  assert.ok(gi >= 0, "glossary section 11 must exist");
+  const gloss = md.slice(gi);
+  for (const { reqId } of SPINE) assert.ok(gloss.includes(reqId), `glossary missing ${reqId}`);
+  assert.ok(gloss.includes(REPORT_META.U13.why.slice(0, 40)), "glossary must carry the U13 why from REPORT_META");
+});
+
+test("renderHtml emits a glossary section #s11 linked in the TOC, covering every spine check", () => {
+  const r = evaluate(SF);
+  const html = renderHtml(r, optsFor(r, SF));
+  assert.ok(html.includes('id="s11"'), "glossary section s11 must exist");
+  assert.ok(html.includes('href="#s11"'), "the TOC must link the glossary");
+  const gloss = html.slice(html.indexOf('id="s11"'));
+  for (const { reqId } of SPINE) assert.ok(gloss.includes(reqId), `HTML glossary missing ${reqId}`);
 });
 
 test("renderHtml has a left TOC, a print control, and a print stylesheet", () => {

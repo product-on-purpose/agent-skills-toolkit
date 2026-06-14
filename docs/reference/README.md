@@ -41,3 +41,4 @@ Reference material: one page per askit-* skill plus the per-tier conformance-che
 - `gold-checks.md` - the "gold checks" page.
 - `silver-checks.md` - the "silver checks" page.
 - `token-usage-estimates.md` - the "token usage estimates (model and effort)" page.
+- `universal-checks.md` - the "universal checks" page.

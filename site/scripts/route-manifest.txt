@@ -66,6 +66,7 @@
 /reference/gold-checks/index.html
 /reference/silver-checks/index.html
 /reference/token-usage-estimates/index.html
+/reference/universal-checks/index.html
 /the-standard/index.html
 /tiers/index.html
 /tutorials/build-your-first-skill/index.html

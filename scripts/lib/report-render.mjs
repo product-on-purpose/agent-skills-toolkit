@@ -412,6 +412,16 @@ function renderMarkdown(report, opts = {}) {
   metaRows.push(["Checks", `${m.counts.pass} PASS, ${m.counts.fail} FAIL, ${m.counts.warn} WARN, ${m.counts.na} N/A`]);
   out.push(mdTable(["Field", "Value"], metaRows));
   out.push("");
+
+  // 11 Per-check glossary (F4): every spine check explained in one line, from REPORT_META (zero model
+  // tokens). Reference for the PASS/N/A rows the evidence ledger leaves unexplained; derived from m.rows
+  // so it cannot diverge from the status matrix and adds no count.
+  out.push("## 11 Per-check glossary");
+  out.push("");
+  out.push(`**Summary: what each of the ${m.counts.total} checks verifies, in one line. A plain-language reference for every PASS / FAIL / WARN / N/A row above.**`);
+  out.push("");
+  out.push(mdTable(["Check", "Tier", "What it verifies"], m.rows.map((r) => [`${r.reqId} ${r.id}`, r.tierName, r.why])));
+  out.push("");
   out.push("The conformance layer is deterministic and reproducible: re-run `node scripts/check.mjs .` to reproduce every row above. This report adds no judgment and does not change the verdict.");
   out.push("");
 
@@ -611,6 +621,7 @@ const STYLE = `
   .footnote{color:var(--ink-faint);font-size:12.5px;padding:30px 0 60px;line-height:1.6}
   @media (max-width:1080px){.mh-grid{grid-template-columns:1fr}}
   @media (max-width:900px){.shell{grid-template-columns:1fr}.rail{position:static;height:auto;overflow:visible;border-right:0;border-bottom:1px solid #0a0f1c;padding:18px 20px}.rail nav{columns:2;column-gap:14px}.wrap{padding:0 22px}.lrow{grid-template-columns:1fr}.lrow .lst{border-right:0;border-bottom:1px solid var(--line);flex-direction:row;align-items:center;gap:12px;flex-wrap:wrap}.wlitem{grid-template-columns:36px 1fr}.toolbar{top:auto;bottom:14px;right:14px}.tablecard{overflow-x:auto;-webkit-overflow-scrolling:touch}.tablecard table{min-width:560px}}
+  @media (max-width:600px){.rail nav{columns:1}.wrap{padding:0 16px}.kpis,.meters,.idstrip,.guarantees,.meta-grid{grid-template-columns:1fr}section{padding:30px 0 4px}.glossary table{min-width:0}}
   @media print{.rail,.toolbar,.copy{display:none!important}.shell{grid-template-columns:1fr}body{background:#fff;font-size:10.5pt}.wrap{max-width:none;padding:0 8mm}.masthead,.matrixzone{-webkit-print-color-adjust:exact;print-color-adjust:exact}.masthead{background:var(--ink-panel)!important}.prompt{background:#0c1322!important}section{break-inside:avoid}.imp,.lrow,.ledger,.wlitem,.cell,.kpi,.meter,.gtile{break-inside:avoid}a{color:var(--ink)}}
 `;
 
@@ -677,6 +688,16 @@ function htmlLedger(m) {
 
 function htmlSection(id, num, title, lead, body) {
   return `<section id="${id}"><div class="seclabel"><span class="num">${num}</span><h2 class="sec">${escapeHtml(title)}</h2></div><p class="lead">${escapeHtml(lead)}</p>${body}</section>`;
+}
+
+// Per-check glossary body (F4 / section 11): every spine check and its one-line why, from REPORT_META
+// (carried on each m.rows entry as `why`). The `.glossary` class lets the sub-600px media query wrap the
+// table instead of scrolling it. Derived from m.rows, so it never diverges from the status matrix.
+function htmlGlossary(m) {
+  const rows = m.rows
+    .map((r) => `<tr><td><code>${escapeHtml(r.reqId)}</code> ${escapeHtml(r.id)}</td><td>${escapeHtml(r.tierName)}</td><td>${escapeHtml(r.why)}</td></tr>`)
+    .join("");
+  return `<div class="tablecard glossary"><table><thead><tr><th style="width:200px">Check</th><th style="width:84px">Tier</th><th>What it verifies</th></tr></thead><tbody>${rows}</tbody></table></div>`;
 }
 
 // Release readiness band (release reports): a prominent go / no-go right after the masthead.
@@ -866,6 +887,7 @@ function renderHtml(report, opts = {}) {
     <a href="#s08"><span class="ix">08</span><span>Insights</span></a>
     <a href="#s09"><span class="ix">09</span><span>Evidence and sources</span></a>
     <a href="#s10"><span class="ix">10</span><span>Report metadata</span></a>
+    <a href="#s11"><span class="ix">11</span><span>Per-check glossary</span></a>
   </nav>`;
 
   return `<!DOCTYPE html>
@@ -898,6 +920,7 @@ function renderHtml(report, opts = {}) {
       ${htmlSection("s08", "08", "Insights", insLead, insBody)}
       ${htmlSection("s09", "09", "Evidence and sources", "Citations grounding the findings: the check module, Standard clause, or subject file.", `<ul class="refs">${refItems.join("")}</ul>`)}
       ${htmlSection("s10", "10", "Report metadata", "Provenance for this evaluation, plus the legend.", metaBody)}
+      ${htmlSection("s11", "11", "Per-check glossary", `What each of the ${m.counts.total} checks verifies, in one line - a plain-language reference for every row above.`, htmlGlossary(m))}
     </div>
   </main>
 </div>
