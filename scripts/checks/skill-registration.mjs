@@ -34,12 +34,22 @@ export function skillNameFromPath(p) {
  * marketplace.json falls through rather than throwing (R-REG-5).
  */
 export function resolveRegistrationSource(ctx) {
-  // Rung 1: library.json components.skills[] (present-as-array means the plugin enumerates skills here)
+  // Rung 1: library.json components.skills[] (present-as-array means the plugin enumerates skills here).
+  // Key by the path SEGMENT (which skills/<name>/ folder the entry catalogues), NOT the declared `name`:
+  // U13 answers "which folders did you catalogue", so a `name` that disagrees with its path is U4's job,
+  // and a registration whose path is not under skills/ catalogues no real folder and must not mask one
+  // (adversarial-review finding: a `name`-field fallback let a misdirected entry silence an on-disk skill).
   const libSkills = ctx?.library?.data?.components?.skills;
   if (Array.isArray(libSkills)) {
-    return new Set(libSkills.map((s) => skillNameFromPath(s?.path) ?? s?.name).filter(Boolean));
+    return new Set(libSkills.map((s) => skillNameFromPath(s?.path)).filter(Boolean));
   }
-  // Rung 2: .claude-plugin/marketplace.json plugins[].source resolving under skills/
+  // Rung 2: .claude-plugin/marketplace.json plugins[].source resolving under skills/ (the marketplace-of-
+  // skills shape, e.g. deanpeters). The `size > 0` guard is deliberate: if NO source resolves under skills/,
+  // this is either a marketplace-OF-PLUGINS (sources point at other plugin dirs/repos) or a marketplace whose
+  // layout the check cannot map to the on-disk skills/ tree. Either way there is no sound mapping, so it is
+  // conservatively skipped rather than flagging every on-disk skill (which would false-fire on a valid
+  // marketplace-of-plugins). A non-array `components.skills` similarly falls through (malformed library.json
+  // is U1's domain). Both declined behaviors are locked by tests; the malformed read never throws (R-REG-5).
   try {
     const mp = JSON.parse(readFileSync(path.join(ctx.root, ".claude-plugin", "marketplace.json"), "utf8"));
     if (Array.isArray(mp?.plugins)) {

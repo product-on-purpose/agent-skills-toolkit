@@ -30,7 +30,7 @@ The `meta` fields:
 
 - `id` - a stable string name for the check (used in finding output and tests).
 - `tier` - the check's own tier (`universal` | `convergent` | `advanced`), used in burndown grouping and the declared-tier ceiling.
-- `reqId` - the Standard requirement the check backs (`U1`-`U9`, `U11`-`U12`, `S1`-`S8`, `G1`-`G10`). This is the single thread that ties a line of code to a clause in `STANDARD.md`.
+- `reqId` - the Standard requirement the check backs (`U1`-`U9`, `U11`-`U13`, `S1`-`S8`, `G1`-`G10`). This is the single thread that ties a line of code to a clause in `STANDARD.md`.
 
 The `check(ctx)` function MUST be synchronous and MUST return an array of `finding` objects (an empty array means "passes"). A `finding` is built by the helper in `scripts/lib/findings.mjs`:
 

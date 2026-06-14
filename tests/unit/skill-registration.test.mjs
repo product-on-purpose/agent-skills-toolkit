@@ -135,3 +135,39 @@ test("check is pure: two calls deep-equal, input not mutated (R-REG-5)", () => {
   assert.deepEqual(r1, r2);
   assert.equal(JSON.stringify(ctx), before, "ctx must not be mutated");
 });
+
+// Adversarial review (false-PASS lens): a registration whose `path` does not resolve under skills/ must
+// NOT silence a real on-disk skill via the declared `name`. U13 keys by the path SEGMENT (which folder is
+// catalogued), per SPEC sec 3 - the `name` field is U4's domain. A misdirected entry registers nothing real.
+test("a registration whose path is not under skills/ does NOT mask an on-disk skill", () => {
+  const ctx = ctxWithDisk(["masked"], [{ name: "masked", path: "docs/readme.md" }]);
+  const out = check(ctx);
+  assert.equal(out.length, 1, "the on-disk skill must be flagged, not masked by the name field");
+  assert.match(out[0].message, /masked/);
+  assert.match(out[0].message, /invisible|register/i);
+});
+
+// Adversarial review (false-PASS lens, DECLINED with rationale): a marketplace.json whose plugins[] sources
+// do not resolve under skills/ cannot be mapped to on-disk skill dirs, and treating any plugins[] as a skill
+// enumeration would false-fire on a legitimate marketplace-OF-PLUGINS. So it is conservatively skipped (null).
+test("a marketplace whose sources are not under skills/ is conservatively skipped (returns null)", () => {
+  const root = tmpRootWithMarketplace(JSON.stringify({ plugins: [{ name: "p", source: "./packages/p" }] }));
+  try {
+    const ctx = { root, skills: [{ dir: "skills/a" }], library: { data: {} } };
+    assert.equal(resolveRegistrationSource(ctx), null);
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
+// Adversarial review (false-PASS lens, DECLINED with rationale): a non-array components.skills is malformed
+// library.json, which U1 (library-json) grades; U13 requires an actual array to enumerate, so it falls through.
+test("a non-array components.skills falls through (malformed library.json is U1's domain)", () => {
+  const root = mkdtempSync(path.join(tmpdir(), "askit-u13-"));
+  try {
+    const ctx = { root, skills: [{ dir: "skills/a" }], library: { data: { components: { skills: {} } } } };
+    assert.equal(resolveRegistrationSource(ctx), null);
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});

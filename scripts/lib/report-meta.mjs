@@ -3,7 +3,7 @@
 // why:          keeps human-facing remediation prose out of the deterministic check modules (the gate stays a thin linter, ADR 0028); one table the MD and HTML renderers share so they never diverge
 // used-by:      scripts/lib/report-render.mjs
 //
-// One entry per reqId currently in the spine (U1-U9, U11-U12, S1-S8, G1-G10). The registry-coverage
+// One entry per reqId currently in the spine (U1-U9, U11-U13, S1-S8, G1-G10). The registry-coverage
 // test in tests/unit/report-render.test.mjs fails CI if a future spine addition forgets its row, so a
 // new check cannot ship with a blank "why". The `why` strings for U5/U7/G2/G3/G5 are lifted from the
 // editorial sample's blockquotes; the rest are authored from each check's purpose and Standard clause.

@@ -20,10 +20,10 @@ test("every registered check returns an array synchronously (deterministic gate)
   assert.ok(Array.isArray(runAllChecks(ctx)));
 });
 
-// The 29-check spine: Bronze U1-U9, U11, U12 (11) + Silver S1-S8 (8) + Gold G1-G10 (10). Adding or
+// The 30-check spine: Bronze U1-U9, U11-U13 (12) + Silver S1-S8 (8) + Gold G1-G10 (10). Adding or
 // removing a check is a deliberate spine change, so this count is asserted explicitly (it caught
 // silent +1 drift historically). Bump it WITH the check, never to make a red test green. U10
-// (no-dashes) was retired in Standard v0.11 as a stylistic house preference, not a portability rule.
+// (no-dashes) was retired in Standard v0.11; U13 (skill-registration) was added in Standard v0.12 (ADR 0035).
 test("the spine is exactly 30 checks (U1-U9, U11-U13 + S1-S8 + G1-G10)", () => {
   assert.equal(CHECKS.length, 30);
 });

@@ -1,0 +1,27 @@
+# F1 (U13 skill-registration) - adversarial review resolutions
+
+> A 4-lens read-only adversarial review (false-PASS / false-FAIL / determinism / contract-fidelity) ran against the F1 diff before merge (2026-06-14), per the v1.6.0 PROGRAM-PLAN release mechanics. This records every confirmed finding and its resolution - real findings fixed, theoretical ones declined with rationale (the repo's standing discipline). The determinism lens found no defects.
+
+## Fixed
+
+- **Name-fallback masking (false-PASS, P1).** Rung 1 keyed the registered set off `skillNameFromPath(s.path) ?? s.name`. The `?? s.name` fallback let a misdirected entry (`{ name: "X", path: "docs/x.md" }`, path not under `skills/`) substitute the declared name and falsely "cover" an on-disk `skills/X/`, so a genuinely invisible skill escaped. SPEC sec 3 mandates keying by the path SEGMENT (which folder is catalogued), not the declared name (a `name`-vs-dir divergence is U4's job). **Fix:** dropped the `?? s.name` fallback; rung 1 now keys purely off `skillNameFromPath(s.path)`. A misdirected entry contributes nothing to the registered set, so the on-disk skill is correctly flagged. Locked by a new test ("a registration whose path is not under skills/ does NOT mask an on-disk skill"). The toolkit's own 23 entries all carry proper `skills/<name>/SKILL.md` paths, so the dogfood is unchanged.
+
+- **Incomplete count/composition sweep (contract-fidelity, P1/P2).** The first pass moved the literal "29" surfaces but missed surfaces that state the spine COMPOSITION (`U1-U9, U11-U12`) without the number. **Fixed:** README Bronze breakdown (3 spots: the tier summary, the requires-list header, and the per-check enumeration, now `U11-U13` / "12 checks" with a skill-registration bullet); **AGENTS.md** (the full-gate line, explicitly named by ADR 0035 and SPEC R-STD-2); `docs/internal/research/matrix.md` (the validation-depth cell, now "30-check spine"); and two stale code comments (`report-meta.mjs` docblock, `registry-sync.test.mjs` header).
+
+## Declined, with rationale
+
+- **Marketplace `size > 0` fall-through (false-PASS, P1).** A `.claude-plugin/marketplace.json` whose `plugins[].source` values do not resolve under `skills/` falls through to `null` (no finding). The reviewer proposed treating any `plugins[]` array as an enumeration. **Declined:** if no source resolves under `skills/`, the manifest is either a marketplace-OF-PLUGINS (sources point at other plugin dirs/repos) or a layout the check cannot map to the on-disk `skills/` tree; treating it as a skill enumeration would flag every on-disk skill and **false-fire on a legitimate marketplace-of-plugins**. The motivating case (deanpeters) uses `./skills/<name>` sources, which resolve. A marketplace-of-skills with non-`skills/` sources is self-contradictory. The conservative skip is correct; it is documented in a code comment and locked by a test.
+
+- **Non-array `components.skills` (false-PASS, P2).** A `components.skills` that is an object/string/null falls through. **Declined:** a malformed `library.json` is `U1` (`library-json`)'s domain; U13 requires an actual array to enumerate. Documented in the code comment, locked by a test.
+
+- **Path-segment keying flags a case-divergent `path` (false-FAIL, P2).** `path: "skills/Alpha/SKILL.md"` with on-disk `skills/alpha/` warns on a case-insensitive filesystem. **Declined as intended behavior:** on case-sensitive Linux that path does not resolve, so the entry is genuinely broken there; U13 deliberately keys by path segment to catch this portability rot that S3 (which keys by the `name` field) misses. It is a `warn` in 0.12. Documented in the rung-1 code comment.
+
+- **Committed fixtures not created (contract-fidelity / false-PASS, P2).** SPEC sec 6 names five committed fixture dirs; the implementation uses inline `ctx` literals and temp-dir `marketplace.json` roots instead. **Declined as a SPEC-vs-IMPL divergence (recorded here):** the shipped `tests/unit/skill-registration.test.mjs` covers every R-REG behavior (headline, phantom, null/no-FP, purity, malformed-no-throw, all three precedence rungs, the empty-array evasion, and the three review-driven cases) without external dependencies; the synthetic marketplace reproduction does not depend on the external deanpeters clone. Committed fixture dirs would be redundant scaffolding. R-REG-2/R-REG-7's deanpeters acceptance was verified manually (49 on disk, 47 registered, exactly 2 flagged as warns under `--profile plain-plugin`).
+
+## Acknowledged (no change)
+
+- **U13 vs S3 overlap (false-FAIL design observation).** For the `library.json` shape, U13's two findings overlap S3 (`components-index`), which already reports declared-vs-disk drift (keyed by `name`, ERROR, Silver tier). U13's unique coverage is (a) the **marketplace-of-skills shape** S3 does not read, and (b) the **Universal/Bronze tier** - S3 is Silver, so a Bronze-declared plugin is not graded by it. The library.json-shape overlap (an S3 Silver error plus a U13 Bronze warn for the same drift) is acceptable: different tier, different severity. Worth a one-line note in the SPEC's "distinct from" framing alongside the U8 contrast.
+
+## Noted for a separate cleanup
+
+- **`site/src/content/docs/catalog.md`** still reads "29-check spine". It is a **gitignored build artifact** with no committed `docs/` source and is not produced by `gen-docs-site` (orphaned since the #101 U10 sweep). It is not part of this PR and does not affect the gate or the site guards. Flagged for a separate site-content cleanup pass.

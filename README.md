@@ -206,7 +206,7 @@ A tier is reported only when its checks actually pass; the tooling flags any cla
 
 Three rungs, monotonic - each includes everything below it (per-tier detail follows):
 
-- **Bronze - Universal (`U1-U9`, `U11-U12`, 11 checks).** Certifies identical, portable files that run unchanged on any agentskills.io agent. For the beginner on-ramp. Adds a minimal `library.json`, valid skill anatomy, and a description that clears the bar.
+- **Bronze - Universal (`U1-U9`, `U11-U13`, 12 checks).** Certifies identical, portable files that run unchanged on any agentskills.io agent. For the beginner on-ramp. Adds a minimal `library.json`, valid skill anatomy, and a description that clears the bar.
 - **Silver - Convergent (`+ S1-S8`, 19).** Certifies the multi-agent machinery emitted in the right format for every target agent. For real multi-component plugins on both Claude and Codex. Adds subagents, commands, workflows, chain contracts, per-agent emission, and semver governance.
 - **Gold - Advanced (`+ G1-G10`, 29).** Certifies that the plugin proves itself: deep lifecycle plus self-hosting CI. For maintainers running plugins at scale. Adds hooks, self-hosting CI, regression-covered chains, drift-checked generated docs, and a release and deprecation policy.
 
@@ -217,13 +217,13 @@ Three rungs, monotonic - each includes everything below it (per-tier detail foll
 > **Certifies:** the plugin parses and self-describes with portable, agent-agnostic files that run unchanged on any agentskills.io-compliant agent.
 
 - **For:** beginners and first-time authors. The smallest commitment that makes a pile of skills a real plugin.
-- **Requires (`U1-U9`, `U11-U12`):**
+- **Requires (`U1-U9`, `U11-U13`):**
   - `U1` - a minimal `library.json` carrying at least `name`, `version`, and `tier`
   - `U2-U4` - valid agentskills.io skill anatomy and frontmatter, with each skill's name equal to its directory; a root `AGENTS.md` entrypoint is part of the required anatomy
   - `U5` - a description that clears the what-plus-when-plus-trigger quality bar
   - `U6-U7` - reference links that resolve, and an instruction-budget warning so context stays scarce
   - `U8-U9` - native-manifest agreement, and `package.json` / `library.json` version agreement
-  - `U11-U12` - well-formed MCP entries that commit no secrets, and structurally valid mermaid blocks
+  - `U11-U13` - well-formed MCP entries that commit no secrets, structurally valid mermaid blocks, and every shipped skill registered in the manifest
 - **Why it matters:** the manifest (`U1`) is the line between a reusable folder and a release unit that carries a version, so tooling can grade and version it. The description bar protects the one signal an agent uses to decide relevance; the reference-link and budget rules keep context scarce and progressively disclosed, which is how frontier models actually follow instructions.
 - **Payoff:** a Bronze plugin is installable and behaves the same on Claude Code, Codex, and the broader agentskills.io ecosystem at once. Write once, run anywhere.
 
