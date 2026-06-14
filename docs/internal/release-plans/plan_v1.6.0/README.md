@@ -1,7 +1,7 @@
 # plan_v1.6.0 - manifest completeness, made actionable
 
 > The planning packet for the next milestone. **v1.6.0** grows the quality Standard for the first time since the v1.2.0 relaxation - an objective check that catches a plugin silently shipping skills it never registered ([F1](./F1-manifest-completeness/), [ADR 0035](../../decisions/0035-manifest-vs-disk-skill-registration-completeness.md)) - and makes that grade actionable with a per-check report glossary, the missing Bronze reference page, and a phone-legible report ([F4](./F4-report-ux/), backlog E12). Three supporting efforts mature the improve loop and fill the last cost-measurement gap ([F2](./F2-eval-run-pipeline/) E11, [F3](./F3-advisory-quality/), [F5](./F5-authoring-token-measurements/)); they land continuously, not as release gates.
-> Created 2026-06-13. Status: **draft for review, not yet committed** (shape it before any of it ships). Source of truth: ADR 0035 (Proposed), the eval-run record + METHODOLOGY (`docs/internal/eval-runs/`), the STATUS prioritized roadmap, backlog E11/E12. Live status: [`docs/internal/STATUS.md`](../../STATUS.md). Baseline: `main` at **v1.5.2**, Gold, 29-check spine, Standard 0.11.
+> Created 2026-06-13. Status: **committed and shipping in v1.6.0** - the cut (F1 + F4) is merged to `main`; F2/F3/F5 are continuous supporting work. Source of truth: ADR 0035 (Accepted), the eval-run record + METHODOLOGY (`docs/internal/eval-runs/`), the STATUS prioritized roadmap, backlog E11/E12. Live status: [`docs/internal/STATUS.md`](../../STATUS.md). Baseline: `main` at **v1.5.2**, Gold, 29-check spine, Standard 0.11 (v1.6.0 grew it to 30 / 0.12).
 
 ## What this delivers (plain language + engineer)
 
