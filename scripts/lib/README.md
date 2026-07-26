@@ -10,6 +10,8 @@ The shared library the checks, generators, and gate import: findings, frontmatte
 
 - `config.mjs` - loadConfig() over the optional askit.config.json (F3 gate config).
 - `craft-review.mjs` - the craft-review SAFE/JUDGMENT partitioner, phase-2 eligibility, and the consent-gated applier (ADR 0037).
+- `eval-run.mjs` - the deterministic eval-run half: pin verification, path normalization, the npm script seam, and the record skeleton.
+- `eval-run-aggregate.mjs` - the eval-run record half: skeletons to eval-runs.md rows plus the dossier's measured range.
 - `findings.mjs` - finding() and the SEVERITY and PROVENANCE enums.
 - `frontmatter.mjs` - parseFrontmatter() over YAML frontmatter.
 - `fs-utils.mjs` - filesystem helpers (relPath and friends).

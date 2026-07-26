@@ -1,0 +1,53 @@
+{
+  "schema": "askit-eval-corpus/1",
+  "about": "The pinned-sha eval-run corpus (F2 / backlog E11, R-PIPE-1). One entry per reusable target: the repo URL, the exact sha every recorded run graded, the structural scope, and the local reusable clone. A batch is reproducible from this file alone - re-clone the repo, check out the sha, point clonePath at it, and scripts/eval-run.mjs refuses to grade anything that is not at the pin.",
+  "conventions": {
+    "sha": "The full 40-char sha. The eval-runs record cites the short form; the runner accepts a short pin as a prefix match.",
+    "scope": "The structural kind of the target: plugin (one plugin root), component (one skill directory), collection (many skill directories with no plugin manifest), marketplace-by-hand (many plugins graded one at a time, since the gate has no marketplace scope). The RUN scope recorded in eval-runs.md comes from the evaluator's own detection, not from this field.",
+    "clonePath": "A local reusable clone, forward-slash normalized. Machine-specific by nature: re-point it after cloning elsewhere. The runner never writes into a clone.",
+    "subpath": "The graded path inside the clone, or null for the clone root. Overridable per run with --subpath.",
+    "profile": "The gate profile past runs used for this target. Third-party targets are graded under plain-plugin so house conventions do not score against them."
+  },
+  "targets": [
+    {
+      "id": "anthropic-skills",
+      "repo": "https://github.com/anthropics/skills",
+      "sha": "57546260929473d4e0d1c1bb75297be2fdfa1949",
+      "scope": "collection",
+      "clonePath": "E:/tmp/eval-anthropic-skills",
+      "subpath": null,
+      "profile": "plain-plugin",
+      "notes": "Batch 1 anchor (the official Anthropic set). Runs R3 and R5 graded single skills in component scope: --subpath skills/mcp-builder and --subpath skills/pdf. The clone root itself grades as a plugin-shaped collection (a skills/ tree with no library.json)."
+    },
+    {
+      "id": "lenny-skills",
+      "repo": "https://github.com/RefoundAI/lenny-skills",
+      "sha": "280a57aa42fed3b6f35f51f0d9e71013b4c8ae74",
+      "scope": "collection",
+      "clonePath": "E:/tmp/eval-lenny-skills",
+      "subpath": null,
+      "profile": "plain-plugin",
+      "notes": "Batch 2 anchor. 86 skills, no enumerating manifest: the collection-scale target that set the advisory sampling protocol (run R6 deep-read 13 of 86 for ~77k tokens). 0 errors / 0 warnings under plain-plugin."
+    },
+    {
+      "id": "deanpeters-pm",
+      "repo": "https://github.com/deanpeters/Product-Manager-Skills",
+      "sha": "70fb6c4e41637047e7e4976d39145b1a78397464",
+      "scope": "plugin",
+      "clonePath": "E:/tmp/eval-deanpeters-pm",
+      "subpath": null,
+      "profile": "plain-plugin",
+      "notes": "Batch 2 anchor and the pipeline's smoke target. 49 skills, a full plugin with a marketplace catalog; the defect-rich member of the corpus (11 errors / 12 warnings under plain-plugin at this pin), which is why run R7 set the measured advisory ceiling and why reading 8 (verify before calibrate) came from it."
+    },
+    {
+      "id": "phuryn-pm",
+      "repo": "https://github.com/phuryn/pm-skills",
+      "sha": "d384f0c9eb81fe74656a4f6da168587836939edb",
+      "scope": "marketplace-by-hand",
+      "clonePath": "E:/tmp/eval-phuryn-pm",
+      "subpath": "pm-toolkit",
+      "profile": "plain-plugin",
+      "notes": "Batch 2 anchor and the same-target model triple (R8/R9/R10/R11 all graded pm-toolkit). A 9-plugin marketplace: the gate has no marketplace scope, so each plugin is graded on its own by passing --subpath (pm-ai-shipping, pm-data-analytics, pm-execution, pm-go-to-market, pm-market-research, pm-marketing-growth, pm-product-discovery, pm-product-strategy, pm-toolkit). All nine were 0 errors / 0 warnings under plain-plugin at this pin."
+    }
+  ]
+}

@@ -113,6 +113,10 @@ Three measured lessons worth more than the raw numbers:
 
 The **authoring** ranges (`askit-build-*`) are **not yet measured**. Filling them is an active task: see [How to keep this current](#how-to-keep-this-current).
 
+<!-- askit:measured-advisory-range:begin -->
+**Measured advisory range:** across every recorded run, one advisory pass has landed between **33k** and **103k** total tokens. This line is maintained by the eval-run pipeline (`node scripts/eval-run.mjs --aggregate <date>`) from the run record, and only ever widens: narrowing a measured claim means retiring a recorded run, which is a human decision.
+<!-- askit:measured-advisory-range:end -->
+
 ## How to estimate your run
 
 1. **The grade and any rendered report: budget 0 tokens.** This covers `check.mjs`, `tier-report.mjs`, and every `evaluate.mjs` format except the two advisory reports. At any scale.
