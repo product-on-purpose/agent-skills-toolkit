@@ -107,3 +107,16 @@ test("a real broken link in the same file as a template slot is still flagged (U
   assert.equal(errs.length, 1, "only the real dangling link is flagged");
   assert.ok(/missing\.md/.test(errs[0].message));
 });
+
+// H1.11 (v1.7.0): the U6 finding message must say WHAT a relative link resolves against. Recorded as
+// eval-run sensor reading 8: a Sonnet/high advisory read the links as resolving from the repo root,
+// declared 11 real defects false positives, and recommended weakening U6. CommonMark resolves against
+// the CONTAINING FILE, so the message now says so. Asserted here because no golden report snapshot
+// exercises a U6 failure path (every render fixture is a clean plugin), which left the wording untested.
+test("the U6 finding message states the resolution base (H1.11)", () => {
+  const ctx = skillCtx("see [ref](references/missing.md)");
+  const f = check(ctx).find((x) => x.reqId === "U6");
+  assert.ok(f, "expected a U6 finding");
+  assert.match(f.message, /resolves relative to the containing file/, "the message must name the resolution base");
+  assert.match(f.message, /does not resolve/, "and must still state the defect");
+});

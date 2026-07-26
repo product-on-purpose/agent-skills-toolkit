@@ -9,7 +9,7 @@ level: intermediate
 
 This page compares `agent-skills-toolkit` (askit) against the main skill and plugin builder tools. It is split deliberately into two parts: a **neutral, sourced matrix** that states what each tool does, and a separately-labelled **"where askit fits"** read that draws conclusions from it. The objective table is meant to earn your trust; the read is honestly flagged as our interpretation.
 
-Every claim about another tool was verified against that tool's own primary sources (its repository, releases, and official docs) on **2026-06-10**, not taken from secondary write-ups. The full sourced matrix carries a citation and a confidence label on every cell; the protocol that produced it is written down in [the verification methodology](../internal/research/METHODOLOGY.md), and the complete table lives in [the full sourced matrix](../internal/research/matrix.md). Star counts and versions are dated snapshots that decay.
+Every claim about another tool was verified against that tool's own primary sources (its repository, releases, and official docs), not taken from secondary write-ups. Initial verification: **2026-06-10**. Re-verification (repo accessibility, archival status, key structural claims): **2026-07-26**. The full sourced matrix carries a citation and a confidence label on every cell; the protocol that produced it is written down in [the verification methodology](../internal/research/METHODOLOGY.md), and the complete table lives in [the full sourced matrix](../internal/research/matrix.md). Star counts and versions are dated snapshots that decay.
 
 ## The matrix (the differentiators)
 
@@ -53,12 +53,12 @@ The nearest neighbours make the shape of that gap concrete, from their own sourc
 
 ### What we are not claiming
 
-In the spirit of the neutral table: askit's description-quality scorer is currently being recalibrated (it clusters strong descriptions just under its own bar), so we make **no claim** that askit grades description quality better than the field. Several of these tools run description checks too. We would rather tell you what we are still tuning than overstate the comparison.
+In the spirit of the neutral table: askit's description-quality scorer was recalibrated in v1.5.2 (ADR 0033, measured against five real corpora), so the caveat that used to sit here is retired. We still make **no claim** that askit grades description quality better than the field. Several of these tools run description checks too, and we have not measured ours against theirs. We would rather name what we have not tested than let a table imply we did.
 
 ## How we verified this, and where the proof will live
 
 The point of this comparison is that you can check it. Each competitor claim traces to a primary source with a date and a confidence label; disputes were adjudicated from the sources both sides would have to accept. One worked example: the Agent Skills specification is **not** governed by the Linux Foundation's Agentic AI Foundation as of 2026-06-10 (the AAIF project list names MCP, goose, AGENTS.md, and agentgateway but not Agent Skills; the spec's own LICENSE reads "Copyright 2025 Anthropic, PBC"), correcting a claim that several secondary reports - and our own earlier notes - had repeated. The full reasoning is in [the methodology](../internal/research/METHODOLOGY.md).
 
-The strongest proof is not a table about other tools but askit grading real libraries. Those graded reports (askit's deterministic gate run against real third-party plugins) will be published in an **Evaluation Reports showcase** at `/evaluation-reports/` as that corpus run is completed, so you can see the grader working on code it did not write rather than take our word for it.
+The strongest proof is not a table about other tools but askit grading real libraries. Those graded reports (askit's deterministic gate run against real third-party plugins) will be published in an **Evaluation Reports showcase** at `/evaluation-reports/` as that corpus run is completed (note: this route is not yet live), so you can see the grader working on code it did not write rather than take our word for it.
 
-This comparison was verified on 2026-06-10. Because adoption numbers and versions move, it is refreshed on a cadence (see [the refresh runbook](../internal/research/REFRESH.md)); for the normative definition of the tiers askit grades against, see [the Standard](../../STANDARD.md) and [conformance and tiers](conformance-and-tiers.md).
+Because adoption numbers and versions move, this comparison is refreshed on a cadence (see [the refresh runbook](../internal/research/REFRESH.md)); for the normative definition of the tiers askit grades against, see [the Standard](../../STANDARD.md) and [conformance and tiers](conformance-and-tiers.md).
