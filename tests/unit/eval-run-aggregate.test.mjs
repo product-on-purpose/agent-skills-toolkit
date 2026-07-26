@@ -5,7 +5,7 @@ import os from "node:os";
 import { fileURLToPath } from "node:url";
 import { mkdtempSync, mkdirSync, writeFileSync, readFileSync, rmSync } from "node:fs";
 import {
-  aggregate, collectSkeletons, nextRunId, ROW_HEADER, RANGE_BEGIN, RANGE_END, RECORD_REL, DOSSIER_REL,
+  aggregate, collectSkeletons, nextRunId, rowFor, ROW_HEADER, RANGE_BEGIN, RANGE_END, RECORD_REL, DOSSIER_REL,
 } from "../../scripts/lib/eval-run-aggregate.mjs";
 import { EvalRunError } from "../../scripts/lib/eval-run.mjs";
 
@@ -280,4 +280,33 @@ test("the tracked record and the public dossier carry the aggregator's anchors",
   assert.ok(dossier.includes(RANGE_END), `${DOSSIER_REL} must keep the ${RANGE_END} marker`);
   const region = dossier.slice(dossier.indexOf(RANGE_BEGIN), dossier.indexOf(RANGE_END));
   assert.equal([...region.matchAll(/\*\*(\d+)k\*\*/g)].length, 2, "the managed region states exactly two bounds (min and max)");
+});
+
+// CodeQL js/incomplete-sanitization (high), the same defect this release fixed in report-render.mjs:
+// escapeCell escaped the pipe without escaping the backslash first, so the two characters \| became
+// \| - which Markdown reads as ONE literal backslash and then a BARE pipe, adding a column to the
+// tracked record. A skeleton's advisory fields are model-authored, so this is reachable.
+const BACKSLASH = String.fromCharCode(92);
+// Count pipes the way Markdown does: a pipe is escaped only when the backslash run before it is ODD.
+// Textually stripping "\|" is the same mistake as the bug, so the check models the real rule.
+function livePipes(line) {
+  let n = 0;
+  for (let i = 0; i < line.length; i++) {
+    if (line[i] !== "|") continue;
+    let slashes = 0;
+    for (let j = i - 1; j >= 0 && line[j] === BACKSLASH; j--) slashes++;
+    if (slashes % 2 === 0) n++;
+  }
+  return n;
+}
+
+test("a backslash-pipe payload in a skeleton cannot add a column to the record row", () => {
+  const payload = `x${BACKSLASH}| INJECTED | tail`;
+  const clean = rowFor(skeleton({ advisory: { ...skeleton().advisory, model: "benign", result: "benign" } }), 1);
+  // advisory.model and advisory.result are MODEL-AUTHORED, which is what makes this reachable.
+  const hostile = rowFor(skeleton({ advisory: { ...skeleton().advisory, model: payload, result: payload } }), 1);
+  assert.equal(
+    livePipes(hostile), livePipes(clean),
+    `the payload must contribute no LIVE pipe (structural ${livePipes(clean)}, got ${livePipes(hostile)}): ${hostile}`
+  );
 });

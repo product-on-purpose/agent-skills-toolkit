@@ -70,7 +70,13 @@ export function nextRunId(recordText) {
   return (ids.length ? Math.max(...ids) : 0) + 1;
 }
 
-const escapeCell = (v) => String(v).replace(/\r?\n/g, " ").replace(/\|/g, "\\|").trim();
+// The BACKSLASH pass must come FIRST (CodeQL js/incomplete-sanitization, high; the same defect this
+// release fixed in report-render.mjs escapeMd). Escaping the pipe alone is self-defeating: a skeleton
+// field containing the two characters \| becomes \\| , which Markdown reads as ONE literal backslash
+// followed by a BARE pipe, so the value walks out of its cell and adds a column to the tracked record.
+// The advisory fields in a skeleton are model-authored, so this is reachable, not theoretical.
+const escapeCell = (v) =>
+  String(v).replace(/\r?\n/g, " ").replace(/\\/g, "\\\\").replace(/\|/g, "\\|").trim();
 const num = (n) => Number(n).toLocaleString("en-US");
 
 /** One record row from one skeleton. Un-dispatched advisory fields read "(pending dispatch)", never 0. */
