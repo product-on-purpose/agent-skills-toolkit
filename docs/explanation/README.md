@@ -17,4 +17,6 @@ Explanation of the concepts behind the toolkit: architecture, conformance and ti
 - `conformance-and-tiers.md` - the "conformance and tiers" page.
 - `faq.md` - the "faq" page.
 - `glossary.md` - the "glossary" page.
+- `reading-paths.md` - the "reading paths" page.
 - `validation-and-improvement.md` - the "how the toolkit is validated and improved" page.
+- `why-a-standard.md` - the "why a standard, and what it delivers" page.
