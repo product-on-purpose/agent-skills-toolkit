@@ -51,6 +51,10 @@ The nearest neighbours make the shape of that gap concrete, from their own sourc
 
 **The one differentiator askit holds alone** is the provenance split (objective / vendor-cited / house): it is the only tool that labels each finding by whether it is a portable spec rule or a house convention, which is what lets askit grade a library it does not own on portable rules only.
 
+### What we are not claiming
+
+In the spirit of the neutral table: askit's description-quality scorer was recalibrated in v1.5.2 (ADR 0033, measured against five real corpora), so the caveat that used to sit here is retired. We still make **no claim** that askit grades description quality better than the field. Several of these tools run description checks too, and we have not measured ours against theirs. We would rather name what we have not tested than let a table imply we did.
+
 ## How we verified this, and where the proof will live
 
 The point of this comparison is that you can check it. Each competitor claim traces to a primary source with a date and a confidence label; disputes were adjudicated from the sources both sides would have to accept. One worked example: the Agent Skills specification is **not** governed by the Linux Foundation's Agentic AI Foundation as of 2026-06-10 (the AAIF project list names MCP, goose, AGENTS.md, and agentgateway but not Agent Skills; the spec's own LICENSE reads "Copyright 2025 Anthropic, PBC"), correcting a claim that several secondary reports - and our own earlier notes - had repeated. The full reasoning is in [the methodology](../internal/research/METHODOLOGY.md).

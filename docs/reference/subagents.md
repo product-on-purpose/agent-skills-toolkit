@@ -10,6 +10,8 @@ tags: [subagents, chain, agents, reference]
 
 The seven askit subagents are bounded, read-only or narrowly scoped delegates that parent skills dispatch for specific phases of work. None owns its own conversation; each is invoked by a parent skill via the agent chain contract. Chain permissions are governed by `agents/_chain-permitted.yaml` - a subagent not listed there for a given parent may not be dispatched by that parent.
 
+**Four of the seven have a declared parent; three do not.** `askit-evaluator`, `askit-quality-grader`, `askit-reviewer`, and `askit-skill-author` each have a declared edge. The three general-purpose delegates (`askit-explorer`, `askit-file-ops`, `askit-file-search`) appear nowhere in `_chain-permitted.yaml`, because only two skills declare a `chain:` at all today (`askit-build-skill` and `askit-evaluate`) and neither names them. `S4` (`chain-contract`) validates the edges that are declared rather than requiring every subagent to have one, so this passes the gate - but it does mean no skill may currently dispatch those three under the contract. They were authored ahead of the skills that will declare them. This page states that gap rather than implying a permission the contract does not grant.
+
 ## askit-evaluator
 
 **Purpose.** The delegated assessment role behind `askit-evaluate`. Runs `node scripts/evaluate.mjs <target> --json` and reports findings grouped by severity and requirement ID, each with its file path and the remediation the message states. Read-only: it never edits the target.
@@ -25,10 +27,10 @@ The seven askit subagents are bounded, read-only or narrowly scoped delegates th
 
 **Purpose.** A bounded, read-only discovery delegate. Surveys a repository broadly and returns a structural map of its components and layout: what component types are present, where they live, what manifests exist, and what conventions the repo follows. It reads excerpts to locate and classify, not whole files, and never edits. The broad counterpart to `askit-file-search` (which resolves a single known query).
 
-**Parent skill.** Used behind discovery-heavy skills such as `askit-migrate` (assess mode), where a foreign repo must be surveyed before it can be graded.
+**Parent skill.** None declared. Its natural caller is a discovery-heavy skill such as `askit-migrate` (assess mode), where a foreign repo must be surveyed before it can be graded, but `askit-migrate` declares no `chain:` today.
 
 **Chain permissions** (from `agents/_chain-permitted.yaml`).
-- Not listed in `_chain-permitted.yaml`; may be dispatched ad-hoc by skills that do not formally declare a chain contract.
+- No entry. No skill declares an edge to it, so no skill may dispatch it under the chain contract.
 
 ---
 
@@ -36,10 +38,10 @@ The seven askit subagents are bounded, read-only or narrowly scoped delegates th
 
 **Purpose.** A bounded file-mutation delegate. Carries out a specified set of create and edit operations precisely: the "do the writes" role an authoring skill delegates to once it has decided what to change. It applies exactly the operations given; it does not decide scope, design content, or run commands. Read-before-write is mandatory.
 
-**Parent skill.** Used by authoring skills that have already decided what to write, such as `askit-build-skill` (improve mode) and `askit-build-docs`.
+**Parent skill.** None declared. Its natural callers are authoring skills that have already decided what to write, such as `askit-build-skill` (improve mode) or `askit-build-docs`, but neither declares an edge to it: `askit-build-skill` chains only `askit-skill-author`, and `askit-build-docs` declares no `chain:` at all.
 
 **Chain permissions** (from `agents/_chain-permitted.yaml`).
-- Not listed in `_chain-permitted.yaml`; may be dispatched ad-hoc by skills that do not formally declare a chain contract.
+- No entry. No skill declares an edge to it, so no skill may dispatch it under the chain contract.
 
 ---
 
@@ -47,10 +49,10 @@ The seven askit subagents are bounded, read-only or narrowly scoped delegates th
 
 **Purpose.** A bounded, read-only search delegate. Answers a precise locate question: which files match a pattern or where a symbol or string lives. Returns paths with the matched lines. The pinpoint counterpart to `askit-explorer`: explorer maps breadth (what is here), file-search resolves a known query (where is X). Never edits.
 
-**Parent skill.** Used by any skill that needs to locate a specific file, symbol, or text pattern before acting.
+**Parent skill.** None declared. Its natural caller is any skill that needs to locate a specific file, symbol, or text pattern before acting, but no skill declares an edge to it.
 
 **Chain permissions** (from `agents/_chain-permitted.yaml`).
-- Not listed in `_chain-permitted.yaml`; may be dispatched ad-hoc by skills that do not formally declare a chain contract.
+- No entry. No skill declares an edge to it, so no skill may dispatch it under the chain contract.
 
 ---
 
