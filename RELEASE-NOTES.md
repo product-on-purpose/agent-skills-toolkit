@@ -2,6 +2,21 @@
 
 Curated, user-facing highlights. For the full technical history see [`CHANGELOG.md`](CHANGELOG.md).
 
+## 1.6.1 - 2026-07-25
+
+The trust patch. We pointed the toolkit at five real plugin repositories it had never seen, then checked every finding by hand. It found roughly fifty genuinely broken things - and it also cried wolf. This release fixes the crying wolf.
+
+### What changed
+
+- **Valid diagrams are no longer failed.** The diagram checker was reading two pieces of legitimate Mermaid notation as broken brackets: the async message arrows in sequence diagrams (`-)`), and the crow's-foot cardinality in entity-relationship diagrams (`||--o{`). Across the five audited repositories, **11 of the 14 diagram errors it reported were its own fault**. They are gone, and the three real ones remain. The fix is scoped per diagram type, so a genuinely unbalanced bracket - in any diagram, including those two - still fails.
+- **Template files are no longer punished for being templates.** A link pointing at a placeholder your generator fills in later (`{{docs_path}}/guide.md`, `{release-url}`) is not a broken link, and is no longer reported as one.
+- **The report no longer looks like it contradicts itself.** If your plugin declares Bronze, the gate may still list Silver and Gold findings for information. Those used to print as a wall of `[error]` lines directly above a line reading "0 error(s)", which read as a contradiction to every person who saw it. They now sit under a heading that says plainly they cannot affect your grade.
+- **Latent standard debt is now stated, not hidden.** If you pin an older version of the Standard, the gate used to tell you "no blockers detected" while quietly holding back findings that would all fail the moment you re-pinned. One repository we graded had 122 of them. You now get a single line telling you the count and the version at which they come due.
+
+### Upgrade
+
+No action required, and nothing that passed before will newly fail. If you use Mermaid sequence or ER diagrams, or ship template files, expect your error count to go down.
+
 ## 1.6.0 - 2026-06-14
 
 Manifest completeness, made actionable. The Standard grows for the first time since the v0.11 relaxation - and it does so without breaking anyone.

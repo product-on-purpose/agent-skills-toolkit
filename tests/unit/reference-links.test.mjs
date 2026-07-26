@@ -85,3 +85,25 @@ test("a link inside a triple-backtick inline span is ignored (U6)", () => {
   const ctx = skillCtx("Like ```[a](b.md)``` shown inline.");
   assert.equal(check(ctx).filter((f) => f.severity === "error").length, 0);
 });
+
+// PSR-3 (ADR 0036): a link whose TARGET contains a substitution token is a template slot, not a live
+// reference - the generator fills it in later, so there is nothing on disk for U6 to resolve and the
+// error is a false positive on well-built template files. The token syntax at the point of use is what
+// marks template intent (no filename convention, no frontmatter flag, nothing the target must adopt),
+// because a brace is not a character any real relative repo path carries.
+test("a link target with a {{double-brace}} substitution token is not a live reference (U6)", () => {
+  const ctx = skillCtx("see [the guide]({{docs_path}}/guide.md)");
+  assert.equal(check(ctx).filter((f) => f.severity === "error").length, 0);
+});
+
+test("a link target with a {single-brace} substitution token is not a live reference (U6)", () => {
+  const ctx = skillCtx("download the [release]({release-url})");
+  assert.equal(check(ctx).filter((f) => f.severity === "error").length, 0);
+});
+
+test("a real broken link in the same file as a template slot is still flagged (U6)", () => {
+  const ctx = skillCtx("slot [a]({{path}}/x.md) and real [b](references/missing.md)");
+  const errs = check(ctx).filter((f) => f.severity === "error");
+  assert.equal(errs.length, 1, "only the real dangling link is flagged");
+  assert.ok(/missing\.md/.test(errs[0].message));
+});
