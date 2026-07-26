@@ -17,23 +17,38 @@ on:
   pull_request:
     branches: [main]
 
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   validate:
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node: [22.12.0, 24]
     steps:
       - name: Checkout
         uses: actions/checkout@v5
 
-      - name: Set up Node from .nvmrc (pin 24; baseline >=22.12.0, the family floor; Node 20 is EOL)
+      - name: Set up Node ${{ matrix.node }}
         uses: actions/setup-node@v5
         with:
-          node-version-file: .nvmrc
+          node-version: ${{ matrix.node }}
+          cache: npm
+          cache-dependency-path: package-lock.json
 
       - name: Install dependencies
         run: npm ci
 
+      - name: Audit dependencies (blocking at high severity)
+        run: npm audit --audit-level=high
+
       - name: Unit tests
         run: npm test
+
+      - name: Coverage report (report-only, no gate)
+        run: npx c8 --reporter=text-summary node --test || true
 
       - name: Conformance gate (self-validation)
         run: node scripts/check.mjs

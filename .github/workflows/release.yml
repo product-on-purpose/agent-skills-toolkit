@@ -31,6 +31,8 @@ jobs:
         uses: actions/setup-node@v5
         with:
           node-version-file: .nvmrc
+          cache: npm
+          cache-dependency-path: package-lock.json
 
       - name: Install dependencies
         run: npm ci
@@ -77,7 +79,7 @@ jobs:
           fi
 
       - name: Create GitHub release
-        uses: softprops/action-gh-release@v3
+        uses: softprops/action-gh-release@3d0d9888cb7fd7b750713d6e236d1fcb99157228 # v3 pinned 2026-07-26
         with:
           body_path: RELEASE_BODY.md
           draft: false
