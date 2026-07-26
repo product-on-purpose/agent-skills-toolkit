@@ -345,6 +345,8 @@ The Claude slash commands that give the core flows an explicit `/command` entry 
 
 ## Find your way in
 
+- **Not sure any of this is worth it** - [Why a standard, and what it delivers](docs/explanation/why-a-standard.md). The case, the outcomes, and what it deliberately does not do.
+- **Not sure what to read** - [Reading paths](docs/explanation/reading-paths.md). Six guided routes, one per kind of reader.
 - **Understand what a best-in-class library is** - [`STANDARD.md`](STANDARD.md) and [The tier model](#the-tier-model).
 - **Grade a plugin you already have** - the `askit-evaluate` skill, or `node scripts/check.mjs` for the burndown.
 - **Build your first skill** - `askit-build-skill` (or the `/askit-build-skill` command).
@@ -357,6 +359,8 @@ The Claude slash commands that give the core flows an explicit `/command` entry 
 
 ## Documentation
 
+- [Why a standard, and what it delivers](docs/explanation/why-a-standard.md) - the case for grading against a written standard, the outcomes it produces, and who benefits. Written for technical and non-technical readers alike; start here if you have not already bought the premise.
+- [Reading paths](docs/explanation/reading-paths.md) - six guided routes through these docs, one per kind of reader, with what each resource is and why it matters.
 - [`STANDARD.md`](STANDARD.md) - the normative Standard that every tool here enforces (component model, tiers, manifest schema, CI and release expectations, lifecycle).
 - [Live docs site](https://product-on-purpose.github.io/agent-skills-toolkit/) - the published Diataxis docs (Astro Starlight, deployed to GitHub Pages).
 - [`docs/`](docs/) - tutorials, how-to guides, per-component reference, and explanation in-repo.
