@@ -1,0 +1,41 @@
+# CodeQL static analysis for agent-skills-toolkit.
+#
+# Advanced setup: this committed workflow file is the configuration source of truth
+# (not the repository Settings toggle). Targets the javascript-typescript query suite.
+# Results post to the Security tab. SHA-pinned per supply-chain hygiene (change 8 of
+# the CI evolution plan in docs/internal/execution/05-ci-plan.md).
+
+name: CodeQL
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  schedule:
+    - cron: '0 3 * * 1'
+
+permissions:
+  security-events: write
+  actions: read
+  contents: read
+
+jobs:
+  analyze:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@4187e74d05793876e9989daffde9c3e66b4acd07 # v3 pinned 2026-07-26
+        with:
+          languages: javascript-typescript
+
+      - name: Autobuild
+        uses: github/codeql-action/autobuild@4187e74d05793876e9989daffde9c3e66b4acd07 # v3 pinned 2026-07-26
+
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@4187e74d05793876e9989daffde9c3e66b4acd07 # v3 pinned 2026-07-26
+        with:
+          category: "/language:javascript-typescript"

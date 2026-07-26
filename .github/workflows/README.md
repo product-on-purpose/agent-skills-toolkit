@@ -9,5 +9,6 @@ The CI and release automation: the conformance gate and a non-deploying site bui
 ## Inventory
 
 - `ci.yml` - the ci.yml config.
+- `codeql.yml` - CodeQL static analysis (javascript-typescript suite, advanced setup).
 - `deploy-pages.yml` - the deploy-pages.yml config.
 - `release.yml` - the release.yml config.
