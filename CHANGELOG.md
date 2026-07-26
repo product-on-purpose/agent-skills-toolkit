@@ -9,6 +9,23 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [1.6.1] - 2026-07-25
+
+The trust patch. Grading five real third-party-shaped plugin repositories in the 2026-07-19 portfolio audit exposed the grader over-flagging valid Mermaid notation, and three independent assessors misreading the gate's own output in a single day. Both are fixed here. Nothing the Standard requires has changed: the spine stays **30 checks**, the Standard stays **v0.12**, both calibrated checks keep `objective` provenance, and the toolkit still self-grades Gold (Advanced 0/0, **442 tests**).
+
+### Fixed
+- **`U12` (`mermaid-valid`) no longer misreads Mermaid grammar as unbalanced brackets (ADR 0036).** `bracketsBalanced` was a generic character walk, which is correct for `flowchart` and wrong for two diagram types that overload the bracket characters: `sequenceDiagram` async message arrows (`-)` solid, `--)` dotted, where `)` is an arrowhead glyph) and `erDiagram` crow's-foot cardinality (`||--o{` and the `|o || }o }|` / `o| || o{ |{` family, where `{` and `}` are cardinality glyphs). The check now consults a per-diagram-type syntax-token table, **scoped by diagram type** so a stray `-)` in a flowchart is still the unmatched paren it looks like, and applied **rescue-only** (a closer is ignored only when the stack is already empty) so no previously-passing diagram can newly fail. Measured on the audit corpus: portfolio `U12` errors **14 -> 3**, with the 11 removed confirmed false positives.
+- **`U6` (`reference-links`) no longer treats a template slot as link rot (ADR 0036).** A link whose target carries a substitution token (`{{docs_path}}/guide.md`, `{release-url}`) is filled in by a generator and has nothing on disk to resolve. This is the U6 half of the rule ADR 0032 gave `U12` for pure `{{...}}` diagram bodies, and it answers "what marks template intent" with the token at the point of use - no filename convention and no frontmatter flag a graded third-party plugin would have to adopt.
+- **Corpus verification.** Re-grading the five audited repositories under `--profile plain-plugin` takes pm-skills **56 -> 43** errors and pm-skills-mcp **18 -> 14**, landing exactly on the real-defect counts the audit had hand-verified independently, before this fix existed.
+
+### Changed
+- **The gate sections above-declared-tier findings.** Findings above a plugin's declared tier cannot affect its grade or exit code, but printed in the same undifferentiated `[error]` stream ahead of a "0 error(s)" summary. They now print under an explicit header saying so, after the findings that do count.
+- **The gate states pinned-Standard debt.** A plugin pinned to an older Standard printed "Tier: Advanced (no blockers detected)" with exit 0 while carrying findings that all become gate-failing the moment it re-pins. A one-line indicator now names how many findings the pin is holding back and the Standard version at which they come due.
+
+### Added
+- `docs/internal/decisions/0036-calibrate-u12-diagram-grammar-and-u6-template-slots.md` - the calibration decision, its measured before/after, and the two accepted directional trade-offs stated explicitly rather than left silent.
+- 24 tests (**418 -> 442**), including four scoping guards proving the `U12` allowance does not leak outside the diagram type that owns it, and `tests/unit/gate-display.test.mjs` covering the presentation split.
+
 ## [1.6.0] - 2026-06-14
 
 Manifest completeness, made actionable. The first growth of the Standard since the v1.2.0 relaxation: a new Universal check catches a plugin that ships skills it never registered (invisible to installers), and the evaluation report is made actionable with a per-check glossary and the missing Bronze reference page. The Standard moves **0.11 -> 0.12** and the spine **29 -> 30**; per the warn-for-one-minor burndown the new check ships as a warning (gating nobody) before it becomes a gate-failing error at 0.13, so no previously-passing plugin newly fails on the bump. The toolkit still self-grades Gold (Advanced 0/0, 418 tests).

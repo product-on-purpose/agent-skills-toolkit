@@ -264,3 +264,112 @@ test("a fence-like line that is not a valid closer does not desync the comment s
     assert.ok(check({ root: dir }).some((x) => /tab character/.test(x.message)), "content after a non-closing fence-like line is still validated");
   });
 });
+
+// PSR-1 / PSR-2 (ADR 0036): Mermaid overloads the bracket characters as SYNTAX in two diagram types, so
+// a naive character walk misreads valid notation as unbalanced. In sequenceDiagram, `-)` / `--)` are the
+// async (open-arrowhead) message arrows; in erDiagram, `||--o{` and its siblings are cardinality tokens.
+// Both must pass. The guards below prove the neutralization is scoped BY DIAGRAM TYPE, so a genuinely
+// unbalanced bracket - in any diagram type, including the two calibrated ones - still fails.
+test("a sequenceDiagram async arrow -) does not trip the balance rule (U12, PSR-1)", () => {
+  inTmp("mermaid-seq-async-", (dir) => {
+    writeFileSync(path.join(dir, "a.md"), md("sequenceDiagram\n  Alice -) Bob: async request"));
+    assert.equal(check({ root: dir }).length, 0, "-) is an async message arrow, not an unmatched paren");
+  });
+});
+
+test("a sequenceDiagram dotted async arrow --) does not trip the balance rule (U12, PSR-1)", () => {
+  inTmp("mermaid-seq-async2-", (dir) => {
+    writeFileSync(path.join(dir, "a.md"), md("sequenceDiagram\n  Alice --) Bob: async reply\n  Bob --) Alice: ack"));
+    assert.equal(check({ root: dir }).length, 0);
+  });
+});
+
+test("erDiagram crow's-foot cardinality ||--o{ does not trip the balance rule (U12, PSR-2)", () => {
+  inTmp("mermaid-er-card-", (dir) => {
+    writeFileSync(path.join(dir, "a.md"), md("erDiagram\n    USERS ||--o{ ORDERS : places"));
+    assert.equal(check({ root: dir }).length, 0, "||--o{ is a cardinality token, not an unclosed brace");
+  });
+});
+
+test("every erDiagram cardinality shape is accepted, identifying and non-identifying (U12, PSR-2)", () => {
+  inTmp("mermaid-er-all-", (dir) => {
+    writeFileSync(path.join(dir, "a.md"), md([
+      "erDiagram",
+      "    A }o--o{ B : many",
+      "    C }|..|{ D : oneOrMore",
+      "    E |o--|| F : zeroOrOne",
+      "    G ||--|{ H : oneToMany",
+    ].join("\n")));
+    assert.equal(check({ root: dir }).length, 0);
+  });
+});
+
+test("an erDiagram attribute block with cardinality on the same diagram passes (U12, PSR-2)", () => {
+  inTmp("mermaid-er-attrs-", (dir) => {
+    writeFileSync(path.join(dir, "a.md"), md([
+      "erDiagram",
+      "    CUSTOMER ||--o{ ORDER : places",
+      "    CUSTOMER {",
+      "        string name",
+      "        string email",
+      "    }",
+    ].join("\n")));
+    assert.equal(check({ root: dir }).length, 0);
+  });
+});
+
+test("the async-arrow allowance is scoped to sequenceDiagram: -) in a flowchart still fails (U12)", () => {
+  inTmp("mermaid-scope-flow-", (dir) => {
+    // `-)` is not flowchart syntax, so here the `)` genuinely IS an unmatched closing paren.
+    writeFileSync(path.join(dir, "a.md"), md("flowchart LR\n  A -) B"));
+    assert.ok(check({ root: dir }).some((x) => /unbalanced brackets/.test(x.message)), "the calibration must not leak outside sequenceDiagram");
+  });
+});
+
+test("the cardinality allowance is scoped to erDiagram: ||--o{ in a flowchart still fails (U12)", () => {
+  inTmp("mermaid-scope-flow2-", (dir) => {
+    writeFileSync(path.join(dir, "a.md"), md("flowchart LR\n  A ||--o{ B"));
+    assert.ok(check({ root: dir }).some((x) => /unbalanced brackets/.test(x.message)), "the calibration must not leak outside erDiagram");
+  });
+});
+
+test("a genuinely unbalanced bracket inside a sequenceDiagram still fails (U12)", () => {
+  inTmp("mermaid-seq-real-", (dir) => {
+    writeFileSync(path.join(dir, "a.md"), md("sequenceDiagram\n  Alice -) Bob: see [the note"));
+    assert.ok(check({ root: dir }).some((x) => /unbalanced brackets/.test(x.message)), "neutralizing async arrows must not mask a real defect");
+  });
+});
+
+test("a genuinely unbalanced attribute brace inside an erDiagram still fails (U12)", () => {
+  inTmp("mermaid-er-real-", (dir) => {
+    writeFileSync(path.join(dir, "a.md"), md([
+      "erDiagram",
+      "    CUSTOMER ||--o{ ORDER : places",
+      "    CUSTOMER {",
+      "        string name",
+    ].join("\n")));
+    assert.ok(check({ root: dir }).some((x) => /unbalanced brackets/.test(x.message)), "neutralizing cardinality must not mask a real unclosed attribute block");
+  });
+});
+
+// ADR 0036 characterization tests. These pin the two REVIEWED trade-offs of the rescue-only design so a
+// future change to either is a deliberate decision with a failing test, not a silent drift. They assert
+// current behavior rather than driving new code.
+test("a paren-closing hyphen in sequence message text is NOT orphaned by the calibration (U12)", () => {
+  inTmp("mermaid-seq-rescue-", (dir) => {
+    // The one-directional-safety guard: a `-)` whose `(` is genuinely open still pops it. A mask-first
+    // implementation would blank this `)` and report the `(` as unbalanced - a NEW false positive.
+    writeFileSync(path.join(dir, "a.md"), md("sequenceDiagram\n  Alice ->> Bob: see (step 1-)"));
+    assert.equal(check({ root: dir }).length, 0, "rescue-only must not orphan a matched opening paren");
+  });
+});
+
+test("ACCEPTED false negative: a stray hyphen-paren in sequence message text no longer fails (U12)", () => {
+  inTmp("mermaid-seq-fn-", (dir) => {
+    // The documented cost of rescue-only (ADR 0036 Consequences): in a sequenceDiagram any `)` preceded
+    // by a hyphen reads as an arrowhead when nothing is open, including in free message text. Previously
+    // caught by accident. The render-time astro-mermaid layer remains the second net.
+    writeFileSync(path.join(dir, "a.md"), md("sequenceDiagram\n  Alice ->> Bob: done -)"));
+    assert.equal(check({ root: dir }).length, 0, "accepted trade-off; change this only via a new ADR");
+  });
+});

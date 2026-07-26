@@ -124,19 +124,60 @@ function extractMermaidBlocks(text) {
   return blocks;
 }
 
+// Mermaid overloads the bracket characters as GRAMMAR in two diagram types, and a plain character walk
+// misreads that grammar as an unbalanced bracket (PSR-1 / PSR-2, ADR 0036):
+//   sequenceDiagram - `-)` (solid) and `--)` (dotted) are the async, open-arrowhead message arrows.
+//   erDiagram       - `||--o{`, `}o--o{`, `}|..|{` and friends are relationship cardinality tokens,
+//                     built as <left cardinality><line><right cardinality>, where left is one of
+//                     |o || }o }|, right is one of o| || o{ |{, and the line is `--` (identifying) or
+//                     `..` (non-identifying). Attribute blocks use real, balanced { } and are untouched.
+// The neutralization is scoped BY DIAGRAM TYPE because these tokens are grammar in one diagram type and
+// meaningless in another: a stray `-)` in a flowchart really is the unmatched paren it looks like.
+const SYNTAX_TOKEN_RE = {
+  sequenceDiagram: /--?\)/g,
+  erDiagram: /[|}][o|](?:--|\.\.)[o|][|{]/g,
+};
+
+/** Mark every character index of s that belongs to a mermaid syntax token of this diagram type.
+ *  Returns null when the diagram type has no such tokens (the overwhelming majority). */
+function syntaxTokenMask(s, diagramType) {
+  const re = SYNTAX_TOKEN_RE[diagramType];
+  if (!re) return null;
+  const mask = new Uint8Array(s.length);
+  re.lastIndex = 0;
+  for (let m; (m = re.exec(s)); ) {
+    for (let i = m.index; i < m.index + m[0].length; i++) mask[i] = 1;
+  }
+  return mask;
+}
+
 /** True iff brackets [] () {} balance across s, ignoring characters inside "..." quoted spans. An
  *  unterminated quote span (odd number of unescaped quotes) is itself malformed and fails: Mermaid
  *  escapes a literal quote as #quot;, not \", so a raw odd quote count is unambiguously suspect. The
- *  odd-quote parity-inversion subset that still balances is delegated to the render-time layer. */
-function bracketsBalanced(s) {
+ *  odd-quote parity-inversion subset that still balances is delegated to the render-time layer.
+ *
+ *  Syntax-token handling (ADR 0036) is deliberately RESCUE-ONLY, so the calibration can never turn a
+ *  passing diagram into a failing one: a closer inside a syntax token is ignored only when the stack is
+ *  already EMPTY (nothing it could legitimately close). A `)` that has a real `(` waiting still pops it,
+ *  exactly as before, so `Bob: (step 1-)` keeps balancing instead of being orphaned by the mask. The
+ *  accepted cost is the mirror case - an unclosed `(` immediately followed by an async arrow now balances
+ *  against it - a false negative, which is the safe direction for an outward-facing grader. */
+function bracketsBalanced(s, diagramType) {
   const closers = { "]": "[", ")": "(", "}": "{" };
+  const mask = syntaxTokenMask(s, diagramType);
   const stack = [];
   let inQuote = false;
-  for (const ch of s) {
+  for (let i = 0; i < s.length; i++) {
+    const ch = s[i];
     if (ch === '"') { inQuote = !inQuote; continue; }
     if (inQuote) continue;
-    if (ch === "[" || ch === "(" || ch === "{") stack.push(ch);
-    else if (ch in closers) { if (stack.pop() !== closers[ch]) return false; }
+    if (ch === "[" || ch === "(" || ch === "{") {
+      if (mask?.[i]) continue; // the `{` of an `o{` / `|{` cardinality glyph: grammar, never closed
+      stack.push(ch);
+    } else if (ch in closers) {
+      if (stack.length === 0 && mask?.[i]) continue; // a syntax-token closer with nothing to close
+      if (stack.pop() !== closers[ch]) return false;
+    }
   }
   return stack.length === 0 && !inQuote;
 }
@@ -218,13 +259,16 @@ export function check(ctx) {
       if (isTemplatePlaceholder(bodyLines)) continue; // a {{...}} template slot is not a live diagram
       const dl = diagramLine(bodyLines);
       const firstWord = dl.text.split(/\s+/)[0] ?? "";
+      // The recognized diagram type (undefined when the keyword rule below fails) scopes the mermaid
+      // syntax-token allowance in bracketsBalanced: an unrecognized block gets no allowance at all.
+      const diagramType = DIAGRAM_KEYWORDS.find((kw) => dl.text.startsWith(kw));
       if (dl.index === -1 || !DIAGRAM_KEYWORDS.some((kw) => dl.text.startsWith(kw))) {
         const lineNo = dl.index === -1 ? b.startLine : b.startLine + 1 + dl.index;
         out.push(finding(meta.id, SEVERITY.ERROR, `mermaid block starting at line ${b.startLine} has no recognized diagram keyword on its first diagram line (line ${lineNo}, got ${JSON.stringify(firstWord)}).`, { file: rel, reqId: meta.reqId }));
       }
       // Strip %% comments/directives (honoring quotes) before counting, so a lone bracket in comment
       // prose or an init directive's JSON braces does not fail the balance rule.
-      if (!bracketsBalanced(stripComments(body))) {
+      if (!bracketsBalanced(stripComments(body), diagramType)) {
         out.push(finding(meta.id, SEVERITY.ERROR, `mermaid block at line ${b.startLine} has unbalanced brackets [] () {} or an unterminated quote (quotes ignored for bracket counting).`, { file: rel, reqId: meta.reqId }));
       }
       if (body.includes("\t")) {

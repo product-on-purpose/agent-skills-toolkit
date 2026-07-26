@@ -16,6 +16,15 @@ const LINK = /\[[^\]]*\]\(([^)]+)\)/g;
 // Cowork `computer:` local-artifact scheme and `file:`; both appear in real, well-built official plugins.
 const SKIP_SCHEME = /^(https?:|mailto:|tel:|ftp:|ws:|wss:|data:|javascript:|computer:|file:|#|\/\/)/i;
 
+// A link target carrying a substitution token - `{{docs_path}}/guide.md`, `{release-url}` - is a
+// TEMPLATE SLOT the generator fills in later, not a live reference, so there is nothing on disk for U6
+// to resolve and the error is a false positive on well-built template files (PSR-3, ADR 0036). The token
+// at the point of use is what marks template intent: no filename convention and no frontmatter flag that
+// a graded third-party plugin would have to adopt, just a brace, which no real relative repo path
+// carries. This is the U6 half of the same rule ADR 0032 gave U12 for pure `{{...}}` diagram bodies, and
+// like every strip in this check it can only REMOVE findings, never add them.
+const TEMPLATE_TOKEN = /[{}]/;
+
 // Strip code before scanning for links: a markdown link (or a regex) written inside a fenced ``` / ~~~
 // block OR inside a single-backtick `inline code` span is an illustration of syntax, not a live
 // reference (skill docs routinely show `[text](path)` examples and capture regexes like `[^'"]+` as
@@ -40,6 +49,7 @@ function scanLinks(text, baseDir, fileRel, out) {
   while ((m = LINK.exec(scanText))) {
     let target = m[1].trim();
     if (SKIP_SCHEME.test(target)) continue;
+    if (TEMPLATE_TOKEN.test(target)) continue;
     target = target.split("#")[0];
     if (!target) continue;
     const resolved = path.resolve(baseDir, target);
