@@ -4,6 +4,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { readFileSync } from "node:fs";
 import { releaseReport, computeGoNoGo } from "../../scripts/lib/release-report.mjs";
+import { buildConditional } from "../../scripts/evaluate.mjs";
 import { renderMarkdown, renderHtml } from "../../scripts/lib/report-render.mjs";
 import { CHECKS } from "../../scripts/lib/registry.mjs";
 import { gateExitFromFindings } from "../../scripts/check.mjs";
@@ -13,13 +14,12 @@ const FIXTURES = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../
 const SF = path.join(FIXTURES, "golden/silver-fixture"); // no RELEASE-NOTES, no package.json -> a no-go
 const SNAP_DIR = path.join(FIXTURES, "golden/report-render");
 const SPINE = CHECKS.map((m) => ({ reqId: m.meta.reqId, id: m.meta.id, tier: m.meta.tier }));
-const CONDITIONAL = new Set(["G1", "G6", "U11"]);
 
 function optsFor(r, target, reportType) {
   const lib = JSON.parse(readFileSync(path.join(target, "library.json"), "utf8"));
   const forGate = r.findings.filter((f) => !f.suppressed).map((f) => ({ ...f, severity: f.effectiveSeverity ?? f.severity }));
   const { exitCode } = gateExitFromFindings(forGate, lib.tier);
-  return { library: lib, spine: SPINE, conditional: CONDITIONAL, date: "2026-01-01", exitCode, reportType };
+  return { library: lib, spine: SPINE, conditional: buildConditional(target), date: "2026-01-01", exitCode, reportType };
 }
 
 // --- B.2: the release-readiness report object ---

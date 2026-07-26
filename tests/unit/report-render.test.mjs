@@ -5,7 +5,7 @@ import { fileURLToPath } from "node:url";
 import { readFileSync, existsSync, writeFileSync, mkdirSync } from "node:fs";
 import { CHECKS } from "../../scripts/lib/registry.mjs";
 import { REPORT_META, metaFor } from "../../scripts/lib/report-meta.mjs";
-import { evaluate } from "../../scripts/evaluate.mjs";
+import { evaluate, buildConditional } from "../../scripts/evaluate.mjs";
 import { gateExitFromFindings } from "../../scripts/check.mjs";
 import { renderMarkdown, renderHtml } from "../../scripts/lib/report-render.mjs";
 
@@ -14,7 +14,6 @@ const FIXTURES = path.resolve(HERE, "../fixtures");
 const SF = path.join(FIXTURES, "golden/silver-fixture"); // Convergent (Silver): real tier, real Gold blockers
 const LONE = path.join(FIXTURES, "golden/lone-skill"); // a component, no tier
 const SPINE = CHECKS.map((m) => ({ reqId: m.meta.reqId, id: m.meta.id, tier: m.meta.tier }));
-const CONDITIONAL = new Set(["G1", "G6", "U11"]);
 const TIER_LABEL = { universal: "Bronze", convergent: "Silver", advanced: "Gold" };
 const EM = String.fromCharCode(0x2014);
 const EN = String.fromCharCode(0x2013);
@@ -28,7 +27,7 @@ function optsFor(r, target) {
   }
   const forGate = r.findings.filter((f) => !f.suppressed).map((f) => ({ ...f, severity: f.effectiveSeverity ?? f.severity }));
   const { exitCode } = gateExitFromFindings(forGate, library?.tier);
-  return { library, spine: SPINE, conditional: CONDITIONAL, date: "2026-01-01", exitCode, reportType: "conformance" };
+  return { library, spine: SPINE, conditional: buildConditional(target), date: "2026-01-01", exitCode, reportType: "conformance" };
 }
 
 // --- report-meta coverage (the dogfood guard for a future spine addition) ---

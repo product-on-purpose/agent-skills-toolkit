@@ -9,6 +9,7 @@ The portable, zero-runtime-framework Node tooling: the conformance gate, the tie
 ## Inventory
 
 - `check.mjs` - the conformance gate entry point (runs every check, reports the tier and burndown).
+- `check-readme-version.mjs` - README version drift guard; asserts the shields.io version badge in README.md equals the version in library.json.
 - `checks/` - the per-requirement check modules.
 - `evaluate.mjs` - the structured evaluator behind askit-evaluate.
 - `generators/` - the artifact generators (INDEX, manifests, AGENTS.md).
