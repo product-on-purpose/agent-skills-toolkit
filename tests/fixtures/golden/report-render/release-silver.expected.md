@@ -36,7 +36,7 @@
 
 **Summary: a derived, plain-language read of the deterministic result. silver-fixture earns Silver.**
 
-silver-fixture declares the Silver (Convergent) tier and earns Silver. Of the 30 checks in the spine, 27 do not fail (23 pass, 1 warn, 3 not applicable) and 3 fail. The deterministic gate exits 0.
+silver-fixture declares the Silver (Convergent) tier and earns Silver. Of the 30 checks in the spine, 27 do not fail (22 pass, 1 warn, 4 not applicable) and 3 fail. The deterministic gate exits 0.
 
 3 requirement(s) block Gold: G2, G5, G4. Section 06 orders the climb and section 07 gives a copy-paste fix prompt for each gap that drives the matching askit builder and re-runs the gate.
 
@@ -72,7 +72,7 @@ Layer 1, deterministic conformance, decides the tier. The portable Node gate run
 | WARN | Advisory finding; does not block the declared tier. |
 | N/A | Vacuous pass; the thing being checked does not exist in this subject. |
 
-Vacuous passes here: U11, G6, G1. A vacuous pass means there was nothing to validate, not that a feature was exercised.
+Vacuous passes here: U12, U11, G6, G1. A vacuous pass means there was nothing to validate, not that a feature was exercised.
 
 ## 05 Tier compliance - evidence ledger
 
@@ -91,7 +91,7 @@ Vacuous passes here: U11, G6, G1. A vacuous pass means there was nothing to vali
 | U7 instruction-budget | PASS | Requirement satisfied; no finding raised. Module: checks/instruction-budget.mjs. |
 | U8 manifest-drift | PASS | Requirement satisfied; no finding raised. Module: checks/manifest-drift.mjs. |
 | U9 version-match | PASS | Requirement satisfied; no finding raised. Module: checks/version-match.mjs. |
-| U12 mermaid-valid | PASS | Requirement satisfied; no finding raised. Module: checks/mermaid-valid.mjs. |
+| U12 mermaid-valid | N/A | Nothing to validate for this subject (vacuous pass). Module: checks/mermaid-valid.mjs. |
 | U11 mcp-valid | N/A | Nothing to validate for this subject (vacuous pass). Module: checks/mcp-valid.mjs. |
 | U13 skill-registration | PASS | Requirement satisfied; no finding raised. Module: checks/skill-registration.mjs. |
 
@@ -221,7 +221,7 @@ Run `askit-evaluate` in review mode to populate this section; a conformance repo
 | Evaluator | askit-evaluate (deterministic gate, renderer) |
 | Gate exit code | 0 |
 | Evaluated | 2026-01-01 |
-| Checks | 23 PASS, 3 FAIL, 1 WARN, 3 N/A |
+| Checks | 22 PASS, 3 FAIL, 1 WARN, 4 N/A |
 
 ## 11 Per-check glossary
 

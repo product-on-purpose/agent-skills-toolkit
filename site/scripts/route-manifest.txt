@@ -1,5 +1,4 @@
 /404.html
-/catalog/index.html
 /explanation/architecture-internals/index.html
 /explanation/architecture/index.html
 /explanation/comparison/index.html
