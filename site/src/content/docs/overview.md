@@ -27,4 +27,4 @@ Cross-agent emission alone is crowded. The defensible position is the combinatio
 - Use the `askit-build-*` skills to author each missing component, conformant by construction.
 - Let the gate (`node scripts/check.mjs`) travel with the repo and enforce it in CI.
 
-See [Getting started](../getting-started/) and [the Standard](../the-standard/).
+See [Getting started](../getting-started/), [the Standard](../the-standard/), and [the catalog](../catalog/).

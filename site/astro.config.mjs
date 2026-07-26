@@ -51,6 +51,7 @@ export default defineConfig({
       sidebar: [
         { label: 'Start here', items: [{ slug: 'overview' }, { slug: 'getting-started' }] },
         { label: 'The Standard', items: [{ slug: 'the-standard' }, { slug: 'tiers' }] },
+        { label: 'The catalog', items: [{ slug: 'catalog' }] },
         { label: 'Tutorials', items: [{ autogenerate: { directory: 'tutorials' } }] },
         { label: 'How-to guides', items: [{ autogenerate: { directory: 'how-to' } }] },
         { label: 'Reference', items: [{ autogenerate: { directory: 'reference' } }] },
