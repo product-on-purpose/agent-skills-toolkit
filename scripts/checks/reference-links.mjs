@@ -60,7 +60,7 @@ function scanLinks(text, baseDir, fileRel, out) {
     } catch {
       ok = false;
     }
-    if (!ok) out.push(finding(meta.id, SEVERITY.ERROR, `reference link "${m[1]}" does not resolve.`, { file: fileRel, reqId: "U6" }));
+    if (!ok) out.push(finding(meta.id, SEVERITY.ERROR, `reference link "${m[1]}" does not resolve (resolves relative to the containing file).`, { file: fileRel, reqId: "U6" }));
   }
 }
 
