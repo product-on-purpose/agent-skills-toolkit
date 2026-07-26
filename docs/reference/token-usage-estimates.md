@@ -46,6 +46,7 @@ A load-bearing property bounds your risk here: **the advisory layer structurally
 | Behavioral advisory | `evaluate.mjs <path> --report=behavioral --advisory <f>` | model-assisted | model + effort dependent |
 | Author a component | the `askit-build-*` skills | model-assisted | model + effort dependent |
 | Adversarial review | N review agents over a diff | model-assisted | model + effort dependent |
+| Craft review (skill builder phase 2) | the `askit-build-skill` improve-mode phase 2 (one `askit-reviewer` dispatch) | model-assisted | one advisory run; default **Sonnet 4.6 at medium effort**, **Opus 4.8 at high** for a decision-critical pass, never Haiku (ADR 0037) |
 
 The advisory `--advisory <file.json>` itself is produced by a subagent run (the model-assisted cost); `evaluate.mjs` then renders it deterministically. The render of an existing advisory file is free; producing the advisory is the cost.
 

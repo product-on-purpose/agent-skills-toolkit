@@ -19,7 +19,7 @@ Per the staged PR-C package, the planned relocation set is: `STANDARD.md`, `scri
 
 | Date | File(s) | Change | Disposition if the checker relocates |
 |---|---|---|---|
-| (none yet) | | | |
+| 2026-07-26 | `scripts/lib/craft-review.mjs` (new, SP1 builder craft pass) | Added the craft-review SAFE/JUDGMENT partitioner, phase-2 eligibility, and consent-gated applier (ADR 0037) | **retained** - evaluate-side / askit-retained: it imports nothing from the check spine and rides the `evaluate.mjs --report=review` advisory path |
 
 Planned entries this program expects to add (kept current as releases land):
 
