@@ -1,0 +1,14 @@
+{
+  "covers": { "chain": ["askit-build-skill", "askit-reviewer"] },
+  "description": "askit-build-skill improve mode phase 2 delegates the optional craft review to askit-reviewer.",
+  "cases": [
+    {
+      "given": "an improve-mode run whose deterministic gate is already clean and whose user opts in to the craft review",
+      "expect": "askit-reviewer returns craft findings against references/skill-craft-rubric.md, the SAFE subset is offered for a consent-gated apply and the JUDGMENT remainder is reported untouched, and the gate verdict is unchanged"
+    },
+    {
+      "given": "an improve-mode run whose deterministic gate still reports errors",
+      "expect": "phase 2 is not offered and askit-reviewer is not dispatched; the run returns to phase 1"
+    }
+  ]
+}
