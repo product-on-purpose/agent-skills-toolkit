@@ -71,10 +71,12 @@ The seven askit subagents are bounded, read-only or narrowly scoped delegates th
 
 **Purpose.** A bounded, read-only review delegate. Forms judgments a deterministic check cannot: is the change correct, does it honor the Standard's intent (not just its lettered rules), is the description at the right altitude, is the component warranted rather than a would-be mode of an existing one? Reports findings with severity and a concrete remediation per finding. The qualitative complement to `askit-evaluator`. Never edits.
 
-**Parent skill.** `askit-evaluate` (review mode).
+**Parent skill.** `askit-evaluate` (review mode) and, since v1.7.0, `askit-build-skill` (improve mode phase 2, the craft pass - see [ADR 0037](../internal/decisions/0037-builder-craft-pass-and-safe-judgment-partition.md)).
 
 **Chain permissions** (from `agents/_chain-permitted.yaml`).
-- Permitted callers: `askit-evaluate`
+- Permitted callers: `askit-evaluate`, `askit-build-skill`
+
+Under `askit-build-skill` its findings are partitioned by `scripts/lib/craft-review.mjs` into a mechanically SAFE subset (a closed allowlist, applied only on explicit consent) and a JUDGMENT remainder (reported, never touched). Its output is advisory in both parents: it renders beside the gate verdict and cannot move it.
 
 ---
 

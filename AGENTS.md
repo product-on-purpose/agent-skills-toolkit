@@ -38,9 +38,13 @@ Components present on disk:
   `askit-build-skill`) and `askit-evaluator` (the read-only assessment delegate behind
   `askit-evaluate`). Both are Claude-only (`agent-targets: [claude]`; Standard
   sec 3.3) and carry the `askit-` prefix like every other component (sec 8.2). The
-  chain contract `agents/_chain-permitted.yaml` permits:
-  `askit-build-skill` -> `askit-skill-author`, `askit-evaluate` -> `askit-evaluator`, and
-  `askit-skill-author` -> `askit-evaluator`.
+  chain contract `agents/_chain-permitted.yaml` permits all five declared edges:
+  `askit-build-skill` -> `askit-skill-author`, `askit-build-skill` -> `askit-reviewer`
+  (the v1.7.0 craft pass, ADR 0037), `askit-evaluate` -> `askit-evaluator`,
+  `askit-evaluate` -> `askit-quality-grader`, `askit-evaluate` -> `askit-reviewer`, and
+  `askit-skill-author` -> `askit-evaluator`. Read the file, not this list, when it matters:
+  `agents/_chain-permitted.yaml` is the contract and this is a convenience summary. The full
+  per-subagent reference is [`docs/reference/subagents.md`](docs/reference/subagents.md).
 - **Commands:** `/askit-evaluate` (maps-to: `askit-evaluate`) and
   `/askit-build-skill` (maps-to: `askit-build-skill`). Commands are Claude-native;
   on Codex the backing skill is the invocable form (Standard sec 3.2).
