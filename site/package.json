@@ -11,9 +11,9 @@
     "gen": "node scripts/gen-docs-site.mjs"
   },
   "dependencies": {
-    "@astrojs/starlight": "~0.39.0",
+    "@astrojs/starlight": "~0.41.4",
     "astro": "^6.3.0",
-    "astro-mermaid": "~2.0.1",
-    "sharp": "^0.34.5"
+    "astro-mermaid": "~2.1.0",
+    "sharp": "^0.35.3"
   }
 }
