@@ -42,6 +42,20 @@ export function toPosix(p) {
   return String(p).split(path.sep).join("/").replace(/\\/g, "/");
 }
 
+/**
+ * Resolve a possibly-Windows path to an absolute POSIX-separated one, on ANY platform.
+ *
+ * The separator swap MUST happen BEFORE path.resolve, not after. On Windows, resolve() understands
+ * backslashes, so either order works and this reads like a pointless extra call. On POSIX it is the
+ * whole ballgame: a backslash is a legal FILENAME character there, so resolve("\\tmp\\x") yields
+ * "<cwd>/\\tmp\\x" - one relative file whose name contains backslashes - and a later toPosix() then
+ * rewrites that into the plausible-looking nonsense "<cwd>/tmp/x". A corpus manifest authored on
+ * Windows and run in Linux CI hit exactly that. Normalizing first makes the two platforms agree.
+ */
+export function resolvePosix(p) {
+  return toPosix(path.resolve(toPosix(p ?? "")));
+}
+
 /** The markers that make a directory gradeable at all. A tree with none of them cannot be graded. */
 const GRADEABLE_MARKERS = ["library.json", "SKILL.md", "AGENTS.md", "skills", ".claude-plugin"];
 
@@ -71,7 +85,7 @@ const runGit = (args, cwd) => execFileSync("git", args, { cwd, encoding: "utf8" 
  */
 export function verifyPin(entry, deps = {}) {
   const git = deps.git ?? runGit;
-  const clone = toPosix(path.resolve(entry.clonePath ?? ""));
+  const clone = resolvePosix(entry.clonePath);
   if (!entry.clonePath) refuse(`target "${entry.id}" has no clonePath`, "no-clone-path");
   if (!existsSync(clone)) refuse(`clone path does not exist: ${clone} (clone the repo and check out ${entry.sha})`, "missing-clone");
   if (!statSync(clone).isDirectory()) refuse(`clone path is not a directory: ${clone}`, "not-a-directory");
@@ -109,7 +123,7 @@ export function verifyPin(entry, deps = {}) {
 
 /** Load and shallow-validate the tracked corpus manifest. */
 export function loadCorpus(repoRoot, manifestPath) {
-  const file = manifestPath ? path.resolve(manifestPath) : path.join(repoRoot, CORPUS_REL);
+  const file = manifestPath ? resolvePosix(manifestPath) : path.join(repoRoot, CORPUS_REL);
   const { data, parseError } = readJsonSafe(file);
   if (parseError) refuse(`corpus manifest is not valid JSON (${toPosix(file)}): ${parseError}`, "bad-manifest");
   if (!data) refuse(`corpus manifest not found: ${toPosix(file)}`, "missing-manifest");

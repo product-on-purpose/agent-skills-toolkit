@@ -6,7 +6,7 @@ import { fileURLToPath } from "node:url";
 import { mkdtempSync, mkdirSync, writeFileSync, readFileSync, rmSync, cpSync, existsSync } from "node:fs";
 import { execFileSync } from "node:child_process";
 import {
-  EvalRunError, toPosix, loadCorpus, resolveTarget, verifyPin, assertGradeable, planBatch, runOne,
+  EvalRunError, toPosix, resolvePosix, loadCorpus, resolveTarget, verifyPin, assertGradeable, planBatch, runOne,
 } from "../../scripts/lib/eval-run.mjs";
 
 // F2 (E11), the deterministic half of the eval-run pipeline. The three properties under test are the ones
@@ -165,6 +165,25 @@ test("runOne on a not-at-pin clone refuses BEFORE it invokes the gate (no vacuou
 test("toPosix normalizes a Windows backslash path to forward slashes", () => {
   assert.equal(toPosix("E:\\tmp\\eval-deanpeters-pm"), "E:/tmp/eval-deanpeters-pm");
   assert.equal(toPosix("E:/tmp/eval-deanpeters-pm"), "E:/tmp/eval-deanpeters-pm");
+});
+
+// Caught by Linux CI, invisible on Windows: the separator swap has to happen BEFORE path.resolve.
+// On POSIX a backslash is a legal FILENAME character, so resolving a backslash-written absolute path
+// yields "<cwd>/" plus that literal name - one relative file - and a trailing toPosix() then launders
+// it into a plausible-looking wrong answer. On Windows resolve() understands backslashes, so both
+// orders agree and the defect hides. This assertion is platform-independent: on any OS, a path written
+// with backslashes must resolve to exactly what its forward-slash twin resolves to.
+const BS = String.fromCharCode(92); // a literal backslash, kept out of the source as an escape
+test("resolvePosix normalizes separators BEFORE resolving, on every platform", () => {
+  const pairs = [
+    [`${BS}tmp${BS}askit`, "/tmp/askit"],
+    [`a${BS}b${BS}c`, "a/b/c"],
+    [`E:${BS}tmp${BS}x`, "E:/tmp/x"],
+  ];
+  for (const [back, fwd] of pairs) {
+    assert.equal(resolvePosix(back), resolvePosix(fwd), `${back} must resolve like ${fwd}`);
+  }
+  assert.ok(!resolvePosix(`${BS}tmp${BS}askit`).includes(BS), "no backslash survives resolution");
 });
 
 test("runOne hands the gate a forward-slash target even when the manifest path uses backslashes", () => {
