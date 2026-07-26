@@ -110,7 +110,7 @@ Not a path. Things to look up when you need them.
 | [Frontmatter taxonomy](../reference/frontmatter-taxonomy.md) | The docs frontmatter contract | Adding a public docs page |
 | [Evaluation reports](../reference/evaluation-reports.md) | The five report types | Producing something shareable |
 | `docs/reference/askit-*.md` | One page per skill in the catalog | You know which skill you want |
-| [How-to guides](../how-to/README.md) | Task-shaped recipes | You have a specific job to do |
+| [`docs/how-to/`](../how-to/) | Task-shaped recipes | You have a specific job to do |
 
 ## A note on how these docs are organized
 
