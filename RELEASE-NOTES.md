@@ -2,6 +2,26 @@
 
 Curated, user-facing highlights. For the full technical history see [`CHANGELOG.md`](CHANGELOG.md).
 
+## 1.7.0 - 2026-07-26
+
+Trust and craft. Two kinds of work: making the things the toolkit already says about itself actually true, and teaching it to judge quality rather than only conformance. Nothing here changes what conformance requires: the spine stays 30 checks and the Standard stays v0.12.
+
+### What changed
+
+- **The front page is true, and cannot quietly go stale again.** The README advertised version 1.2.0 and 29 checks; the real values were three releases newer. Fixed, and a check now runs on every build that fails if the badge and the manifest ever disagree. A number nobody guards is a number that drifts.
+- **The skill builder learned to review craft, not just rules.** Passing the gate means a skill is well-formed. It does not mean the skill is a good teacher. After your skill is clean, the builder can now offer a second opinion against a written rubric: is the trigger clear, are the examples real, is it the right length. Three things make it safe to accept. It is only ever offered once the gate is already clean, so it can never become a way around a failure. Its suggestions are split in two, and only a closed list of mechanical fixes (a broken link, a formatting repair, a missing bookkeeping field) can be applied, only with your explicit say-so; anything touching instructions or meaning is reported and never edited. And it cannot change your grade, by construction.
+- **Grading a corpus is one command.** The loop we use to improve the toolkit by grading real third-party libraries used to be run by hand. It is now `npm run eval-run`, against a pinned list of targets, and it refuses loudly rather than guessing: a checkout that has drifted from its pin, an empty directory, or a tree with uncommitted changes all stop the run before anything is graded. The old failure it closes is a real one from this project's history, where a mistyped path made the grader score an empty folder and report a clean pass.
+- **Reports no longer overstate a pass.** If your plugin has no diagrams, the diagram check now reads "not applicable" rather than "passed". Passing a check you never exercised is not the same as passing it, and the report now says which is which.
+- **CI grew up.** Dependency updates arrive automatically, security advisories block a merge instead of waiting to be noticed, both the oldest and newest supported Node versions are actually tested rather than merely claimed, third-party build actions are pinned to exact commits, and static security analysis runs on every change.
+
+### The security fixes worth naming
+
+Turning on static analysis found two real high-severity defects the same day, in code written independently. Both were the same mistake: text was escaped for one dangerous character but not for the character that escapes it, so a crafted value could break out of a table cell in a generated report. Both paths carried AI-written content, so both were genuinely reachable. Both are fixed with tests that fail against the old code.
+
+### Upgrade
+
+No action required, and nothing that passed before newly fails.
+
 ## 1.6.1 - 2026-07-25
 
 The trust patch. We pointed the toolkit at five real plugin repositories it had never seen, then checked every finding by hand. It found roughly fifty genuinely broken things - and it also cried wolf. This release fixes the crying wolf.
