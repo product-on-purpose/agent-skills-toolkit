@@ -123,6 +123,48 @@ test("a hostile finding message is escaped in HTML and does not break the MD tab
   assert.ok(/\\\|/.test(pipeLine), "a literal pipe in a cell must be escaped so it does not add a column");
 });
 
+// CodeQL js/incomplete-sanitization (high), pre-existing since v1.4.0 and surfaced by the workflow's
+// first PR run. Escaping the pipe WITHOUT escaping backslashes first is self-defeating: the two
+// characters \| became \\| , which Markdown reads as one literal backslash followed by a BARE pipe, so
+// the payload walked out of the cell and opened a new column. The test above uses a bare pipe and
+// therefore could never catch it. This one uses the escape-the-escape payload.
+const BACKSLASH = String.fromCharCode(92);
+test("a backslash-pipe payload cannot escape a Markdown table cell (CodeQL js/incomplete-sanitization)", () => {
+  const payload = `safe${BACKSLASH}| INJECTED | tail`;
+  const f = { check: "library-json", severity: "error", message: payload, file: "library.json", reqId: "U1" };
+  const hostile = { scope: "plugin", target: "hostile", tier: "universal", satisfies: ["universal"], blocked: {}, summary: { errors: 1, warns: 0 }, findings: [f], byRule: { U1: [f] } };
+  const md = renderMarkdown(hostile, optsFor(hostile));
+  const row = md.split("\n").find((l) => l.includes("INJECTED")) ?? "";
+  assert.ok(row, "the payload renders somewhere in the table");
+
+  // Count pipes the way Markdown actually reads them, left to right: a pipe is ESCAPED only when the
+  // run of backslashes immediately before it is ODD. Naive textual stripping of the substring "\|" is
+  // exactly the mistake that let this defect live - in `safe\\|` it "finds" an escape, but Markdown has
+  // already consumed `\\` as one literal backslash and meets a BARE pipe.
+  const unescapedPipes = (line) => {
+    let n = 0;
+    for (let i = 0; i < line.length; i++) {
+      if (line[i] !== "|") continue;
+      let slashes = 0;
+      for (let j = i - 1; j >= 0 && line[j] === BACKSLASH; j--) slashes++;
+      if (slashes % 2 === 0) n++; // even run (including zero) means the pipe itself is live
+    }
+    return n;
+  };
+
+  // The control: the same row shape with a message carrying no pipe at all. Its live-pipe count IS the
+  // table's structural column count, so this survives the table gaining a column later.
+  const benign = { ...f, message: "benign message" };
+  const control = { ...hostile, findings: [benign], byRule: { U1: [benign] } };
+  const controlRow = renderMarkdown(control, optsFor(control)).split("\n").find((l) => l.includes("benign message")) ?? "";
+  const structural = unescapedPipes(controlRow);
+
+  assert.equal(
+    unescapedPipes(row), structural,
+    `the payload must contribute no LIVE pipe (structural ${structural}, got ${unescapedPipes(row)}): ${row}`
+  );
+});
+
 test("component scope renders without a tier or climb and does not throw", () => {
   const r = evaluate(LONE);
   assert.equal(r.scope, "component");

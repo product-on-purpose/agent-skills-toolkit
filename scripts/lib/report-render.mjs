@@ -26,8 +26,20 @@ function escapeHtml(s) {
 // Neutralize a Markdown table cell (a pipe adds a column, a newline ends the row) AND raw HTML (< >), so an
 // untrusted finding message, model name, or advisory field cannot inject markup when the Markdown is later
 // rendered to HTML. Applied to every interpolation of untrusted text, not only table cells.
+//
+// The BACKSLASH pass must come FIRST, and it is the whole point of the ordering (CodeQL
+// js/incomplete-sanitization, high). Escaping the pipe alone is self-defeating: an untrusted field
+// containing the two characters \| becomes \\| , where Markdown reads \\ as one literal backslash and
+// then meets a BARE pipe - so the payload walks straight out of the cell and opens a new column.
+// Escaping backslashes first makes the pipe pass idempotent-safe: \| becomes \\| then \\\| , which
+// renders as a literal backslash followed by a literal pipe. Order is load-bearing; do not reorder.
 function escapeMd(s) {
-  return String(s ?? "").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/\|/g, "\\|").replace(/[\r\n]+/g, " ");
+  return String(s ?? "")
+    .replace(/\\/g, "\\\\")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/\|/g, "\\|")
+    .replace(/[\r\n]+/g, " ");
 }
 const basename = (p) => String(p ?? "").split(/[\\/]/).filter(Boolean).pop() ?? String(p ?? "");
 
