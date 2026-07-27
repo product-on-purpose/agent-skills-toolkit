@@ -29,4 +29,20 @@ The Universal tier is the **portable floor**: every plugin must pass it, on any 
 
 **Provenance.** Most Universal checks are `objective` (a defect true regardless of any standard - a dead link, malformed JSON, manifest drift) or `vendor-cited`. Two are `house` conventions: `U2` (root `AGENTS.md`) and `U5` (description scorer), which `--profile plain-plugin` drops when grading a third-party plugin you do not own. The provenance split is recorded per check in `scripts/lib/registry.mjs`; see [`gate-config.md`](./gate-config.md).
 
+### Known limitation: `U5` currently assumes English
+
+`U5` decides whether a description says *when to use* the skill by matching English trigger phrasing. Measured against a 349-skill French library, that pattern matched **0 of 346** descriptions, while **341 of them carried an explicit French trigger clause**. Because that signal is worth 0.35 of a 1.0 score against a 0.7 threshold, **a description written in a language the pattern does not know cannot score above 0.65, and therefore cannot pass, however good it is.**
+
+Read the scope precisely, because it is narrower than "the toolkit is English-only":
+
+- It is **one check of thirty**. Every other check is language-neutral: a link resolves or it does not, a diagram parses or it does not, a manifest matches disk or it does not.
+- `U5` is **`house` provenance**, so **`--profile plain-plugin` drops it entirely**. Grading a library you do not own, in the honest third-party mode, never applies this check at all.
+- It is **warn-only**. It has never blocked a tier.
+
+So it bites in one situation: a library that adopts this Standard, declares a tier, and writes its descriptions in a language other than English. If that is you, suppress `U5` in `askit.config.json` (see [`gate-config.md`](./gate-config.md)) until this is fixed, and read its warnings as noise rather than signal.
+
+The fix is deliberately not "add more languages to the pattern", which would move the same cliff one language over. It is tracked as an ADR-gated backlog item requiring a design answer: language detection, a pluggable lexicon, or a language-independent structural signal.
+
+One related constraint that is **not** ours: the agentskills.io specification requires a skill `name` to be lowercase ASCII with hyphens, which independently limits non-Latin-script naming. That rule is upstream's, and `askit-standards-watch` now tracks the file that states it.
+
 The Silver and Gold reference pages are [`silver-checks.md`](./silver-checks.md) and [`gold-checks.md`](./gold-checks.md). For how the tiers compose and the burndown reads, see [`../explanation/conformance-and-tiers.md`](../explanation/conformance-and-tiers.md).
