@@ -59,3 +59,11 @@ Option 1. The new check ships as `scripts/checks/skill-registration.mjs` with `m
 - **Positive:** the gate catches a real, portable, silent delivery failure (invisible skills) for any plugin; the Standard demonstrates that it can grow responsibly, with the burndown and pinned-downgrade proving the v1.3.0 compatibility machinery in production; the tier ladder stays honest (no Gold while shipping invisible skills); the `objective` provenance keeps it valid under `plain-plugin`, so it strengthens outward grading rather than adding house noise.
 - **Negative:** the first Standard MINOR bump since 0.11 carries a documentation sweep and a count change across many surfaces (mitigated: the surfaces are enumerated above and guarded by `registry-sync` and the F4 route/count checks); the requirement is a `warn` for one full release line before it can gate, so the deanpeters-class defect is surfaced-but-not-blocked until 0.13 (accepted: this is the burndown contract working as designed, not a gap).
 - **Neutral:** a third Standard-vs-disk concept now exists (`U8` generated-manifest-vs-`library.json`, `U13` registration-vs-disk, and the `S6`/`per-target-presence` native-presence check); the F1 SPEC and the new `docs/reference/universal-checks.md` page disambiguate them so a reader is not confused by the shared "manifest" word.
+
+## Implementation sites
+- `scripts/checks/skill-registration.mjs`: the entire check; `meta.since: "0.12"` makes it a `warn` under Standard 0.12 and a gate-failing `error` at 0.13 (the first live burndown exercise).
+- `scripts/lib/registry.mjs`: the registration entry for `skill-registration` after `U12`; the check is only discovered and run because it is registered here.
+- `STANDARD.md`: the `U13` requirement text in sec 2.1 (Universal tier) and the updated spine count (29 -> 30) and version note (0.11 -> 0.12).
+- `library.json`: `standard` field updated to `"0.12"`.
+
+Grep anchor: `skill-registration` in `scripts/lib/registry.mjs` (verify the check is registered); `since.*0.12` in the check file (verify the burndown severity).

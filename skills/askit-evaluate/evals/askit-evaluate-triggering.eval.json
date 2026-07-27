@@ -1,0 +1,30 @@
+{
+  "covers": { "skill": "askit-evaluate" },
+  "description": "Skill triggering set for askit-evaluate: verifies the skill fires on conformance audits, tier queries, behavioral checks, and qualitative reviews, and stays silent on improvement requests, capability questions, and greenfield authoring.",
+  "cases": [
+    { "query": "evaluate my plugin against the Advanced Skill Library Standard", "should_trigger": true },
+    { "query": "run a conformance check on skills/askit-release", "should_trigger": true },
+    { "query": "what tier does this plugin reach", "should_trigger": true },
+    { "query": "what is blocking this plugin from reaching Silver", "should_trigger": true },
+    { "query": "which checks are failing in my plugin", "should_trigger": true },
+    { "query": "audit the skills directory for Standard conformance issues", "should_trigger": true },
+    { "query": "does this skill trigger correctly when given related queries", "should_trigger": true },
+    { "query": "run the behavioral eval on askit-build-skill", "should_trigger": true },
+    { "query": "get a qualitative review of this workflow component", "should_trigger": true },
+    { "query": "review this skill for correctness and whether it is warranted", "should_trigger": true },
+    { "query": "show me the per-rule conformance findings for my plugin in JSON", "should_trigger": true },
+    { "query": "check my plugin and tell me its errors and warnings", "should_trigger": true },
+    { "query": "run evaluate in review mode on this hook component", "should_trigger": true },
+    { "query": "produce a conformance report for this plugin", "should_trigger": true },
+    { "query": "make this skill better", "should_trigger": false },
+    { "query": "improve the description quality on my skill", "should_trigger": false },
+    { "query": "fix the U5 description score on this skill", "should_trigger": false },
+    { "query": "what tier should I aim for before I start building my plugin", "should_trigger": false },
+    { "query": "which component types can I use across all agents", "should_trigger": false },
+    { "query": "can Codex run MCP components", "should_trigger": false },
+    { "query": "create a new skill for reviewing pull requests", "should_trigger": false },
+    { "query": "scaffold a SKILL.md for a deploy skill", "should_trigger": false },
+    { "query": "adopt this foreign skills repo and make it gradeable", "should_trigger": false },
+    { "query": "produce a bring-to-conformance plan for this ad-hoc repo", "should_trigger": false }
+  ]
+}

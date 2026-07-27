@@ -9,4 +9,5 @@ The askit-build-samples skill. Creates and validates a skill's sample sets and e
 ## Inventory
 
 - `SKILL.md` - the skill definition (frontmatter plus the procedure).
+- `examples/` - a worked golden example of the create-mode output (Standard sec 7.2).
 - `references/` - supporting reference docs loaded on demand.

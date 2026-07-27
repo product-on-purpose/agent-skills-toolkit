@@ -27,6 +27,7 @@ Grading tells you the highest tier a plugin satisfies (Bronze / Silver / Gold) a
 ```bash
 node scripts/check.mjs              # the tier + what blocks the next one, on a real exit code
 node scripts/tier-report.mjs --json # the same result as JSON for tooling
+node scripts/evaluate.mjs <target> --format=html  # a self-contained HTML report (written to <target>/evaluation-report.html)
 ```
 
 A clean Gold plugin reports:

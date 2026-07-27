@@ -54,3 +54,12 @@ Verified against the corpus under `--profile plain-plugin` (a local fixture repr
 - **Positive:** the gate stops failing vanilla Claude Code/Codex plugins for using `name` as the extension permits; a divergent name produces one finding (U4), owned by the check whose question applies, instead of two; outward grading under plain-plugin is honest (a name-vs-dir divergence informs, it does not block); and the askit-library ladder is unchanged (name-vs-dir is still a hard error, a malformed canonical name is still a U3 error).
 - **Negative / accepted coupling:** U3's format check now depends on U4 to own the divergent-name case. If a future profile turned U4 fully off, a divergent name with genuinely garbage characters (for example `"!@#$"`) would pass both checks silently. This is acceptable: the checks are designed to run together as a spine, no shipped profile turns U4 off (it is vendor-cited and not in the house OFF-set), and turning U4 off would itself be a deliberate "do not grade names" choice. The coupling is documented here and in the U3 source comment.
 - **Follow-up (not in this change):** the C1 `levnikolaevich` residual errors (documentation-pipeline 20, agile-workflow 12, codebase-audit-suite 7, community-engagement 4) remain to be triaged for false-positive-vs-real-defect; the C4 `gsd` count is now resolved by this ADR. The publish-a-token-usage-dossier idea and the `/evaluation-reports/` public showcase are separate, open threads in the session log.
+
+## Implementation sites
+- `scripts/checks/frontmatter-valid.mjs` - name-format branch: the `fm.name === s.name` guard that restricts format checking to canonical names only; when `name != dir`, U3 skips the kebab/length check and U4 owns the divergence.
+- `scripts/checks/name-matches-dir.mjs` - default `meta` export: provenance is `"vendor-cited"` (not `"house"`), so U4 is NOT in the `HOUSE_REQIDS` off-set; the check stays visible under `plain-plugin` as a warning.
+- `scripts/lib/profiles.mjs` - `plain-plugin.rules`: `U4: "warn"` entry that downgrades U4 from error to advisory under the plain-plugin profile, while keeping it an error under the default askit-library ladder.
+
+Note: U3 and U4 are deliberately coupled. U3's format check passes when `name != dir`, relying on U4 to flag the divergence. No shipped profile turns U4 fully off (it is vendor-cited), so a divergent-but-malformed name is always flagged by U4.
+
+Grep anchor: `fm.name === s.name` (the U3 canonical-name gate) and `U4: "warn"` in `profiles.mjs`.

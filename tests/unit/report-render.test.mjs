@@ -5,7 +5,7 @@ import { fileURLToPath } from "node:url";
 import { readFileSync, existsSync, writeFileSync, mkdirSync } from "node:fs";
 import { CHECKS } from "../../scripts/lib/registry.mjs";
 import { REPORT_META, metaFor } from "../../scripts/lib/report-meta.mjs";
-import { evaluate } from "../../scripts/evaluate.mjs";
+import { evaluate, buildConditional } from "../../scripts/evaluate.mjs";
 import { gateExitFromFindings } from "../../scripts/check.mjs";
 import { renderMarkdown, renderHtml } from "../../scripts/lib/report-render.mjs";
 
@@ -14,7 +14,6 @@ const FIXTURES = path.resolve(HERE, "../fixtures");
 const SF = path.join(FIXTURES, "golden/silver-fixture"); // Convergent (Silver): real tier, real Gold blockers
 const LONE = path.join(FIXTURES, "golden/lone-skill"); // a component, no tier
 const SPINE = CHECKS.map((m) => ({ reqId: m.meta.reqId, id: m.meta.id, tier: m.meta.tier }));
-const CONDITIONAL = new Set(["G1", "G6", "U11"]);
 const TIER_LABEL = { universal: "Bronze", convergent: "Silver", advanced: "Gold" };
 const EM = String.fromCharCode(0x2014);
 const EN = String.fromCharCode(0x2013);
@@ -28,7 +27,7 @@ function optsFor(r, target) {
   }
   const forGate = r.findings.filter((f) => !f.suppressed).map((f) => ({ ...f, severity: f.effectiveSeverity ?? f.severity }));
   const { exitCode } = gateExitFromFindings(forGate, library?.tier);
-  return { library, spine: SPINE, conditional: CONDITIONAL, date: "2026-01-01", exitCode, reportType: "conformance" };
+  return { library, spine: SPINE, conditional: buildConditional(target), date: "2026-01-01", exitCode, reportType: "conformance" };
 }
 
 // --- report-meta coverage (the dogfood guard for a future spine addition) ---
@@ -124,6 +123,48 @@ test("a hostile finding message is escaped in HTML and does not break the MD tab
   assert.ok(/\\\|/.test(pipeLine), "a literal pipe in a cell must be escaped so it does not add a column");
 });
 
+// CodeQL js/incomplete-sanitization (high), pre-existing since v1.4.0 and surfaced by the workflow's
+// first PR run. Escaping the pipe WITHOUT escaping backslashes first is self-defeating: the two
+// characters \| became \\| , which Markdown reads as one literal backslash followed by a BARE pipe, so
+// the payload walked out of the cell and opened a new column. The test above uses a bare pipe and
+// therefore could never catch it. This one uses the escape-the-escape payload.
+const BACKSLASH = String.fromCharCode(92);
+test("a backslash-pipe payload cannot escape a Markdown table cell (CodeQL js/incomplete-sanitization)", () => {
+  const payload = `safe${BACKSLASH}| INJECTED | tail`;
+  const f = { check: "library-json", severity: "error", message: payload, file: "library.json", reqId: "U1" };
+  const hostile = { scope: "plugin", target: "hostile", tier: "universal", satisfies: ["universal"], blocked: {}, summary: { errors: 1, warns: 0 }, findings: [f], byRule: { U1: [f] } };
+  const md = renderMarkdown(hostile, optsFor(hostile));
+  const row = md.split("\n").find((l) => l.includes("INJECTED")) ?? "";
+  assert.ok(row, "the payload renders somewhere in the table");
+
+  // Count pipes the way Markdown actually reads them, left to right: a pipe is ESCAPED only when the
+  // run of backslashes immediately before it is ODD. Naive textual stripping of the substring "\|" is
+  // exactly the mistake that let this defect live - in `safe\\|` it "finds" an escape, but Markdown has
+  // already consumed `\\` as one literal backslash and meets a BARE pipe.
+  const unescapedPipes = (line) => {
+    let n = 0;
+    for (let i = 0; i < line.length; i++) {
+      if (line[i] !== "|") continue;
+      let slashes = 0;
+      for (let j = i - 1; j >= 0 && line[j] === BACKSLASH; j--) slashes++;
+      if (slashes % 2 === 0) n++; // even run (including zero) means the pipe itself is live
+    }
+    return n;
+  };
+
+  // The control: the same row shape with a message carrying no pipe at all. Its live-pipe count IS the
+  // table's structural column count, so this survives the table gaining a column later.
+  const benign = { ...f, message: "benign message" };
+  const control = { ...hostile, findings: [benign], byRule: { U1: [benign] } };
+  const controlRow = renderMarkdown(control, optsFor(control)).split("\n").find((l) => l.includes("benign message")) ?? "";
+  const structural = unescapedPipes(controlRow);
+
+  assert.equal(
+    unescapedPipes(row), structural,
+    `the payload must contribute no LIVE pipe (structural ${structural}, got ${unescapedPipes(row)}): ${row}`
+  );
+});
+
 test("component scope renders without a tier or climb and does not throw", () => {
   const r = evaluate(LONE);
   assert.equal(r.scope, "component");
@@ -164,3 +205,58 @@ for (const [name, render] of [["silver-fixture.expected.md", renderMarkdown], ["
     assert.equal(norm(out), norm(readFileSync(file, "utf8")), `${name} drifted; re-run with UPDATE_SNAPSHOTS=1 to regenerate and review`);
   });
 }
+
+// Reading 19 (corpus batch 3, 2026-07-27): the report asserted a tier the subject never declared.
+// deriveModel fell back to `report.tier` (the EARNED tier) when library.json carried no tier, so a
+// plugin declaring nothing rendered "declares the Gold (Advanced) tier and earns Gold" - and, because
+// earned then always equalled "declared", the verdict card always read "matches its declared tier".
+// A false PASS on the artifact third parties are shown, while the terminal gate said the honest thing
+// ("no askit tier declared; not graded against the tier ladder"). The guard existed in
+// tier-report.mjs humanLine() and had never been mirrored into the renderer.
+test("a subject that declares no tier is not reported as declaring one (reading 19)", () => {
+  const f = { check: "library-json", severity: "warn", message: "m", file: null, reqId: "U1" };
+  const noTier = {
+    scope: "plugin", target: "notier", tier: "advanced", satisfies: ["universal", "convergent", "advanced"],
+    blocked: {}, summary: { errors: 0, warns: 0 }, findings: [], byRule: { U1: [f] },
+  };
+  // optsFor supplies library: null, i.e. no library.json, i.e. NO declared tier.
+  const opts = { ...optsFor(noTier), library: null };
+  const md = renderMarkdown(noTier, opts);
+  // Subject-anchored on purpose: a loose /declares the .*tier/ also matches the glossary row explaining
+  // what library.json is for, which is a true sentence and not the claim under test.
+  assert.ok(!/notier declares the .*tier/i.test(md), `must not assert a declaration that does not exist:\n${md.split("\n").find((l) => /notier declares/i.test(l))}`);
+  assert.ok(!/matches its declared tier/i.test(md), "must not claim a match against a tier that was never declared");
+  assert.match(md, /no .*tier declared|not graded against the tier ladder/i, "must say plainly that no tier was declared");
+});
+
+test("a subject that DOES declare a tier still reports it (the false-FAIL guard for reading 19)", () => {
+  const r = evaluate(SF);
+  const md = renderMarkdown(r, optsFor(r, SF));
+  assert.match(md, /silver-fixture declares the .*tier/i, "a real declaration must still be reported");
+  assert.ok(!/no .*tier declared/i.test(md), "and must not be described as undeclared");
+});
+
+// renderHtml parallel to the reading-19 MD test: the exec body (s02), masthead header, ID-strip cell,
+// and metadata section all had the same unguarded null fallback the verdict card did not. ADR 0038
+// fixed renderMarkdown thoroughly and one HTML site (verdict card); the other four HTML sites were not
+// mirrored. Caught by the Implementation sites retrofit (feat/adr-implementation-sites).
+test("renderHtml: a subject that declares no tier is not reported as declaring one in any HTML section", () => {
+  const f = { check: "library-json", severity: "warn", message: "m", file: null, reqId: "U1" };
+  const noTier = {
+    scope: "plugin", target: "notier", tier: "advanced", satisfies: ["universal", "convergent", "advanced"],
+    blocked: {}, summary: { errors: 0, warns: 0 }, findings: [], byRule: { U1: [f] },
+  };
+  const opts = { ...optsFor(noTier), library: null };
+  const html = renderHtml(noTier, opts);
+  // Subject-anchored so we do not match the glossary sentence about what library.json is for.
+  assert.ok(!/notier declares the .*tier/i.test(html), `HTML exec body must not assert a tier declaration that does not exist:\n${html.split("\n").find((l) => /notier declares/i.test(l)) ?? "(not found)"}`);
+  assert.ok(!/declared tier:\s*<\/span>/i.test(html), "HTML masthead must not show an empty declared-tier label");
+  assert.match(html, /no askit tier declared|not graded against the tier ladder|none declared/i, "HTML must say plainly that no tier was declared");
+});
+
+test("renderHtml: a subject that DOES declare a tier still reports it (HTML false-FAIL guard)", () => {
+  const r = evaluate(SF);
+  const html = renderHtml(r, optsFor(r, SF));
+  assert.match(html, /silver-fixture declares the .*tier/i, "HTML: a real declaration must still be reported");
+  assert.ok(!/no .*tier declared/i.test(html), "HTML: a declared tier must not be described as undeclared");
+});

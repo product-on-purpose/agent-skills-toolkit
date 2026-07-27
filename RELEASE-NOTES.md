@@ -2,6 +2,58 @@
 
 Curated, user-facing highlights. For the full technical history see [`CHANGELOG.md`](CHANGELOG.md).
 
+## 1.9.0 - 2026-07-27
+
+Two ways of catching the same mistake: a rule that exists and quietly is not applied everywhere it should be.
+
+### What changed
+
+- **The toolkit can now tell when the industry spec has moved.** Its own rulebook contained a line saying "when the wider spec changes, we must keep up" - and nothing did that, because no record existed of which version we were written against. There is now. It watches the spec, tells you what changed and which of your checks it touches, and drafts a decision record for you. It never edits anything itself, which matters: the rules are only allowed to change through a recorded decision, and a tool quietly rewriting them would destroy the thing that makes a grade mean anything.
+- **It is honest about what it cannot do.** It reliably detects that something changed and where. It refuses to judge whether a prose change is *important*, because that is a human call. The worked example replays a real spec change that a simpler tool would have missed entirely, then declines to classify it.
+- **Every decision record now names what implements it.** Three separate bugs this week came from the same shape: a rule was written down, applied in one place, and forgotten in the second place that needed it. Decisions now list the exact files, found by searching rather than remembering.
+- **That change found a bug on its first use.** Applied to yesterday's decision about a report that could claim a grade nobody earned, it found four more places the fix had missed. Those are fixed too.
+
+### Upgrade
+
+No action required, and nothing that passed before newly fails.
+
+## 1.8.0 - 2026-07-26
+
+Deep builders, measured advisory. Two things: the builders learn to teach, and the AI review layer stops being an impression and becomes a number.
+
+### What changed
+
+- **Every builder now ships working examples. Before this release, none did.** The toolkit has thirteen skills that draft components for you, and between all of them there was not one worked example to learn from - only empty shapes. Now the four hardest ship three good examples plus one deliberately wrong one each, and the rest ship one apiece. Twenty-five in total, and every runnable one was actually executed during review rather than merely written.
+- **The four hardest builders explain the judgement calls.** Their reference notes were 22 to 41 lines of shape. They are now real guides: what works, what goes wrong, and why the rule exists. One example: a recurring score of 0.65 that had puzzled five separate corpora turns out to be the exact arithmetic signature of a description that says what it does *or* when to use it, but not both.
+- **Two templates that pointed at files which have never existed are fixed.** One of them is kept, deliberately, as the teaching example of that exact mistake.
+- **We can now measure whether the AI review layer is any good.** A test plugin carries nine known flaws plus three deliberate traps that are *not* flaws, and a scorer grades a review against it. The central rule: a confident wrong answer counts as both a false alarm and a miss, so it scores worse than saying nothing. An honest "something looks off here, I am not sure" costs less. Confidently inventing a correction is the most expensive thing a reviewer can do, which is exactly right.
+- **Authoring costs are now measured rather than guessed**, with the caveats printed beside the numbers.
+- **A report that could claim a grade nobody earned is fixed.** If a plugin had not declared a quality tier, the generated report would quietly fill in the tier it happened to score and announce that the plugin "declares" it. On one real library the report said "10 of 10 satisfied" while the same files, checked the other way, produced seven failures - and the report's own data contained all seven. The terminal had been telling the truth the whole time; only the shareable document was wrong.
+
+### Upgrade
+
+No action required, and nothing that passed before newly fails.
+
+## 1.7.0 - 2026-07-26
+
+Trust and craft. Two kinds of work: making the things the toolkit already says about itself actually true, and teaching it to judge quality rather than only conformance. Nothing here changes what conformance requires: the spine stays 30 checks and the Standard stays v0.12.
+
+### What changed
+
+- **The front page is true, and cannot quietly go stale again.** The README advertised version 1.2.0 and 29 checks; the real values were three releases newer. Fixed, and a check now runs on every build that fails if the badge and the manifest ever disagree. A number nobody guards is a number that drifts.
+- **The skill builder learned to review craft, not just rules.** Passing the gate means a skill is well-formed. It does not mean the skill is a good teacher. After your skill is clean, the builder can now offer a second opinion against a written rubric: is the trigger clear, are the examples real, is it the right length. Three things make it safe to accept. It is only ever offered once the gate is already clean, so it can never become a way around a failure. Its suggestions are split in two, and only a closed list of mechanical fixes (a broken link, a formatting repair, a missing bookkeeping field) can be applied, only with your explicit say-so; anything touching instructions or meaning is reported and never edited. And it cannot change your grade, by construction.
+- **Grading a corpus is one command.** The loop we use to improve the toolkit by grading real third-party libraries used to be run by hand. It is now `npm run eval-run`, against a pinned list of targets, and it refuses loudly rather than guessing: a checkout that has drifted from its pin, an empty directory, or a tree with uncommitted changes all stop the run before anything is graded. The old failure it closes is a real one from this project's history, where a mistyped path made the grader score an empty folder and report a clean pass.
+- **Reports no longer overstate a pass.** If your plugin has no diagrams, the diagram check now reads "not applicable" rather than "passed". Passing a check you never exercised is not the same as passing it, and the report now says which is which.
+- **CI grew up.** Dependency updates arrive automatically, security advisories block a merge instead of waiting to be noticed, both the oldest and newest supported Node versions are actually tested rather than merely claimed, third-party build actions are pinned to exact commits, and static security analysis runs on every change.
+
+### The security fixes worth naming
+
+Turning on static analysis found two real high-severity defects the same day, in code written independently. Both were the same mistake: text was escaped for one dangerous character but not for the character that escapes it, so a crafted value could break out of a table cell in a generated report. Both paths carried AI-written content, so both were genuinely reachable. Both are fixed with tests that fail against the old code.
+
+### Upgrade
+
+No action required, and nothing that passed before newly fails.
+
 ## 1.6.1 - 2026-07-25
 
 The trust patch. We pointed the toolkit at five real plugin repositories it had never seen, then checked every finding by hand. It found roughly fifty genuinely broken things - and it also cried wolf. This release fixes the crying wolf.

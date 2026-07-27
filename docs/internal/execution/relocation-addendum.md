@@ -19,14 +19,17 @@ Per the staged PR-C package, the planned relocation set is: `STANDARD.md`, `scri
 
 | Date | File(s) | Change | Disposition if the checker relocates |
 |---|---|---|---|
-| (none yet) | | | |
+| 2026-07-26 | `scripts/lib/craft-review.mjs` (new, SP1 builder craft pass) | Added the craft-review SAFE/JUDGMENT partitioner, phase-2 eligibility, and consent-gated applier (ADR 0037) | **retained** - evaluate-side / askit-retained: it imports nothing from the check spine and rides the `evaluate.mjs --report=review` advisory path |
+| 2026-07-26 | `scripts/eval-run.mjs`, `scripts/lib/eval-run.mjs`, `scripts/lib/eval-run-aggregate.mjs`, `tests/unit/eval-run.test.mjs`, `tests/unit/eval-run-aggregate.test.mjs` (F2, the eval-run pipeline) | New. The pinned-corpus runner (pin verification, forward-slash normalization, the record skeleton) and the aggregator that writes `docs/internal/eval-runs/eval-runs.md` rows plus the dossier's measured range. | **evaluate-side / askit-retained**, with one repoint: it orchestrates around the checker (gate via the `npm run check` seam, render via `npm run evaluate`) and is not part of the check spine, so relocation costs it a script definition rather than a rewrite. Its only engine-side import is `scripts/lib/fs-utils.mjs` (`listSkillDirs`, `readJsonSafe`, `relPath`); if that file relocates, repoint the import or copy those three helpers into the retained side. It reads and writes only askit surfaces (`docs/internal/eval-runs/`, `docs/reference/token-usage-estimates.md`, gitignored `_local/audit/eval-runs/`) and never writes into a graded target. |
+
+| 2026-07-26 | `scripts/lib/advisory-score.mjs`, `tests/unit/advisory-score.test.mjs`, `tests/fixtures/anti/seeded-defects/simulated-runs/` (F3 R-AQ-2, the precision/recall harness) | New. Classifies each finding in an already-written advisory result against the seeded-defect scoring key and computes the precision/recall pair, the miss list and the adjudication worklist for one model x effort cell. | **evaluate-side / askit-retained**, and self-contained: its ENTIRE import graph is `node:fs`, `node:path` and `node:url` - it imports nothing from `scripts/lib/`, nothing from the check spine, and no shared utility, so relocation costs it nothing and it has no repoint. It reads two JSON documents (an advisory result and the key) and never reads the graded tree, runs a check, or dispatches a model; a test asserts the import allowlist and the absence of any dispatch surface. The key and fixtures it scores against live under `tests/fixtures/anti/seeded-defects/`, which is askit measurement data rather than runner data. |
 
 Planned entries this program expects to add (kept current as releases land):
 
 - `scripts/lib/craft-review.mjs` (SP1, builder craft pass) - **retained**: evaluate-side advisory partition logic, not part of the runner.
 - The marketplace-scope module home (Release 3; exact paths fixed by its ADR) - dispositions recorded per file when it lands; the design intent is a delimited module that either **relocates whole** (if it ships as gate scope) with minimal unpicking, or splits cleanly along the same gate-vs-advisory seam as the rest of the engine.
 - Any new `REPORT_META` rows or renderer modules (Release 3 factoring) - **retained**: presentation layer.
-- F2 (eval-run pipeline) runner - **retained + repoint**: it invokes the gate only through the `npm run check` seam, so relocation costs it a config change, not a rewrite.
+- F2 (eval-run pipeline) runner - landed in Release 1; see the delta log row above for its exact files and dispositions.
 
 ## Standing rules this program follows to keep the move cheap
 
