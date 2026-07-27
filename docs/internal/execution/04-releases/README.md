@@ -17,3 +17,10 @@ One plan per release of the askit uplift program. Each carries its feature specs
 - [R2-v1.8.0-deep-builders-measured-advisory.md](R2-v1.8.0-deep-builders-measured-advisory.md) - SP2 (deepen the builders), F3 (advisory quality measurement), F5 (authoring token measurements), corpus batch 3, evals/ fixtures.
 - [R3-v1.9.0-marketplace-scope.md](R3-v1.9.0-marketplace-scope.md) - marketplace-scope evaluation (the headline), SP3 (coherent-plugin authoring journey).
 - [R4-v1.10.0-manage-and-studio.md](R4-v1.10.0-manage-and-studio.md) - SP4 (Manage gaps), the GUI read-only studio slice, stretch riders E4 (SARIF output) and E9 (provenance contract).
+
+
+## Renumbered 2026-07-27
+
+**R3 is now v1.10.0 and R4 is now v1.11.0.** Maintainer-approved work outside this program (`askit-standards-watch` plus the ADR implementation-sites convention) shipped as **v1.9.0**, because adding a skill is a MINOR under semver and the version is a promise to anyone installing from the marketplace. Renumbering an internal plan is cheaper than misnumbering a public release.
+
+Release CONTENT is unchanged. Only the version labels move. Where this packet's prose says "v1.9.0 marketplace scope" or "v1.10.0 manage and studio", read v1.10.0 and v1.11.0 respectively.

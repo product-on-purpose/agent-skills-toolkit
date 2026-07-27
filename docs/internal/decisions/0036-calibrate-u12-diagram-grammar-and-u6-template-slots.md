@@ -76,3 +76,12 @@ The post-fix counts were produced by the checker; the right-hand column was prod
 - **Comment-only mermaid blocks stay errors (the PSR-3 leg deliberately not taken).** The 3 surviving portfolio U12 errors are blocks whose body is only `%%` comments. Mermaid emits "No diagram type detected" for these, so they are real render failures, and the exempt, clearer alternative (a `{{PLACEHOLDER}}` body) already exists. Action instead: document the supported template-slot form on the U12 reference page.
 - **U6's brace skip is broad by design.** Any target containing a brace is skipped, not just `{{...}}` and `{...}`. A literal brace in a real filename is legal but absurd, and narrowing the pattern would trade a vanishing false-negative risk for a real false-positive risk on the many templating dialects in the wild (`{{x}}`, `{x}`, `${x}`, `{% x %}`). Stated so the breadth is a decision, not an oversight.
 - **No Standard implication.** Spine stays 30 (U1-U9, U11-U13, S1-S8, G1-G10), Standard stays 0.12, both checks keep `objective` provenance, and the house-provenance invariant is untouched. Anything the Standard REQUIRED before, it still requires.
+
+## Implementation sites
+- `scripts/checks/mermaid-valid.mjs` - `SYNTAX_TOKEN_RE` table and `syntaxTokenMask(s, diagramType)`: the per-diagram-type regex map and the function that marks character indices of Mermaid syntax tokens; the rescue-only logic in `bracketsBalanced()` consults the mask to decide which characters to ignore.
+- `scripts/checks/mermaid-valid.mjs` - `bracketsBalanced(s, diagramType)`: now takes a `diagramType` argument; the mask/rescue interaction is here; a future refactor that drops the argument would silently reintroduce the false positives.
+- `scripts/checks/reference-links.mjs` - brace-skip clause (the `if (/[{}]/.test(target)) continue` after the scheme skip): the U6 template-slot skip; a target containing a brace is treated as a substitution token and skipped.
+- `scripts/check.mjs` - `sectionFindings(findings, declaredTier)`: the presentation function that splits findings into grading vs. above-tier, introduced here for the display pair.
+- `scripts/check.mjs` - `standardDebtLine(findings)`: returns a one-line summary of how many post-pin findings exist and at what Standard version they become gate-failing.
+
+Grep anchor: `syntaxTokenMask` and `SYNTAX_TOKEN_RE` (mermaid grammar scoping); `sectionFindings` and `standardDebtLine` (display pair in check.mjs).

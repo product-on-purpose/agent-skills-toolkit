@@ -54,3 +54,13 @@ Until this lands, the documented current behavior is option 3 (the gate grades a
 
 ## Note on the v1.1.0 tightening
 The same fix PR that records this ADR also promotes the U8 manifest-drift VERSION disagreement from `warn` to `error` (so the portable gate is authoritative for the exact invariant the release tag guard enforces). That is itself a tightening of an existing check. It is folded into the v0.10 / 1.1.0 release deliberately, BEFORE this versioning policy exists, on the same transitional grounds: 1.1.0 is the tightening release, the toolkit is the only graded plugin, and the change does not break the toolkit's own green gate (its manifests are consistent). Once this policy is adopted, further tightenings follow the burndown rule.
+
+## Implementation sites
+- `scripts/lib/standard-version.mjs` - `applyStandardDowngrade(findings, pinned)`: the pure version-comparison function that downgrades post-pin check severities to `warn`; the single source of the burndown arithmetic, called by every entry point.
+- `scripts/lib/standard-gate.mjs` - `standardGate(checks, pinned)`: applies `applyStandardDowngrade` and returns the downgraded findings; wired into `check.mjs`, `tier-report.mjs`, and `evaluate.mjs`.
+- `scripts/check.mjs` - `run()` (the CLI entry point): calls `standardGate` before computing the exit code, so the downgrade applies to the terminal output and the exit code.
+- `scripts/tier-report.mjs` - `computeTierReport()`: calls `standardGate` before the tier computation, so the tier label and blocked list reflect the pinned-version ruleset.
+- `scripts/evaluate.mjs` - `evaluate()` (plugin scope): calls `standardGate` as part of the `resolveFindings` pipeline.
+- Every `scripts/checks/*.mjs` module: each exports a `meta.since` field (a `"MAJOR.MINOR"` string or `"0.x"` for pre-policy checks) so `applyStandardDowngrade` can compare it against the pinned version.
+
+Grep anchor: `applyStandardDowngrade` (the function that carries the burndown contract).

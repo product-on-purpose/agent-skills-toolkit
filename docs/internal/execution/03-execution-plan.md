@@ -84,3 +84,10 @@ Autonomy suspends and the maintainer is flagged the moment any of these appears:
 - **A release is done when** its release plan's exit gate is met, the cut checklist in [06-release-choreography.md](06-release-choreography.md) is complete through "GitHub release live and Latest", the staged repin-instructions.md exists in its release-plans folder, and STATUS plus RELEASE-HISTORY tell the story.
 - **The program is done when** all four releases are cut, the PRD metrics M1-M10 hold, [09-backlog.md](09-backlog.md) has been re-triaged into the canonical backlog, the memory index is updated, and a close-out wrap-session log exists.
 - **An early stop is clean when** the current release's in-flight PRs are either merged green or closed with their branches deleted, the packet statuses say exactly where things stand, and a wrap-session log carries the continuation prompt.
+
+
+## Renumbered 2026-07-27
+
+**R3 is now v1.10.0 and R4 is now v1.11.0.** Maintainer-approved work outside this program (`askit-standards-watch` plus the ADR implementation-sites convention) shipped as **v1.9.0**, because adding a skill is a MINOR under semver and the version is a promise to anyone installing from the marketplace. Renumbering an internal plan is cheaper than misnumbering a public release.
+
+Release CONTENT is unchanged. Only the version labels move. Where this packet's prose says "v1.9.0 marketplace scope" or "v1.10.0 manage and studio", read v1.10.0 and v1.11.0 respectively.

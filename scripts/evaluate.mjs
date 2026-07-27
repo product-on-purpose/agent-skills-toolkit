@@ -3,7 +3,7 @@
 // why:          a single report object keeps the terminal, JSON, and future MD/HTML renderers from diverging
 // used-by:      run by the askit-evaluate skill and askit-build-docs improve mode
 import path from "node:path";
-import { existsSync, statSync, writeFileSync, readFileSync } from "node:fs";
+import { existsSync, statSync, writeFileSync, readFileSync, readdirSync } from "node:fs";
 import { loadPlugin, loadSkill } from "./lib/load-plugin.mjs";
 import { runAllChecks, provenanceByReq, CHECKS } from "./lib/registry.mjs";
 import { applyStandardDowngrade } from "./lib/standard-gate.mjs";
@@ -13,7 +13,7 @@ import { resolveFindings } from "./lib/resolve-config.mjs";
 import { computeTierReport } from "./tier-report.mjs";
 import { checkAgentskills } from "./checks/agentskills.mjs";
 import { finding, SEVERITY } from "./lib/findings.mjs";
-import { readJsonSafe } from "./lib/fs-utils.mjs";
+import { readJsonSafe, SKIP_DIRS } from "./lib/fs-utils.mjs";
 import { gateExitFromFindings } from "./check.mjs";
 
 function groupByRule(findings) {
@@ -132,6 +132,67 @@ export function formatReport(r) {
   return lines.join("\n");
 }
 
+// Returns true when any .md/.mdx file under target (excluding SKIP_DIRS) contains a ```mermaid fence.
+// Used by buildConditional to decide whether U12 should show N/A (no diagrams = check is vacuously
+// not applicable) vs PASS/FAIL (diagrams exist, so the check ran).
+function targetHasMermaidBlocks(target) {
+  if (!existsSync(target) || !statSync(target).isDirectory()) return false;
+  const MERMAID_FENCE = /```mermaid/;
+  function scan(dir) {
+    let entries;
+    try { entries = readdirSync(dir); } catch { return false; }
+    for (const name of entries) {
+      if (SKIP_DIRS.has(name)) continue;
+      const full = path.join(dir, name);
+      let st;
+      try { st = statSync(full); } catch { continue; }
+      if (st.isDirectory()) {
+        if (scan(full)) return true;
+      } else if (/\.(md|mdx)$/.test(name)) {
+        try {
+          if (MERMAID_FENCE.test(readFileSync(full, "utf8"))) return true;
+        } catch { /* unreadable file - skip */ }
+      }
+    }
+    return false;
+  }
+  return scan(target);
+}
+
+// Returns true when the target has an enumerating manifest: either library.json carries
+// components.skills as an array (rung 1), or .claude-plugin/marketplace.json has plugins[]
+// with at least one source under skills/ (rung 2). Mirrors the resolveRegistrationSource
+// logic in checks/skill-registration.mjs so the conditional flag stays in sync with the check.
+function targetHasEnumeratingManifest(target) {
+  const lib = readJsonSafe(path.join(target, "library.json")).data;
+  if (Array.isArray(lib?.components?.skills)) return true;
+  try {
+    const mp = JSON.parse(readFileSync(path.join(target, ".claude-plugin", "marketplace.json"), "utf8"));
+    if (Array.isArray(mp?.plugins)) {
+      return mp.plugins.some((p) => {
+        const s = p?.source;
+        if (typeof s !== "string") return false;
+        const parts = s.replace(/^\.\//, "").split(/[\\/]/);
+        const i = parts.indexOf("skills");
+        return i >= 0 && Boolean(parts[i + 1]);
+      });
+    }
+  } catch { /* no marketplace.json or parse error */ }
+  return false;
+}
+
+// Builds the set of reqIds that should render N/A (not PASS) when no findings are present.
+// The base set covers checks whose artifacts are always optional (G1 hooks, G6 deprecation,
+// U11 managed-connector). U12 and U13 are added dynamically based on target content so a
+// plugin that actually has diagrams or an enumerating manifest never silently shows N/A.
+export function buildConditional(target) {
+  const base = new Set(["G1", "G6", "U11"]);
+  if (!target) return base;
+  if (!targetHasMermaidBlocks(target)) base.add("U12");
+  if (!targetHasEnumeratingManifest(target)) base.add("U13");
+  return base;
+}
+
 // The options bag the pure renderer needs that is not on the bare report object: the subject identity,
 // the live spine (so the ledger lists every requirement and the count is never hard-coded), the
 // vacuous-pass set, the injected date, and the gate exit code. Built by the CLI so the renderer stays pure.
@@ -139,7 +200,7 @@ function optsFromTarget(target, exitCode, reportType = "conformance") {
   return {
     library: readJsonSafe(path.join(target, "library.json")).data ?? null,
     spine: CHECKS.map((m) => ({ reqId: m.meta.reqId, id: m.meta.id, tier: m.meta.tier })),
-    conditional: new Set(["G1", "G6", "U11"]), // checks that pass vacuously when their artifact is absent
+    conditional: buildConditional(target),
     date: new Date().toISOString().slice(0, 10),
     exitCode,
     reportType,

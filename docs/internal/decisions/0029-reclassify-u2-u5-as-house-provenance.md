@@ -38,3 +38,11 @@ Option 1. `scripts/checks/anatomy.mjs` U2 `objective -> house` (docblock correct
 - **Positive:** under `--profile plain-plugin`, third-party grading now surfaces only portable defects (anthropics/skills drops to its single real U3 finding, a description over the Agent Skills spec cap, once the U2 convention is no longer imposed); the real-issues count and published verdict are honest; the provenance model is internally consistent and guarded against drift.
 - **Negative:** the gate no longer treats a missing root `AGENTS.md` as an objective defect for a plain plugin; mitigated because the askit-library profile (and the toolkit's own Gold self-grade) still require it, and `AGENTS.md` remains a documented anatomy expectation.
 - **Follow-up (not in this change):** the U5 scorer itself warrants recalibration - the 0.65 clustering suggests it saturates and does not reward strong descriptions; tracked separately, since reclassifying U5 as house already removes it from third-party grading.
+
+## Implementation sites
+- `scripts/checks/anatomy.mjs` - `meta.provenance`: changed from `"objective"` to `"house"`, making U2 invisible to `plain-plugin` grading.
+- `scripts/checks/description-score.mjs` - `meta.provenance`: changed from `"vendor-cited"` to `"house"`, making U5 invisible to `plain-plugin` grading.
+- `scripts/lib/profiles.mjs` - `HOUSE_REQIDS` constant: the set of reqIds whose provenance is `"house"`; this drives both the `plain-plugin` off-set and the `resolve-config.mjs` provenance lookup. Adding U2 and U5 here is the second half of the reclassification - a provenance change in the check file that is NOT mirrored in `HOUSE_REQIDS` would be silently incomplete.
+- `scripts/lib/resolve-config.mjs` - `provenanceByReq()`: builds the provenance map from `HOUSE_REQIDS`; used by `resolveFindings` to decide which checks `plain-plugin` suppresses.
+
+Grep anchor: `HOUSE_REQIDS` (the canonical list; the provenance fields in the two check files are the declaration, this set is the enforcement).

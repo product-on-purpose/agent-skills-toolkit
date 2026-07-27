@@ -9,6 +9,7 @@ The eval and regression sets that cover chain edges and hook events; the determi
 ## Inventory
 
 - `build-skill-to-author.eval.json` - the build-skill-to-author eval/regression set.
+- `build-skill-to-reviewer.eval.json` - the build-skill-to-reviewer eval/regression set (the phase-2 craft review).
 - `evaluate-to-evaluator.eval.json` - the evaluate-to-evaluator eval/regression set.
 - `evaluate-to-quality-grader.eval.json` - the evaluate-to-quality-grader eval/regression set.
 - `evaluate-to-reviewer.eval.json` - the evaluate-to-reviewer eval/regression set.
