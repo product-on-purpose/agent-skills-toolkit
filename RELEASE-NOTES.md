@@ -2,6 +2,23 @@
 
 Curated, user-facing highlights. For the full technical history see [`CHANGELOG.md`](CHANGELOG.md).
 
+## 1.8.0 - 2026-07-26
+
+Deep builders, measured advisory. Two things: the builders learn to teach, and the AI review layer stops being an impression and becomes a number.
+
+### What changed
+
+- **Every builder now ships working examples. Before this release, none did.** The toolkit has thirteen skills that draft components for you, and between all of them there was not one worked example to learn from - only empty shapes. Now the four hardest ship three good examples plus one deliberately wrong one each, and the rest ship one apiece. Twenty-five in total, and every runnable one was actually executed during review rather than merely written.
+- **The four hardest builders explain the judgement calls.** Their reference notes were 22 to 41 lines of shape. They are now real guides: what works, what goes wrong, and why the rule exists. One example: a recurring score of 0.65 that had puzzled five separate corpora turns out to be the exact arithmetic signature of a description that says what it does *or* when to use it, but not both.
+- **Two templates that pointed at files which have never existed are fixed.** One of them is kept, deliberately, as the teaching example of that exact mistake.
+- **We can now measure whether the AI review layer is any good.** A test plugin carries nine known flaws plus three deliberate traps that are *not* flaws, and a scorer grades a review against it. The central rule: a confident wrong answer counts as both a false alarm and a miss, so it scores worse than saying nothing. An honest "something looks off here, I am not sure" costs less. Confidently inventing a correction is the most expensive thing a reviewer can do, which is exactly right.
+- **Authoring costs are now measured rather than guessed**, with the caveats printed beside the numbers.
+- **A report that could claim a grade nobody earned is fixed.** If a plugin had not declared a quality tier, the generated report would quietly fill in the tier it happened to score and announce that the plugin "declares" it. On one real library the report said "10 of 10 satisfied" while the same files, checked the other way, produced seven failures - and the report's own data contained all seven. The terminal had been telling the truth the whole time; only the shareable document was wrong.
+
+### Upgrade
+
+No action required, and nothing that passed before newly fails.
+
 ## 1.7.0 - 2026-07-26
 
 Trust and craft. Two kinds of work: making the things the toolkit already says about itself actually true, and teaching it to judge quality rather than only conformance. Nothing here changes what conformance requires: the spine stays 30 checks and the Standard stays v0.12.
