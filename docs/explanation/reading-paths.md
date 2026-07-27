@@ -92,6 +92,7 @@ You have skills already. You want to know where you stand and what it costs.
 4. **[Builder pattern](../reference/builder-pattern.md)** - the shared shape every `askit-build-*` skill follows.
 5. **[Record a decision](../how-to/record-a-decision.md)** - every behavioral change is ADR-gated. This is not optional here.
 6. **[How the toolkit is validated and improved](validation-and-improvement.md)** - the observe, verify-against-ground-truth, calibrate loop. Read this before you change a check's behavior, because the rule is that you verify a surprising finding by hand before you "fix" the checker.
+7. **[Watch the upstream spec](../how-to/watch-the-upstream-spec.md)** - the recurring check that keeps the Universal tier written against the current agentskills.io spec. Run before every Standard MINOR and whenever you hear the upstream has moved.
 
 ---
 
