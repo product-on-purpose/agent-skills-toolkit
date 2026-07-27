@@ -2,6 +2,21 @@
 
 Curated, user-facing highlights. For the full technical history see [`CHANGELOG.md`](CHANGELOG.md).
 
+## 1.9.0 - 2026-07-27
+
+Two ways of catching the same mistake: a rule that exists and quietly is not applied everywhere it should be.
+
+### What changed
+
+- **The toolkit can now tell when the industry spec has moved.** Its own rulebook contained a line saying "when the wider spec changes, we must keep up" - and nothing did that, because no record existed of which version we were written against. There is now. It watches the spec, tells you what changed and which of your checks it touches, and drafts a decision record for you. It never edits anything itself, which matters: the rules are only allowed to change through a recorded decision, and a tool quietly rewriting them would destroy the thing that makes a grade mean anything.
+- **It is honest about what it cannot do.** It reliably detects that something changed and where. It refuses to judge whether a prose change is *important*, because that is a human call. The worked example replays a real spec change that a simpler tool would have missed entirely, then declines to classify it.
+- **Every decision record now names what implements it.** Three separate bugs this week came from the same shape: a rule was written down, applied in one place, and forgotten in the second place that needed it. Decisions now list the exact files, found by searching rather than remembering.
+- **That change found a bug on its first use.** Applied to yesterday's decision about a report that could claim a grade nobody earned, it found four more places the fix had missed. Those are fixed too.
+
+### Upgrade
+
+No action required, and nothing that passed before newly fails.
+
 ## 1.8.0 - 2026-07-26
 
 Deep builders, measured advisory. Two things: the builders learn to teach, and the AI review layer stops being an impression and becomes a number.
