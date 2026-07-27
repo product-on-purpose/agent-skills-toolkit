@@ -57,6 +57,25 @@ and then exits 2 has thrown the payload away and blocked with whatever happened 
   rather than rejecting it; or `additionalContext` that should reach the model as guidance rather than
   as a failure.
 
+**Where the JSON keys go, because getting this wrong fails silently.** `additionalContext` is **never a
+top-level key**. It nests inside `hookSpecificOutput` next to a `hookEventName` that matches the event
+you registered for:
+
+```json
+{ "hookSpecificOutput": { "hookEventName": "PostToolUse",
+                          "additionalContext": "Normalized trailing whitespace in <file>." } }
+```
+
+A bare `{ "additionalContext": "..." }` is **structurally valid JSON that does nothing**: the runtime
+finds no key it recognizes at the top level and discards it, your hook exits 0, and nothing anywhere
+reports a problem. That is the worst failure shape a hook has, and it cost two of this skill's own
+golden examples a revision round before it was caught against the vendor docs.
+
+The asymmetry to hold in your head: a **blocking** `decision` plus `reason` sits at the **top level**
+for `PostToolUse` and `Stop`, while the **non-blocking guidance** channel (`additionalContext`) sits
+under `hookSpecificOutput`. `PreToolUse` puts its `permissionDecision` under `hookSpecificOutput` too.
+Verified against the Claude Code hooks reference, 2026-07-26.
+
 The worked case is this repo's own hook, [hooks/no-dashes.mjs](../../../hooks/no-dashes.mjs). It always
 exits 0 and emits:
 
