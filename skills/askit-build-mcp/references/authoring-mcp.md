@@ -64,16 +64,24 @@ rather than a script handed to an interpreter.
 
 ## The recorded defect: a server file that does not exist
 
-This repository's own [templates/mcp.json](../../../templates/mcp.json) shipped:
+This repository's own [templates/mcp.json](../../../templates/mcp.json) shipped this line, in every
+release the template was in:
 
 ```json
 "args": ["./mcp/example-server.mjs"]
 ```
 
-There is no `mcp/` directory anywhere in the tree. Two defects in one line - the wrong path form, and
-a target that does not exist - and the gate reported 0 errors on it for every release it shipped in.
+There was no `mcp/` directory anywhere in the tree. Two defects in one line - the wrong path form, and
+a target that does not exist - and the gate reported 0 errors on it the whole time.
 
-That is not a bug in the gate. `U11` ([mcp-valid.mjs](../../../scripts/checks/mcp-valid.mjs)) checks
+The template is fixed: its `args` slot is now an explicit `REPLACE-` placeholder under
+`${CLAUDE_PLUGIN_ROOT}`, so a copied-but-unedited scaffold is obviously unfinished instead of silently
+broken. The defect itself is preserved as a worked anti-example -
+[anti-nonexistent-server-file.md](../examples/anti-nonexistent-server-file.md) quotes what shipped,
+separates the two defects, and demonstrates the gate's silence against the live checker.
+
+What the fix does not change is the gap this page is about, and that gap is not a bug in the gate.
+`U11` ([mcp-valid.mjs](../../../scripts/checks/mcp-valid.mjs)) checks
 that a stdio server declares a non-empty `command` **string**; sec 3.9's "a referenced `command` SHOULD
 be resolvable" is a SHOULD, and no check implements it (resolving an arbitrary launch command portably
 is not a thing a deterministic, model-free, cross-platform gate can do). So the deterministic layer

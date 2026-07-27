@@ -77,8 +77,9 @@ Worked example. Starting point:
 
 > Helps with resumes and CVs.
 
-0.20 (real words, third person, minus the `helps with` penalty). Two problems, only one of which the
-score names: there is no action and no trigger, and separately, "resumes and CVs" is a topic, not an
+0.00 (five words, so the real-words signal does not apply; +0.10 for third person, then the `helps
+with` penalty of -0.40 takes it below zero and it clamps). Two problems, only one of which the score
+names: there is no action and no trigger, and separately, "resumes and CVs" is a topic, not an
 output. Rewriting for the output and the utterance:
 
 > Reviews a resume against a target job description and returns a prioritized gap list with suggested

@@ -181,9 +181,14 @@ nothing.
   should use `hooks/hooks.json` so the hook travels with the install.
 
 **The same nonexistent-target trap MCP has.** [templates/hooks.json](../../../templates/hooks.json)
-points at `hooks/example-guard.mjs`, which does not exist. It is a scaffold placeholder you MUST
-replace, and nothing in the gate will tell you: `G1` validates the registration's shape, never that the
-command resolves. Run the command yourself before you call the hook done.
+shipped with a dangling `command` that pointed at `hooks/example-guard.mjs`, a file that never
+existed. It has since been replaced with explicit `REPLACE-with-*` tokens, and the command now runs
+through `node` with the path quoted, so a copied-but-unedited scaffold is obviously unfinished rather
+than silently broken. The fix does not change the underlying risk: `G1` validates the registration's
+shape (the `type` field, the matcher, a non-empty hooks array), never whether the command resolves to
+a real file. Run the command yourself before you call the hook done. The
+[anti-wrong-exit-code.md](../examples/anti-wrong-exit-code.md) anti-example shows the other half of
+the same lesson: a structurally valid registration can still be wrong at runtime.
 
 ## Least privilege (sec 9)
 
