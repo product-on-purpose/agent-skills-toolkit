@@ -7,6 +7,7 @@
 import path from "node:path";
 import { existsSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { EvalRunError, RUNS_DIR_REL, toPosix } from "./eval-run.mjs";
+import { escapeMdCell } from "./md-escape.mjs";
 
 /** The tracked record this appends to, and the public dossier whose measured range it maintains. */
 export const RECORD_REL = "docs/internal/eval-runs/eval-runs.md";
@@ -75,8 +76,7 @@ export function nextRunId(recordText) {
 // field containing the two characters \| becomes \\| , which Markdown reads as ONE literal backslash
 // followed by a BARE pipe, so the value walks out of its cell and adds a column to the tracked record.
 // The advisory fields in a skeleton are model-authored, so this is reachable, not theoretical.
-const escapeCell = (v) =>
-  String(v).replace(/\r?\n/g, " ").replace(/\\/g, "\\\\").replace(/\|/g, "\\|").trim();
+const escapeCell = (v) => escapeMdCell(v).trim();
 const num = (n) => Number(n).toLocaleString("en-US");
 
 /** One record row from one skeleton. Un-dispatched advisory fields read "(pending dispatch)", never 0. */

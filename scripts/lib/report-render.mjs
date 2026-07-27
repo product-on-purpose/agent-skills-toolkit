@@ -3,6 +3,7 @@
 // why:          MD (PR review / agents), HTML (non-engineers), JSON, and terminal all derive from one object so they never diverge (E1)
 // used-by:      scripts/evaluate.mjs (--format), the askit-evaluate skill
 import { metaFor } from "./report-meta.mjs";
+import { escapeMdCell } from "./md-escape.mjs";
 
 // --- tier display vocabulary (universal/convergent/advanced -> Bronze/Silver/Gold) ---
 const TIER_NAME = { universal: "Bronze", convergent: "Silver", advanced: "Gold" };
@@ -34,12 +35,11 @@ function escapeHtml(s) {
 // Escaping backslashes first makes the pipe pass idempotent-safe: \| becomes \\| then \\\| , which
 // renders as a literal backslash followed by a literal pipe. Order is load-bearing; do not reorder.
 function escapeMd(s) {
-  return String(s ?? "")
-    .replace(/\\/g, "\\\\")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/\|/g, "\\|")
-    .replace(/[\r\n]+/g, " ");
+  // The backslash-then-pipe core lives in escapeMdCell, the one place it is allowed to live. This
+  // layers the raw-HTML neutralization on top, which is this renderer's own extra requirement.
+  // Order still matters: the HTML pass runs BEFORE the cell escape so the entities it introduces
+  // (which contain no backslash or pipe) cannot be re-escaped.
+  return escapeMdCell(String(s ?? "").replace(/</g, "&lt;").replace(/>/g, "&gt;"));
 }
 const basename = (p) => String(p ?? "").split(/[\\/]/).filter(Boolean).pop() ?? String(p ?? "");
 

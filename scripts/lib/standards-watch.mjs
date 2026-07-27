@@ -16,6 +16,7 @@ import { readFileSync } from "node:fs";
 import { createHash } from "node:crypto";
 import path from "node:path";
 import { CHECKS } from "./registry.mjs";
+import { escapeMdCell } from "./md-escape.mjs";
 
 /** The tracked upstream pin, relative to the plugin root. */
 export const PIN_REL = "docs/internal/standards-watch/upstream-pin.json";
@@ -531,8 +532,8 @@ export function renderAdrDraft(report, { number = "NNNN", date = report.generate
   L.push("");
   L.push("| Class | Kind | Subject | Checks it lands on |");
   L.push("|---|---|---|---|");
-  for (const d of report.material) L.push(`| material | ${d.kind} | ${String(d.subject ?? d.artifact).replace(/\|/g, "\\|")} | ${(d.touches ?? []).join(", ") || "none today" } |`);
-  for (const d of report.review) L.push(`| review | ${d.kind} | ${String(d.subject ?? d.artifact).replace(/\|/g, "\\|")} | ${(d.touches ?? []).join(", ") || "none today"} |`);
+  for (const d of report.material) L.push(`| material | ${d.kind} | ${escapeMdCell(d.subject ?? d.artifact)} | ${(d.touches ?? []).join(", ") || "none today" } |`);
+  for (const d of report.review) L.push(`| review | ${d.kind} | ${escapeMdCell(d.subject ?? d.artifact)} | ${(d.touches ?? []).join(", ") || "none today"} |`);
   if (deltas.length === 0) L.push("| (none) | | | |");
   L.push("");
   L.push("Every `review` row is a located change whose materiality the watcher did not judge. Resolve each one in this ADR by reading the upstream diff.");

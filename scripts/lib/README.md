@@ -22,6 +22,7 @@ The shared library the checks, generators, and gate import: findings, frontmatte
 - `registry.mjs` - the ordered CHECKS array, runAllChecks(), REQ_IDS, and provenanceByReq().
 - `release-report.mjs` - releaseReport(): the release-readiness report object, a deterministic go / no-go verdict.
 - `report-meta.mjs` - the per-reqId explanation table (why-it-matters, fix prompt, effort) the evaluation report renderer joins at render time.
+- `md-escape.mjs` - escapeMdCell(): the one Markdown table-cell escape, backslashes before pipes.
 - `report-render.mjs` - renderMarkdown() and renderHtml(): the pure designed-report renderer over the evaluate() report object.
 - `resolve-config.mjs` - resolveFindings(): profile + per-rule override + suppressions + published-verdict clamp.
 - `suppressions.mjs` - the baseline matcher (reqId + file glob + message substring).
