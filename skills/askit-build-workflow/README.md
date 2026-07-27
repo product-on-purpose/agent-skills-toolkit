@@ -9,4 +9,5 @@ The askit-build-workflow skill. Creates and improves workflows (an ordered multi
 ## Inventory
 
 - `SKILL.md` - the skill definition (frontmatter plus the procedure).
+- `examples/` - three worked golden examples plus an anti-example of the create-mode output (Standard sec 7.2).
 - `references/` - supporting reference docs loaded on demand.

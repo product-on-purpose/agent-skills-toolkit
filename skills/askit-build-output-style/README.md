@@ -9,4 +9,5 @@ The askit-build-output-style skill. Creates and improves Claude Code output styl
 ## Inventory
 
 - `SKILL.md` - the skill definition (frontmatter plus the procedure).
+- `examples/` - a worked golden example of the create-mode output (Standard sec 7.2).
 - `references/` - supporting reference docs loaded on demand.

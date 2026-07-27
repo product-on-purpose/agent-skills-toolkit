@@ -9,4 +9,5 @@ The askit-build-mcp skill. Creates and improves MCP server definitions (a portab
 ## Inventory
 
 - `SKILL.md` - the skill definition (frontmatter plus the procedure).
+- `examples/` - three worked golden examples plus an anti-example; each golden ships a runnable server and its launch transcript (Standard sec 7.2).
 - `references/` - supporting reference docs loaded on demand.
