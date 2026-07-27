@@ -9,6 +9,22 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [1.9.0] - 2026-07-27
+
+Two governance capabilities, both aimed at the same failure: a rule that exists and is not carried to every place it applies. Outward, the toolkit can now tell when the upstream spec has moved. Inward, every decision record names what implements it. Spine stays **30 checks**, Standard stays **v0.12**. **601 tests**, gate Advanced 0/0.
+
+### Added
+- **`askit-standards-watch` (skill 24).** `STANDARD.md` section 6 states, normatively, that where agentskills.io evolves the Universal tier MUST track it. Nothing implemented it, and no upstream version was pinned anywhere, so "has the spec changed?" was not an answerable question. It now is. The pin unit is a **git blob SHA-1 per normative artifact**, not a repo HEAD or a version string: the upstream publishes no tags or releases, and its HEAD moves on unrelated commits while `specification.mdx` sat unchanged from 2026-05-16 to today. Blob SHAs are reproducible with `git hash-object` by a reviewer who does not trust the tool.
+- **`## Implementation sites` on every ADR.** The template, `askit-decision`, and 14 retrofitted decision records now name the exact files and functions that carry each decision, found by grep rather than recall. This addresses the failure behind three defects in two days: ADR 0030's guard implemented in one of two renderers, ADR 0034's flag validated in one of two scopes, and one escaping mistake made twice independently.
+- **`scripts/lib/md-escape.mjs`.** One shared Markdown table-cell escape.
+
+### Changed
+- **The report's HTML path no longer renders a null declared tier.** ADR 0038 fixed five sites; the retrofit's grep found four more in the HTML exec paragraph, masthead, ID strip, and metadata section, which were still emitting a blank tier name and a literal `null (null)`. **The discipline found this on its first use, inside the very ADR that named the pattern.**
+- **All three Markdown cell escapes now share one primitive.** CodeQL found the same `js/incomplete-sanitization` defect a fourth and fifth time in new code, written by a third independent author. When the first two were fixed the note read "worth revisiting if a third appears" - a third appeared, so the opportunity is removed rather than the bug corrected again.
+
+### Note on numbering
+A new skill is a MINOR, so this takes v1.9.0. The uplift program had reserved that number for marketplace scope, which becomes **v1.10.0**; manage-and-studio becomes **v1.11.0**. Renumbering an internal plan is cheaper than misnumbering a public release.
+
 ### Added
 - **`askit-standards-watch` and the upstream pin.** `STANDARD.md` sec 6 has said since v0.1 that "where agentskills.io evolves, the Universal tier MUST track it", and nothing implemented it: no upstream revision was recorded anywhere, so "has the spec changed?" was not an answerable question. The new pin at `docs/internal/standards-watch/upstream-pin.json` records it, content-addressed by git blob SHA-1 because the upstream publishes no version and cuts no tags or releases (verified against the repository API). Four artifacts are watched: the specification prose and the three `skills-ref` sources sec 6 points at.
 - **`npm run standards-watch`,** the deterministic detector behind the skill. It fetches each pinned artifact, extracts a structural surface from the specification (the frontmatter field table, the component inventory, a body hash per section), and splits every delta into three classes: **material** (a field or directory added, removed, or re-constrained; a section added or removed) decided structurally with no judgment applied, **needs a human read** (a prose body moved, or the reference implementation changed) which it locates and deliberately refuses to classify, and **cosmetic** (bytes moved, surface identical) which it filters. It refuses with exit 2 rather than reporting a clean run when its anchors are gone. Each delta resolves to the checks it lands on by parsing `docs/reference/universal-checks.md` and joining the check registry at run time, so that mapping cannot drift.
