@@ -10,7 +10,8 @@
     "check": "node scripts/check.mjs",
     "tier-report": "node scripts/tier-report.mjs",
     "evaluate": "node scripts/evaluate.mjs",
-    "eval-run": "node scripts/eval-run.mjs"
+    "eval-run": "node scripts/eval-run.mjs",
+    "standards-watch": "node scripts/standards-watch.mjs ."
   },
   "dependencies": {
     "yaml": "^2.5.0"

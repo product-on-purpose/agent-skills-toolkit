@@ -1,0 +1,316 @@
+{
+  "schema": "askit-upstream-pin/1",
+  "about": "The upstream revision this Standard's Universal tier is written against. STANDARD.md sec 6 says, normatively, that where agentskills.io evolves the Universal tier MUST track it. Tracking is only auditable against a recorded starting point, and before this file there was none: 'has the upstream spec changed since we wrote the Universal tier' was not an answerable question. This file makes it one. It is NOT this Standard's own version (that is library.json.standard, currently 0.12, which versions OUR ruleset); the two move independently and must never be conflated.",
+  "conventions": {
+    "blobSha": "The git blob SHA-1 of the artifact's exact bytes: sha1('blob ' + length + NUL + bytes). Identical to what `git hash-object <file>` prints and to the `sha` GitHub reports for the blob, so any reviewer can verify a pinned value by hand, offline, without this tool. Chosen over the repository HEAD sha deliberately: the upstream repo takes frequent commits that touch only the client showcase and its logos, so a HEAD pin would alarm constantly while the normative surface sat still. Per-artifact blob pins move only when a watched artifact moves.",
+    "rawUrl": "Fetched live on every run and hashed. Pinned at the upstream default branch, not at a sha, because the whole point is to compare the pin against what is current. A 404 here is itself a material event (the upstream moved or renamed a normative file) and the watcher refuses rather than reporting a clean run.",
+    "role": "normative-prose = the specification a human reads and this Standard restates; reference-implementation = the executable validator sec 6 names ('MUST pass skills-ref-equivalent validation'), whose behavior defines conformance even when the prose does not move.",
+    "structural": "true means the watcher extracts a machine-comparable surface from the artifact (the frontmatter field table, the component inventory, per-section body hashes) and can decide some deltas without judgment. false means the artifact is watched by content hash only and every change is escalated to a human. Python source is deliberately NOT parsed: a plausible-looking parse of someone else's validator would be an overclaim.",
+    "touches": "The reqIds a delta in a given field, directory, or section lands on. This is the one mapping that did not already exist, so it lives here, small and reviewable, and is re-read every time the pin is reviewed. The other half of the mapping (reqId to check module, Standard section, tier, since, provenance) is NOT restated here: the watcher parses docs/reference/universal-checks.md and joins scripts/lib/registry.mjs at run time, so it cannot drift from the checks. An empty list is meaningful and is reported specially: it means the upstream names something no check of ours encodes today.",
+    "surface": "The extracted structural surface at the moment of verification. Recording it makes a run need exactly one fetch (current) rather than two (current plus pinned), and makes the pin human-readable: a reviewer can see, in one file, what we believe the upstream contract says. Regenerate it with `npm run standards-watch -- --emit-pin`, which prints the proposed document to stdout for a human to save."
+  },
+  "upstream": {
+    "id": "agentskills.io",
+    "repo": "https://github.com/agentskills/agentskills",
+    "ref": "main",
+    "publishedSpec": "https://agentskills.io/specification",
+    "declaresOwnVersion": false,
+    "versioningNote": "The upstream publishes NO version number and cuts NO git tags or GitHub releases (verified 2026-07-27: `gh api repos/agentskills/agentskills/tags` and `.../releases` are both empty). There is therefore no upstream version string to pin, which is why this file pins content hashes instead. If the upstream ever starts versioning itself, re-pinning to that version is strictly better and this file should record it."
+  },
+  "verified": {
+    "date": "2026-07-27",
+    "by": "askit-standards-watch bootstrap",
+    "repoHeadSha": "38a2ff82958afee88dadf4831509e6f7e9d8ef4e",
+    "method": "GitHub API (git/trees and contents) for the blob shas, re-derived locally with `git hash-object` on the fetched bytes; the published page at https://agentskills.io/specification.md was read alongside and matches docs/specification.mdx in substance."
+  },
+  "artifacts": [
+    {
+      "path": "docs/specification.mdx",
+      "role": "normative-prose",
+      "rawUrl": "https://raw.githubusercontent.com/agentskills/agentskills/main/docs/specification.mdx",
+      "blobSha": "20cf9f6b672391e3295733c7863480905de6b887",
+      "structural": true,
+      "touches": [
+        "U3",
+        "U4",
+        "U5",
+        "U6",
+        "U7"
+      ],
+      "lastUpstreamCommit": {
+        "sha": "6868401b64f791e9ff565f29beb6338826b73a2b",
+        "date": "2026-05-16",
+        "subject": "docs: fix name field character range to include digits"
+      },
+      "notes": "The complete format specification for Agent Skills. This is what STANDARD.md sec 3.1 restates and what the Universal tier claims to be a strict superset of."
+    },
+    {
+      "path": "skills-ref/src/skills_ref/validator.py",
+      "role": "reference-implementation",
+      "rawUrl": "https://raw.githubusercontent.com/agentskills/agentskills/main/skills-ref/src/skills_ref/validator.py",
+      "blobSha": "22cf6f8ae5f905d780cb097c0938711cc37016a9",
+      "structural": false,
+      "touches": [
+        "U3",
+        "U4",
+        "U6"
+      ],
+      "lastUpstreamCommit": {
+        "sha": "547831f3a23724ba64a9b79bbf59c5e0bc8f2d1a",
+        "date": "2025-12-18",
+        "subject": "Add skills-ref library (#2)"
+      },
+      "notes": "The rule body of the validator sec 6 names. Untouched since it was introduced, which is itself worth knowing: the executable definition of conformance has been stable far longer than the prose."
+    },
+    {
+      "path": "skills-ref/src/skills_ref/models.py",
+      "role": "reference-implementation",
+      "rawUrl": "https://raw.githubusercontent.com/agentskills/agentskills/main/skills-ref/src/skills_ref/models.py",
+      "blobSha": "77fa89ed2ccce99b10068fccd2ca26a2db24b1b1",
+      "structural": false,
+      "touches": [
+        "U3"
+      ],
+      "notes": "The frontmatter field model. A new attribute here is a new field in practice, whatever the prose says."
+    },
+    {
+      "path": "skills-ref/src/skills_ref/parser.py",
+      "role": "reference-implementation",
+      "rawUrl": "https://raw.githubusercontent.com/agentskills/agentskills/main/skills-ref/src/skills_ref/parser.py",
+      "blobSha": "690c14e27b61405e3b1346dc22c8678cd3e79b35",
+      "structural": false,
+      "touches": [
+        "U3"
+      ],
+      "notes": "How the upstream actually reads a SKILL.md (frontmatter delimiters, encoding, error surfaces). A change here can alter what parses without altering any stated rule."
+    }
+  ],
+  "touches": {
+    "fields": {
+      "name": [
+        "U3",
+        "U4"
+      ],
+      "description": [
+        "U3",
+        "U5"
+      ],
+      "license": [
+        "U3"
+      ],
+      "compatibility": [
+        "U3"
+      ],
+      "metadata": [
+        "U3"
+      ],
+      "allowed-tools": [
+        "U3"
+      ]
+    },
+    "directories": {
+      "SKILL.md": [
+        "U3",
+        "U4"
+      ],
+      "references/": [
+        "U6"
+      ],
+      "scripts/": [],
+      "assets/": []
+    },
+    "sections": {
+      "## Directory structure": [
+        "U2"
+      ],
+      "## `SKILL.md` format": [
+        "U3"
+      ],
+      "### Frontmatter": [
+        "U3"
+      ],
+      "#### `name` field": [
+        "U3",
+        "U4"
+      ],
+      "#### `description` field": [
+        "U3",
+        "U5"
+      ],
+      "#### `license` field": [
+        "U3"
+      ],
+      "#### `compatibility` field": [
+        "U3"
+      ],
+      "#### `metadata` field": [
+        "U3"
+      ],
+      "#### `allowed-tools` field": [
+        "U3"
+      ],
+      "### Body content": [
+        "U7"
+      ],
+      "## Optional directories": [],
+      "### `scripts/`": [],
+      "### `references/`": [
+        "U6"
+      ],
+      "### `assets/`": [],
+      "## Progressive disclosure": [
+        "U7"
+      ],
+      "## File references": [
+        "U6"
+      ],
+      "## Validation": [
+        "U3",
+        "U4",
+        "U5",
+        "U6",
+        "U7"
+      ]
+    }
+  },
+  "surface": {
+    "frontmatterFields": [
+      {
+        "field": "allowed-tools",
+        "required": false,
+        "constraints": "Space-separated string of pre-approved tools the skill may use. (Experimental)"
+      },
+      {
+        "field": "compatibility",
+        "required": false,
+        "constraints": "Max 500 characters. Indicates environment requirements (intended product, system packages, network access, etc.)."
+      },
+      {
+        "field": "description",
+        "required": true,
+        "constraints": "Max 1024 characters. Non-empty. Describes what the skill does and when to use it."
+      },
+      {
+        "field": "license",
+        "required": false,
+        "constraints": "License name or reference to a bundled license file."
+      },
+      {
+        "field": "metadata",
+        "required": false,
+        "constraints": "Arbitrary key-value mapping for additional metadata."
+      },
+      {
+        "field": "name",
+        "required": true,
+        "constraints": "Max 64 characters. Lowercase letters, numbers, and hyphens only. Must not start or end with a hyphen."
+      }
+    ],
+    "directories": [
+      {
+        "entry": "SKILL.md",
+        "required": true
+      },
+      {
+        "entry": "assets/",
+        "required": false
+      },
+      {
+        "entry": "references/",
+        "required": false
+      },
+      {
+        "entry": "scripts/",
+        "required": false
+      }
+    ],
+    "sections": [
+      {
+        "key": "## Directory structure",
+        "hash": "3088f9352995612e",
+        "lines": 12
+      },
+      {
+        "key": "## `SKILL.md` format",
+        "hash": "f853cec8b06d12d4",
+        "lines": 3
+      },
+      {
+        "key": "### Frontmatter",
+        "hash": "16ac77639d18fae8",
+        "lines": 34
+      },
+      {
+        "key": "#### `name` field",
+        "hash": "5f781114ba5da147",
+        "lines": 32
+      },
+      {
+        "key": "#### `description` field",
+        "hash": "0d7d6b26ec3c5e25",
+        "lines": 18
+      },
+      {
+        "key": "#### `license` field",
+        "hash": "f88a370665eaf77d",
+        "lines": 12
+      },
+      {
+        "key": "#### `compatibility` field",
+        "hash": "885399c932ffd4a4",
+        "lines": 23
+      },
+      {
+        "key": "#### `metadata` field",
+        "hash": "bfc21ee390d7ac60",
+        "lines": 15
+      },
+      {
+        "key": "#### `allowed-tools` field",
+        "hash": "35f40d6154a69cb1",
+        "lines": 12
+      },
+      {
+        "key": "### Body content",
+        "hash": "d33318382f827a17",
+        "lines": 10
+      },
+      {
+        "key": "## Optional directories",
+        "hash": "e3b0c44298fc1c14",
+        "lines": 1
+      },
+      {
+        "key": "### `scripts/`",
+        "hash": "a2341a2f313958cb",
+        "lines": 8
+      },
+      {
+        "key": "### `references/`",
+        "hash": "cee7fc535d6ffb4a",
+        "lines": 8
+      },
+      {
+        "key": "### `assets/`",
+        "hash": "61d838d1c96e2d36",
+        "lines": 6
+      },
+      {
+        "key": "## Progressive disclosure",
+        "hash": "6dbcf1183c279100",
+        "lines": 9
+      },
+      {
+        "key": "## File references",
+        "hash": "f99d735ab710faa1",
+        "lines": 12
+      },
+      {
+        "key": "## Validation",
+        "hash": "619538486a8f4063",
+        "lines": 8
+      }
+    ]
+  }
+}
+

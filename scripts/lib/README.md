@@ -26,5 +26,6 @@ The shared library the checks, generators, and gate import: findings, frontmatte
 - `resolve-config.mjs` - resolveFindings(): profile + per-rule override + suppressions + published-verdict clamp.
 - `suppressions.mjs` - the baseline matcher (reqId + file glob + message substring).
 - `standard-gate.mjs` - the ADR 0027 standard-aware downgrade: SINCE_BY_REQ and applyStandardDowngrade().
+- `standards-watch.mjs` - the deterministic upstream watch (STANDARD.md sec 6): pin reading, structural surface extraction, material/review/cosmetic classification, and the report, ADR-skeleton, and re-pin renderers. Write-incapable by construction.
 - `standard-version.mjs` - Standard-version arithmetic (parseStandard, compareStandard, isAfter).
 - `tier.mjs` - the reqId-to-tier mapping and tier ordering.

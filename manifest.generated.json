@@ -115,6 +115,11 @@
       "description": "Builds and validates a plugin's release by computing the version, promoting the changelog, curating the release notes, and running the readiness gate, to the Advanced Skill Library Standard. Use when cutting a release, bumping the plugin version, updating the changelog or release notes, or checking release readiness."
     },
     {
+      "name": "askit-standards-watch",
+      "path": "skills/askit-standards-watch/SKILL.md",
+      "description": "Checks whether the pinned agentskills.io upstream specification has changed, reports which Universal conformance checks each delta lands on, and drafts a proposal ADR without editing a check or the Standard. Use when asking if the upstream spec has moved, before cutting a Standard minor version, or when re-pinning the agentskills.io revision the Universal tier tracks."
+    },
+    {
       "name": "askit-template-manager",
       "path": "skills/askit-template-manager/SKILL.md",
       "description": "Creates and maintains a plugin's global templates directory so the scaffolders produce consistent components. Use when adding a template, updating an existing one, or keeping templates in sync with the component shapes they scaffold."

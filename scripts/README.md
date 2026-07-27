@@ -15,4 +15,5 @@ The portable, zero-runtime-framework Node tooling: the conformance gate, the tie
 - `evaluate.mjs` - the structured evaluator behind askit-evaluate.
 - `generators/` - the artifact generators (INDEX, manifests, AGENTS.md).
 - `lib/` - the shared library used by the checks, generators, and gate.
+- `standards-watch.mjs` - the upstream standards-watch CLI (compare the agentskills.io pin against what is current; prints, never writes).
 - `tier-report.mjs` - the tier report (the satisfied tier plus the keyed burndown to the next).
