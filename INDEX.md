@@ -8,7 +8,7 @@
 
 ## Components
 
-### Skills (23)
+### Skills (24)
 
 - [`askit-backlog`](skills/askit-backlog/) - Creates, triages, and prunes a plugin's two backlogs (new-component proposals and enhancements) to the Advanced Skill Library Standard. Use when capturing a new-component proposal through the why-gate, prioritizing backlog items, or removing stale or completed entries.
 - [`askit-build-agents-md`](skills/askit-build-agents-md/) - Creates and improves a plugin's AGENTS.md (the agent navigation and instructions entrypoint) to the Advanced Skill Library Standard. Use when you need to author or sync AGENTS.md, align it with the component index, or trim an overgrown one to essential, mostly-positive guidance.
@@ -32,6 +32,7 @@
 - [`askit-init-plugin`](skills/askit-init-plugin/) - Creates a starting plugin that satisfies the Bronze anatomy and onboards the maintainer, in three modes (interview, questionnaire, hybrid). Use when starting a new plugin from scratch, onboarding a maintainer, or generating a scaffolding questionnaire.
 - [`askit-migrate`](skills/askit-migrate/) - Assesses an existing skills repository against the Advanced Skill Library Standard, produces a staged bring-to-conformance plan, and writes the minimal canonical manifest so the repo becomes gradeable. Use when adopting a foreign or ad-hoc skills repo, migrating a Claude-only plugin toward cross-agent conformance, or planning a Bronze-to-Silver upgrade path.
 - [`askit-release`](skills/askit-release/) - Builds and validates a plugin's release by computing the version, promoting the changelog, curating the release notes, and running the readiness gate, to the Advanced Skill Library Standard. Use when cutting a release, bumping the plugin version, updating the changelog or release notes, or checking release readiness.
+- [`askit-standards-watch`](skills/askit-standards-watch/) - Checks whether the pinned agentskills.io upstream specification has changed, reports which Universal conformance checks each delta lands on, and drafts a proposal ADR without editing a check or the Standard. Use when asking if the upstream spec has moved, before cutting a Standard minor version, or when re-pinning the agentskills.io revision the Universal tier tracks.
 - [`askit-template-manager`](skills/askit-template-manager/) - Creates and maintains a plugin's global templates directory so the scaffolders produce consistent components. Use when adding a template, updating an existing one, or keeping templates in sync with the component shapes they scaffold.
 
 ### Subagents (7, Claude-only)
