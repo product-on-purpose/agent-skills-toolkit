@@ -44,6 +44,16 @@ The gate is the union of small deterministic checks (the project's existing mode
 
 **Negative / cost:** `release-ready.mjs` plus the docs-presence and version-equality checks are real build work (bounded; they reuse the existing check model); some checks (RELEASE-NOTES, architecture docs, docs-site) only become enforceable once those artifacts exist, so the gate is built incrementally and switched to error severity per item as each artifact lands.
 
+## Implementation sites
+- `scripts/checks/release-notes.mjs` (G5): checks that `RELEASE-NOTES.md` exists and has a curated entry for the release version.
+- `scripts/checks/docs-presence.mjs` (G10): checks that the Diataxis quadrants are non-empty, every ADR has a `## TL;DR`, and the architecture overview links the detailed page.
+- `scripts/checks/version-match.mjs`: checks that `library.json.version` equals `package.json.version` (version-consistency sub-check).
+- `docs/internal/RELEASE.md`: the committed human-readable checklist that mirrors the gate one-to-one.
+
+Note: the `release-ready` aggregate check (step 8, "all tier-applicable conformance checks green") is `scripts/check.mjs` itself running in CI - not a separate file.
+
+Grep anchor: `release-notes` and `docs-presence` in `scripts/lib/registry.mjs` (verify both checks are registered at Advanced tier).
+
 ## Implementation notes (by wave)
 
 - **Wave A:** version-equality check (built now); stub `docs/internal/RELEASE.md`; CHANGELOG-section presence check.

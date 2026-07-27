@@ -1,6 +1,6 @@
 {
   "name": "agent-skills-toolkit",
-  "version": "1.6.1",
+  "version": "1.9.0",
   "description": "Toolkit and Standard for authoring, validating, governing, and scaling cross-agent skill libraries (Claude Code and Codex) to a tiered Bronze/Silver/Gold quality bar. Use when building or grading agent skill plugins, when emitting components for multiple agents, or when adopting the Advanced Skill Library Standard.",
   "standard": "0.12",
   "tier": "advanced",
@@ -33,7 +33,8 @@
       { "name": "askit-build-statusline", "path": "skills/askit-build-statusline/SKILL.md", "version": "0.1.0", "tier": "universal", "status": "active" },
       { "name": "askit-build-settings", "path": "skills/askit-build-settings/SKILL.md", "version": "0.1.0", "tier": "universal", "status": "active" },
       { "name": "askit-deprecate", "path": "skills/askit-deprecate/SKILL.md", "version": "0.1.0", "tier": "universal", "status": "active" },
-      { "name": "askit-template-manager", "path": "skills/askit-template-manager/SKILL.md", "version": "0.1.0", "tier": "universal", "status": "active" }
+      { "name": "askit-template-manager", "path": "skills/askit-template-manager/SKILL.md", "version": "0.1.0", "tier": "universal", "status": "active" },
+      { "name": "askit-standards-watch", "path": "skills/askit-standards-watch/SKILL.md", "version": "0.1.0", "tier": "universal", "status": "active" }
     ],
     "subagents": [
       { "name": "askit-skill-author", "path": "agents/askit-skill-author.md", "version": "0.1.0", "tier": "convergent", "status": "active" },

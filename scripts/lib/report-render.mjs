@@ -3,6 +3,7 @@
 // why:          MD (PR review / agents), HTML (non-engineers), JSON, and terminal all derive from one object so they never diverge (E1)
 // used-by:      scripts/evaluate.mjs (--format), the askit-evaluate skill
 import { metaFor } from "./report-meta.mjs";
+import { escapeMdCell } from "./md-escape.mjs";
 
 // --- tier display vocabulary (universal/convergent/advanced -> Bronze/Silver/Gold) ---
 const TIER_NAME = { universal: "Bronze", convergent: "Silver", advanced: "Gold" };
@@ -26,8 +27,19 @@ function escapeHtml(s) {
 // Neutralize a Markdown table cell (a pipe adds a column, a newline ends the row) AND raw HTML (< >), so an
 // untrusted finding message, model name, or advisory field cannot inject markup when the Markdown is later
 // rendered to HTML. Applied to every interpolation of untrusted text, not only table cells.
+//
+// The BACKSLASH pass must come FIRST, and it is the whole point of the ordering (CodeQL
+// js/incomplete-sanitization, high). Escaping the pipe alone is self-defeating: an untrusted field
+// containing the two characters \| becomes \\| , where Markdown reads \\ as one literal backslash and
+// then meets a BARE pipe - so the payload walks straight out of the cell and opens a new column.
+// Escaping backslashes first makes the pipe pass idempotent-safe: \| becomes \\| then \\\| , which
+// renders as a literal backslash followed by a literal pipe. Order is load-bearing; do not reorder.
 function escapeMd(s) {
-  return String(s ?? "").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/\|/g, "\\|").replace(/[\r\n]+/g, " ");
+  // The backslash-then-pipe core lives in escapeMdCell, the one place it is allowed to live. This
+  // layers the raw-HTML neutralization on top, which is this renderer's own extra requirement.
+  // Order still matters: the HTML pass runs BEFORE the cell escape so the entities it introduces
+  // (which contain no backslash or pipe) cannot be re-escaped.
+  return escapeMdCell(String(s ?? "").replace(/</g, "&lt;").replace(/>/g, "&gt;"));
 }
 const basename = (p) => String(p ?? "").split(/[\\/]/).filter(Boolean).pop() ?? String(p ?? "");
 
@@ -93,7 +105,13 @@ function deriveModel(report, opts = {}) {
     scope: report.scope, isPlugin,
     subject: lib?.name ?? basename(report.target),
     version: lib?.version ?? null,
-    declaredTier: lib?.tier ?? (isPlugin ? report.tier : null),
+    // NEVER fall back to report.tier here. That is the EARNED tier, and using it as the DECLARED tier
+    // made a subject with no library.json render "declares the Gold (Advanced) tier and earns Gold",
+    // plus a verdict card that always read "matches its declared tier" because earned trivially equalled
+    // itself. A false PASS on the artifact third parties are shown, while the terminal gate said the
+    // honest thing. Reading 19, corpus batch 3. tier-report.mjs humanLine() has had this guard all along;
+    // it was never mirrored here. Null means undeclared, and every render site must say so.
+    declaredTier: lib?.tier ?? null,
     agentTargets: lib?.["agent-targets"] ?? null,
     prefix: lib?.prefix ?? null,
     standard: lib?.standard ?? null,
@@ -213,7 +231,10 @@ function renderMarkdown(report, opts = {}) {
   out.push(`**Summary: a derived, plain-language read of the deterministic result. ${m.isPlugin ? m.subject + " " + gradeLine + "." : "Component-level findings only."}**`);
   out.push("");
   if (m.isPlugin) {
-    out.push(`${m.subject} declares the ${TIER_NAME[m.declaredTier] ?? m.declaredTier} (${TIER_SUB[m.declaredTier] ?? m.declaredTier}) tier and ${gradeLine}. Of the ${m.counts.total} checks in the spine, ${m.counts.passedHeadline} do not fail (${m.counts.pass} pass, ${m.counts.warn} warn, ${m.counts.na} not applicable) and ${m.counts.fail} fail. The deterministic gate exits ${m.exitCode}.`);
+    const declLine = m.declaredTier
+      ? `${m.subject} declares the ${TIER_NAME[m.declaredTier] ?? m.declaredTier} (${TIER_SUB[m.declaredTier] ?? m.declaredTier}) tier and ${gradeLine}`
+      : `${m.subject} declares no askit tier, so it is not graded against the tier ladder; the objective checks are reported on their own terms`;
+    out.push(`${declLine}. Of the ${m.counts.total} checks in the spine, ${m.counts.passedHeadline} do not fail (${m.counts.pass} pass, ${m.counts.warn} warn, ${m.counts.na} not applicable) and ${m.counts.fail} fail. The deterministic gate exits ${m.exitCode}.`);
     out.push("");
     if (m.blockers.length) {
       out.push(`${m.blockers.length} requirement(s) block ${m.nextTierName}: ${m.blockers.map((b) => b.reqId).join(", ")}. Section 06 orders the climb and section 07 gives a copy-paste fix prompt for each gap that drives the matching askit builder and re-runs the gate.`);
@@ -236,7 +257,7 @@ function renderMarkdown(report, opts = {}) {
   out.push("**Summary: the subject identity, then the component inventory.**");
   out.push("");
   const idRows = [["Subject", m.subject], ["Version", m.version ?? "(unspecified)"]];
-  if (m.isPlugin) idRows.push(["Declared tier", `${TIER_SUB[m.declaredTier] ?? m.declaredTier} (${TIER_NAME[m.declaredTier] ?? m.declaredTier})`]);
+  if (m.isPlugin) idRows.push(["Declared tier", m.declaredTier ? `${TIER_SUB[m.declaredTier]} (${TIER_NAME[m.declaredTier]})` : "none declared"]);
   if (m.agentTargets) idRows.push(["Agent targets", m.agentTargets.join(", ")]);
   if (m.prefix) idRows.push(["Prefix", m.prefix]);
   if (m.profile) idRows.push(["Grading profile", m.profile]);
@@ -401,7 +422,7 @@ function renderMarkdown(report, opts = {}) {
     ["Spine", `${m.counts.total} checks`],
   ];
   if (m.isPlugin) {
-    metaRows.push(["Declared tier", m.declaredTier]);
+    metaRows.push(["Declared tier", m.declaredTier ?? "none declared"]);
     metaRows.push(["Grade earned", `${m.tierEarnedName} (${TIER_SUB[m.tierEarned] ?? m.tierEarned})`]);
   }
   if (m.profile) metaRows.push(["Grading profile", m.profile]);
@@ -777,28 +798,33 @@ function renderHtml(report, opts = {}) {
 
   const verdict = m.isPlugin ? `<div class="verdictcard">
     <div class="lockup"><div class="seal ${sealCls}"><div><div class="tier">${escapeHtml(m.tierEarnedName)}</div><div class="tlbl">${escapeHtml(TIER_SUB[m.tierEarned] ?? "")}</div></div></div>
-    <div class="vtext"><div class="ve">Verdict</div><div class="vg">Earns ${escapeHtml(m.tierEarnedName)}</div><div class="vsub">Declared ${escapeHtml(TIER_SUB[m.declaredTier] ?? m.declaredTier)}; ${m.tierEarned === m.declaredTier ? "matches its declared tier" : "graded against its declared tier"}.</div></div></div>
+    <div class="vtext"><div class="ve">Verdict</div><div class="vg">Earns ${escapeHtml(m.tierEarnedName)}</div><div class="vsub">${m.declaredTier ? `Declared ${escapeHtml(TIER_SUB[m.declaredTier] ?? m.declaredTier)}; ${m.tierEarned === m.declaredTier ? "matches its declared tier" : "graded against its declared tier"}` : "No askit tier declared; not graded against the tier ladder"}.</div></div></div>
     ${climb}${meters}</div>` : `<div class="verdictcard"><div class="lockup"><div class="seal"><div><div class="tier" style="font-size:13px">Component</div></div></div><div class="vtext"><div class="ve">Scope</div><div class="vg">Single component</div><div class="vsub">Graded by rule; a lone component has no tier.</div></div></div></div>`;
 
   const masthead = `<header class="masthead" id="s01"><div class="wrap">
     <div class="mh-top">${chips}</div>
     <div class="mh-grid">
-      <div class="mh-id"><h1>${escapeHtml(m.subject)}</h1><div class="vv">${m.version ? "version " + escapeHtml(m.version) : "version unspecified"}${m.isPlugin ? " &nbsp;/&nbsp; declared tier: " + escapeHtml(m.declaredTier) : ""}</div>
+      <div class="mh-id"><h1>${escapeHtml(m.subject)}</h1><div class="vv">${m.version ? "version " + escapeHtml(m.version) : "version unspecified"}${m.isPlugin ? " &nbsp;/&nbsp; declared tier: " + escapeHtml(m.declaredTier ?? "none declared") : ""}</div>
       <p class="desc">Whole-library tier-compliance evaluation against the Advanced Skill Library Standard. Rendered from the one deterministic report object; the verdict is the gate's.</p>${kpis}</div>
       ${verdict}
     </div></div></header>`;
 
   // 02 exec
+  // Mirror the Markdown declLine guard (line ~234): NEVER fall back to a tier name when declaredTier is
+  // null. That was the ADR 0038 defect - the verdict card was fixed there; this exec body was not.
+  const htmlDeclLine = m.declaredTier
+    ? `${escapeHtml(m.subject)} declares the <b>${escapeHtml(TIER_NAME[m.declaredTier] ?? m.declaredTier)} (${escapeHtml(TIER_SUB[m.declaredTier] ?? m.declaredTier)})</b> tier and earns <b>${escapeHtml(m.tierEarnedName)}</b>`
+    : `${escapeHtml(m.subject)} declares no askit tier, so it is not graded against the tier ladder; the objective checks are reported on their own terms`;
   const execBody = m.isPlugin
     ? `<div class="aside"><h4>How to read this report</h4><p>The colored matrix above is the whole verdict in one glance: every check is a chip, color-coded pass / fail / warn / not-applicable, grouped by tier. The tier is decided by a deterministic gate with a real exit code, not by opinion. Everything below expands that picture.</p></div>
-      <p>${escapeHtml(m.subject)} declares the <b>${escapeHtml(TIER_NAME[m.declaredTier] ?? m.declaredTier)} (${escapeHtml(TIER_SUB[m.declaredTier] ?? m.declaredTier)})</b> tier and earns <b>${escapeHtml(m.tierEarnedName)}</b>. Of the ${m.counts.total} checks in the spine, ${m.counts.passedHeadline} do not fail (${m.counts.pass} pass, ${m.counts.warn} warn, ${m.counts.na} not applicable) and ${m.counts.fail} fail. The deterministic gate exits ${m.exitCode}.</p>
+      <p>${htmlDeclLine}. Of the ${m.counts.total} checks in the spine, ${m.counts.passedHeadline} do not fail (${m.counts.pass} pass, ${m.counts.warn} warn, ${m.counts.na} not applicable) and ${m.counts.fail} fail. The deterministic gate exits ${m.exitCode}.</p>
       <p>${m.blockers.length ? `${m.blockers.length} requirement(s) block ${escapeHtml(m.nextTierName)}: ${m.blockers.map((b) => escapeHtml(b.reqId)).join(", ")}. Section 06 orders the climb; section 07 gives a copy-paste fix for each.` : "No requirement blocks the declared tier; the library satisfies its claimed grade outright."}</p>
       ${m.counts.warn ? `<p>${m.counts.warn} advisory warning(s) surfaced (${m.rows.filter((r) => r.status === "WARN").map((r) => escapeHtml(r.reqId)).join(", ")}); they do not gate but are worth folding in.</p>` : ""}`
     : `<p>${escapeHtml(m.subject)} is a single component, graded by rule rather than by tier. ${m.counts.fail} error(s) and ${m.counts.warn} warning(s) were found across the component-level checks.</p>`;
 
   // 03 what was evaluated
   const idCells = [["Subject", m.subject], ["Version", m.version ?? "(unspecified)"]];
-  if (m.isPlugin) idCells.push(["Declared tier", `${TIER_SUB[m.declaredTier] ?? m.declaredTier} (${TIER_NAME[m.declaredTier] ?? m.declaredTier})`]);
+  if (m.isPlugin) idCells.push(["Declared tier", m.declaredTier ? `${TIER_SUB[m.declaredTier] ?? m.declaredTier} (${TIER_NAME[m.declaredTier] ?? m.declaredTier})` : "none declared"]);
   if (m.agentTargets) idCells.push(["Agent targets", m.agentTargets.join(", ")]);
   if (m.prefix) idCells.push(["Prefix", m.prefix]);
   if (m.profile) idCells.push(["Grading profile", m.profile]);
@@ -864,7 +890,7 @@ function renderHtml(report, opts = {}) {
     ["Standard version", m.standard ? "v" + m.standard : "(unspecified)"],
     ["Spine", `${m.counts.total} checks`],
   ];
-  if (m.isPlugin) { metaItems.push(["Declared tier", m.declaredTier]); metaItems.push(["Grade earned", `${m.tierEarnedName} (${TIER_SUB[m.tierEarned] ?? m.tierEarned})`]); }
+  if (m.isPlugin) { metaItems.push(["Declared tier", m.declaredTier ?? "none declared"]); metaItems.push(["Grade earned", `${m.tierEarnedName} (${TIER_SUB[m.tierEarned] ?? m.tierEarned})`]); }
   if (m.profile) metaItems.push(["Grading profile", m.profile]);
   if (m.mode) metaItems.push(["Verdict mode", m.mode]);
   metaItems.push(["Evaluator", "askit-evaluate (renderer)"]);

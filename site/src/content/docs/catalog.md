@@ -12,7 +12,7 @@ The toolkit ships the full v1 catalog: builder skills for every component type, 
 ## Assess, govern, onboard
 
 - **Assess:** `askit-evaluate` (conformance, plus opt-in behavioral and review modes).
-- **Govern and lifecycle:** `askit-backlog`, `askit-decision` (ADRs and RFCs), `askit-release` (version, changelog, release-notes, gate), `askit-deprecate`.
+- **Govern and lifecycle:** `askit-backlog`, `askit-decision` (ADRs and RFCs), `askit-release` (version, changelog, release-notes, gate), `askit-deprecate`, `askit-standards-watch` (does the pinned agentskills.io upstream still match, and what would a change touch).
 - **Onboard and adopt:** `askit-init-plugin` (interview, questionnaire, hybrid), `askit-init-marketplace`, `askit-migrate` (adopt an existing repo), `askit-template-manager`.
 - **Advise:** `askit-capability-advisor` (what a target agent supports, and which tier to aim for).
 

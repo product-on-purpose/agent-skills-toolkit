@@ -33,9 +33,9 @@ Most skill collections are a flat, single-agent, ungoverned pile. This is the St
 <p>
   <img src="https://img.shields.io/badge/status-active-success?style=flat-square" alt="Status: Active">
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-Apache--2.0-blue?style=flat-square" alt="License: Apache-2.0"></a>
-  <img src="https://img.shields.io/badge/version-1.6.1-blue?style=flat-square" alt="Version 1.6.1">
+  <img src="https://img.shields.io/badge/version-1.9.0-blue?style=flat-square" alt="Version 1.9.0">
   <img src="https://img.shields.io/badge/tier-Gold%20(Advanced)-yellow?style=flat-square" alt="Tier: Gold (Advanced)">
-  <a href="#the-catalog"><img src="https://img.shields.io/badge/skills-23-brightgreen?style=flat-square" alt="Skills: 23"></a>
+  <a href="#the-catalog"><img src="https://img.shields.io/badge/skills-24-brightgreen?style=flat-square" alt="Skills: 24"></a>
   <img src="https://img.shields.io/badge/checks-30-brightgreen?style=flat-square" alt="Validation checks: 30">
   <a href="https://agentskills.io/specification"><img src="https://img.shields.io/badge/spec-agentskills.io-orange?style=flat-square" alt="Agent Skills Spec"></a>
 </p>
@@ -272,7 +272,7 @@ Invoke `askit-evaluate` (or run `node scripts/check.mjs`) at any point to see th
 
 ## The catalog
 
-**23 skills, 7 subagents, 2 commands** on disk. Skills carry the `askit-` prefix and emit for both agents unless a one-liner notes a Claude-only output; subagents and commands are Claude-only. Full per-component reference lives in [`docs/reference/`](docs/reference/) and on the [live docs site](https://product-on-purpose.github.io/agent-skills-toolkit/); [`INDEX.md`](INDEX.md) is the generated map.
+**24 skills, 7 subagents, 2 commands** on disk. Skills carry the `askit-` prefix and emit for both agents unless a one-liner notes a Claude-only output; subagents and commands are Claude-only. Full per-component reference lives in [`docs/reference/`](docs/reference/) and on the [live docs site](https://product-on-purpose.github.io/agent-skills-toolkit/); [`INDEX.md`](INDEX.md) is the generated map.
 
 ### Authoring (11)
 
@@ -303,15 +303,16 @@ Authoring documentation and the sample/eval sets that prove a skill behaves and 
 - **askit-build-docs** - author or refresh docs across modes (readme, tutorial, reference, faq, and more) and stand up an Astro Starlight docs site.
 - **askit-build-samples** - create and validate a skill's golden examples, anti-examples, and triggering cases, and detect drift against current behavior.
 
-### Governance and lifecycle (5)
+### Governance and lifecycle (6)
 
-Managing backlogs, decisions, releases, deprecations, and templates over a plugin's lifetime.
+Managing backlogs, decisions, releases, deprecations, templates, and the upstream spec this Standard tracks over a plugin's lifetime.
 
 - **askit-backlog** - capture new-component proposals through the why-gate, prioritize backlog items, and prune stale or completed enhancements.
 - **askit-decision** - record MADR architecture decision records and RFCs in `docs/internal`, plus the TL;DR companion for long decision docs.
 - **askit-release** - cut a release: compute the version, promote the changelog, curate release notes, and run the readiness gate.
 - **askit-deprecate** - record a component's deprecation (status, replacement, removal target) and keep it validating until removal.
 - **askit-template-manager** - add or update the global templates directory and keep templates in sync with the shapes the scaffolders produce.
+- **askit-standards-watch** - check whether the pinned agentskills.io upstream spec has moved, map each change to the Universal checks it lands on, and draft the proposal ADR (it proposes; it never amends a check or the Standard).
 
 ### Onboarding and adoption (4)
 
@@ -371,12 +372,12 @@ The Claude slash commands that give the core flows an explicit `/command` entry 
 
 ## Status
 
-**`v1.6.1`, Gold grade, installable.** The repository declares `tier: advanced` and self-validates at Advanced in CI: the full gate is green and `tier-report` prints `advanced` with an empty burndown, so the toolkit is a self-proving example of the Standard it defines. Gold check `G1` (hooks) now grades the toolkit's own demonstrative no-dash `PreToolUse` hook; `G6` (deprecation) is still satisfied without exercise, since the toolkit ships no deprecated components yet. The toolkit installs from the `product-on-purpose` marketplace (see [Install](#install)).
+**`v1.9.0`, Gold grade, installable.** The repository declares `tier: advanced` and self-validates at Advanced in CI: the full gate is green and `tier-report` prints `advanced` with an empty burndown, so the toolkit is a self-proving example of the Standard it defines. Gold check `G1` (hooks) now grades the toolkit's own demonstrative no-dash `PreToolUse` hook; `G6` (deprecation) is still satisfied without exercise, since the toolkit ships no deprecated components yet. The toolkit installs from the `product-on-purpose` marketplace (see [Install](#install)).
 
-- **Version** - `1.6.1` (Standard `v0.12`).
+- **Version** - `1.9.0` (Standard `v0.12`).
 - **Tier** - Advanced (Gold), self-validated.
 - **Install** - `product-on-purpose` marketplace (`agent-plugins`).
-- **Components** - 23 skills, 7 subagents, 2 commands.
+- **Components** - 24 skills, 7 subagents, 2 commands.
 - **Validation spine** - 30 checks (`U1-U9`, `U11-U13`, `S1-S8`, `G1-G10`).
 - **Agents** - Claude Code and Codex; agentskills.io-compatible at Bronze.
 - **License** - Apache-2.0.
