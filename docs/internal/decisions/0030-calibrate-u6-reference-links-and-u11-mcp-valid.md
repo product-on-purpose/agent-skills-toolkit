@@ -40,3 +40,12 @@ Option 1. `scripts/checks/reference-links.mjs` gains a `stripFences()` applied b
 - **Positive:** the gate stops failing well-built official plugins on a fenced example link or a managed connector; outward grading under plain-plugin is honest (errors are real defects); U6's behavior now matches the in-repo `gen-docs-site` link handling, removing a divergence; and a plain plugin graded under plain-plugin no longer reads as an earned Advanced tier.
 - **Negative:** U6 no longer flags a dangling link that exists only inside a fenced code block (acceptable: a link in an illustration is not a live reference), and U11 no longer errors on an empty-url http server (mitigated: it warns, the askit-library profile still surfaces it, and a self-contained server that needs a url is told so).
 - **Follow-up (not in this change):** the U3/U4 base-spec-vs-Claude-Code name question (batch-2 Finding 4) remains a separate decision; the C4 165-error scope-detection outlier and the C1 layout re-point are open observations recorded in the FINDINGS doc.
+
+## Implementation sites
+- `scripts/checks/reference-links.mjs` - `SKIP_SCHEME` constant and `stripFences()` call: the fence-stripping before link scanning and the non-filesystem scheme allowlist; these are the U6 calibration sites.
+- `scripts/checks/mcp-valid.mjs` - server-type check block: emits `SEVERITY.WARN` (not error) for a typed-http server with an empty or absent url (the managed-connector pattern); still emits `SEVERITY.ERROR` for a genuinely underspecified or secret-inlining server.
+- `scripts/tier-report.mjs` - `humanLine()`: the guard `if (r.declaredTier == null && r.tier !== "none")` that reports `"Objective checks pass (no askit tier declared; not graded against the tier ladder)"` instead of asserting an earned tier.
+
+**Gap found and completed by ADR 0038.** The tier-label decision (third bullet) was implemented in `tier-report.mjs humanLine()` only. `scripts/lib/report-render.mjs deriveModel()` carried the opposite - the EARNED tier was used as the DECLARED tier. The HTML exec body, masthead, ID strip, and metadata section all had the same unguarded fallback. These sites were not included here and were silently wrong for two months, producing a false PASS on the shareable report. ADR 0038 fixed `deriveModel()` and five Markdown render sites; an Implementation sites retrofit (feat/adr-implementation-sites) caught and fixed the remaining four HTML sites.
+
+Grep anchor: `declaredTier` in `scripts/` (every read of this value is a potential site; verify each one guards the null case).

@@ -19,7 +19,8 @@ When the user makes or records an architecture decision, proposes a change to th
 1. Pick the next ADR number (`docs/internal/decisions/NNNN-title.md`).
 2. Author MADR: Status, Date, Deciders, Context, Decision drivers, Considered options, Decision outcome, Consequences. Copy `templates/adr.md`.
 3. Add the mandatory `## TL;DR` (Decision / Why / Status) immediately under the title (ADR 0021 convention).
-4. ADRs are immutable once accepted; supersede rather than rewrite.
+4. Fill the `## Implementation sites` section: run `grep -rn "<key behavioral terms>" scripts/` to find every file and function that carries the decision. List each as a bullet: file path, function name, one sentence on what property of the decision it enforces. A vague entry ("the report renderer") is obviously wrong; a useful entry names the file and function so a future reader can verify without searching. ADRs that are governance-only with no code implementation say so explicitly.
+5. ADRs are immutable once accepted; supersede rather than rewrite.
 
 ## rfc mode
 1. Author an RFC under `docs/internal/rfcs/` for a cross-cutting proposal (a Standard amendment, a new convention).

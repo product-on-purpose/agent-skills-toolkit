@@ -35,3 +35,13 @@ Option 1, shipped in v1.2.0. `scripts/checks/no-dashes.mjs` and its test were re
 - **Positive:** the gate's findings are now defensible (objective correctness or cited vendor best practice); a third-party plugin is never failed on typographic taste; the legitimacy case for the Standard strengthens.
 - **Negative:** the toolkit's own GATE no longer enforces its dash-free authoring; mitigated by keeping the `hooks/no-dashes.mjs` PreToolUse hook (and the maintainer's global hook), so the repo's authoring stays dash-free without a graded requirement.
 - **Neutral:** a relaxation, so no pinned consumer breaks; consistent with ADR 0027's principle that removing requirements is the safe direction.
+
+## Implementation sites
+- `scripts/checks/no-dashes.mjs`: the check was DELETED; any reference to it is a regression.
+- `scripts/lib/registry.mjs`: `no-dashes` entry removed so the check is not discovered or run.
+- `hooks/no-dashes.mjs`: the opt-in hook that enforces the dash preference for consumers who choose it; this is the remaining live home for the preference.
+- `scripts/lib/fs-utils.mjs` - `SKIP_DIRS`: the shared directory-skip set that was co-located with `no-dashes.mjs` and moved here so `mermaid-valid` (U12) and `folder-readme` (G8) could continue importing it independently.
+- `STANDARD.md`: spine count updated from 30 to 29; version note for v0.11 added; no-dashes requirement text removed.
+- `library.json`: `standard` field updated from `"0.10"` to `"0.11"`.
+
+Grep anchor: `no-dashes` (any occurrence in `scripts/checks/` or `scripts/lib/registry.mjs` is a regression).

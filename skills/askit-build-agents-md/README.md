@@ -9,4 +9,5 @@ The askit-build-agents-md skill. Creates and improves a plugin's AGENTS.md (the 
 ## Inventory
 
 - `SKILL.md` - the skill definition (frontmatter plus the procedure).
+- `examples/` - a worked golden example of the create-mode output (Standard sec 7.2).
 - `references/` - supporting reference docs loaded on demand.

@@ -9,4 +9,5 @@ The askit-build-hook skill. Creates and improves event-driven hooks (Advanced ti
 ## Inventory
 
 - `SKILL.md` - the skill definition (frontmatter plus the procedure).
+- `examples/` - three worked golden examples plus an anti-example, each with a runnable script (Standard sec 7.2).
 - `references/` - supporting reference docs loaded on demand.

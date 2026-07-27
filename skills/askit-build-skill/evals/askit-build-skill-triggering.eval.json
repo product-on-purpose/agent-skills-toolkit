@@ -1,0 +1,30 @@
+{
+  "covers": { "skill": "askit-build-skill" },
+  "description": "Skill triggering set for askit-build-skill: verifies the skill fires on new skill authoring and existing skill improvement, and stays silent on conformance audits, migration work, full plugin scaffolding, and capability questions.",
+  "cases": [
+    { "query": "create a new skill for reviewing pull requests", "should_trigger": true },
+    { "query": "scaffold a SKILL.md for a Docker deployment skill", "should_trigger": true },
+    { "query": "author a conformant skill from scratch", "should_trigger": true },
+    { "query": "write a new skill for summarizing meeting notes", "should_trigger": true },
+    { "query": "I want to add a skill that handles Jira ticket triage", "should_trigger": true },
+    { "query": "make this skill better", "should_trigger": true },
+    { "query": "raise this skill's conformance level", "should_trigger": true },
+    { "query": "fix the U5 description warning on this skill", "should_trigger": true },
+    { "query": "rewrite the description so it clears the 0.7 scoring bar", "should_trigger": true },
+    { "query": "improve the askit-release skill toward the next tier", "should_trigger": true },
+    { "query": "this skill has three conformance errors, fix them", "should_trigger": true },
+    { "query": "move the long procedure body into a references file", "should_trigger": true },
+    { "query": "add a representative example to this skill", "should_trigger": true },
+    { "query": "scaffold a skill directory with the correct structure", "should_trigger": true },
+    { "query": "the evaluate output shows description scores 0.5, help me fix it", "should_trigger": true },
+    { "query": "evaluate my plugin for conformance findings", "should_trigger": false },
+    { "query": "what tier does this plugin currently reach", "should_trigger": false },
+    { "query": "audit this skill to see whether it triggers and behaves correctly", "should_trigger": false },
+    { "query": "run a conformance check and report the per-rule findings", "should_trigger": false },
+    { "query": "adopt this foreign repo and produce a bring-to-conformance plan", "should_trigger": false },
+    { "query": "bring my Claude-only plugin up to cross-agent conformance", "should_trigger": false },
+    { "query": "create a full plugin with AGENTS.md and library.json from scratch", "should_trigger": false },
+    { "query": "what tier should I target for a plugin that only uses skills", "should_trigger": false },
+    { "query": "which agents can run workflow components", "should_trigger": false }
+  ]
+}

@@ -8,8 +8,11 @@ The shared library the checks, generators, and gate import: findings, frontmatte
 
 ## Inventory
 
+- `advisory-score.mjs` - scoreAdvisory(): the seeded-defect precision/recall harness and its thin CLI (F3 R-AQ-2). Scores an already-written advisory result; dispatches no model.
 - `config.mjs` - loadConfig() over the optional askit.config.json (F3 gate config).
 - `craft-review.mjs` - the craft-review SAFE/JUDGMENT partitioner, phase-2 eligibility, and the consent-gated applier (ADR 0037).
+- `eval-run.mjs` - the deterministic eval-run half: pin verification, path normalization, the npm script seam, and the record skeleton.
+- `eval-run-aggregate.mjs` - the eval-run record half: skeletons to eval-runs.md rows plus the dossier's measured range.
 - `findings.mjs` - finding() and the SEVERITY and PROVENANCE enums.
 - `frontmatter.mjs` - parseFrontmatter() over YAML frontmatter.
 - `fs-utils.mjs` - filesystem helpers (relPath and friends).
@@ -19,9 +22,11 @@ The shared library the checks, generators, and gate import: findings, frontmatte
 - `registry.mjs` - the ordered CHECKS array, runAllChecks(), REQ_IDS, and provenanceByReq().
 - `release-report.mjs` - releaseReport(): the release-readiness report object, a deterministic go / no-go verdict.
 - `report-meta.mjs` - the per-reqId explanation table (why-it-matters, fix prompt, effort) the evaluation report renderer joins at render time.
+- `md-escape.mjs` - escapeMdCell(): the one Markdown table-cell escape, backslashes before pipes.
 - `report-render.mjs` - renderMarkdown() and renderHtml(): the pure designed-report renderer over the evaluate() report object.
 - `resolve-config.mjs` - resolveFindings(): profile + per-rule override + suppressions + published-verdict clamp.
 - `suppressions.mjs` - the baseline matcher (reqId + file glob + message substring).
 - `standard-gate.mjs` - the ADR 0027 standard-aware downgrade: SINCE_BY_REQ and applyStandardDowngrade().
+- `standards-watch.mjs` - the deterministic upstream watch (STANDARD.md sec 6): pin reading, structural surface extraction, material/review/cosmetic classification, and the report, ADR-skeleton, and re-pin renderers. Write-incapable by construction.
 - `standard-version.mjs` - Standard-version arithmetic (parseStandard, compareStandard, isAfter).
 - `tier.mjs` - the reqId-to-tier mapping and tier ordering.

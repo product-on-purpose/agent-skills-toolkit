@@ -78,3 +78,12 @@ Option 1, in four parts.
 - **A new chain edge means a new eval and a new permission.** `askit-build-skill` can now invoke `askit-reviewer`, which was previously reachable only under `askit-evaluate`. The edge is declared in the frontmatter, permitted in the contract, and covered by an eval, so S4 (chain-contract) and G3 (library-regression) both hold.
 - **No conformance implication.** Spine stays 30 (U1-U9, U11-U13, S1-S8, G1-G10), Standard stays 0.12, no check gained or changed provenance, and the toolkit still self-grades Advanced 0/0. Nothing the Standard required before, it still requires.
 - **Relocation.** `scripts/lib/craft-review.mjs` is recorded in `docs/internal/execution/relocation-addendum.md` as **retained** (evaluate-side): it imports nothing from the check spine, rides the `evaluate.mjs` advisory path, and stays with askit if the checker relocates.
+
+## Implementation sites
+- `scripts/lib/craft-review.mjs` - `SAFE_CATEGORIES`, `classifyCraftFinding()`, `partitionCraftFindings()`, `phaseTwoEligible()`, `applySafeFixes()`, `toReviewAdvisory()`: the entire partition contract; the SAFE allowlist is frozen here and re-asserted by the applier at the write site.
+- `skills/askit-build-skill/SKILL.md` - phase-2 procedure (steps 1-8): the authored skill instructions that invoke `askit-reviewer` with the craft rubric and call `applySafeFixes` with `consent: true` for SAFE findings only; the skill is the user-visible surface of this decision.
+- `skills/askit-build-skill/references/skill-craft-rubric.md`: the five-dimension rubric the `askit-reviewer` subagent reads; the finding schema (dimension, category, severity, file, message, fix) that `classifyCraftFinding` expects is specified here.
+- `agents/_chain-permitted.yaml` - `askit-build-skill` entry: the chain contract that permits `askit-build-skill` to invoke `askit-reviewer`; without this entry S4 (chain-contract) would fire as an error.
+- `evals/build-skill-to-reviewer.eval.json`: the G3 eval that covers the new chain edge (the positive case and the gate-red negative case that must not dispatch).
+
+Grep anchor: `SAFE_CATEGORIES` in `craft-review.mjs` (the allowlist that defines the decision's safety property); `askit-reviewer` in `agents/_chain-permitted.yaml` (the chain permission).

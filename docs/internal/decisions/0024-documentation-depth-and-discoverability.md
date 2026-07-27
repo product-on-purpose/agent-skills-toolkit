@@ -114,3 +114,15 @@ Each phase keeps the per-slice cadence (`gen-* --write` -> `node scripts/check.m
 ## Provenance
 
 A pre-design review workflow (build/test/version + inventory + git-state verification, plus continuation-prompt and log-quality critiques) established the real spine count, the sibling-`.md` scope, and the G7 confusion. An Explore study of `../pm-skills` and the product-on-purpose portfolio established the documentation conventions to match (hero README, Diataxis docs tree, Astro Starlight + astro-mermaid, generation over duplication, folder-level navigation). This ADR resolves the three forks the maintainer chose (folder-READMEs + docblocks; generate the docs site as a Pattern S view; full staged scope) into a build plan that holds the consolidation and non-vacuous-tier lines.
+
+## Implementation sites
+- `scripts/checks/mermaid-valid.mjs` (U12): checks that every fenced Mermaid block is structurally well-formed.
+- `scripts/checks/docs-frontmatter.mjs` (G7): checks that every published `docs/**` page (excluding `docs/internal/`) carries the required frontmatter taxonomy (title, description, audience, level).
+- `scripts/checks/folder-readme.mjs` (G8): checks that every allowlisted folder has a `README.md` whose listed children set-equal its actual children.
+- `scripts/checks/source-doc.mjs` (G9): checks that every hand-authored `*.mjs`/`*.js`/`*.py` under in-scope source roots carries a four-field header docblock.
+- `scripts/checks/docs-presence.mjs` (G10): checks Diataxis quadrant presence, ADR TL;DR presence, and architecture-overview-to-detailed linkability.
+- `scripts/lib/registry.mjs`: each check is registered here; the `since: "0.10"` (or `"0.x"`) field drives the ADR 0027 burndown for each.
+
+These five checks were added atomically in this ADR (taking the spine from 25 to 30). Each is a separate file following the one-check-per-file model; none shares state with the others.
+
+Grep anchor: `G7`, `G8`, `G9`, `G10`, `U12` in `scripts/lib/registry.mjs` (verify each is registered with the correct tier).

@@ -50,3 +50,10 @@ Suggested reading order for the maintainer: this file, then [EXEC-SUMMARY.md](EX
 ## Relationship to existing repo conventions
 
 This packet spans four releases, so it lives here rather than in a single release folder. Each release still gets the repo's conventional thin packet under `docs/internal/release-plans/plan_vX.Y.0/` at cut time (a RELEASE-PLAN.md plus the staged repin-instructions.md), linking back here. `docs/internal/STATUS.md` remains the single live tracker; this packet's registers are updated in the same session as any landing per the living-docs protocol in [03-execution-plan.md](03-execution-plan.md).
+
+
+## Renumbered 2026-07-27
+
+**R3 is now v1.10.0 and R4 is now v1.11.0.** Maintainer-approved work outside this program (`askit-standards-watch` plus the ADR implementation-sites convention) shipped as **v1.9.0**, because adding a skill is a MINOR under semver and the version is a promise to anyone installing from the marketplace. Renumbering an internal plan is cheaper than misnumbering a public release.
+
+Release CONTENT is unchanged. Only the version labels move. Where this packet's prose says "v1.9.0 marketplace scope" or "v1.10.0 manage and studio", read v1.10.0 and v1.11.0 respectively.

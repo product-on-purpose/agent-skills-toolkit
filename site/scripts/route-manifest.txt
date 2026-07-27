@@ -60,6 +60,7 @@
 /reference/askit-init-plugin/index.html
 /reference/askit-migrate/index.html
 /reference/askit-release/index.html
+/reference/askit-standards-watch/index.html
 /reference/askit-template-manager/index.html
 /reference/builder-pattern/index.html
 /reference/evaluation-reports/index.html
