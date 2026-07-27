@@ -4,6 +4,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { execFileSync } from "node:child_process";
 import { readFileSync, existsSync } from "node:fs";
+import { classifyText, testRule } from "../../scripts/lib/advisory-score.mjs";
 
 // The seeded-defect fixture and its scoring key (F3 R-AQ-1). Two properties have to hold for any
 // advisory precision/recall number measured against this fixture to mean anything:
@@ -15,11 +16,10 @@ import { readFileSync, existsSync } from "node:fs";
 //      here instead of quietly deflating a recorded recall number.
 //
 // The third block is the key's own self-test: each entry declares example finding texts with the
-// outcome the documented classification MUST produce, and the reference classifier below implements
-// exactly the precedence the key's scoring.confabulationRule.mechanics describes. That classifier is
-// deliberately minimal and lives in the test: it is the executable specification the F3 harness
-// (scripts/lib/advisory-score.mjs, a separate change) has to satisfy. When the harness lands, these
-// assertions should be re-pointed at it and the local copy deleted.
+// outcome the documented classification MUST produce. These assertions ran against a reference
+// classifier local to this file until the F3 harness landed (F3 R-AQ-2); they now run against the
+// harness itself (scripts/lib/advisory-score.mjs) and the local copy is deleted, so the key's declared
+// examples guard the SHIPPED classifier rather than a test-only twin of it.
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
 const KEY_PATH = path.join(ROOT, "tests/fixtures/anti/seeded-defects/privacy-notice-toolkit.key.json");
 const key = JSON.parse(readFileSync(KEY_PATH, "utf8"));
@@ -33,49 +33,11 @@ const REQUIRED_CLASSES = [
 ];
 
 // ---------------------------------------------------------------------------
-// The reference classifier (the key's documented rules, nothing more)
+// The classifier under test: the shipped harness, not a local twin of it
 // ---------------------------------------------------------------------------
 
 const re = (p) => new RegExp(p, key.patternSyntax.flags);
-
-/** anyOf: at least one matches. allOf: every member matches. none: no member matches. All clauses hold. */
-function testRule(rule, text) {
-  if (!rule || typeof rule !== "object") return false;
-  const any = Array.isArray(rule.anyOf) ? rule.anyOf : null;
-  const all = Array.isArray(rule.allOf) ? rule.allOf : null;
-  const none = Array.isArray(rule.none) ? rule.none : null;
-  if (!any && !all) return false;
-  if (all && !all.every((p) => re(p).test(text))) return false;
-  if (any && !(any.length > 0 && any.some((p) => re(p).test(text)))) return false;
-  if (none && none.some((p) => re(p).test(text))) return false;
-  return true;
-}
-
-/**
- * Classify one finding text. Outcomes: tp | confabulation | partial | review-required | fp (a bait
- * hit) | out-of-scope | no-match (engages nothing; a scored run counts this as a false positive).
- * Satisfied-entry bookkeeping (duplicates, misses) belongs to the harness, not to this function.
- */
-function classify(text) {
-  const engaged = key.defects.filter((d) => testRule(d.match.locate, text));
-  if (engaged.length > 1) return { outcome: "review-required", why: "engages more than one defect entry" };
-  if (engaged.length === 1) {
-    const d = engaged[0];
-    if (d.match.mode === "semantic") return { outcome: "review-required", id: d.id, why: "semantic entry" };
-    if (d.match.verification === "not-required") return { outcome: "tp", id: d.id };
-    const correct = testRule(d.match.correct, text);
-    const confab = testRule(d.match.confabulation, text);
-    if (confab && !correct) return { outcome: "confabulation", id: d.id };
-    if (correct && !confab) return { outcome: "tp", id: d.id };
-    if (correct && confab) return { outcome: "review-required", id: d.id, why: "correct and confabulation both match" };
-    return { outcome: "partial", id: d.id };
-  }
-  const bait = key.nonDefects.find((n) => testRule(n.match.locate, text));
-  if (bait) return { outcome: "fp", id: bait.id };
-  const oos = key.outOfScope.find((o) => testRule(o.rule, text));
-  if (oos) return { outcome: "out-of-scope", id: oos.id };
-  return { outcome: "no-match" };
-}
+const classify = (text) => classifyText(key, text);
 
 // ---------------------------------------------------------------------------
 // 1. The fixture passes the deterministic gate
@@ -150,10 +112,10 @@ test("every declared example classifies exactly as the key says it must", () => 
       const got = classify(ex.text);
       assert.equal(
         got.outcome, ex.expect,
-        `${entry.id}: expected ${ex.expect}, got ${got.outcome}${got.id ? ` (${got.id})` : ""}${got.why ? ` [${got.why}]` : ""}\ntext: ${ex.text}`
+        `${entry.id}: expected ${ex.expect}, got ${got.outcome}${got.entryId ? ` (${got.entryId})` : ""}${got.why ? ` [${got.why}]` : ""}\ntext: ${ex.text}`
       );
       if (["tp", "confabulation", "partial"].includes(ex.expect)) {
-        assert.equal(got.id, entry.id, `${entry.id}: the example engaged ${got.id} instead`);
+        assert.equal(got.entryId, entry.id, `${entry.id}: the example engaged ${got.entryId} instead`);
       }
     }
   }
@@ -186,11 +148,11 @@ test("the reading-17 verbatim shape scores as a false positive and a miss, not a
   // graded it minor, and asserted a false consistency elsewhere. Both halves are scored here.
   const invented = classify("skills/privacy-notice-review/references/us-state-laws.md\nThe Colorado citation is slightly off. CCDPA should be the CCPA, which is the correct statute for that row. Minor, house preference.");
   assert.equal(invented.outcome, "confabulation");
-  assert.equal(invented.id, "SD-05");
+  assert.equal(invented.entryId, "SD-05");
 
   const falseConsistency = classify("commands/review-privacy-notice.md\nThe command's seven-point checklist and the skill's are identical, and all cross-references are accurate.");
   assert.equal(falseConsistency.outcome, "confabulation");
-  assert.equal(falseConsistency.id, "SD-07");
+  assert.equal(falseConsistency.entryId, "SD-07");
 });
 
 test("locate patterns are disjoint: no declared example engages two defect entries by accident", () => {
