@@ -804,22 +804,27 @@ function renderHtml(report, opts = {}) {
   const masthead = `<header class="masthead" id="s01"><div class="wrap">
     <div class="mh-top">${chips}</div>
     <div class="mh-grid">
-      <div class="mh-id"><h1>${escapeHtml(m.subject)}</h1><div class="vv">${m.version ? "version " + escapeHtml(m.version) : "version unspecified"}${m.isPlugin ? " &nbsp;/&nbsp; declared tier: " + escapeHtml(m.declaredTier) : ""}</div>
+      <div class="mh-id"><h1>${escapeHtml(m.subject)}</h1><div class="vv">${m.version ? "version " + escapeHtml(m.version) : "version unspecified"}${m.isPlugin ? " &nbsp;/&nbsp; declared tier: " + escapeHtml(m.declaredTier ?? "none declared") : ""}</div>
       <p class="desc">Whole-library tier-compliance evaluation against the Advanced Skill Library Standard. Rendered from the one deterministic report object; the verdict is the gate's.</p>${kpis}</div>
       ${verdict}
     </div></div></header>`;
 
   // 02 exec
+  // Mirror the Markdown declLine guard (line ~234): NEVER fall back to a tier name when declaredTier is
+  // null. That was the ADR 0038 defect - the verdict card was fixed there; this exec body was not.
+  const htmlDeclLine = m.declaredTier
+    ? `${escapeHtml(m.subject)} declares the <b>${escapeHtml(TIER_NAME[m.declaredTier] ?? m.declaredTier)} (${escapeHtml(TIER_SUB[m.declaredTier] ?? m.declaredTier)})</b> tier and earns <b>${escapeHtml(m.tierEarnedName)}</b>`
+    : `${escapeHtml(m.subject)} declares no askit tier, so it is not graded against the tier ladder; the objective checks are reported on their own terms`;
   const execBody = m.isPlugin
     ? `<div class="aside"><h4>How to read this report</h4><p>The colored matrix above is the whole verdict in one glance: every check is a chip, color-coded pass / fail / warn / not-applicable, grouped by tier. The tier is decided by a deterministic gate with a real exit code, not by opinion. Everything below expands that picture.</p></div>
-      <p>${escapeHtml(m.subject)} declares the <b>${escapeHtml(TIER_NAME[m.declaredTier] ?? m.declaredTier)} (${escapeHtml(TIER_SUB[m.declaredTier] ?? m.declaredTier)})</b> tier and earns <b>${escapeHtml(m.tierEarnedName)}</b>. Of the ${m.counts.total} checks in the spine, ${m.counts.passedHeadline} do not fail (${m.counts.pass} pass, ${m.counts.warn} warn, ${m.counts.na} not applicable) and ${m.counts.fail} fail. The deterministic gate exits ${m.exitCode}.</p>
+      <p>${htmlDeclLine}. Of the ${m.counts.total} checks in the spine, ${m.counts.passedHeadline} do not fail (${m.counts.pass} pass, ${m.counts.warn} warn, ${m.counts.na} not applicable) and ${m.counts.fail} fail. The deterministic gate exits ${m.exitCode}.</p>
       <p>${m.blockers.length ? `${m.blockers.length} requirement(s) block ${escapeHtml(m.nextTierName)}: ${m.blockers.map((b) => escapeHtml(b.reqId)).join(", ")}. Section 06 orders the climb; section 07 gives a copy-paste fix for each.` : "No requirement blocks the declared tier; the library satisfies its claimed grade outright."}</p>
       ${m.counts.warn ? `<p>${m.counts.warn} advisory warning(s) surfaced (${m.rows.filter((r) => r.status === "WARN").map((r) => escapeHtml(r.reqId)).join(", ")}); they do not gate but are worth folding in.</p>` : ""}`
     : `<p>${escapeHtml(m.subject)} is a single component, graded by rule rather than by tier. ${m.counts.fail} error(s) and ${m.counts.warn} warning(s) were found across the component-level checks.</p>`;
 
   // 03 what was evaluated
   const idCells = [["Subject", m.subject], ["Version", m.version ?? "(unspecified)"]];
-  if (m.isPlugin) idCells.push(["Declared tier", `${TIER_SUB[m.declaredTier] ?? m.declaredTier} (${TIER_NAME[m.declaredTier] ?? m.declaredTier})`]);
+  if (m.isPlugin) idCells.push(["Declared tier", m.declaredTier ? `${TIER_SUB[m.declaredTier] ?? m.declaredTier} (${TIER_NAME[m.declaredTier] ?? m.declaredTier})` : "none declared"]);
   if (m.agentTargets) idCells.push(["Agent targets", m.agentTargets.join(", ")]);
   if (m.prefix) idCells.push(["Prefix", m.prefix]);
   if (m.profile) idCells.push(["Grading profile", m.profile]);
@@ -885,7 +890,7 @@ function renderHtml(report, opts = {}) {
     ["Standard version", m.standard ? "v" + m.standard : "(unspecified)"],
     ["Spine", `${m.counts.total} checks`],
   ];
-  if (m.isPlugin) { metaItems.push(["Declared tier", m.declaredTier]); metaItems.push(["Grade earned", `${m.tierEarnedName} (${TIER_SUB[m.tierEarned] ?? m.tierEarned})`]); }
+  if (m.isPlugin) { metaItems.push(["Declared tier", m.declaredTier ?? "none declared"]); metaItems.push(["Grade earned", `${m.tierEarnedName} (${TIER_SUB[m.tierEarned] ?? m.tierEarned})`]); }
   if (m.profile) metaItems.push(["Grading profile", m.profile]);
   if (m.mode) metaItems.push(["Verdict mode", m.mode]);
   metaItems.push(["Evaluator", "askit-evaluate (renderer)"]);

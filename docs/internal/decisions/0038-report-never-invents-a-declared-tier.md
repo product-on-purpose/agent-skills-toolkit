@@ -72,3 +72,21 @@ Option 1, at all five sites that read `m.declaredTier`:
 - **Negative / accepted:** a report for an undeclared subject now has a visibly empty "declared tier" field. That is the honest rendering of an absent fact, and preferable to a plausible-looking wrong one.
 - **The generalizable lesson, recorded because it has now happened three times.** ADR 0030 made a decision, and the decision was implemented in one of the two places that needed it. The same shape appears in ADR 0034 (a flag validated in one scope and dropped in the other) and in the two CodeQL escaping defects fixed in v1.7.0 (the same mistake in two independently-written functions). **When a decision constrains behavior, grep for every site that implements that behavior, not just the one that prompted the decision.** The renderer had the evidence in `byRule` and printed the opposite for two months.
 - **Follow-up filed, not done:** option 2, carrying `declaredTier` explicitly on the report object so the renderer infers nothing at all.
+
+## Implementation sites
+Fixed by ADR 0038:
+- `scripts/lib/report-render.mjs` - `deriveModel()`: `declaredTier: lib?.tier ?? null`, the root change; the comment above it explains the exact defect this replaces.
+- `scripts/lib/report-render.mjs` - verdict card (HTML, line ~801): `m.declaredTier ? ... : "No askit tier declared; not graded against the tier ladder"`.
+- `scripts/lib/report-render.mjs` - `declLine` variable (Markdown exec section, line ~234): `m.declaredTier ? "declares the X tier" : "declares no askit tier..."`.
+- `scripts/lib/report-render.mjs` - Markdown ID table row (line ~260): `m.declaredTier ? ... : "none declared"`.
+- `scripts/lib/report-render.mjs` - Markdown metadata table row (line ~425): `m.declaredTier ?? "none declared"`.
+
+**Missed by ADR 0038, found during Implementation sites retrofit and fixed in feat/adr-implementation-sites:**
+- `scripts/lib/report-render.mjs` - HTML exec body paragraph (`htmlDeclLine` variable, line ~815): the symmetric HTML equivalent of `declLine`; was still saying "declares the () tier" when null.
+- `scripts/lib/report-render.mjs` - HTML masthead header (line ~807): `escapeHtml(m.declaredTier ?? "none declared")`; was showing empty string.
+- `scripts/lib/report-render.mjs` - HTML ID-strip cell (line ~822): `m.declaredTier ? ... : "none declared"`; was showing "null (null)".
+- `scripts/lib/report-render.mjs` - HTML metadata section (line ~888): `m.declaredTier ?? "none declared"`; was showing empty string.
+
+The four missed sites were caught by running `grep -rn "declaredTier" scripts/` as part of the Implementation sites retrofit. Two tests were added to `tests/unit/report-render.test.mjs` to assert both the HTML no-declared-tier case and the HTML false-FAIL guard.
+
+Grep anchor: `declaredTier` in `scripts/lib/report-render.mjs` - verify every read guards the null case (either a ternary with a "none declared" branch, or `?? "none declared"`, or `?? null` where null is handled by the calling expression).

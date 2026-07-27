@@ -41,3 +41,11 @@ Option 1. `scripts/checks/description-score.mjs`: ACTION/WHEN extended as above;
 - Unfinished placeholder descriptions now fail clearly (0.9 -> 0.5 for the TODO case) - a small behavior change in the strict direction.
 - The lexicon remains a finite list and will need future evidence-driven additions; the eval-run record is the standing intake for that (the same observe -> verify -> calibrate path that produced this ADR).
 - The U5 = house classification (ADR 0029) is unchanged: `plain-plugin` still drops U5 entirely; this ADR improves the default ladder and the advisory context only.
+
+## Implementation sites
+- `scripts/checks/description-score.mjs` - `ACTION_VERBS` set and `WHEN_PATTERNS` regex: the two scoring dimensions this ADR recalibrated; the verb inflection rules and the `whenever`/`if the user` trigger patterns live here.
+- `scripts/checks/description-score.mjs` - the placeholder penalty block: replaces the `\b[A-Z]{4,}\b` all-caps regex penalty with a case-sensitive `-0.4` hit on `TODO|TBD|FIXME|XXX+|PLACEHOLDER|CHANGEME`.
+
+This ADR has a single implementation file. Future recalibrations should verify all three scoring dimensions (ACTION, WHEN, penalties) together, since a change to one affects the composite score of descriptions that previously sat near 0.65 or 0.7.
+
+Grep anchor: `ACTION_VERBS` and the placeholder penalty constant in `description-score.mjs`.
