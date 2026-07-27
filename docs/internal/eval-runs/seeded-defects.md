@@ -8,7 +8,7 @@ per model and effort cell.
 - **Fixture:** [`tests/fixtures/anti/seeded-defects/privacy-notice-toolkit`](../../../tests/fixtures/anti/seeded-defects/privacy-notice-toolkit)
 - **Key:** [`tests/fixtures/anti/seeded-defects/privacy-notice-toolkit.key.json`](../../../tests/fixtures/anti/seeded-defects/privacy-notice-toolkit.key.json)
 - **Invariant test:** [`tests/integration/seeded-defect-fixture.test.mjs`](../../../tests/integration/seeded-defect-fixture.test.mjs)
-- **Harness:** `scripts/lib/advisory-score.mjs`, a separate change. Nothing here dispatches a model.
+- **Harness:** [`scripts/lib/advisory-score.mjs`](../../../scripts/lib/advisory-score.mjs), with [`tests/unit/advisory-score.test.mjs`](../../../tests/unit/advisory-score.test.mjs). Nothing here dispatches a model.
 
 The key lives one directory ABOVE the plugin root on purpose. An advisory run dispatched at the
 fixture path reads the fixture and never the answers.
@@ -192,6 +192,44 @@ how many there are, or where.
 The fixture is also the natural target for R-AQ-3, the defect-rich replication of the R9/R10/R11 model
 triple: the parity claim ("Sonnet/high matched Opus/high") was measured on a clean plugin, and this is
 a target where triage depth has something to bite on.
+
+## Scoring a run with the harness
+
+```text
+node scripts/lib/advisory-score.mjs <advisory-result.json> [key.json] [--json] [--run-id <id>]
+```
+
+The key argument defaults to the tracked one. The harness reads the advisory result and the key and
+nothing else: it dispatches no model, runs no check, and never opens the fixture tree, so scoring is a
+pure synchronous function of two JSON documents. Exit 0 means the run was scored (a bad score is still
+a score); exit 2 is a refusal. It prints the outcome partition, the pair, the miss list and the
+adjudication worklist, with the `keyVersion` on the first line so a recorded number always names the
+key that produced it.
+
+Two SIMULATED runs are tracked beside the fixture so the harness has fixed inputs whose partition is
+known by construction. They are hand-authored, are labelled `"simulated": true`, and must never be
+transcribed into [eval-runs.md](eval-runs.md) as measured cells:
+
+| Simulated run | Shape | Scores |
+| --- | --- | --- |
+| [`simulated-runs/strong-frontier.advisory.json`](../../../tests/fixtures/anti/seeded-defects/simulated-runs/strong-frontier.advisory.json) | catches all eight auto-scorable defects, states the semantic one correctly, makes no false claim, adds one house-scaffolding recommendation | precision **1.00**, recall **0.89** PROVISIONAL, noise 0.10, false-verified 0.00 |
+| [`simulated-runs/reading-17-cheap.advisory.json`](../../../tests/fixtures/anti/seeded-defects/simulated-runs/reading-17-cheap.advisory.json) | four confabulations plus one bait claim, every one marked `verified` | precision **0.00**, recall **0.00**, nine misses, false-verified **1.00** |
+
+0.89 is the **auto ceiling**, not a shortfall: SD-06 is `semantic`, so eight of nine is the highest an
+auto score can report against this key. The harness prints the ceiling next to the recall so the two
+are never confused, and it marks any run carrying an unadjudicated item PROVISIONAL.
+
+Two rulings the key does not state, made in the harness and recorded here:
+
+- **Precision over zero scored claims is `null`, not 0.00 and not 1.00.** A run of nothing but honest
+  hedges asserts no claim that could be wrong, so it has no precision to report; scoring it 0.00 would
+  punish the hedge and 1.00 would flatter it. It still scores recall 0.00. This is what makes silence
+  cheaper than invention rather than merely equal to it.
+- **`matchText.join` is read as an escape sequence.** The key's value is the JSON string `"\\n"`, which
+  decodes to a backslash and an n rather than to a newline; every declared example separates the file
+  from the message with a real newline and the gap-class note is written in terms of lines, so the
+  harness resolves it. The difference is currently invisible (no pattern straddles a field boundary
+  through a one-line gap class), which is exactly why it is written down before it bites.
 
 ## Versioning and known limits
 
