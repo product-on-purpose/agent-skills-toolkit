@@ -111,7 +111,29 @@ Three measured lessons worth more than the raw numbers:
 - **Effort moves tool use and wall-clock more than raw tokens, and the Haiku low-to-medium step is high-leverage.** Sonnet/high on a defect-rich plugin used 70 tool calls over 5 minutes for ~103k tokens (the ceiling so far); Haiku at medium effort cost ~40% more than Haiku at low and produced materially deeper advice (veracity spot-checks it did not attempt at low). For scale runs on Haiku, instruct medium effort by default. One honesty note from the same batch: a strong model at high effort can still be confidently wrong - one high-effort advisory mis-triaged real link defects as checker false positives - so advisory recommendations about the gate itself are verified against ground truth before being acted on (the verification rule lives in the eval-run methodology, `docs/internal/eval-runs/METHODOLOGY.md`).
 - **Model tier changes WHAT KIND of finding is reachable, not just depth (the same-target model triple).** On an identical small plugin at identical instructed effort, Opus/high (~100k) and Sonnet/high (~72k) both caught the target's factual/legal content errors (a wrong statute name in a compliance skill, an inverted grammar rule taught as fact, a command whose scorecard contradicts its skill) - and Sonnet found two additional verified majors at ~70% of the Opus cost. Haiku, at BOTH medium and high effort, could not: at medium it reported "no veracity gaps detected"; at high it smelled one error but confabulated the correction (citing a statute that also does not exist) and asserted consistency that is false. The boundary is categorical (Haiku-vs-frontier), not gradual: if the review must vouch for factual, legal, or domain claims, budget at least one frontier model (two as a panel beat either alone - their verified finding sets only partially overlap), and never treat a Haiku-tier "verified" as verification, at any effort.
 
-The **authoring** ranges (`askit-build-*`) are **not yet measured**. Filling them is an active task: see [How to keep this current](#how-to-keep-this-current).
+### Authoring (`askit-build-*`): MEASURED, 2026-07-26
+
+Six real authoring runs, measured while the builders authored the 25 examples that shipped in v1.8.0. One activity, two outputs: the teaching artifact and the cost datum.
+
+| Component size | What was authored | Model and effort | Tokens | Wall |
+|---|---|---|---|---|
+| Bounded | a hook golden set (3 golden + 1 anti, 4 runnable scripts) | Sonnet 4.6 / high | 106k (see caveat 2) | 25 min |
+| Mid | a skill golden set (3 golden + 1 anti) | Opus 5 / xhigh | 161k | 18 min |
+| Mid | a workflow golden set (3 golden + 1 anti) | Sonnet 4.6 / high | 118k | 18 min |
+| Larger | an MCP golden set (3 golden + 1 anti, 3 working servers) | Opus 5 / xhigh | 173k | 20 min |
+| Bounded, batched | 5 builders, 1 golden each | Sonnet 4.6 / high | 97k total | 13 min |
+| Bounded, batched | 4 builders, 1 golden each | Sonnet 4.6 / high | 100k total | 15 min |
+
+**Budget from this:** a single golden-plus-anti set for one component type runs roughly **100k to 175k tokens**, with the larger, runnable-artifact-heavy types (MCP) at the top. Treat 175k as the working ceiling for one component type. A batch of bounded single goldens amortizes to roughly 20k each.
+
+Four caveats, because a cost figure quoted without them will be wrong when you use it:
+
+1. **The effort cells are not the ones originally planned.** The plan called for Sonnet/medium and Opus/high. The Agent tool exposes a model parameter but **no effort parameter**, so subagents inherit the parent session's effort. What is recorded is what was measured: Sonnet/high and Opus/xhigh. Two distinct cells, not the named ones.
+2. **The hook row covers its first round only** and is deliberately **not extrapolated**. Its revision round completed after the figure was taken, and the ratio between harness-reported and transcript-derived totals ranges 0.30 to 0.56 across the six runs, so no stable conversion exists to extrapolate with.
+3. **Orchestration cost is in no row.** Prompt authoring, review, independent verification, and direct fixes were not metered. A real budget adds them.
+4. **Do not read a batched row as a unit price.** 97k for five bounded goldens amortizes fixed reading cost across five; one dispatched alone costs more.
+
+**Revisions dominate, and they are the reason to budget a range rather than a point.** Of the runs above, one needed a revision round, earned by a real defect (two hook goldens emitted output the runtime silently discards). A single-pass number understates the real cost of getting a component right.
 
 <!-- askit:measured-advisory-range:begin -->
 **Measured advisory range:** across every recorded run, one advisory pass has landed between **33k** and **103k** total tokens. This line is maintained by the eval-run pipeline (`node scripts/eval-run.mjs --aggregate <date>`) from the run record, and only ever widens: narrowing a measured claim means retiring a recorded run, which is a human decision.
