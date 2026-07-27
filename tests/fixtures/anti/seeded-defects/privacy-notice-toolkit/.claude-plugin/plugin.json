@@ -1,0 +1,17 @@
+{
+  "name": "privacy-notice-toolkit",
+  "version": "0.4.0",
+  "description": "A compliance desk for product teams: review a published privacy notice, triage an incoming consumer data request, and audit an exported consent log against US state privacy law. Use when reviewing a privacy notice, handling a data-subject access or deletion request, or checking a consent log before an assessment.",
+  "author": {
+    "name": "Example Compliance Tools"
+  },
+  "keywords": [
+    "privacy",
+    "compliance",
+    "dsar",
+    "consent"
+  ],
+  "agents": [
+    "./agents/notice-reviewer.md"
+  ]
+}
