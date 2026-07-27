@@ -39,3 +39,11 @@ Tests: +6 (the vague anti-fixture discriminates the profile path: U5 warn under 
 - Component findings now carry `effectiveSeverity` / `provenance` in `--json` output (additive; the terminal renderer already resolved through `effSev`).
 - An `askit.config.json` placed in a skill directory is now honored in component scope (same semantics as a plugin root). This is symmetry, not a new feature; it was unreachable before.
 - `check.mjs` remains plugin-scope only (it grades a bare skill directory as an empty plugin root) - that is a separate recorded gap (sensor reading 3's neighbor) and is out of scope here; `evaluate.mjs` is the documented component entry point.
+
+## Implementation sites
+- `scripts/evaluate.mjs` - `evaluateComponent(target, opts)`: the function that was silently ignoring the `opts` bag (and therefore `--profile`/`--mode`); now calls `loadConfig(target)` and `resolveFindings()` with the same pipeline as the plugin scope.
+- `scripts/evaluate.mjs` - the `opts` threading from the CLI dispatch block into `evaluateComponent`: the call site that passes the parsed CLI options down; a future refactor that drops `opts` here would reintroduce the original defect.
+
+Note: `check.mjs` is intentionally out of scope - it has no `evaluateComponent` path. The scope of this decision is `evaluate.mjs` only.
+
+Grep anchor: `evaluateComponent` in `scripts/evaluate.mjs` (verify the function signature accepts and uses `opts`).

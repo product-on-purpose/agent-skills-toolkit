@@ -235,3 +235,28 @@ test("a subject that DOES declare a tier still reports it (the false-FAIL guard 
   assert.match(md, /silver-fixture declares the .*tier/i, "a real declaration must still be reported");
   assert.ok(!/no .*tier declared/i.test(md), "and must not be described as undeclared");
 });
+
+// renderHtml parallel to the reading-19 MD test: the exec body (s02), masthead header, ID-strip cell,
+// and metadata section all had the same unguarded null fallback the verdict card did not. ADR 0038
+// fixed renderMarkdown thoroughly and one HTML site (verdict card); the other four HTML sites were not
+// mirrored. Caught by the Implementation sites retrofit (feat/adr-implementation-sites).
+test("renderHtml: a subject that declares no tier is not reported as declaring one in any HTML section", () => {
+  const f = { check: "library-json", severity: "warn", message: "m", file: null, reqId: "U1" };
+  const noTier = {
+    scope: "plugin", target: "notier", tier: "advanced", satisfies: ["universal", "convergent", "advanced"],
+    blocked: {}, summary: { errors: 0, warns: 0 }, findings: [], byRule: { U1: [f] },
+  };
+  const opts = { ...optsFor(noTier), library: null };
+  const html = renderHtml(noTier, opts);
+  // Subject-anchored so we do not match the glossary sentence about what library.json is for.
+  assert.ok(!/notier declares the .*tier/i.test(html), `HTML exec body must not assert a tier declaration that does not exist:\n${html.split("\n").find((l) => /notier declares/i.test(l)) ?? "(not found)"}`);
+  assert.ok(!/declared tier:\s*<\/span>/i.test(html), "HTML masthead must not show an empty declared-tier label");
+  assert.match(html, /no askit tier declared|not graded against the tier ladder|none declared/i, "HTML must say plainly that no tier was declared");
+});
+
+test("renderHtml: a subject that DOES declare a tier still reports it (HTML false-FAIL guard)", () => {
+  const r = evaluate(SF);
+  const html = renderHtml(r, optsFor(r, SF));
+  assert.match(html, /silver-fixture declares the .*tier/i, "HTML: a real declaration must still be reported");
+  assert.ok(!/no .*tier declared/i.test(html), "HTML: a declared tier must not be described as undeclared");
+});
