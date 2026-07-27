@@ -1,0 +1,30 @@
+{
+  "covers": { "skill": "askit-migrate" },
+  "description": "Skill triggering set for askit-migrate: verifies the skill fires on foreign-repo adoption, conformance-gap assessment, bring-to-conformance planning, and cross-agent migration, and stays silent on greenfield plugin creation, conformance audits of already-gradeable plugins, and individual skill improvement.",
+  "cases": [
+    { "query": "I have a folder of Claude skills I want to bring up to the Standard", "should_trigger": true },
+    { "query": "assess this repo's conformance gap against the Standard", "should_trigger": true },
+    { "query": "produce a bring-to-conformance plan for this skills repository", "should_trigger": true },
+    { "query": "adopt this foreign skills library into my plugin ecosystem", "should_trigger": true },
+    { "query": "write the minimal library.json so this repo becomes gradeable", "should_trigger": true },
+    { "query": "migrate my Claude-only plugin so it also works with Codex", "should_trigger": true },
+    { "query": "plan the Bronze-to-Silver upgrade path for my existing plugin", "should_trigger": true },
+    { "query": "this repo was built without the Standard, help me get it into shape", "should_trigger": true },
+    { "query": "map what exists in this ad-hoc repo to the Standard's component types", "should_trigger": true },
+    { "query": "I inherited a skills repo, what is it missing for Bronze", "should_trigger": true },
+    { "query": "produce a staged roadmap to get this repo to Silver", "should_trigger": true },
+    { "query": "write a root AGENTS.md for this repo so anatomy passes", "should_trigger": true },
+    { "query": "assess the gap between my current plugin and the Gold tier", "should_trigger": true },
+    { "query": "this repo was built before the Standard existed, bring it into conformance", "should_trigger": true },
+    { "query": "start a new plugin from scratch", "should_trigger": false },
+    { "query": "scaffold a new plugin with the full Bronze anatomy, I have no code yet", "should_trigger": false },
+    { "query": "create a plugin from scratch and onboard me through the structure", "should_trigger": false },
+    { "query": "onboard a new maintainer through a plugin scaffolding interview", "should_trigger": false },
+    { "query": "run a conformance check on my plugin", "should_trigger": false },
+    { "query": "what tier does my plugin currently reach", "should_trigger": false },
+    { "query": "what is blocking my plugin from the next tier", "should_trigger": false },
+    { "query": "fix the description quality of this skill", "should_trigger": false },
+    { "query": "create a new skill inside my existing plugin", "should_trigger": false },
+    { "query": "what tier should I aim for when building a new plugin", "should_trigger": false }
+  ]
+}

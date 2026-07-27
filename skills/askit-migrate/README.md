@@ -9,4 +9,5 @@ The askit-migrate skill. Assesses an existing skills repository against the Adva
 ## Inventory
 
 - `SKILL.md` - the skill definition (frontmatter plus the procedure).
+- `evals/` - skill triggering eval sets (Standard sec 8.3; graded by G3).
 - `references/` - supporting reference docs loaded on demand.
