@@ -205,3 +205,33 @@ for (const [name, render] of [["silver-fixture.expected.md", renderMarkdown], ["
     assert.equal(norm(out), norm(readFileSync(file, "utf8")), `${name} drifted; re-run with UPDATE_SNAPSHOTS=1 to regenerate and review`);
   });
 }
+
+// Reading 19 (corpus batch 3, 2026-07-27): the report asserted a tier the subject never declared.
+// deriveModel fell back to `report.tier` (the EARNED tier) when library.json carried no tier, so a
+// plugin declaring nothing rendered "declares the Gold (Advanced) tier and earns Gold" - and, because
+// earned then always equalled "declared", the verdict card always read "matches its declared tier".
+// A false PASS on the artifact third parties are shown, while the terminal gate said the honest thing
+// ("no askit tier declared; not graded against the tier ladder"). The guard existed in
+// tier-report.mjs humanLine() and had never been mirrored into the renderer.
+test("a subject that declares no tier is not reported as declaring one (reading 19)", () => {
+  const f = { check: "library-json", severity: "warn", message: "m", file: null, reqId: "U1" };
+  const noTier = {
+    scope: "plugin", target: "notier", tier: "advanced", satisfies: ["universal", "convergent", "advanced"],
+    blocked: {}, summary: { errors: 0, warns: 0 }, findings: [], byRule: { U1: [f] },
+  };
+  // optsFor supplies library: null, i.e. no library.json, i.e. NO declared tier.
+  const opts = { ...optsFor(noTier), library: null };
+  const md = renderMarkdown(noTier, opts);
+  // Subject-anchored on purpose: a loose /declares the .*tier/ also matches the glossary row explaining
+  // what library.json is for, which is a true sentence and not the claim under test.
+  assert.ok(!/notier declares the .*tier/i.test(md), `must not assert a declaration that does not exist:\n${md.split("\n").find((l) => /notier declares/i.test(l))}`);
+  assert.ok(!/matches its declared tier/i.test(md), "must not claim a match against a tier that was never declared");
+  assert.match(md, /no .*tier declared|not graded against the tier ladder/i, "must say plainly that no tier was declared");
+});
+
+test("a subject that DOES declare a tier still reports it (the false-FAIL guard for reading 19)", () => {
+  const r = evaluate(SF);
+  const md = renderMarkdown(r, optsFor(r, SF));
+  assert.match(md, /silver-fixture declares the .*tier/i, "a real declaration must still be reported");
+  assert.ok(!/no .*tier declared/i.test(md), "and must not be described as undeclared");
+});

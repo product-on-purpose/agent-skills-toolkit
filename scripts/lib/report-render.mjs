@@ -105,7 +105,13 @@ function deriveModel(report, opts = {}) {
     scope: report.scope, isPlugin,
     subject: lib?.name ?? basename(report.target),
     version: lib?.version ?? null,
-    declaredTier: lib?.tier ?? (isPlugin ? report.tier : null),
+    // NEVER fall back to report.tier here. That is the EARNED tier, and using it as the DECLARED tier
+    // made a subject with no library.json render "declares the Gold (Advanced) tier and earns Gold",
+    // plus a verdict card that always read "matches its declared tier" because earned trivially equalled
+    // itself. A false PASS on the artifact third parties are shown, while the terminal gate said the
+    // honest thing. Reading 19, corpus batch 3. tier-report.mjs humanLine() has had this guard all along;
+    // it was never mirrored here. Null means undeclared, and every render site must say so.
+    declaredTier: lib?.tier ?? null,
     agentTargets: lib?.["agent-targets"] ?? null,
     prefix: lib?.prefix ?? null,
     standard: lib?.standard ?? null,
@@ -225,7 +231,10 @@ function renderMarkdown(report, opts = {}) {
   out.push(`**Summary: a derived, plain-language read of the deterministic result. ${m.isPlugin ? m.subject + " " + gradeLine + "." : "Component-level findings only."}**`);
   out.push("");
   if (m.isPlugin) {
-    out.push(`${m.subject} declares the ${TIER_NAME[m.declaredTier] ?? m.declaredTier} (${TIER_SUB[m.declaredTier] ?? m.declaredTier}) tier and ${gradeLine}. Of the ${m.counts.total} checks in the spine, ${m.counts.passedHeadline} do not fail (${m.counts.pass} pass, ${m.counts.warn} warn, ${m.counts.na} not applicable) and ${m.counts.fail} fail. The deterministic gate exits ${m.exitCode}.`);
+    const declLine = m.declaredTier
+      ? `${m.subject} declares the ${TIER_NAME[m.declaredTier] ?? m.declaredTier} (${TIER_SUB[m.declaredTier] ?? m.declaredTier}) tier and ${gradeLine}`
+      : `${m.subject} declares no askit tier, so it is not graded against the tier ladder; the objective checks are reported on their own terms`;
+    out.push(`${declLine}. Of the ${m.counts.total} checks in the spine, ${m.counts.passedHeadline} do not fail (${m.counts.pass} pass, ${m.counts.warn} warn, ${m.counts.na} not applicable) and ${m.counts.fail} fail. The deterministic gate exits ${m.exitCode}.`);
     out.push("");
     if (m.blockers.length) {
       out.push(`${m.blockers.length} requirement(s) block ${m.nextTierName}: ${m.blockers.map((b) => b.reqId).join(", ")}. Section 06 orders the climb and section 07 gives a copy-paste fix prompt for each gap that drives the matching askit builder and re-runs the gate.`);
@@ -248,7 +257,7 @@ function renderMarkdown(report, opts = {}) {
   out.push("**Summary: the subject identity, then the component inventory.**");
   out.push("");
   const idRows = [["Subject", m.subject], ["Version", m.version ?? "(unspecified)"]];
-  if (m.isPlugin) idRows.push(["Declared tier", `${TIER_SUB[m.declaredTier] ?? m.declaredTier} (${TIER_NAME[m.declaredTier] ?? m.declaredTier})`]);
+  if (m.isPlugin) idRows.push(["Declared tier", m.declaredTier ? `${TIER_SUB[m.declaredTier]} (${TIER_NAME[m.declaredTier]})` : "none declared"]);
   if (m.agentTargets) idRows.push(["Agent targets", m.agentTargets.join(", ")]);
   if (m.prefix) idRows.push(["Prefix", m.prefix]);
   if (m.profile) idRows.push(["Grading profile", m.profile]);
@@ -413,7 +422,7 @@ function renderMarkdown(report, opts = {}) {
     ["Spine", `${m.counts.total} checks`],
   ];
   if (m.isPlugin) {
-    metaRows.push(["Declared tier", m.declaredTier]);
+    metaRows.push(["Declared tier", m.declaredTier ?? "none declared"]);
     metaRows.push(["Grade earned", `${m.tierEarnedName} (${TIER_SUB[m.tierEarned] ?? m.tierEarned})`]);
   }
   if (m.profile) metaRows.push(["Grading profile", m.profile]);
@@ -789,7 +798,7 @@ function renderHtml(report, opts = {}) {
 
   const verdict = m.isPlugin ? `<div class="verdictcard">
     <div class="lockup"><div class="seal ${sealCls}"><div><div class="tier">${escapeHtml(m.tierEarnedName)}</div><div class="tlbl">${escapeHtml(TIER_SUB[m.tierEarned] ?? "")}</div></div></div>
-    <div class="vtext"><div class="ve">Verdict</div><div class="vg">Earns ${escapeHtml(m.tierEarnedName)}</div><div class="vsub">Declared ${escapeHtml(TIER_SUB[m.declaredTier] ?? m.declaredTier)}; ${m.tierEarned === m.declaredTier ? "matches its declared tier" : "graded against its declared tier"}.</div></div></div>
+    <div class="vtext"><div class="ve">Verdict</div><div class="vg">Earns ${escapeHtml(m.tierEarnedName)}</div><div class="vsub">${m.declaredTier ? `Declared ${escapeHtml(TIER_SUB[m.declaredTier] ?? m.declaredTier)}; ${m.tierEarned === m.declaredTier ? "matches its declared tier" : "graded against its declared tier"}` : "No askit tier declared; not graded against the tier ladder"}.</div></div></div>
     ${climb}${meters}</div>` : `<div class="verdictcard"><div class="lockup"><div class="seal"><div><div class="tier" style="font-size:13px">Component</div></div></div><div class="vtext"><div class="ve">Scope</div><div class="vg">Single component</div><div class="vsub">Graded by rule; a lone component has no tier.</div></div></div></div>`;
 
   const masthead = `<header class="masthead" id="s01"><div class="wrap">
