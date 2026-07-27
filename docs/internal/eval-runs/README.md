@@ -41,6 +41,7 @@ Measurement conventions:
 - `README.md` - this guide.
 - `eval-runs.md` - the run log and per-batch toolkit findings.
 - `METHODOLOGY.md` - how runs are judged for quality and how sensor readings become verified, shipped engine calibrations (the observe -> verify -> calibrate path).
+- `seeded-defects.md` - the seeded-defect fixture and its scoring key (F3 R-AQ-1): what is planted, how a finding is scored true positive, false positive or miss, and why a confabulated correction counts as both a false positive and a miss.
 - `corpus.json` - the pinned-sha corpus manifest (repo URL, sha, scope, local clone) that makes a batch reproducible.
 - `dispatch-reviewer.md` - the review-mode advisory dispatch template (role prompt, effort wording, sampling protocol, output contract).
 - `dispatch-grader.md` - the behavioral-mode advisory dispatch template.
