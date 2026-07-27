@@ -37,3 +37,4 @@ Task-oriented guides for building each component type and climbing from one tier
 - `stand-up-a-docs-site.md` - the "stand up a docs site" page.
 - `stand-up-a-marketplace.md` - the "stand up a marketplace" page.
 - `troubleshoot-the-gate.md` - the "troubleshoot the gate" page.
+- `watch-the-upstream-spec.md` - the "watch the upstream spec" page.

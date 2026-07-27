@@ -36,6 +36,7 @@
 /how-to/stand-up-a-docs-site/index.html
 /how-to/stand-up-a-marketplace/index.html
 /how-to/troubleshoot-the-gate/index.html
+/how-to/watch-the-upstream-spec/index.html
 /index.html
 /overview/index.html
 /reference/askit-backlog/index.html
