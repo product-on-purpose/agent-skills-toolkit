@@ -43,9 +43,12 @@ Option 1. `scripts/checks/description-score.mjs`: ACTION/WHEN extended as above;
 - The U5 = house classification (ADR 0029) is unchanged: `plain-plugin` still drops U5 entirely; this ADR improves the default ladder and the advisory context only.
 
 ## Implementation sites
-- `scripts/checks/description-score.mjs` - `ACTION_VERBS` set and `WHEN_PATTERNS` regex: the two scoring dimensions this ADR recalibrated; the verb inflection rules and the `whenever`/`if the user` trigger patterns live here.
-- `scripts/checks/description-score.mjs` - the placeholder penalty block: replaces the `\b[A-Z]{4,}\b` all-caps regex penalty with a case-sensitive `-0.4` hit on `TODO|TBD|FIXME|XXX+|PLACEHOLDER|CHANGEME`.
+- `scripts/checks/description-score.mjs` - the `ACTION` and `WHEN` regexes: the two 0.35-weighted scoring dimensions this ADR recalibrated. Both are regexes, not sets. `ACTION` carries the verb inflections (`creat(?:e|es|ing|ed)`) and the corpus verbs added here; `WHEN` carries the `when(?:ever)?` and `if the user` trigger patterns.
+- `scripts/checks/description-score.mjs` - the `PLACEHOLDER` regex: replaces the `\b[A-Z]{4,}\b` all-caps regex penalty with a case-sensitive `-0.4` hit on `TODO|TBD|FIXME|XXX+|PLACEHOLDER|CHANGEME`.
+- `scripts/checks/description-score.mjs` - `scoreDescription()` composes all four dimensions against the exported `THRESHOLD` (0.7). Note the arithmetic this ADR did not change: ACTION 0.35 plus WHEN 0.35 plus length 0.2 plus no-first-person 0.1, which is why a description carrying exactly one of the two required signals scores 0.65 and lands just under the bar.
 
-This ADR has a single implementation file. Future recalibrations should verify all three scoring dimensions (ACTION, WHEN, penalties) together, since a change to one affects the composite score of descriptions that previously sat near 0.65 or 0.7.
+This ADR has a single implementation file. Future recalibrations should verify all three scoring dimensions (`ACTION`, `WHEN`, penalties) together, since a change to one affects the composite score of descriptions that previously sat near 0.65 or 0.7.
 
-Grep anchor: `ACTION_VERBS` and the placeholder penalty constant in `description-score.mjs`.
+Grep anchor: `scoreDescription` and the `ACTION` / `WHEN` / `PLACEHOLDER` regexes in `description-score.mjs`.
+
+> **Corrected 2026-07-27.** As first written, this section named ACTION_VERBS and WHEN_PATTERNS, neither of which exists, and described ACTION as a set rather than a regex. `tests/unit/adr-implementation-sites.test.mjs` now asserts that every symbol named in an Implementation sites section resolves to real source.
