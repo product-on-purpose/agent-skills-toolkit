@@ -48,10 +48,12 @@ Option 1.
 - **Residual, deliberately deferred:** the murkier example-link class (bare placeholder targets like `link` / `link-or-path`, double-quoted example links with literal `vX` / `05` placeholders, regexes inside shell single-quotes, and generator-output-path references such as `docs/manuals/library-vX.md`) is left flagged. Auto-suppressing it needs content heuristics with false-negative risk; the maintainer can revisit it as its own decision if the corpus signal warrants, weighing it against the genuine `ac_validation_rules.md` link-rot the same mechanism correctly catches.
 
 ## Implementation sites
-- `scripts/checks/reference-links.mjs` - inline-code strip (the `stripInlineCode` / `inline backtick` regex applied before link scanning): the U6 half of the "only live content" principle; strips single and multi-backtick inline code spans before scanning for links.
+- `scripts/checks/reference-links.mjs` - `stripCode()`, applied by `scanLinks()` before link scanning: the U6 half of the "only live content" principle. One function handles both shapes, fences first (they span lines), then inline spans matched as a run of N backticks closed by the next run of length N, restricted to a single line so a stray backtick cannot swallow the next line's real link.
 - `scripts/checks/mermaid-valid.mjs` - `isTemplatePlaceholder()`: returns true when all non-blank lines are lone `{{...}}` tokens, causing the block to be skipped as a template slot.
 - `scripts/checks/mermaid-valid.mjs` - `stripHtmlComments()` and the fence-aware comment-strip pass: strips HTML-commented blocks before block extraction, so a commented-out fence is invisible to U12.
 
 Both checks extend the principle first established in ADR 0030 (fenced code) to inline code and non-live block shapes. Future calibrations in the same family should check both files for consistency.
 
-Grep anchor: `isTemplatePlaceholder` (mermaid-valid) and `stripInlineCode` or the inline-backtick regex (reference-links).
+Grep anchor: `isTemplatePlaceholder` (mermaid-valid) and `stripCode` (reference-links).
+
+> **Corrected 2026-07-27.** As first written, this section named stripInlineCode; the function is `stripCode`, and it strips fences and inline spans together rather than only the inline case. `tests/unit/adr-implementation-sites.test.mjs` now asserts that every symbol named in an Implementation sites section resolves to real source.
