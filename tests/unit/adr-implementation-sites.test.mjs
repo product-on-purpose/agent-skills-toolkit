@@ -32,18 +32,20 @@ function implementationSites(text) {
  * file paths and property references, which are ambiguous to resolve and produced only false
  * positives when this audit was first run (a glob, and a file ADR 0028 names precisely because it
  * deleted it). Symbols are where the real defects were.
+ *
+ * There is no exemption for a symbol an ADR names in order to say it was removed. Write such a name
+ * WITHOUT backticks: prose about something that was never written, or no longer exists, is not a code
+ * reference, and the correction notes in ADRs 0027, 0032, and 0033 follow exactly that convention. An
+ * earlier draft exempted any bullet containing "removed" / "retired" / "deleted", which turned out to
+ * exempt no line in the corpus while silently waiving every correct symbol on any bullet that happened
+ * to use one of those words.
  */
 function namedSymbols(section) {
   const out = new Set();
-  for (const line of section.split("\n")) {
-    // An ADR may name a symbol it removed. Exempt that bullet rather than forcing the author to
-    // drop the backticks, which would cost the reader the very reference the section exists for.
-    if (/\b(removed|retired|deleted)\b/i.test(line)) continue;
-    for (const m of line.matchAll(/`([^`\n]+)`/g)) {
-      const name = m[1].replace(/\(.*$/, "").trim();
-      if (!/^[A-Za-z_$][A-Za-z0-9_$]{3,}$/.test(name)) continue;
-      out.add(name);
-    }
+  for (const m of section.matchAll(/`([^`\n]+)`/g)) {
+    const name = m[1].replace(/\(.*$/, "").trim();
+    if (!/^[A-Za-z_$][A-Za-z0-9_$]{3,}$/.test(name)) continue;
+    out.add(name);
   }
   return [...out];
 }
@@ -56,6 +58,13 @@ function namedSymbols(section) {
  * was written to catch. That is not hypothetical: the first version did precisely this, as did
  * the throwaway script that found the defect in the first place. A scanner that reads the
  * document describing the bug is the second-oldest mistake in this repo.
+ *
+ * `.mjs` and `.js` only. `walkFiles` applies no `SKIP_DIRS` filter of its own (callers do that), so
+ * every extension added here is extra surface in which a symbol can resolve by coincidence. `.json`
+ * pulled in 65 test fixtures whose arbitrary string content proves nothing about whether a function
+ * exists, and the only `.py` in range is a fixture. Neither changed a single verdict when included.
+ * If a real Python or JSON implementation site ever lands, this test fails loudly and names it,
+ * which is the correct way to learn about a new case.
  */
 function sourceCorpus() {
   let all = "";
@@ -63,7 +72,7 @@ function sourceCorpus() {
     const abs = path.join(REPO_ROOT, d);
     if (!fs.existsSync(abs)) continue;
     for (const f of walkFiles(abs)) {
-      if (!/\.(mjs|js|json|py)$/.test(f)) continue;
+      if (!/\.(mjs|js)$/.test(f)) continue;
       if (path.resolve(f) === SELF) continue;
       all += fs.readFileSync(f, "utf8");
     }
@@ -80,6 +89,11 @@ function sourceCorpus() {
 // This asserts only that a named symbol EXISTS. It cannot assert the list is complete - that is the
 // judgment call the previous session correctly declined to automate, since a completeness check
 // rewards placeholder bullets. Existence is mechanical, and it is what actually broke.
+//
+// The lookup is a deliberately permissive substring match, not a definition-site parse: `check` is
+// satisfied by `checks`. That direction is the safe one. A too-strict matcher fails PRs over
+// correct-but-unusually-written references and gets deleted; a permissive one still catches the
+// defect that exists here, which is a name that appears nowhere at all.
 test("every symbol named in an ADR's Implementation sites resolves to real source", () => {
   const corpus = sourceCorpus();
   const unresolved = [];
