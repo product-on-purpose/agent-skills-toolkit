@@ -56,7 +56,7 @@ Open the `library.json` the scaffold wrote. The seed looks like this:
   "name": "REPLACE-with-plugin-name",
   "version": "0.1.0",
   "description": "REPLACE - what this plugin does and when to use it, with concrete trigger keywords.",
-  "standard": "0.8",
+  "standard": "0.12",
   "tier": "universal"
 }
 ```

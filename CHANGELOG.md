@@ -9,6 +9,9 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Fixed
+- **The seed scaffold pinned a stale Standard.** `templates/seed-plugin/library.json` declared `"standard": "0.8"`, written once during v1.0.0 (commit `e06a377`) and never touched while the Standard moved 0.8 to 0.12. That pin is copied verbatim into every plugin `askit-init-plugin` creates, and per ADR 0027 (Standard versioning and compatibility policy) the gate downgrades error to warn for any check introduced after a plugin's pin. A plugin scaffolded today would therefore have been born silently opted out of six checks: `U12` (mermaid-valid), `U13` (skill-registration), and `G7` through `G10` (docs-frontmatter, folder-readme, source-doc, docs-presence). Honoring an old pin is correct for an existing plugin and wrong for a new one, which has no legacy to protect. The seed and the Bronze tutorial now pin `0.12`, and a new invariant in `tests/unit/init-anatomy.test.mjs` asserts the seed pin equals the toolkit's own declared Standard, so the next Standard bump that forgets the template fails the suite instead of shipping. No behavior change to the gate; the seed still grades Universal with 0 errors. **602 tests.**
+
 ## [1.9.0] - 2026-07-27
 
 Two governance capabilities, both aimed at the same failure: a rule that exists and is not carried to every place it applies. Outward, the toolkit can now tell when the upstream spec has moved. Inward, every decision record names what implements it. Spine stays **30 checks**, Standard stays **v0.12**. **601 tests**, gate Advanced 0/0.
