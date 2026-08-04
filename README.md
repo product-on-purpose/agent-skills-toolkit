@@ -1,26 +1,12 @@
 <a id="readme-top"></a>
 
-<div align="center">
+<div>
 
 # [agent-skills-toolkit](https://github.com/product-on-purpose/agent-skills-toolkit)
 
 **Start, grow, govern, and level up an advanced cross-agent plugin over its whole lifecycle - climbing a Bronze / Silver / Gold standard, with a portable gate that proves the climb. For Claude Code and Codex.**
 
 Most skill collections are a flat, single-agent, ungoverned pile. This is the Standard that defines what a best-in-class, multi-agent skill library actually is, plus the portable tooling that authors components, grades a plugin against the Standard, and emits each component in the right format for each agent. The repository is built to its own Standard and self-validates at Gold in CI: it is meant to be the proof.
-
-<p>
-  <a href="#install"><strong>Install</strong></a>
-  &nbsp;&middot;&nbsp;
-  <a href="#what-it-is"><strong>What it is</strong></a>
-  &nbsp;&middot;&nbsp;
-  <a href="#use-it"><strong>Use it</strong></a>
-  &nbsp;&middot;&nbsp;
-  <a href="#the-tier-model"><strong>Tiers</strong></a>
-  &nbsp;&middot;&nbsp;
-  <a href="#the-catalog"><strong>Catalog</strong></a>
-  &nbsp;&middot;&nbsp;
-  <a href="https://product-on-purpose.github.io/agent-skills-toolkit/"><strong>Live docs</strong></a>
-</p>
 
 <p>
   <a href="https://github.com/product-on-purpose/agent-skills-toolkit/issues/new?labels=bug">Report a Bug</a>
@@ -39,6 +25,21 @@ Most skill collections are a flat, single-agent, ungoverned pile. This is the St
   <img src="https://img.shields.io/badge/checks-30-brightgreen?style=flat-square" alt="Validation checks: 30">
   <a href="https://agentskills.io/specification"><img src="https://img.shields.io/badge/spec-agentskills.io-orange?style=flat-square" alt="Agent Skills Spec"></a>
 </p>
+
+<p>
+  <a href="#install"><strong>Install</strong></a>
+  &nbsp;&middot;&nbsp;
+  <a href="#what-it-is"><strong>What it is</strong></a>
+  &nbsp;&middot;&nbsp;
+  <a href="#use-it"><strong>Use it</strong></a>
+  &nbsp;&middot;&nbsp;
+  <a href="#the-tier-model"><strong>Tiers</strong></a>
+  &nbsp;&middot;&nbsp;
+  <a href="#the-catalog"><strong>Catalog</strong></a>
+  &nbsp;&middot;&nbsp;
+  <a href="https://product-on-purpose.github.io/agent-skills-toolkit/"><strong>Live docs</strong></a>
+</p>
+
 
 </div>
 
@@ -60,6 +61,8 @@ Most skill collections are a flat, single-agent, ungoverned pile. This is the St
 - [Repository map](#repository-map)
 
 </details>
+
+---
 
 ## Install
 
