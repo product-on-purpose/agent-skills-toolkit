@@ -122,7 +122,7 @@ The actionable output of the verified competitive comparison (`docs/internal/res
 - **Why:** the harness and the fixture exist and are tested; what does not exist is a measured number. "The cheaper model seemed about as good" is currently an impression, and readings 16 and 17 already record that Haiku at high effort confabulated a statute. This is the run that turns that into evidence.
 - **Why it was deferred rather than done:** a simulated triple would put a fabricated measurement on a public page, which is worse than an empty cell reading "not measured yet". It needs three real dispatches to mean anything.
 - **Do not skip:** record the run even if the result is boring. A measured parity between tiers is as useful as a measured gap, and the existing parity claim rests on a single clean target, which METHODOLOGY.md already flags as its open caveat.
-- **Status:** OPEN. Deferred from v1.8.0 (R2). Everything it needs is on disk.
+- **Status:** DONE (run 2026-08-04, recorded as batch 2026-08-04 runs 12-14 in [eval-runs.md](../eval-runs/eval-runs.md)). Three real dispatches at Haiku 4.5, Sonnet 5 and Opus 5, effort held at `high`. The measured pairs, against key **1.1.0**: Haiku 0.83 / 0.38, Sonnet 1.00 / 0.54, Opus 1.00 / 0.62, with zero confabulations at every tier. All three cells remain PROVISIONAL pending the multi-entry scoring rule (E16). **The run's headline is that it found a defect in its own measuring instrument:** under key 1.0.0 the same Opus advisory scored 0.42 precision, and every one of its apparent false positives proved to be either a real unplanted defect (four, now promoted as SD-10 through SD-13) or legitimately out of scope. Publishing the 1.0.0 numbers would have asserted a false model ranking. Follow-on items: E16, E17, E18, E19, E20.
 
 ### E14 - U5 assumes English, and is unpassable in any language it does not know  [calibrate, effort M, ADR-gated]
 
@@ -143,3 +143,40 @@ The actionable output of the verified competitive comparison (`docs/internal/res
   3. **One refusal aborts a whole multi-target batch.** `runOne` throws and the exception escapes `runBatch`, so a later target never runs. Fix: collect per-target refusals into a batch summary and continue.
 - **Why:** batch 3 was explicitly a shakedown of the F2 runner as well as a pass on the targets, and these are what it shook out. None is urgent; all three make the next batch smoother and the record more trustworthy.
 - **Status:** OPEN. Deferred from v1.8.0 (R2).
+
+### E16 - advisory-score credits nothing when one finding engages two defect entries  [fix, effort M, blocks publishing any cell as final]
+
+- **Target:** `scripts/lib/advisory-score.mjs` (`classifyFinding`, `scoreAdvisory`), and the `review-required` outcome in the seeded-defect scoring key.
+- **Change:** define and implement a scoring rule for a finding whose `matchText` satisfies the `locate` clause of more than one defect entry. Today it becomes `review-required` and is credited to neither entry, which suppresses precision and recall together.
+- **Why:** sensor reading 26 (2026-08-04). The E13 triple produced the proof. The same Opus advisory scored **0.42** precision against key 1.0.0 and **1.00** against key 1.1.0 with no change to the advisory at all, and seven of its twenty-three findings are still uncredited because each engages two entries at once. The effect is that the more granular a review is, the worse it scores: a model that writes exactly one finding per planted defect is rewarded, and one that describes the same reality in richer detail is penalised. `precision` therefore currently measures conformance to the key's granularity rather than correctness, and no cell can honestly be published as final until this is settled.
+- **Options to weigh in the fix:** credit the first unsatisfied entry and mark the finding a partial for the rest; credit every entry it genuinely satisfies (changes the meaning of `recall`'s denominator); or require the key's `locate` clauses to be disjoint enough that this cannot arise (the integration test already enforces disjointness across *examples*, which is weaker).
+- **Status:** OPEN. Raised by E13.
+
+### E17 - the scoring harness cannot consume an adjudication  [build, effort S]
+
+- **Target:** `scripts/lib/advisory-score.mjs` (`scoreAdvisory` opts, the CLI) and the adjudication steps in the seeded-defect key.
+- **Change:** accept an adjudication document (resolutions keyed by run id and finding index) and fold it into the published partition, so a finalized cell is machine-computed rather than hand-computed.
+- **Why:** sensor reading 27 (2026-08-04), verified against source: `scoreAdvisory(advisory, key, opts)` reads only `opts.model`, `opts.effort` and `opts.runId`. The harness emits a worklist and correctly refuses to finalize, but there is no path to feed the resolutions back. Every published pair is therefore hand-computed with nothing checking the arithmetic, which is the same shape as the gaps E13 was built to close. Promoting verified defects into the key was the E13 workaround; it works only for findings that turn out to be real.
+- **Status:** OPEN. Raised by E13.
+
+### E18 - U6 (reference-links) scans skills only, so link rot in a command or subagent is invisible  [fix, effort S, ADR-gated]
+
+- **Target:** `scripts/checks/reference-links.mjs` (`check(ctx)`).
+- **Change:** extend the existing `scanLinks` pass over `ctx.commands` and `ctx.subagents`, both of which `loadPlugin` already populates.
+- **Why:** sensor reading 29 (2026-08-04), independently re-derived rather than taken from the advisory: `check(ctx)` is a single `for (const s of ctx.skills)` loop, and `grep -c "ctx\.(commands|subagents)"` over the file returns **0**. Demonstrated on the seeded-defect fixture, where a command links `../skills/privacy-notice-review/references/state-law-matrix.md` (the real file is `us-state-laws.md`) and the gate still reports 0E / 0W. This is new coverage rather than a calibration of how an existing check fires, so it is ADR-gated and needs the warn-first burndown of ADR 0027 (Standard versioning and compatibility policy).
+- **Status:** OPEN. Raised by E13.
+
+### E19 - nothing resolves the component paths declared in .claude-plugin/plugin.json  [build, effort M, ADR-gated]
+
+- **Target:** a new check, or an extension of `U13` (`skill-registration`); `ctx.claudeManifest` in `scripts/lib/load-plugin.mjs`.
+- **Change:** resolve the path arrays a Claude plugin manifest declares (`agents`, `commands`, `skills`, `hooks`) against the tree, and report a declaration that points at nothing.
+- **Why:** sensor reading 29 (2026-08-04), verified: `ctx.claudeManifest` is consumed by exactly two modules, `manifest-drift` (U8, which early-returns without a `library.json`) and `per-target-presence` (S6, house provenance, dropped under `plain-plugin`). U13 covers the catalogued-but-undeliverable case for skills only, and only via `library.json` or `marketplace.json`. Demonstrated on the fixture: `agents: ["./agents/notice-reviewer.md"]` resolves to nothing on disk and the gate reports 0E / 0W. A manifest that names a file which does not exist is the same portable defect U13 exists to catch, in a component type nothing covers.
+- **Status:** OPEN. Raised by E13.
+
+### E20 - the seeded-defect scoring key is readable from inside the fixture tree  [fix, effort S]
+
+- **Target:** `tests/fixtures/anti/seeded-defects/privacy-notice-toolkit.key.json` and the fixture README.
+- **Change:** move the key out of the directory an evaluating agent is pointed at, or otherwise make reading it detectable in the run artifact.
+- **Why:** raised by run 14 of the E13 batch, which stated that it deliberately did not open the key. The key sits one directory above the target, appears in any tree listing, and the fixture README advertises it as the authoritative answer. A run that reads it converts the measurement into a transcription, and nothing in the resulting artifact would reveal that it had. Every number this fixture produces rests on an honour system that no other part of the eval-run pipeline relies on.
+- **Also worth folding in:** `tests/unit/advisory-score.test.mjs` hardcodes recall, ceiling and miss-list values against the tracked key, so a keyVersion bump breaks four scorer unit tests that are not testing the key. Pin them to a frozen key fixture so scorer tests stop coupling to key content.
+- **Status:** OPEN. Raised by E13.

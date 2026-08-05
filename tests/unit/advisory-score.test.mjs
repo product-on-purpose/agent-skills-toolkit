@@ -217,17 +217,28 @@ test("a worklist item for an auto entry carries its locations but no semantic hi
 // 3. The two simulated runs reproduce the documented numbers
 // ---------------------------------------------------------------------------
 
-test("the strong simulated run scores precision 1.00 and recall 0.89 PROVISIONAL", () => {
+// COUPLING NOTE (E13, key 1.1.0): the recall, ceiling and miss-list assertions below are functions
+// of the KEY's contents, not of the scorer. Adjudication step 4 says promoting a verified unplanted
+// defect bumps keyVersion and makes earlier scores non-comparable, so a key bump legitimately moves
+// these numbers and these tests must be re-derived rather than "fixed". The scorer claims that must
+// hold at ANY key version are the precision figures, the confabulation and bait partitions, and the
+// false-verified rate. Filed as a backlog item: pin these to a frozen key so a key bump stops
+// breaking scorer unit tests.
+test("the strong simulated run scores precision 1.00, recall 0.62 against key 1.1.0, PROVISIONAL", () => {
   const s = scoreAdvisory(readJson(STRONG), key);
   assert.equal(s.counts.truePositives, 8);
   assert.equal(s.counts.falsePositives, 0);
   assert.equal(s.counts.reviewRequired, 1);
   assert.equal(s.counts.outOfScope, 1);
-  assert.equal(s.counts.misses, 1);
-  assert.deepEqual(s.misses, ["SD-06"], "the semantic entry is the only one an auto score cannot credit");
+  assert.equal(s.counts.misses, 5);
+  assert.deepEqual(
+    s.misses,
+    ["SD-06", "SD-10", "SD-11", "SD-12", "SD-13"],
+    "SD-06 is the semantic entry an auto score can never credit; SD-10 through SD-13 were promoted from the E13 triple AFTER this simulated run was authored, so it does not address them"
+  );
   assert.equal(s.precision.toFixed(2), "1.00");
-  assert.equal(s.recall.toFixed(2), "0.89");
-  assert.equal(s.recallAutoCeiling.toFixed(2), "0.89", "8 of 9 IS the auto ceiling, not a shortfall of this run");
+  assert.equal(s.recall.toFixed(2), "0.62");
+  assert.equal(s.recallAutoCeiling.toFixed(2), "0.92", "12 of 13 is the auto ceiling: one semantic entry, never creditable");
   assert.ok(s.provisional);
   assert.equal(s.falseVerifiedRate, 0, "nothing it marked verified was wrong");
 });
@@ -238,7 +249,7 @@ test("the reading-17 cheap simulated run scores precision 0.00 and recall 0.00",
   assert.equal(s.counts.confabulations, 4);
   assert.equal(s.counts.baitHits, 1);
   assert.equal(s.counts.falsePositives, 5);
-  assert.equal(s.counts.misses, 9);
+  assert.equal(s.counts.misses, key.defects.length, "it caught nothing, so every planted entry is a miss whatever the key holds");
   assert.equal(s.precision.toFixed(2), "0.00");
   assert.equal(s.recall.toFixed(2), "0.00");
   assert.equal(s.falseVerifiedRate, 1, "every finding it certified as verified was wrong");
@@ -434,10 +445,10 @@ function cli(args, expectFail = false) {
 test("CLI: scoring the strong run prints the pair, the misses and the provisional flag", () => {
   const { stdout } = cli([STRONG, KEY_PATH]);
   assert.match(stdout, /precision\s+1\.00/);
-  assert.match(stdout, /recall\s+0\.89/);
+  assert.match(stdout, /recall\s+0\.62/);
   assert.match(stdout, /SD-06/);
   assert.match(stdout, /PROVISIONAL/);
-  assert.match(stdout, /key 1\.0\.0/, "the keyVersion is printed beside the numbers (adjudication step 6)");
+  assert.match(stdout, /key 1\.1\.0/, "the keyVersion is printed beside the numbers (adjudication step 6)");
 });
 
 test("CLI: --json is byte-identical across two runs", () => {
@@ -452,7 +463,7 @@ test("CLI: --json is byte-identical across two runs", () => {
 
 test("CLI: the key argument defaults to the tracked seeded-defect key", () => {
   const { stdout } = cli([STRONG]);
-  assert.match(stdout, /recall\s+0\.89/);
+  assert.match(stdout, /recall\s+0\.62/);
 });
 
 test("CLI: a refusal is loud - exit 2 and a message on stderr", () => {
