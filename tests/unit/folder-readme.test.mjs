@@ -133,3 +133,27 @@ test("prose backticks outside the inventory section do not cause a phantom false
     rmSync(dir, { recursive: true, force: true });
   }
 });
+
+test("Python bytecode and tool-cache dirs are neither required in the inventory nor phantoms", () => {
+  // Regression: SKIP_DIRS covered the Node ecosystem's scratch dirs but not Python's, so a
+  // Python-bearing plugin was reported an under-listed G8 finding per bytecode cache on disk.
+  // These directories are gitignored build/tool output, never authored children of a folder.
+  const dir = mkdtempSync(path.join(tmpdir(), "g8-pycache-"));
+  try {
+    mkdirSync(path.join(dir, "scripts", "__pycache__"), { recursive: true });
+    mkdirSync(path.join(dir, "scripts", ".pytest_cache"), { recursive: true });
+    mkdirSync(path.join(dir, "scripts", ".venv"), { recursive: true });
+    writeFileSync(path.join(dir, "scripts", "__pycache__", "checks.cpython-312.pyc"), "\0\0");
+    writeFileSync(path.join(dir, "scripts", ".pytest_cache", "CACHEDIR.TAG"), "x");
+    writeFileSync(path.join(dir, "scripts", ".venv", "pyvenv.cfg"), "x");
+    writeFileSync(path.join(dir, "scripts", "checks.py"), "# a real, authored child\n");
+    writeFileSync(
+      path.join(dir, "scripts", "README.md"),
+      '---\ntitle: "scripts"\n---\n\n# scripts\n\nScripts.\n\n## Inventory\n\n- `checks.py` - the only authored child.\n',
+    );
+    const f = check({ root: dir });
+    assert.equal(f.length, 0, `expected 0 findings, got: ${f.map((x) => x.message).join("; ")}`);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});

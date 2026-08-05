@@ -9,9 +9,26 @@ import path from "node:path";
  * Directory names skipped by repo-wide content scanners, matched by basename at any depth:
  * dependency dirs, gitignored scratch, and build-output / tool-cache dirs. Generated artifacts
  * are not authored text, so content hygiene does not apply to them. Defined once here and shared
- * by the repo-wide content checks (U12 mermaid-valid, G8 folder-readme).
+ * by every repo-wide content scanner (U12 mermaid-valid, G8 folder-readme, S6 source-doc,
+ * and evaluate.mjs).
+ *
+ * Grouped by ecosystem, because the set is graded against third-party plugins and a category
+ * covered for one language but not another produces findings that are the toolkit's fault, not
+ * the plugin's. Python entries were added after a Python-bearing plugin was reported three G8
+ * folder-readme findings for its bytecode caches.
  */
-export const SKIP_DIRS = new Set(["node_modules", ".git", ".memsearch", "_local", "_LOCAL", "_agent-context", "dist", ".astro"]);
+export const SKIP_DIRS = new Set([
+  // version control
+  ".git",
+  // dependency directories
+  "node_modules", ".venv", "venv",
+  // build output
+  "dist", ".astro",
+  // tool caches
+  ".memsearch", "__pycache__", ".pytest_cache", ".mypy_cache", ".ruff_cache", ".tox",
+  // gitignored agent/author scratch
+  "_local", "_LOCAL", "_agent-context",
+]);
 
 /** Repo-relative, slash-normalized path. Falls back to abs if root is falsy. */
 export function relPath(root, abs) {

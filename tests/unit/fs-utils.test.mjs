@@ -1,9 +1,9 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { mkdtempSync, writeFileSync, mkdirSync } from "node:fs";
+import { mkdtempSync, writeFileSync, mkdirSync, readFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
-import { readJsonSafe, fileExists, listSkillDirs, walkFiles } from "../../scripts/lib/fs-utils.mjs";
+import { readJsonSafe, fileExists, listSkillDirs, walkFiles, SKIP_DIRS } from "../../scripts/lib/fs-utils.mjs";
 
 function tmpRepo() {
   return mkdtempSync(path.join(tmpdir(), "ast-"));
@@ -63,4 +63,28 @@ test("walkFiles returns all leaf files recursively", () => {
 
 test("walkFiles returns [] for a missing dir", () => {
   assert.deepEqual(walkFiles(path.join(tmpRepo(), "nope")), []);
+});
+
+test("SKIP_DIRS covers the scratch dirs of both graded ecosystems, not just Node's", () => {
+  // The set is graded against third-party plugins, so a category covered for one language but not
+  // another produces findings that are the toolkit's fault rather than the plugin's.
+  for (const d of ["node_modules", "dist", ".astro"]) {
+    assert.ok(SKIP_DIRS.has(d), `expected Node scratch dir ${d} in SKIP_DIRS`);
+  }
+  for (const d of ["__pycache__", ".pytest_cache", ".mypy_cache", ".ruff_cache", ".tox", ".venv", "venv"]) {
+    assert.ok(SKIP_DIRS.has(d), `expected Python scratch dir ${d} in SKIP_DIRS`);
+  }
+  for (const d of [".git", "_local", "_LOCAL", "_agent-context", ".memsearch"]) {
+    assert.ok(SKIP_DIRS.has(d), `expected VCS/scratch dir ${d} in SKIP_DIRS`);
+  }
+});
+
+test("every repo-wide content scanner shares one SKIP_DIRS, with no local redefinition", async () => {
+  // A check that keeps its own copy silently stops matching the shared set the moment one is edited.
+  const roots = ["../../scripts/checks/folder-readme.mjs", "../../scripts/checks/mermaid-valid.mjs", "../../scripts/checks/source-doc.mjs"];
+  for (const r of roots) {
+    const src = readFileSync(new URL(r, import.meta.url), "utf8");
+    assert.match(src, /import \{[^}]*SKIP_DIRS[^}]*\} from "\.\.\/lib\/fs-utils\.mjs"/, `${r} must import the shared SKIP_DIRS`);
+    assert.doesNotMatch(src, /^const SKIP_DIRS = new Set\(/m, `${r} must not redefine SKIP_DIRS locally`);
+  }
 });

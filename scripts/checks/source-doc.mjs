@@ -6,19 +6,13 @@
 // used-by:      registered in scripts/lib/registry.mjs; run by scripts/check.mjs; covered by tests/unit/source-doc.test.mjs
 import { readFileSync, readdirSync, statSync, existsSync } from "node:fs";
 import path from "node:path";
-import { relPath } from "../lib/fs-utils.mjs";
+import { relPath, SKIP_DIRS } from "../lib/fs-utils.mjs"; // SKIP_DIRS: shared directory skip set, matched by basename at any depth
 import { finding, SEVERITY } from "../lib/findings.mjs";
 
 export const meta = { id: "source-doc", tier: "advanced", reqId: "G9", since: "0.10", provenance: "house" };
 
 const HEADER_LINES = 30;
 const EXT = /\.(mjs|js|py)$/;
-
-// Directories skipped by basename anywhere in the walk.
-const SKIP_DIRS = new Set([
-  "node_modules", ".git", "dist", ".astro",
-  "_LOCAL", "_local", "_agent-context", ".memsearch",
-]);
 
 // Path fragments (slash-normalized) skipped wherever they occur: intentional fixtures and generated output.
 const SKIP_PATHS = ["tests/fixtures/", "site/src/content/docs/"];
