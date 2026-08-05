@@ -31,6 +31,7 @@ Task-oriented guides for building each component type and climbing from one tier
 - `deprecate-a-component.md` - the "deprecate a component" page.
 - `emit-for-multiple-agents.md` - the "emit for multiple agents" page.
 - `manage-templates.md` - the "manage templates" page.
+- `manage-multiple-plugins.md` - the "manage-multiple-plugins" page.
 - `manage-the-backlog.md` - the "manage the backlog" page.
 - `record-a-decision.md` - the "record a decision" page.
 - `scaffold-a-plugin.md` - the "scaffold a plugin" page.

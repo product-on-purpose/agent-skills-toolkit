@@ -6,6 +6,7 @@
 /explanation/conformance-and-tiers/index.html
 /explanation/faq/index.html
 /explanation/glossary/index.html
+/explanation/limitations/index.html
 /explanation/reading-paths/index.html
 /explanation/validation-and-improvement/index.html
 /explanation/why-a-standard/index.html
@@ -29,6 +30,7 @@
 /how-to/cut-a-release/index.html
 /how-to/deprecate-a-component/index.html
 /how-to/emit-for-multiple-agents/index.html
+/how-to/manage-multiple-plugins/index.html
 /how-to/manage-templates/index.html
 /how-to/manage-the-backlog/index.html
 /how-to/record-a-decision/index.html

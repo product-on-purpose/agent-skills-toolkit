@@ -118,8 +118,79 @@ In practice you run `askit-evaluate` (or `node scripts/check.mjs`) at any point 
 see the highest tier you satisfy and the burndown of what blocks the next one,
 then close that list at your own pace while CI stays green throughout the climb.
 
+## The gate says my plugin has 0 errors. Is it good?
+
+No. It says the plugin has the shape the Standard requires. The gate never reads
+for sense, so a plugin can pass every check at Gold and still contain a skill
+whose instructions are wrong. That boundary is deliberate and is set out in
+[what this toolkit cannot do](limitations.md#1-the-gate-checks-structure-never-quality).
+The judgment pass is `--report=review`, and it renders beside the verdict rather
+than inside it.
+
+## The gate reported hundreds of errors on someone else's plugin. Did I break it?
+
+Almost certainly you used the wrong profile. The default ladder includes
+`house`-provenance checks that encode this project's own conventions, and a
+plugin that never adopted the Standard has no reason to satisfy them. Grade a
+plugin you do not own with `--profile plain-plugin`. On one real third-party
+target the same tree scored **10 errors** under `plain-plugin` and **1034**
+under the full ladder.
+
+## It printed a clean pass but I do not think it read anything
+
+On Windows, check your path separators. A backslash path makes `check.mjs`
+silently grade an empty directory and report a clean pass. Use forward slashes.
+The target is also **positional**, not a flag: `node scripts/check.mjs .`
+
+## A check fired on something that is deliberately not live. Is that a bug?
+
+Probably not, and the checks have been calibrated for exactly this. Links inside
+fenced or inline code are stripped before `U6` scans. Mermaid blocks that are
+pure `{{PLACEHOLDER}}` template slots, or commented out in HTML, are skipped by
+`U12`. If a check fires on genuinely non-live content outside those cases, that
+is worth reporting: the principle is that a check validates live content only.
+
+## Why is my non-English skill description capped below the bar?
+
+Because `U5` currently assumes English, and this is a known defect rather than a
+judgment about your description. Its use-when trigger pattern is English-only, so
+a description in another language cannot earn that 0.35 and is capped at 0.65
+against a 0.7 bar. Measured on a French corpus, the pattern matched **0 of 346**.
+`U5` is `house` provenance, so `--profile plain-plugin` drops it entirely, and it
+warns rather than errors. Tracked as `E14`.
+
+## Does it work on a plugin that is not JavaScript?
+
+Yes. The Standard is about structure, not implementation language, and a plugin
+whose scripts are Python is graded the same way. Two practical notes: the gate
+itself needs Node to run, and `G8` (folder-readme) will ask you to document every
+folder, which is how build-artifact directories such as `__pycache__` tend to
+surface. Gitignore those rather than documenting them.
+
+## How do I grade a whole marketplace at once?
+
+You cannot yet. The gate has plugin and component scopes only, so a catalogue is
+graded by looping over its members, and anything that exists only *between*
+members stays invisible. The workflow that does work, and what it misses, is in
+[manage several plugins](../how-to/manage-multiple-plugins.md).
+
+## The Standard added a check. Does my plugin fail now?
+
+No. Your plugin declares `"standard": "<version>"` and the gate downgrades to a
+warning any check introduced after that pin, so you are graded against the ruleset
+you adopted rather than silently retightened under. You pick up new requirements
+when you bump the pin. To see what a bump would cost first, run with `--strict`,
+which grades against the newest spine regardless of pin.
+
+## Should a brand-new plugin pin an older Standard?
+
+No. The pin exists to protect an existing plugin from retroactive tightening, and
+a new plugin has no legacy to protect. Start on the current Standard; starting
+behind means inheriting warnings you never earned.
+
 ## Where do I go next?
 
+- [what this toolkit cannot do](limitations.md) - the honest boundary, in full.
 - [conformance and tiers](conformance-and-tiers.md) - how the checks and the tier
   report fit together.
 - [`STANDARD.md`](../../STANDARD.md) - the normative (RFC-2119) Standard every tool
