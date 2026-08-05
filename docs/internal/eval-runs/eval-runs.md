@@ -2,6 +2,40 @@
 
 > One row per model-assisted evaluation run. Conventions (what tokens/effort mean, where raw artifacts live) are in [README.md](README.md). Newest batch first. How quality is judged and how readings become calibrations: [METHODOLOGY.md](METHODOLOGY.md).
 
+## Batch 2026-08-04 (runs 12-14): the defect-rich model triple, and the key that was scoring thoroughness as noise
+
+**Context:** backlog E13, deferred from v1.8.0 and the last open P1 after the 2026-07-28 roadmap reconciliation. Three real dispatches at three model tiers against the seeded-defect fixture, effort held at `high` so the model tier is the only variable. Toolkit at v1.9.0 (`main` `f5f20d0`), spine 30 / Standard 0.12. Raw advisories under the gitignored `_local/audit/eval-runs/2026-08-04/`.
+
+**Target:** `tests/fixtures/anti/seeded-defects/privacy-notice-toolkit`, graded `--profile plain-plugin` because it is third-party-shaped (a `.claude-plugin/plugin.json`, no `library.json`). Deterministic baseline **0E / 0W, objective checks pass, no askit tier declared** - by design, so every number below measures the judgment layer alone. Graded under the default `askit-library` profile it reports 12E; that is the wrong profile for this shape and is recorded here only so the next reader does not repeat the mistake.
+
+| Run | Model x effort | Findings | Precision | Recall | Confab | Bait FP | False-verified | Subagent tokens | Wall clock |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| 12 | Haiku 4.5 / high | 7 | 0.83 | 0.38 | 0 | **1** | 0.17 | 41,555 | 124s |
+| 13 | Sonnet 5 / high | 10 | **1.00** | 0.54 | 0 | 0 | 0.00 | 76,371 | 285s |
+| 14 | Opus 5 / high | 23 | **1.00** | **0.62** | 0 | 0 | 0.00 | 93,271 | 552s |
+
+All three scored against **key 1.1.0**, and all three remain **PROVISIONAL** (1, 3 and 7 review-required items respectively - see reading 26). Auto ceiling is 0.92: twelve of thirteen entries are auto-creditable, one is semantic and never is.
+
+**The key changed as a direct result of this batch, so these numbers are not comparable with any earlier cell.** Under key 1.0.0 the same three advisories scored Haiku 0.83 / Sonnet 0.86 / **Opus 0.42**. Seven of Opus's findings matched nothing in the key. Adjudication steps 3 and 4 require hand-checking every non-bait false positive, and four of those seven turned out to be real defects nobody had planted, verified against the fixture by hand:
+
+| New entry | Class | What it is |
+| --- | --- | --- |
+| `SD-10` | capability-overclaim | README calls the agent the delegate the notice review "dispatches for a second pass"; grep for the agent across the skill and the command returns zero hits. The wiring does not exist. |
+| `SD-11` | capability-overclaim | `plugin.json` sells the consent-log capability as auditing "against US state privacy law"; a grep for any statute across the whole skill returns zero hits. It audits a vendor schema. |
+| `SD-12` | wrong-procedure | The router's stated rationale ("two states put the same request type in different queues") is contradicted by its own table: all five default queues are unconditional and both state exceptions are purely additive. |
+| `SD-13` | wrong-procedure | `consent_state` declares three enum values; the procedure handles two. The word `pending` appears zero times in the skill, so a pending row gets a retention verdict computed from a grant that was never given. |
+
+Also added: `OS-04` and `OS-05` (out of scope: legal-completeness judgments, and skills that instruct manual steps), and `NB-04`, a new bait entry for the version spread between `plugin.json` and the per-skill metadata, which is **correct** under Standard sec 7.4 and which run 12 reported as an inconsistency.
+
+### Sensor readings 26-29
+
+- **Reading 26 - the auto-scorer was measuring conformance to the key's granularity, not correctness.** Opus scored 0.42 precision under key 1.0.0 and 1.00 under 1.1.0, on an unchanged advisory. Every one of its "false positives" was either a real unplanted defect or legitimately out of scope; it had none. The mechanism is that a single rich finding which engages two planted entries is classed `review-required` and credited to neither, so the more granular a review, the worse it scores. Seven of Opus's twenty-three findings are still uncredited for exactly this reason, which means its true recall is materially above the 0.62 published here. **Disposition: harness defect, confirmed. Publishing the 1.0.0 numbers would have produced a "Sonnet beats Opus" conclusion that is false.** Needs a scoring rule for multi-entry engagement before any cell can be published as final.
+- **Reading 27 - the harness cannot consume an adjudication.** `scoreAdvisory(advisory, key, opts)` accepts only `model`, `effort` and `runId`. It emits a worklist and refuses to finalize, but there is no path to feed resolutions back, so a published pair is hand-computed with nothing checking it. Promoting the four verified defects into the key was the workaround: it converts hand-adjudication into machine scoring for those items. **Disposition: confirmed gap, verified against source. File as a backlog item.**
+- **Reading 28 - zero confabulations at every tier, including Haiku at high effort.** Three planted bait entries were available and the cheap tier bit exactly one (`NB-04`, the version spread, which is correct behaviour misread as drift). This does not overturn readings 16 and 17, which recorded a Haiku-tier statute confabulation: it is one fixture and one run, and the fixture's legal content is deliberately wrong in ways a model may simply not reach. **Disposition: recorded as a measured counter-instance, not a calibration. The parity caveat in METHODOLOGY stands.**
+- **Reading 29 - only the frontier tier produced findings about the CHECKER, and both verify.** Run 14 reported that `U6` (`reference-links`) iterates `ctx.skills` only, so link rot in a command or subagent body is invisible; and that nothing resolves `.claude-plugin/plugin.json` component-path arrays, so a manifest naming a file that is not on disk passes clean. Both re-derived independently: `grep -c "ctx\.(commands|subagents)"` over `reference-links.mjs` returns **0**, and resolving the fixture's manifest arrays shows `agents: ./agents/notice-reviewer.md` **MISSING** while the gate reports 0E/0W. Runs 12 and 13 produced no checker finding with proof. **Disposition: two confirmed engine gaps. Neither is a calibration of an existing check; both are new coverage, so both are ADR-gated.**
+
+**One methodological threat, raised by run 14 and worth acting on before the next batch:** the scoring key sits one directory above the fixture and the fixture README advertises it. Run 14 stated that it deliberately did not open it. Nothing prevents a run from reading the answers, and nothing in the artifact would reveal that it had.
+
 ## Batch 2026-07-27 (corpus batch 3): four new third-party libraries, and the F2 runner's first real shakedown
 
 **Context:** the Release 2 (v1.8.0) corpus batch, run entirely on the [F2 eval-run pipeline](../release-plans/plan_v1.6.0/F2-eval-run-pipeline/SPEC.md) rather than by hand. Two jobs at once: a sensor pass on four libraries never graded before (a marketplace-shaped target for Release 3's marketplace-scope work, a new scale point, a new authoring style, and the record's first NON-ENGLISH corpus), and a shakedown of the runner itself now that it has to handle targets it did not author. Toolkit at v1.7.0 (`main` `308915a`), spine 30 / Standard 0.12.
