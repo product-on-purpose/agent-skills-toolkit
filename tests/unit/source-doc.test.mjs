@@ -95,3 +95,23 @@ test("a non-comment code line does not spuriously satisfy a field", () => {
     rmSync(dir, { recursive: true, force: true });
   }
 });
+
+test("a .py inside a Python virtualenv under a scope root is ignored", () => {
+  // G9 walks .py as well as .mjs/.js, so a vendored virtualenv under scripts/ would otherwise be
+  // graded for docblocks it has no business carrying. Proves source-doc uses the shared SKIP_DIRS.
+  const dir = mkdtempSync(path.join(tmpdir(), "g9-venv-"));
+  try {
+    mkdirSync(path.join(dir, "scripts", ".venv", "lib"), { recursive: true });
+    writeFileSync(path.join(dir, "scripts", ".venv", "lib", "vendored.py"), "def f():\n    return 1\n");
+    mkdirSync(path.join(dir, "scripts", "__pycache__"), { recursive: true });
+    writeFileSync(path.join(dir, "scripts", "__pycache__", "cached.py"), "x = 1\n");
+    writeFileSync(
+      path.join(dir, "scripts", "real.py"),
+      "# what-it-is:   a real source file\n# what-it-does: carries all four fields\n# why:          so the check passes\n# used-by:      this test\n",
+    );
+    const f = check({ root: dir });
+    assert.equal(f.length, 0, `expected 0 findings, got: ${f.map((x) => x.message).join("; ")}`);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
