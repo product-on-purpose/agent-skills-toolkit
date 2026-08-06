@@ -180,3 +180,32 @@ The actionable output of the verified competitive comparison (`docs/internal/res
 - **Why:** raised by run 14 of the E13 batch, which stated that it deliberately did not open the key. The key sits one directory above the target, appears in any tree listing, and the fixture README advertises it as the authoritative answer. A run that reads it converts the measurement into a transcription, and nothing in the resulting artifact would reveal that it had. Every number this fixture produces rests on an honour system that no other part of the eval-run pipeline relies on.
 - **Also worth folding in:** `tests/unit/advisory-score.test.mjs` hardcodes recall, ceiling and miss-list values against the tracked key, so a keyVersion bump breaks four scorer unit tests that are not testing the key. Pin them to a frozen key fixture so scorer tests stop coupling to key content.
 - **Status:** OPEN. Raised by E13.
+
+## Dogfooding intake: critique-skills v0.1.x pass (2026-08-06)
+
+Raised while critique-skills was being graded by this toolkit. Full record with reproduction
+details and dispositions in `_local/dogfooding/critique-skills/2026-08-06-v0.1.x-verification-pass.md`.
+Two findings from the same pass were fixed directly rather than recorded (PR #189: the `SKIP_DIRS`
+ecosystem gap and the `gen-index` boilerplate). These three were not.
+
+### E21 - `covers` has no shape for a cross-component eval  [design, effort S]
+
+- **Target:** `scripts/checks/library-regression.mjs` (G3), `templates/eval-set.json`, STANDARD.md sec 8.3.
+- **Change:** accept a plural or relational form in an eval set's `covers` declaration, alongside today's `{ "skill": "<name>" }`, `{ "chain": [caller, callee] }`, `{ "hook": "<event>" }`.
+- **Why:** every documented shape is singular, so there is no way to declare an eval that exercises the **relationship between** components rather than one component. critique-skills hit this with a joint-routing eval that tests whether the right skill is selected when all six descriptions are in context at once. No single skill owns that eval. It currently declares `{ "skill": [six names] }`, an array where a string is documented, and passes only because G3 checks that the key exists without checking its type. A future tightening breaks it, and in the meantime the declaration is dishonest in shape.
+- **Why it will recur:** cross-component evals get more likely, not less, as a library grows past a handful of skills. Sibling skills in one namespace collide on triggering, and testing that collision is inherently multi-component.
+- **Status:** backlog (recorded 2026-08-06). Design first: decide whether this is `{ "skills": [...] }`, a `{ "relation": ... }` form, or something else, before touching the check.
+
+### E22 - `frontmatter-valid` (U3) never validates `agents/`  [correctness, effort S]
+
+- **Target:** `scripts/checks/frontmatter-valid.mjs`.
+- **Change:** validate subagent frontmatter, not only `ctx.skills`.
+- **Why:** U3 is one of only four `vendor-cited` checks, so a plugin author reasonably reads a clean U3 as "my components' frontmatter is valid." It iterates skills only. In critique-skills the `critique-critic` subagent, which all six skills delegate to for clean-context critique, is entirely unchecked by the toolkit grading the plugin. Related and unverified: G8 requires a folder README in `agents/`, and `agents/` is the directory Claude Code auto-scans for subagent definitions, so the toolkit's own rule plants a non-agent `.md` file with non-agent frontmatter in a scan directory. Whether that produces a load warning has not been established either way.
+- **Status:** backlog (recorded 2026-08-06). Verify the Claude Code scan behavior first; the answer decides whether this is a validation gap, a G8 scoping bug, or both.
+
+### E23 - Surface check provenance in the report output  [discoverability, effort S]
+
+- **Target:** `scripts/check.mjs` and `scripts/tier-report.mjs` output; folds naturally into E1's evidence ledger.
+- **Change:** show each check's declared `provenance` (`house` / `objective` / `vendor-cited`) alongside its result, and summarize the mix in the tier line.
+- **Why:** every check already declares provenance in its `meta`, and the distribution is the single most clarifying fact about what a grade means: **21 house, 6 objective, 4 vendor-cited, with the entire Silver and Gold tiers house**. A plugin author reading "Tier: Convergent, 0 errors, 0 warnings" reasonably believes something stronger than "this repository follows our house conventions." That gap contributed directly to critique-skills shipping a release that crashed on a fresh install while its gate was clean. The information exists; it is just only discoverable by reading 31 source files.
+- **Status:** backlog (recorded 2026-08-06).
