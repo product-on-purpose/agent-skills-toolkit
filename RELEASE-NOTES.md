@@ -2,6 +2,25 @@
 
 Curated, user-facing highlights. For the full technical history see [`CHANGELOG.md`](CHANGELOG.md).
 
+## 1.10.0 - 2026-08-07
+
+The release where the grader got graded. `critique-skills` was the first plugin built against this Standard from scratch, and being on the receiving end of it found three defects in this toolkit that no amount of self-validation had surfaced.
+
+### What changed
+
+- **The grader was wrong about Python projects.** Its list of directories to ignore covered the Node ecosystem and nothing else, so it walked into Python bytecode caches and reported them as missing documentation. Three of one plugin's five outstanding findings were this, with no action the plugin could take: you cannot document a folder that appears and disappears as tests run. The list now covers both ecosystems and is grouped by category, so the next gap is visible rather than latent.
+- **The index generator described this toolkit instead of the plugin it was indexing.** Two sections of every generated `INDEX.md` were fixed text listing files that exist here, emitted verbatim into other people's repositories. One plugin's index linked seven files that did not exist. The failure hid itself: the drift check compares an index against the same generator that wrote it, so wrong-but-consistent passed forever, and a plugin that corrected its own index was then reported as drifted for being right. Both sections now list only what is actually on disk, and a plugin that has everything renders byte-identically to before.
+- **A rule of ours was creating a real defect in every plugin that followed it.** We required a README in the `agents/` folder. Claude Code treats every markdown file in that folder as a subagent definition, so the README was silently registering as a subagent with no name and no description. We verified it by asking a running Claude Code what subagents it could see. Two plugins had shipped one, including this one. The rule is withdrawn.
+
+  That last one had already happened once. Our own records show a folder README becoming "a bogus subagent" during earlier work, fixed by teaching *our* tooling to ignore it. That fixed our idea of what an agent is and left the actual runtime's untouched. The runtime is the one that ships.
+
+- **A working practice for running more than one plugin.** New page, [Manage several plugins and a marketplace](https://product-on-purpose.github.io/agent-skills-toolkit/how-to/manage-multiple-plugins/): where the Standard is authoritative and where it is not, how to grade a whole catalogue today, how a re-pin works end to end, and which parts are still manual.
+- **The toolkit now states what it cannot do.** New page collecting, with evidence, every limit worth knowing before trusting a grade: the gate checks structure and never content, the advisory layer is measured rather than guaranteed, and several checks have documented blind spots. Each limit is labelled deliberate, tracked, or not-built, so you can tell which ones will change.
+
+### Why this is a minor release
+
+Two checks changed what they require, which is a behaviour change for anyone grading against them, and a plugin previously reported as failing may now pass. Nothing that passed before newly fails. The spine stays 30 checks and the Standard stays v0.12.
+
 ## 1.9.0 - 2026-07-27
 
 Two ways of catching the same mistake: a rule that exists and quietly is not applied everywhere it should be.
