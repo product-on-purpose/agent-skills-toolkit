@@ -157,3 +157,43 @@ test("Python bytecode and tool-cache dirs are neither required in the inventory 
     rmSync(dir, { recursive: true, force: true });
   }
 });
+
+test("agents/ is not required to carry a README, because the runtime would load it as a subagent", () => {
+  // Regression, 2026-08-06. Claude Code discovers subagents by scanning agents/ for *.md and loads
+  // every one it finds, README.md included. Requiring a folder guide there made every conforming
+  // plugin register a phantom subagent with no name and no description. Verified empirically: a
+  // probe plugin holding real-agent.md, README.md, _README.md and README.txt registered
+  // "real-agent", "README" and "_README" as subagents.
+  const dir = mkdtempSync(path.join(tmpdir(), "g8-agents-"));
+  try {
+    writeFileSync(path.join(dir, "library.json"), '{ "name": "x", "version": "0.1.0" }\n');
+    mkdirSync(path.join(dir, "agents"), { recursive: true });
+    writeFileSync(
+      path.join(dir, "agents", "reviewer.md"),
+      '---\nname: reviewer\ndescription: A subagent.\n---\n\nYou review things.\n',
+    );
+    const f = check({ root: dir });
+    assert.equal(
+      f.length,
+      0,
+      `agents/ with no README must pass, got: ${f.map((x) => x.message).join("; ")}`,
+    );
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test("a plugin that still has agents/README.md is not failed for it either", () => {
+  // The fix removes a requirement; it does not add a prohibition. A plugin mid-migration, or one
+  // whose guide predates this change, must not start failing G8 for a file it is about to delete.
+  const dir = mkdtempSync(path.join(tmpdir(), "g8-agents-legacy-"));
+  try {
+    writeFileSync(path.join(dir, "library.json"), '{ "name": "x", "version": "0.1.0" }\n');
+    mkdirSync(path.join(dir, "agents"), { recursive: true });
+    writeFileSync(path.join(dir, "agents", "reviewer.md"), '---\nname: reviewer\ndescription: A subagent.\n---\n\nx\n');
+    writeFileSync(path.join(dir, "agents", "README.md"), '---\ntitle: agents\n---\n\n# agents\n\nGuide.\n');
+    assert.equal(check({ root: dir }).length, 0);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});

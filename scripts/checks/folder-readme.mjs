@@ -21,14 +21,31 @@ const INVENTORY_SKIP = new Set([
   "README.md", "package-lock.json", "yarn.lock", "pnpm-lock.yaml", ".gitkeep", ".DS_Store",
 ]);
 
-// The meaningful-folder allowlist (ADR 0024 D1), checked only where it exists. Two deliberate
-// exclusions from the literal ADR list, documented in the P4 SPEC: the repo ROOT (its README is the
-// GitHub-rendered project hero, a distinct front-page artifact; root navigation is served by the hero's
-// Repository map plus AGENTS.md and INDEX.md), and templates/seed-plugin (its README.md is the seed
-// PAYLOAD copied into a scaffolded plugin, not a folder guide; templates/ already lists seed-plugin/).
+// The meaningful-folder allowlist (ADR 0024 D1), checked only where it exists. Three deliberate
+// exclusions from the literal ADR list. Two are documented in the P4 SPEC: the repo ROOT (its README is
+// the GitHub-rendered project hero, a distinct front-page artifact; root navigation is served by the
+// hero's Repository map plus AGENTS.md and INDEX.md), and templates/seed-plugin (its README.md is the
+// seed PAYLOAD copied into a scaffolded plugin, not a folder guide; templates/ already lists
+// seed-plugin/).
+//
+// The third is agents/, removed 2026-08-06, and it is a correctness fix rather than a scoping
+// preference. Claude Code discovers subagents by scanning agents/ for *.md, and it loads EVERY .md it
+// finds there, including README.md. Verified empirically against a probe plugin: a directory holding
+// real-agent.md, README.md, _README.md and README.txt registered three subagents, "real-agent",
+// "README" and "_README". The underscore prefix does not protect a file, and only the non-.md
+// extension was skipped.
+//
+// So requiring a README.md in agents/ made every conforming plugin register a phantom subagent with no
+// name and no description. This check was creating the defect it exists to prevent rot from. Both
+// plugins that followed the rule (agent-skills-toolkit itself, and critique-skills) shipped one.
+//
+// This is deliberately not solved by allowing a differently-named guide: fs-utils' listAgentFiles
+// already skips README.md and _-prefixed files, which is exactly the mismatch that hid this. The
+// toolkit's idea of what counts as an agent is not the runtime's, and the runtime wins. Anything a
+// folder guide would say about agents/ belongs in AGENTS.md or the root README's component table.
 const FIXED_ROOTS = [
   "scripts", "scripts/checks", "scripts/generators", "scripts/lib",
-  "agents", "templates", "evals", ".github/workflows", "site/scripts", "hooks",
+  "templates", "evals", ".github/workflows", "site/scripts", "hooks",
 ];
 
 // Each parent expands to its existing immediate subdirectories (minus the excludes).

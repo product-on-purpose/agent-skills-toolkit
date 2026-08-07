@@ -200,8 +200,14 @@ ecosystem gap and the `gen-index` boilerplate). These three were not.
 
 - **Target:** `scripts/checks/frontmatter-valid.mjs`.
 - **Change:** validate subagent frontmatter, not only `ctx.skills`.
-- **Why:** U3 is one of only four `vendor-cited` checks, so a plugin author reasonably reads a clean U3 as "my components' frontmatter is valid." It iterates skills only. In critique-skills the `critique-critic` subagent, which all six skills delegate to for clean-context critique, is entirely unchecked by the toolkit grading the plugin. Related and unverified: G8 requires a folder README in `agents/`, and `agents/` is the directory Claude Code auto-scans for subagent definitions, so the toolkit's own rule plants a non-agent `.md` file with non-agent frontmatter in a scan directory. Whether that produces a load warning has not been established either way.
-- **Status:** backlog (recorded 2026-08-06). Verify the Claude Code scan behavior first; the answer decides whether this is a validation gap, a G8 scoping bug, or both.
+- **Why:** U3 is one of only four `vendor-cited` checks, so a plugin author reasonably reads a clean U3 as "my components' frontmatter is valid." It iterates skills only. In critique-skills the `critique-critic` subagent, which all six skills delegate to for clean-context critique, is entirely unchecked by the toolkit grading the plugin.
+- **Status:** backlog. The `agents/` half is **resolved** (see below); the U3 gap itself is still open.
+
+**Update 2026-08-06, the G8 half is fixed and the scan behavior is now established, not guessed.** A probe plugin was loaded with `claude --plugin-dir` and asked to enumerate its subagents. Result: a directory holding `real-agent.md`, `README.md`, `_README.md`, and `README.txt` registered **three** subagents, `real-agent`, `README`, and `_README`. Claude Code loads every `.md` in `agents/`. The underscore prefix does not protect a file; only the non-`.md` extension was skipped. There is no warning and no error, so it fails silently.
+
+That made G8's requirement of a folder README in `agents/` actively harmful: both plugins that followed it (this toolkit and critique-skills) shipped a phantom subagent with no name and no description. `agents/` is removed from G8's `FIXED_ROOTS`, joining the repo root and `templates/seed-plugin` as a documented exclusion, and both `agents/README.md` files are deleted.
+
+**Worth reading for the lesson:** `docs/internal/release-plans/plan_v1.1.0/P4-folder-readme/SPEC.md` line 194 records that this toolkit already hit this bug once. "Adding `agents/README.md` exposed that the subagent/command enumeration ... treated every `agents/*.md` as a component, so a folder README became a bogus 'README' subagent." It was fixed "at the single enumeration point: `README.md` is excluded from component discovery everywhere." That fixed the **toolkit's** idea of what an agent is and left the **runtime's** untouched, which is the one that ships. The same mismatch is still live for `commands/`: `listCommandFiles` also excludes `README.md`, and nothing has established what Claude Code does with a `commands/README.md`. G8 does not require one, so nothing is broken today, but the enumeration mismatch is identical and worth probing the same way.
 
 ### E23 - Surface check provenance in the report output  [discoverability, effort S]
 
