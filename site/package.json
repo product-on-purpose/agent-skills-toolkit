@@ -13,8 +13,8 @@
     "gen": "node scripts/gen-docs-site.mjs"
   },
   "dependencies": {
-    "@astrojs/starlight": "~0.41.5",
-    "astro": "^7.1.6",
+    "@astrojs/starlight": "~0.41.7",
+    "astro": "^7.2.0",
     "astro-mermaid": "~2.1.0",
     "sharp": "^0.35.3"
   }
