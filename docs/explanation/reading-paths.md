@@ -112,6 +112,7 @@ Not a path. Things to look up when you need them.
 | [Evaluation reports](../reference/evaluation-reports.md) | The five report types | Producing something shareable |
 | `docs/reference/askit-*.md` | One page per skill in the catalog | You know which skill you want |
 | [`docs/how-to/`](../how-to/) | Task-shaped recipes | You have a specific job to do |
+| [The document map](document-map.md) | The same documents, routed by the question you are holding rather than by who you are | You know what you want to know but not which page has it |
 
 ## A note on how these docs are organized
 

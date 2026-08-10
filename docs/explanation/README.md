@@ -15,6 +15,7 @@ Explanation of the concepts behind the toolkit: architecture, conformance and ti
 - `architecture.md` - the "architecture" page.
 - `comparison.md` - the "how agent-skills-toolkit compares" page.
 - `conformance-and-tiers.md` - the "conformance and tiers" page.
+- `document-map.md` - the "document map" page.
 - `faq.md` - the "faq" page.
 - `limitations.md` - the "limitations" page.
 - `glossary.md` - the "glossary" page.
