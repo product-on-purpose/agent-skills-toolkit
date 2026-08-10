@@ -9,6 +9,9 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Added
+- **A second way into the documentation, routed by question instead of by reader.** New public page `docs/explanation/document-map.md`. `reading-paths.md` routes by who you are and does that job well, but a reader who arrives holding a specific question ("what actually backs a tier claim?", "what does a conditional check mean?", "why should I believe the positioning?") had no page that answered it without first picking a persona. The map opens with the five jobs a document here does - normative, verification, legitimacy, qualifier, instructional - because knowing which job a page does tells a reader what kind of answer to expect and what it will not give them. Five question groups follow, each row pairing a question in the reader's own words with the one document that answers it. It defers to `INDEX.md` for components and to `reading-paths.md` for persona routes rather than restating either, so there is nothing to drift. Public documents only: `docs/internal/` is named as existing, with its conclusions traced to the published pages that carry them (`comparison.md` for the research, `validation-and-improvement.md` for the evaluation runs, `limitations.md` for the known-weak spots), so a reader can follow the chain without the map pretending working notes are documentation. The page closes by saying plainly that the folder inventories and site routes are checked mechanically but its own descriptions are not, so a wrong row is a bug in the map rather than in the document it points at. `reading-paths.md` gains one reference-shelf row pointing here.
+
 ## [1.10.0] - 2026-08-07
 
 ### Added

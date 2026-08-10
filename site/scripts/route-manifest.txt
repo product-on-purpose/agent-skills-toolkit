@@ -4,6 +4,7 @@
 /explanation/architecture/index.html
 /explanation/comparison/index.html
 /explanation/conformance-and-tiers/index.html
+/explanation/document-map/index.html
 /explanation/faq/index.html
 /explanation/glossary/index.html
 /explanation/limitations/index.html
