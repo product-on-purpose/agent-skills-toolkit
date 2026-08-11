@@ -1,4 +1,4 @@
-# REPLACE-with-plugin-name
+# replace-with-plugin-name
 
 REPLACE - one-paragraph overview: what this plugin is and who it is for.
 

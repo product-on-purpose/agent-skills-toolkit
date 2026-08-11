@@ -1,20 +1,33 @@
 name: Deploy docs site to GitHub Pages
 
-# Builds the Astro Starlight site in site/ and deploys it to GitHub Pages.
-# Triggers on pushes to main that touch site/, the public docs/ tree it now renders (the generated
-# Pattern S view, ADR 0024 D2), or this workflow, and on manual dispatch. Pages source must be set to
-# "GitHub Actions" in the repo settings for this to publish.
+# Builds the Astro Starlight site in site/ and deploys it to GitHub Pages, plus a CI-generated,
+# sha-pinned tier badge (workstream 3 of v1.11.0, "reach") published alongside it.
+#
+# TRIGGER, and the deliberate trade-off behind it: this fires on EVERY push to main, not only pushes
+# that touch site/ or docs/. Earlier this workflow was path-filtered to site/**, docs/**, and itself -
+# correct for the docs site alone, but wrong once the badge job landed here, because a CODE-ONLY push
+# to main (one that changes what tier the gate reports, without touching site/ or docs/ at all) would
+# then pass through unnoticed and the published badge would silently go stale - the exact failure mode
+# this badge exists to retire (a hand-maintained README badge did precisely that, twice, across two
+# releases). The accepted cost: a change touching only, say, tests/ now also triggers a full site
+# rebuild and redeploy, even though the rendered docs pages themselves did not change. That is a real
+# increase in Pages-deploy frequency and CI minutes, traded deliberately for "the badge can never be
+# behind HEAD" - see scripts/gen-tier-badge.mjs's own docblock for what the badge payload carries.
+# Pages source must be set to "GitHub Actions" in the repo settings for this to publish.
+#
+# THE BADGE ITSELF: after the site build, a dedicated step runs scripts/gen-tier-badge.mjs against the
+# repository root and writes its shields.io endpoint-badge JSON straight into site/dist/badges/tier.json
+# (after `astro build`, so the build step cannot wipe it), which GitHub Pages then serves at
+# https://product-on-purpose.github.io/agent-skills-toolkit/badges/tier.json - the same static-file
+# convention already used for site/public/robots.txt and site/public/favicon.svg, just written fresh at
+# deploy time instead of being a tracked file (a tracked copy is exactly the class of staleness this
+# exists to prevent). This rides the existing Pages deploy rather than adding a second publishing job,
+# since one artifact upload already exists here and the badge generator needs nothing the site build
+# does not already have (Node, and this repository's own root dependencies for the gate itself).
 
 on:
   push:
     branches: [main]
-    paths:
-      - 'site/**'
-      # The site is generated from the public docs/ tree, so a docs edit must redeploy. (A
-      # docs/internal/ edit also matches and triggers a harmless no-op rebuild; path filters cannot
-      # negate a subtree, and the generator excludes internal regardless.)
-      - 'docs/**'
-      - '.github/workflows/deploy-pages.yml'
   workflow_dispatch:
 
 permissions:
@@ -40,11 +53,25 @@ jobs:
         with:
           node-version-file: .nvmrc
           cache: npm
-          cache-dependency-path: site/package-lock.json
+          cache-dependency-path: |
+            site/package-lock.json
+            package-lock.json
       - name: Install dependencies
         run: npm ci
+      # The repository root's own dependency (just "yaml") - separate from site's, above - is what
+      # scripts/gen-tier-badge.mjs needs to run the gate (scripts/check.mjs's full check registry) it
+      # is built on. --prefix targets ../package.json without leaving this job's `site` working
+      # directory.
+      - name: Install root dependencies (for scripts/gen-tier-badge.mjs)
+        run: npm ci --prefix ..
       - name: Build site
         run: npm run build
+      # Runs AFTER the build (astro build owns and can wipe dist/) and BEFORE the upload, so the badge
+      # ships in the same Pages artifact as the rest of the site. Graded at the repository root ("..",
+      # this job's working directory is `site`), written into dist/badges/ so it is served alongside
+      # the docs pages at that path.
+      - name: Generate the CI tier badge (workstream 3, v1.11.0 "reach")
+        run: node ../scripts/gen-tier-badge.mjs .. --out dist/badges/tier.json
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v5
         with:

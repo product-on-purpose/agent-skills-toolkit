@@ -1,0 +1,161 @@
+# Advanced Skill Library Standard - Gate (GitHub Action)
+#
+# HOW THIS ACTION OBTAINS THE GATE (deliberate, not a shortcut): it does NOT `npm install`
+# `agent-skills-toolkit` from the registry. When a workflow references this Action by
+# `uses: product-on-purpose/agent-skills-toolkit@<ref>`, GitHub Actions checks out THIS repository's
+# own tree at that git ref into `${{ github.action_path }}` before running a single step - so the
+# exact `scripts/` this Action invokes is the one committed at the pinned ref, always available, with
+# zero dependency on this package's npm-publish status. The only thing this Action installs from the
+# npm registry is "yaml" - check.mjs's own single runtime dependency (used to parse
+# agents/_chain-permitted.yaml) - which has been on the registry independently for years. Before this
+# package is ever `npm publish`ed, this Action still works, because it was never obtained from npm in
+# the first place. The one real failure mode is ordinary git-ref resolution: pin a ref that predates
+# this file's existence and `uses:` fails with "action not found," the same as any other Action.
+#
+# Standard sec 4.1/4.4 ("CI configuration MUST contain no validation logic of its own; it MUST only
+# invoke the portable scripts") applies here exactly as it does to every workflow in .github/workflows/:
+# every decision below - the tier, the error/warning counts, what becomes an annotation - is computed
+# by scripts/check.mjs and serialized by scripts/gha-action-outputs.mjs. The one shell step exists
+# only to sequence those two calls and forward its exit code; it makes no grading decision of its own.
+#
+# USAGE (paste into a workflow job, after checking out the repo you want graded):
+#
+#   - uses: actions/checkout@v4
+#
+#   - name: Grade this plugin against the Advanced Skill Library Standard
+#     id: gate
+#     uses: product-on-purpose/agent-skills-toolkit@v1.11.0   # pin a released tag or a commit sha
+#     with:
+#       path: .
+#       fail-on-error: true
+#       annotations: true
+#       sarif: true
+#
+#   - name: Upload SARIF to the Security tab
+#     if: always() && steps.gate.outputs.sarif-path != ''
+#     uses: github/codeql-action/upload-sarif@v3
+#     with:
+#       sarif_file: ${{ steps.gate.outputs.sarif-path }}
+#
+#   - run: |
+#       echo "Earned tier: ${{ steps.gate.outputs.tier }}"
+#       echo "${{ steps.gate.outputs.errors }} error(s), ${{ steps.gate.outputs.warnings }} warning(s)"
+
+name: "Advanced Skill Library Standard Gate"
+description: >-
+  Grades a Claude Code / Codex agent-skills plugin against the Advanced Skill Library Standard and
+  reports the Bronze/Silver/Gold tier it earns. Emits GitHub Actions annotations inline on the diff
+  and an optional SARIF document for the Security tab; exposes the tier and error/warning counts as
+  outputs so a workflow can branch on them.
+author: "product-on-purpose"
+
+branding:
+  icon: "award"
+  color: "purple"
+
+inputs:
+  path:
+    description: "Path to the plugin directory to grade, relative to the workspace (must already be checked out)."
+    required: false
+    default: "."
+  profile:
+    description: "Named severity profile to pass through to the gate (--profile)."
+    required: false
+    default: ""
+  strict:
+    description: "Grade against the full live spine instead of the plugin's pinned Standard (--strict)."
+    required: false
+    default: "false"
+  fail-on-error:
+    description: "Fail this step when the gate reports a gate-failing error at the plugin's declared tier."
+    required: false
+    default: "true"
+  annotations:
+    description: "Emit GitHub Actions ::error/::warning annotations inline on the diff (--gha)."
+    required: false
+    default: "true"
+  sarif:
+    description: "Write a SARIF 2.1.0 document (--sarif) and expose its path as the sarif-path output."
+    required: false
+    default: "false"
+  node-version:
+    description: "Node version to set up for the gate."
+    required: false
+    default: "24"
+
+outputs:
+  tier:
+    description: 'The tier the plugin currently earns ("universal" | "convergent" | "advanced" | "none").'
+    value: ${{ steps.gate.outputs.tier }}
+  errors:
+    description: "Gate-failing error count at the plugin's declared tier."
+    value: ${{ steps.gate.outputs.errors }}
+  warnings:
+    description: "Warning count."
+    value: ${{ steps.gate.outputs.warnings }}
+  sarif-path:
+    description: "Path to the generated SARIF document, when sarif: true. Empty otherwise."
+    value: ${{ steps.gate.outputs.sarif-path }}
+
+runs:
+  using: "composite"
+  steps:
+    - name: Set up Node
+      uses: actions/setup-node@v7
+      with:
+        node-version: ${{ inputs.node-version }}
+        cache: npm
+        cache-dependency-path: ${{ github.action_path }}/package-lock.json
+
+    # Installs only this Action's own runtime dependency ("yaml", check.mjs's single dependency) from
+    # its OWN checked-out package.json/package-lock.json at github.action_path - never from the
+    # consumer's repository, and never "agent-skills-toolkit" itself from the registry. See the header
+    # comment above for the full reasoning.
+    - name: Install the gate's runtime dependency
+      shell: bash
+      working-directory: ${{ github.action_path }}
+      run: npm ci --omit=dev
+
+    # The only step with any shell logic, and what it does is sequencing plus exit-code forwarding,
+    # not grading: every finding, the tier, and the counts are decided entirely by check.mjs and
+    # projected to outputs entirely by gha-action-outputs.mjs (Standard sec 4.1/4.4).
+    - name: Run the gate
+      id: gate
+      shell: bash
+      env:
+        ASKIT_PATH: ${{ inputs.path }}
+        ASKIT_PROFILE: ${{ inputs.profile }}
+        ASKIT_STRICT: ${{ inputs.strict }}
+        ASKIT_ANNOTATIONS: ${{ inputs.annotations }}
+        ASKIT_SARIF: ${{ inputs.sarif }}
+        ASKIT_FAIL_ON_ERROR: ${{ inputs.fail-on-error }}
+        ACTION_PATH: ${{ github.action_path }}
+      run: |
+        set -e
+        FLAGS=()
+        if [ -n "$ASKIT_PROFILE" ]; then FLAGS+=(--profile "$ASKIT_PROFILE"); fi
+        if [ "$ASKIT_STRICT" = "true" ]; then FLAGS+=(--strict); fi
+
+        set +e
+        node "$ACTION_PATH/scripts/check.mjs" "$ASKIT_PATH" "${FLAGS[@]}" --json > "$RUNNER_TEMP/askit-gate.json"
+        GATE_EXIT=$?
+        set -e
+
+        node "$ACTION_PATH/scripts/gha-action-outputs.mjs" "$RUNNER_TEMP/askit-gate.json" >> "$GITHUB_OUTPUT"
+
+        if [ "$ASKIT_ANNOTATIONS" = "true" ]; then
+          node "$ACTION_PATH/scripts/check.mjs" "$ASKIT_PATH" "${FLAGS[@]}" --gha || true
+        fi
+
+        if [ "$ASKIT_SARIF" = "true" ]; then
+          node "$ACTION_PATH/scripts/check.mjs" "$ASKIT_PATH" "${FLAGS[@]}" --sarif > "$RUNNER_TEMP/askit-gate.sarif"
+          echo "sarif-path=$RUNNER_TEMP/askit-gate.sarif" >> "$GITHUB_OUTPUT"
+        else
+          echo "sarif-path=" >> "$GITHUB_OUTPUT"
+        fi
+
+        if [ "$ASKIT_FAIL_ON_ERROR" = "true" ] && [ "$GATE_EXIT" -ne 0 ]; then
+          echo "::error::agent-skills-toolkit gate failed ($GATE_EXIT error-bearing exit); set fail-on-error: false to report without failing the build."
+          exit 1
+        fi
+        exit 0

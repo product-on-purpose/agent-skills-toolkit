@@ -44,7 +44,7 @@ The skill is the door; the script is the engine. Only a deterministic gate with 
 
 Pick the path that matches where you are.
 
-**Start a new plugin.** Scaffold a Bronze-anatomy plugin from scratch and onboard yourself by interview, questionnaire, or hybrid mode. Invoke `askit-init-plugin`, or just ask your agent to "start a new plugin." It writes a minimal `library.json` (the five required fields) plus a root `AGENTS.md` and README/CHANGELOG starters, so the new plugin passes the conformance core from the first commit. Then add your first skill with `askit-build-skill` and re-run the grade to confirm Bronze.
+**Start a new plugin.** Scaffold a Bronze-anatomy plugin from scratch and onboard yourself by interview, questionnaire, or hybrid mode. Invoke `askit-init-plugin`, or just ask your agent to "start a new plugin." It writes a minimal `library.json` (the five required fields) plus a root `AGENTS.md`, a minimal `.claude-plugin/plugin.json` (`name`, `version`, `description` only, so it installs on Claude Code and Codex from the first commit), and README/CHANGELOG starters, so the new plugin passes the conformance core immediately. If you use interview mode and give it an author, that goes into the manifest too, and `claude plugin validate --strict` passes outright; decline and the manifest stays exactly as minimal as the template (still install-recognized, just short of `--strict`-clean). Then add your first skill with `askit-build-skill` and re-run the grade to confirm Bronze.
 
 **Bring an existing skills repo up to the bar.** Adopt an ad-hoc or foreign skills repo into a conformant plugin. Invoke `askit-migrate`, or ask your agent to "migrate this repo to the Standard." It runs in three modes:
 

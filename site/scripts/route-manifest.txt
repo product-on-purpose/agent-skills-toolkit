@@ -31,6 +31,7 @@
 /how-to/cut-a-release/index.html
 /how-to/deprecate-a-component/index.html
 /how-to/emit-for-multiple-agents/index.html
+/how-to/install-and-run-via-npm/index.html
 /how-to/manage-multiple-plugins/index.html
 /how-to/manage-templates/index.html
 /how-to/manage-the-backlog/index.html

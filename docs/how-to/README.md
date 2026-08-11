@@ -30,6 +30,7 @@ Task-oriented guides for building each component type and climbing from one tier
 - `cut-a-release.md` - the "cut a release" page.
 - `deprecate-a-component.md` - the "deprecate a component" page.
 - `emit-for-multiple-agents.md` - the "emit for multiple agents" page.
+- `install-and-run-via-npm.md` - the "install and run via npm" page.
 - `manage-templates.md` - the "manage templates" page.
 - `manage-multiple-plugins.md` - the "manage-multiple-plugins" page.
 - `manage-the-backlog.md` - the "manage the backlog" page.

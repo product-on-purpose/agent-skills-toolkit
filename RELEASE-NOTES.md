@@ -2,6 +2,44 @@
 
 Curated, user-facing highlights. For the full technical history see [`CHANGELOG.md`](CHANGELOG.md).
 
+## 1.11.0 - 2026-08-11
+
+Until now this toolkit graded plugins and the grade stayed here. You could clone the repository and run it; that was the whole distribution story. This release is about making the grade something you can actually reach, use in CI, and point at.
+
+### What you can do now that you could not before
+
+- **Run the gate without installing anything permanent.** `npx agent-skills-toolkit /path/to/your-plugin` grades a plugin and exits non-zero if it fails. We proved this the awkward way rather than the convenient way: the package was built, installed into an empty directory on a machine with no copy of this project, pointed at a plugin somewhere else entirely, and run. That is the only way to find out whether the thing you shipped actually contains what it needs.
+
+- **Put findings where your tools already look.** The gate now emits SARIF, so results appear in the GitHub Security tab, and GitHub Actions annotations, so they appear inline on the diff of a pull request. There is also plain `--json` if you want to do something else with them.
+
+- **Add it to a workflow in a few lines.** There is a published Action. It takes the path, the profile and whether to fail the build, and it hands back the earned tier and the counts so you can branch on them.
+
+- **See the grade without trusting a hand-typed badge.** The tier badge is now generated in CI and states what it graded: the tier, the commit, the Standard version, and the date. The previous badge was typed by a human, and this project's own front-page claims quietly went stale for two releases before anyone noticed. A badge that can go stale is worse than no badge, because it is wrong with a machine's authority behind it.
+
+### Two things worth knowing about how this was built
+
+**Provenance is now visible everywhere.** Every finding says whether the rule behind it is an objective fact, something a vendor documents, or this project's own opinion. That distinction was computed internally for a long time and never shown to you. It matters because "30 checks passed" means something quite different depending on how many of those thirty are simply our preferences, and you are entitled to filter to the portable ones.
+
+**Nothing here changes what passes or fails.** Every output added is a re-serialization of what the gate already worked out. No plugin's tier moves, no exit code changes. Where we could not fill a field honestly we left it out: findings mostly do not carry line numbers yet, so SARIF points at a file rather than inventing a line. A tool whose whole value is that it does not guess should not guess.
+
+### For anyone building on the Standard
+
+The scaffold now produces a plugin the vendor's own validator recognizes, which it did not before. There is one honest wrinkle: `claude plugin validate --strict` wants an author, and a blank template genuinely has no author to name. So the raw template warns, permanently and correctly, while a plugin you scaffold through the interview supplies a real one and passes. We considered writing `"author": "REPLACE - your name"` to make the warning go away and decided against it, because a placeholder that satisfies a checker is exactly the kind of thing this toolkit penalizes other people for.
+
+There is also a new parity harness that runs the vendors' own validators against this repository on every build. It checks the **parsed results**, not just whether the validators exited cleanly, because we recently shipped a defect where a validator said "valid" while quietly corrupting a field it never inspected. It is report-only for now: it has only ever run locally, and a check that has never executed in real CI has not earned the right to block anyone yet.
+
+### Upgrade
+
+**No action required.** Nothing that grades your plugin changed.
+
+To try the new install path:
+
+```bash
+npx agent-skills-toolkit /path/to/your-plugin
+```
+
+Note that this requires the package to be published to npm, which is a separate manual step the maintainer takes; until then, the GitHub Action works regardless, because it runs this repository's code at a pinned commit rather than installing from a registry.
+
 ## 1.10.1 - 2026-08-11
 
 A patch that ships no new capability. Everything in it is the toolkit correcting a claim it was making about itself, and then arranging for a machine to catch that claim next time.

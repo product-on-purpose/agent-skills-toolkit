@@ -1,0 +1,128 @@
+# Publish agent-skills-toolkit to the npm registry.
+#
+# Trigger: workflow_dispatch ONLY. A tag push does NOT publish - this is deliberately more
+# conservative than release.yml's "push: tags: v*" (which only cuts the GitHub release). Publishing
+# to a public registry is a one-way door (a version can be unpublished only within npm's 72-hour
+# window and never re-published under the same number afterward), so it stays behind an explicit
+# human dispatch rather than firing automatically off the same tag push that creates the GitHub
+# release. If a future maintainer wants tag-triggered publishing, the safe way to add it is a
+# `deployment` environment with a required reviewer, not a bare "on: push: tags" trigger here.
+#
+# Two modes, structurally distinct rather than a flag on one code path:
+#   - dry_run: true  (default) -> "npm pack --dry-run" only. The literal string "npm publish" does
+#     not appear anywhere in this mode's execution path, so a typo'd flag can never turn a preview
+#     into a real publish.
+#   - dry_run: false -> "npm publish --provenance" for real. Requires typing "false" into the
+#     dispatch form; there is no way to reach this step by accident.
+#
+# Per Standard sec 4.1/4.4, holds no validation logic beyond the guard below: the gate and test
+# suite are the same portable scripts a contributor runs locally (node scripts/check.mjs, npm test).
+
+name: Publish to npm
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Release tag to publish (e.g. v1.11.0). Must already exist."
+        required: true
+        type: string
+      dry_run:
+        description: "Dry run (npm pack --dry-run only, no publish). Uncheck for a real, irreversible npm publish."
+        required: true
+        type: boolean
+        default: true
+
+permissions:
+  contents: read
+
+concurrency:
+  group: publish-npm
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    # id-token: write is npm provenance's own requirement (Sigstore-signed attestation linking the
+    # published tarball back to this exact workflow run and commit); granted only on this job, not
+    # workflow-wide, and only actually exercised on the live-publish path.
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - name: Checkout tag ${{ inputs.tag }}
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ inputs.tag }}
+
+      - name: Set up Node from .nvmrc (the committed pin is the single CI source of truth)
+        uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+          cache-dependency-path: package-lock.json
+          registry-url: https://registry.npmjs.org
+
+      - name: Install dependencies
+        run: npm ci
+
+      # Mirrors release.yml's tag/version guard exactly (same four version-bearing manifests), so a
+      # tag that was never actually released (or a version bumped after the tag) cannot be published.
+      - name: Guard - tag must equal every version-bearing manifest
+        run: |
+          set -euo pipefail
+          TAG="${{ inputs.tag }}"
+          TAG="${TAG#v}"
+          fail=0
+          check() {
+            file="$1"
+            actual="$(node -p "JSON.parse(require('fs').readFileSync('$file','utf8')).version")"
+            if [ "$actual" != "$TAG" ]; then
+              echo "::error file=$file::version $actual does not match tag $TAG"
+              fail=1
+            else
+              echo "ok: $file = $actual"
+            fi
+          }
+          check package.json
+          check library.json
+          check .claude-plugin/plugin.json
+          check .codex-plugin/plugin.json
+          if [ "$fail" -ne 0 ]; then
+            echo "::error::tag/version mismatch; aborting before publishing anything"
+            exit 1
+          fi
+
+      - name: Unit tests
+        run: npm test
+
+      - name: Conformance gate (the prover proves itself before it ships)
+        run: node scripts/check.mjs
+
+      # Always runs, in both modes: shows exactly what would ship, same file list either way. Never
+      # touches the registry - "npm pack" only writes a local tarball.
+      - name: Preview tarball contents
+        run: npm pack --dry-run
+
+      # --- dry_run: true (default) --------------------------------------------------------------
+      - name: "Dry run: npm pack (no publish - the word 'publish' does not appear on this path)"
+        if: ${{ inputs.dry_run }}
+        run: |
+          npm pack
+          echo "### Dry run - nothing was published" >> "$GITHUB_STEP_SUMMARY"
+          echo "Tag \`${{ inputs.tag }}\` packs cleanly. Re-run with dry_run unchecked to publish for real." >> "$GITHUB_STEP_SUMMARY"
+
+      # --- dry_run: false ------------------------------------------------------------------------
+      # npm provenance requires GitHub Actions' OIDC id-token permission (granted above) plus a
+      # trusted-publisher relationship configured once on npmjs.com for this package, pointing at
+      # this repo and this workflow file. Without that one-time setup, npm falls back to whatever
+      # registry credential is configured (NODE_AUTH_TOKEN, wired here to an optional NPM_TOKEN
+      # secret) and fails closed with a clear auth error rather than publishing unsigned - it never
+      # silently drops provenance.
+      - name: "Publish to npm (LIVE - irreversible)"
+        if: ${{ !inputs.dry_run }}
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: |
+          npm publish --provenance --access public
+          echo "### Published agent-skills-toolkit@$(node -p "require('./package.json').version") to npm" >> "$GITHUB_STEP_SUMMARY"

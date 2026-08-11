@@ -1,10 +1,58 @@
 {
   "name": "agent-skills-toolkit",
-  "version": "1.10.1",
+  "version": "1.11.0",
+  "description": "A deterministic, portable gate that grades an agent skill library (Claude Code and Codex plugins) against the Advanced Skill Library Standard and reports the Bronze/Silver/Gold tier it earns.",
   "license": "Apache-2.0",
-  "private": true,
+  "homepage": "https://product-on-purpose.github.io/agent-skills-toolkit/",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/product-on-purpose/agent-skills-toolkit.git"
+  },
+  "bugs": {
+    "url": "https://github.com/product-on-purpose/agent-skills-toolkit/issues"
+  },
+  "keywords": [
+    "agent-skills",
+    "claude-code",
+    "codex",
+    "plugin",
+    "skills",
+    "conformance",
+    "linter",
+    "cli"
+  ],
+  "private": false,
+  "publishConfig": {
+    "access": "public"
+  },
   "type": "module",
   "engines": { "node": ">=22.12.0" },
+  "bin": {
+    "agent-skills-toolkit": "./bin/agent-skills-toolkit.mjs"
+  },
+  "main": "./scripts/check.mjs",
+  "exports": {
+    ".": "./scripts/check.mjs",
+    "./evaluate": "./scripts/evaluate.mjs",
+    "./tier-report": "./scripts/tier-report.mjs",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "bin/",
+    "scripts/check.mjs",
+    "scripts/evaluate.mjs",
+    "scripts/tier-report.mjs",
+    "scripts/checks/",
+    "scripts/generators/gen-index.mjs",
+    "scripts/lib/",
+    "!scripts/lib/advisory-score.mjs",
+    "!scripts/lib/craft-review.mjs",
+    "!scripts/lib/eval-run.mjs",
+    "!scripts/lib/eval-run-aggregate.mjs",
+    "!scripts/lib/stated-counts.mjs",
+    "!scripts/lib/standards-watch.mjs",
+    "STANDARD.md"
+  ],
   "scripts": {
     "test": "node scripts/check-readme-version.mjs . && node --test",
     "check": "node scripts/check.mjs",
@@ -12,7 +60,8 @@
     "evaluate": "node scripts/evaluate.mjs",
     "eval-run": "node scripts/eval-run.mjs",
     "standards-watch": "node scripts/standards-watch.mjs .",
-    "release-counts": "node scripts/check-release-counts.mjs ."
+    "release-counts": "node scripts/check-release-counts.mjs .",
+    "prepublishOnly": "npm test && node scripts/check.mjs"
   },
   "dependencies": {
     "yaml": "^2.5.0"

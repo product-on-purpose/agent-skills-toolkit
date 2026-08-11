@@ -80,48 +80,48 @@ Vacuous passes here: U12, U11, G6, G1. A vacuous pass means there was nothing to
 
 ### Bronze / Universal (12 checks) - 12 of 12 satisfied
 
-| Req | Status | Evidence |
-| --- | --- | --- |
-| U1 library-json | PASS | Requirement satisfied; no finding raised. Module: checks/library-json.mjs. |
-| U2 anatomy | PASS | Requirement satisfied; no finding raised. Module: checks/anatomy.mjs. |
-| U3 frontmatter-valid | PASS | Requirement satisfied; no finding raised. Module: checks/frontmatter-valid.mjs. |
-| U4 name-matches-dir | PASS | Requirement satisfied; no finding raised. Module: checks/name-matches-dir.mjs. |
-| U5 description-score | PASS | Requirement satisfied; no finding raised. Module: checks/description-score.mjs. |
-| U6 reference-links | PASS | Requirement satisfied; no finding raised. Module: checks/reference-links.mjs. |
-| U7 instruction-budget | PASS | Requirement satisfied; no finding raised. Module: checks/instruction-budget.mjs. |
-| U8 manifest-drift | PASS | Requirement satisfied; no finding raised. Module: checks/manifest-drift.mjs. |
-| U9 version-match | PASS | Requirement satisfied; no finding raised. Module: checks/version-match.mjs. |
-| U12 mermaid-valid | N/A | Nothing to validate for this subject (vacuous pass). Module: checks/mermaid-valid.mjs. |
-| U11 mcp-valid | N/A | Nothing to validate for this subject (vacuous pass). Module: checks/mcp-valid.mjs. |
-| U13 skill-registration | PASS | Requirement satisfied; no finding raised. Module: checks/skill-registration.mjs. |
+| Req | Status | Provenance | Evidence |
+| --- | --- | --- | --- |
+| U1 library-json | PASS | - | Requirement satisfied; no finding raised. Module: checks/library-json.mjs. |
+| U2 anatomy | PASS | - | Requirement satisfied; no finding raised. Module: checks/anatomy.mjs. |
+| U3 frontmatter-valid | PASS | - | Requirement satisfied; no finding raised. Module: checks/frontmatter-valid.mjs. |
+| U4 name-matches-dir | PASS | - | Requirement satisfied; no finding raised. Module: checks/name-matches-dir.mjs. |
+| U5 description-score | PASS | - | Requirement satisfied; no finding raised. Module: checks/description-score.mjs. |
+| U6 reference-links | PASS | - | Requirement satisfied; no finding raised. Module: checks/reference-links.mjs. |
+| U7 instruction-budget | PASS | - | Requirement satisfied; no finding raised. Module: checks/instruction-budget.mjs. |
+| U8 manifest-drift | PASS | - | Requirement satisfied; no finding raised. Module: checks/manifest-drift.mjs. |
+| U9 version-match | PASS | - | Requirement satisfied; no finding raised. Module: checks/version-match.mjs. |
+| U12 mermaid-valid | N/A | - | Nothing to validate for this subject (vacuous pass). Module: checks/mermaid-valid.mjs. |
+| U11 mcp-valid | N/A | - | Nothing to validate for this subject (vacuous pass). Module: checks/mcp-valid.mjs. |
+| U13 skill-registration | PASS | - | Requirement satisfied; no finding raised. Module: checks/skill-registration.mjs. |
 
 ### Silver / Convergent (8 checks) - 8 of 8 satisfied
 
-| Req | Status | Evidence |
-| --- | --- | --- |
-| S1 agent-targets | PASS | Requirement satisfied; no finding raised. Module: checks/agent-targets.mjs. |
-| S2 prefix | PASS | Requirement satisfied; no finding raised. Module: checks/prefix.mjs. |
-| S3 components-index | PASS | Requirement satisfied; no finding raised. Module: checks/components-index.mjs. |
-| S8 components-mirror | PASS | Requirement satisfied; no finding raised. Module: checks/components-mirror.mjs. |
-| S4 chain-contract | PASS | Requirement satisfied; no finding raised. Module: checks/chain-contract.mjs. |
-| S7 command-contract | PASS | Requirement satisfied; no finding raised. Module: checks/command-contract.mjs. |
-| S5 workflow-skills | PASS | Requirement satisfied; no finding raised. Module: checks/workflow-skills.mjs. |
-| S6 per-target-presence | PASS | Requirement satisfied; no finding raised. Module: checks/per-target-presence.mjs. |
+| Req | Status | Provenance | Evidence |
+| --- | --- | --- | --- |
+| S1 agent-targets | PASS | - | Requirement satisfied; no finding raised. Module: checks/agent-targets.mjs. |
+| S2 prefix | PASS | - | Requirement satisfied; no finding raised. Module: checks/prefix.mjs. |
+| S3 components-index | PASS | - | Requirement satisfied; no finding raised. Module: checks/components-index.mjs. |
+| S8 components-mirror | PASS | - | Requirement satisfied; no finding raised. Module: checks/components-mirror.mjs. |
+| S4 chain-contract | PASS | - | Requirement satisfied; no finding raised. Module: checks/chain-contract.mjs. |
+| S7 command-contract | PASS | - | Requirement satisfied; no finding raised. Module: checks/command-contract.mjs. |
+| S5 workflow-skills | PASS | - | Requirement satisfied; no finding raised. Module: checks/workflow-skills.mjs. |
+| S6 per-target-presence | PASS | - | Requirement satisfied; no finding raised. Module: checks/per-target-presence.mjs. |
 
 ### Gold / Advanced (10 checks) - 7 of 10 satisfied
 
-| Req | Status | Evidence |
-| --- | --- | --- |
-| G3 library-regression | PASS | Requirement satisfied; no finding raised. Module: checks/library-regression.mjs. |
-| G6 deprecation | N/A | Nothing to validate for this subject (vacuous pass). Module: checks/deprecation.mjs. |
-| G1 hook-documentation | N/A | Nothing to validate for this subject (vacuous pass). Module: checks/hook-documentation.mjs. |
-| G2 self-hosting | FAIL | no CI workflow under .github/workflows/; Gold requires self-hosting CI that runs the conformance gate (Standard sec 2.6 G2, sec 4). Module: checks/self-hosting.mjs. |
-| G5 release-notes | FAIL | RELEASE-NOTES.md is missing at the repository root; Gold requires a curated, user-facing RELEASE-NOTES.md distinct from CHANGELOG.md (Standard sec 2.6 G5, sec 10.6). Module: checks/release-notes.mjs. |
-| G4 index-drift | FAIL | INDEX.md is missing; at Gold it is generated by gen-index and drift-checked (Standard sec 2.6 G4). Generate it: node scripts/generators/gen-index.mjs . --write Module: checks/index-drift.mjs. |
-| G7 docs-frontmatter | PASS | Requirement satisfied; no finding raised. Module: checks/docs-frontmatter.mjs. |
-| G8 folder-readme | WARN | meaningful folder has no README.md (ADR 0024 D1.1); scaffold one with askit-build-docs folder-readme mode. Module: checks/folder-readme.mjs. |
-| G9 source-doc | PASS | Requirement satisfied; no finding raised. Module: checks/source-doc.mjs. |
-| G10 docs-presence | PASS | Requirement satisfied; no finding raised. Module: checks/docs-presence.mjs. |
+| Req | Status | Provenance | Evidence |
+| --- | --- | --- | --- |
+| G3 library-regression | PASS | - | Requirement satisfied; no finding raised. Module: checks/library-regression.mjs. |
+| G6 deprecation | N/A | - | Nothing to validate for this subject (vacuous pass). Module: checks/deprecation.mjs. |
+| G1 hook-documentation | N/A | - | Nothing to validate for this subject (vacuous pass). Module: checks/hook-documentation.mjs. |
+| G2 self-hosting | FAIL | house | no CI workflow under .github/workflows/; Gold requires self-hosting CI that runs the conformance gate (Standard sec 2.6 G2, sec 4). Module: checks/self-hosting.mjs. |
+| G5 release-notes | FAIL | house | RELEASE-NOTES.md is missing at the repository root; Gold requires a curated, user-facing RELEASE-NOTES.md distinct from CHANGELOG.md (Standard sec 2.6 G5, sec 10.6). Module: checks/release-notes.mjs. |
+| G4 index-drift | FAIL | house | INDEX.md is missing; at Gold it is generated by gen-index and drift-checked (Standard sec 2.6 G4). Generate it: node scripts/generators/gen-index.mjs . --write Module: checks/index-drift.mjs. |
+| G7 docs-frontmatter | PASS | - | Requirement satisfied; no finding raised. Module: checks/docs-frontmatter.mjs. |
+| G8 folder-readme | WARN | house | meaningful folder has no README.md (ADR 0024 D1.1); scaffold one with askit-build-docs folder-readme mode. Module: checks/folder-readme.mjs. |
+| G9 source-doc | PASS | - | Requirement satisfied; no finding raised. Module: checks/source-doc.mjs. |
+| G10 docs-presence | PASS | - | Requirement satisfied; no finding raised. Module: checks/docs-presence.mjs. |
 
 > Why G2 matters: Without CI running the gate, conformance is a claim, not a proof. Any change can silently regress the library, and a consumer cannot point to a green badge that says the standard held on the latest commit.
 

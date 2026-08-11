@@ -43,3 +43,25 @@ test("no codex manifest - no codex finding", () => {
   const ctx = { root: ".", library: { data: { name: "x", version: "0.1.0" } }, claudeManifest: { name: "x", version: "0.1.0" }, codexManifest: null };
   assert.equal(check(ctx).length, 0);
 });
+
+// ADR 0043: askit-init-plugin's `interview` mode can add a real "author" object to a scaffolded
+// plugin's library.json and .claude-plugin/plugin.json (so `claude plugin validate --strict`
+// passes). check()'s loop over NATIVE only ever compares "name"/"version" fields, so the extra
+// optional field must never produce a finding, whether it agrees, differs, or is on only one side.
+test("an author field present on both sides is not compared - no finding (U8 only checks name/version)", () => {
+  const ctx = {
+    root: ".",
+    library: { data: { name: "x", version: "0.1.0", author: { name: "Jane Maintainer" } } },
+    claudeManifest: { name: "x", version: "0.1.0", author: { name: "Jane Maintainer" } },
+  };
+  assert.deepEqual(check(ctx), []);
+});
+
+test("an author field present on only one side is still not compared - no finding", () => {
+  const ctx = {
+    root: ".",
+    library: { data: { name: "x", version: "0.1.0" } },
+    claudeManifest: { name: "x", version: "0.1.0", author: { name: "Jane Maintainer" } },
+  };
+  assert.deepEqual(check(ctx), []);
+});

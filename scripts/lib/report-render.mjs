@@ -73,7 +73,25 @@ function deriveModel(report, opts = {}) {
     // silently dropped whenever it was not the lead (round-4 adversarial review, Finding 2). Collect
     // every unique, non-empty migrationNotice across the LIVE findings instead of only the lead's.
     const migrationNotices = [...new Set(live.map((f) => f.migrationNotice).filter(Boolean))];
-    return { reqId, id, tier, tierName: TIER_NAME[tier] ?? tier, status, evidence, module, file: lead?.file ?? null, why: metaFor(reqId).why, migrationNotices };
+    // clampNotice (backlog E28, "the published-verdict clamp explanation never reached the shareable
+    // report"): resolveFindings (scripts/lib/resolve-config.mjs) attaches clampNotice when
+    // published-verdict mode lifts a suppressed/off finding on an objective or vendor-cited check back
+    // up to "warn" - a published verdict cannot let a consumer's own config silently disable a check the
+    // reader is trusting the report to surface. check.mjs's terminal format() already surfaces it; the
+    // designed reports (Markdown/HTML) never did, confirmed by a zero-match grep for clampNotice here.
+    // Mirrors migrationNotices exactly and for the same reason: collect every unique, non-empty
+    // clampNotice across the LIVE findings for the requirement, not only the lead's, so a notice
+    // attached to a non-lead finding is not silently dropped (the same lead-only bug already fixed once
+    // for migrationNotice above must not be reintroduced here). clampNotice and migrationNotice are
+    // different mechanisms - a published-verdict trust clamp vs. a warn-first migration ceiling - so
+    // both renderers label them distinctly rather than merging them into one generic note.
+    const clampNotices = [...new Set(live.map((f) => f.clampNotice).filter(Boolean))];
+    // provenance (E9/E23): resolveFindings already stamps every resolved finding with `provenance`
+    // ("objective" | "vendor-cited" | "house") - it was on the data all along, just never surfaced in
+    // the designed reports. Projected from the SAME lead finding `evidence`/`file`/`migrationNotices`
+    // already read above, so a PASS/N/A row (no live finding) carries `provenance: null`: there is
+    // nothing on a finding that does not exist to serialize a provenance from.
+    return { reqId, id, tier, tierName: TIER_NAME[tier] ?? tier, status, evidence, module, file: lead?.file ?? null, provenance: lead?.provenance ?? null, why: metaFor(reqId).why, migrationNotices, clampNotices };
   });
 
   const tiers = TIER_ORDER.map((tier) => {
@@ -318,11 +336,18 @@ function renderMarkdown(report, opts = {}) {
     for (const t of m.tiers) {
       out.push(`### ${t.name} / ${t.sub} (${t.total} checks) - ${t.satisfied} of ${t.total} satisfied`);
       out.push("");
-      out.push(mdTable(["Req", "Status", "Evidence"], t.rows.map((r) => [`${r.reqId} ${r.id}`, r.status, `${r.evidence} Module: ${r.module}.`])));
+      out.push(mdTable(["Req", "Status", "Provenance", "Evidence"], t.rows.map((r) => [`${r.reqId} ${r.id}`, r.status, r.provenance ?? "-", `${r.evidence} Module: ${r.module}.`])));
       out.push("");
       for (const r of t.rows.filter((x) => x.status !== "PASS" && x.status !== "N/A")) {
         for (const notice of r.migrationNotices) {
           out.push(`> Severity capped for ${r.reqId}: ${notice}`);
+          out.push("");
+        }
+        // Same blockquote treatment as the migration-cap notice above, but a distinct label (E28):
+        // a published-verdict clamp is a different mechanism (a consumer's own suppression or off-rule
+        // overruled because a third party is reading this report), not a warn-first migration ceiling.
+        for (const notice of r.clampNotices) {
+          out.push(`> Published-verdict clamp for ${r.reqId}: ${notice}`);
           out.push("");
         }
         out.push(`> Why ${r.reqId} matters: ${r.why}`);
@@ -723,8 +748,18 @@ function htmlLedger(m) {
       // second unrelated callout. One div per unique notice (a requirement can carry more than one
       // live finding, each with its own migration cap; round-4 adversarial review, Finding 2).
       const migration = r.migrationNotices.map((n) => `<div class="why warn"><b>Severity capped</b>${escapeHtml(n)}</div>`).join("");
+      // Same "why is this severity not what you expected" category and .why-box styling as `migration`
+      // above, but a distinct label (E28): a published-verdict clamp overruled a consumer's own
+      // suppression or off-rule because a third party is reading this report, which is a different
+      // mechanism from a warn-first migration ceiling, and conflating the two would be worse than
+      // omitting one.
+      const clamp = r.clampNotices.map((n) => `<div class="why warn"><b>Published-verdict clamp</b>${escapeHtml(n)}</div>`).join("");
       const fileBit = r.file ? ` <span class="src">${escapeHtml(r.file)}</span>` : "";
-      return `<div class="lrow${cls}" id="row-${r.reqId}"><div class="lst"><span class="rid">${escapeHtml(r.reqId)}</span><span class="rname">${escapeHtml(r.id)}</span><span class="badge ${badgeClass(r.status)}"><span class="dot ${r.status === "N/A" ? "na" : r.status.toLowerCase()}"></span>${badgeLabel(r.status)}</span></div><div class="lbody"><p class="ev">${escapeHtml(r.evidence)}${fileBit} <span class="src">${escapeHtml(r.module)}</span></p>${migration}${why}</div></div>`;
+      // provenance (E9/E23): a compact pill next to the status badge, reusing the .pill class already
+      // defined for improvement-card effort tags (no new CSS). Null (a PASS/N/A row with no live
+      // finding) renders nothing rather than a misleading placeholder.
+      const provBit = r.provenance ? `<span class="pill">${escapeHtml(r.provenance)}</span>` : "";
+      return `<div class="lrow${cls}" id="row-${r.reqId}"><div class="lst"><span class="rid">${escapeHtml(r.reqId)}</span><span class="rname">${escapeHtml(r.id)}</span><span class="badge ${badgeClass(r.status)}"><span class="dot ${r.status === "N/A" ? "na" : r.status.toLowerCase()}"></span>${badgeLabel(r.status)}</span>${provBit}</div><div class="lbody"><p class="ev">${escapeHtml(r.evidence)}${fileBit} <span class="src">${escapeHtml(r.module)}</span></p>${migration}${clamp}${why}</div></div>`;
     }).join("\n");
     return `${bar}<div class="ledger">${rows}</div>`;
   }).join("\n");
@@ -979,4 +1014,4 @@ function renderHtml(report, opts = {}) {
 `;
 }
 
-export { renderMarkdown, renderHtml };
+export { renderMarkdown, renderHtml, deriveModel };

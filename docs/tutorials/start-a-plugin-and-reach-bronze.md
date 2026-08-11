@@ -18,6 +18,7 @@ A folder full of `SKILL.md` files is just **loose components**. The skills may w
 - carries a `library.json` manifest, so it is a release unit with a version, not just a directory;
 - contains valid, agentskills.io-compliant skills with descriptions that clear a quality bar;
 - ships a root `AGENTS.md` so an agent knows how to navigate it;
+- ships a minimal `.claude-plugin/plugin.json`, so Claude Code (and, since Codex 0.146.0, Codex too) actually recognizes it as an installable plugin;
 - runs **unchanged** on Claude Code, Codex, and the broader agentskills.io ecosystem at once.
 
 Bronze is the **Universal** tier: identical, portable files, no per-agent emission yet. That comes later at Silver. Start here.
@@ -37,13 +38,13 @@ You will reach Bronze entirely by talking to your agent. The direct `node script
 
 Start a new plugin from scratch by invoking the **`askit-init-plugin`** skill. Just ask your agent something like "start a new plugin with askit-init-plugin." It onboards you in one of three modes:
 
-- **interview** - it asks you a few questions live (theme and scope, target agents, target tier, first components), then scaffolds.
-- **questionnaire** - it hands you a structured template to fill in async, then processes your answers.
-- **hybrid** - it pre-fills that questionnaire with suggestions drawn from your conversation, leaving you to correct it.
+- **interview** - it asks you a few questions live (theme and scope, target agents, target tier, first components, and an optional author), then scaffolds.
+- **questionnaire** - it hands you a structured template to fill in async, then processes your answers. (It does not yet ask for an author; see the note below.)
+- **hybrid** - it pre-fills that questionnaire with suggestions drawn from your conversation, leaving you to correct it. (Same author gap as questionnaire mode.)
 
-Pick **interview** for your first plugin; it is the fastest when you can answer on the spot. Tell it a name and a one-line purpose. For target tier, say **Universal (Bronze)** - that is exactly what we are aiming for.
+Pick **interview** for your first plugin; it is the fastest when you can answer on the spot. Tell it a name and a one-line purpose. For target tier, say **Universal (Bronze)** - that is exactly what we are aiming for. If it asks for an author, answering it now (a name is enough; url/email are optional) is what gets you a fully clean `claude plugin validate --strict`, not just an installable plugin - see Step 2.
 
-What you get is a Bronze **seed** copied from the toolkit's `templates/seed-plugin/`: a `library.json` with its five required fields, a root `AGENTS.md`, and README and CHANGELOG starters. It is gradeable from the very first commit, by design.
+What you get is a Bronze **seed** copied from the toolkit's `templates/seed-plugin/`: a `library.json` with its five required fields, a root `AGENTS.md`, a minimal `.claude-plugin/plugin.json` (`name`, `version`, `description` only, plus `author` if you supplied one), and README and CHANGELOG starters. It is gradeable, and installable, from the very first commit, by design.
 
 > If you have an **existing** skills repo instead of a blank slate, use `askit-migrate`, not `askit-init-plugin`. It assesses what you already have, writes the minimal manifest, and produces a staged plan to conformance.
 
@@ -53,7 +54,7 @@ Open the `library.json` the scaffold wrote. The seed looks like this:
 
 ```json
 {
-  "name": "REPLACE-with-plugin-name",
+  "name": "replace-with-plugin-name",
   "version": "0.1.0",
   "description": "REPLACE - what this plugin does and when to use it, with concrete trigger keywords.",
   "standard": "0.12",
@@ -69,11 +70,13 @@ This single file is the difference between a reusable folder and a plugin. It is
 - **`standard`** - which version of the Standard you are targeting, so tooling validates you against the right ruleset.
 - **`tier`** - your declared target. For Bronze this is `"universal"`.
 
-Replace the `REPLACE-...` placeholders with your real name and description. `name` must match your plugin folder. The `interview` mode usually fills `name` and `description` for you; confirm they are real and not still placeholders.
+Replace the placeholder `name` and `description` with your real ones. `name` must match your plugin folder. The `interview` mode usually fills `name` and `description` for you; confirm they are real and not still placeholders.
 
 One subtlety worth knowing: `tier` here is what you *declare*, not what you have *proven*. The gate independently reports the highest tier you actually satisfy and will flag a claim above what you meet. Declaring `universal` keeps the gate focused on the Bronze checks while you build.
 
-`library.json` is the **single source of truth** for the plugin's cross-agent metadata. At Silver and above, the agent-native manifests (Claude's `.claude-plugin/plugin.json`, Codex's `plugin.json`) are *generated* from it rather than hand-written. At Bronze you do not need those yet.
+`library.json` is the **single source of truth** for the plugin's cross-agent metadata. The scaffold also wrote a minimal `.claude-plugin/plugin.json` next to it (`name`, `version`, `description` only) - just enough for Claude Code, and Codex since 0.146.0, to recognize the folder as an installable plugin. When you fill in `library.json`'s `name`/`description`, fill the same values into `.claude-plugin/plugin.json`, or `U8` (manifest-drift) flags the mismatch. At Silver and above, BOTH agent-native manifests (Claude's `.claude-plugin/plugin.json`, Codex's `.codex-plugin/plugin.json`) are fully *regenerated* from `library.json` - carrying `author`, `homepage`, `keywords`, and a component-path pointer per target - once you declare `agent-targets` and a `prefix`. That fuller, per-target generation is the Silver step; the one minimal file you have now is not it.
+
+**Two honest, different states of `claude plugin validate --strict`, not a bug.** If you answered `interview` mode's author question, `.claude-plugin/plugin.json` also carries a real `author` object, and `--strict` passes with zero warnings. If you skipped it (or used `questionnaire`/`hybrid` mode, which do not ask yet), the manifest stays exactly as minimal as the raw template, and `--strict` warns: `No author information provided`. That warning is correct, not a defect - a manifest with no author genuinely has none to declare, and the toolkit will never write a placeholder one just to silence the warning (the same reasoning `U5`'s description-quality check already applies to a description that just says "TODO"). Plain `claude plugin validate` (no `--strict`) passes either way; the gate (`node scripts/check.mjs`) is unaffected either way too, since it does not read `author` at all.
 
 ## Step 3 - Look at the root `AGENTS.md`
 
@@ -153,7 +156,7 @@ Two rules make this easy to triage:
 
 Work the list top to bottom. The remaining Universal checks you might meet here:
 
-- **`U8`** flags a plugin with no skills yet (a warning - conformance is only meaningful once skills exist) and native-manifest drift, which you will not have at Bronze.
+- **`U8`** flags a plugin with no skills yet (a warning - conformance is only meaningful once skills exist) and native-manifest drift: the `name`/`version` you typed into `library.json` and `.claude-plugin/plugin.json` must agree word for word, or U8 warns (name drift) or errors (version drift).
 - **`U9`** wants any `package.json` version to agree with `library.json` - they must not disagree about the most basic fact of the plugin.
 - **`U11`** validates MCP server entries if you ship any, and refuses committed secrets. No MCP server, nothing to check.
 
