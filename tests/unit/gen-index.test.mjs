@@ -1,13 +1,15 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { mkdtempSync, writeFileSync, mkdirSync, rmSync } from "node:fs";
+import { mkdtempSync, writeFileSync, mkdirSync, rmSync, readFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { loadPlugin } from "../../scripts/lib/load-plugin.mjs";
 import { renderIndex } from "../../scripts/generators/gen-index.mjs";
+import { TIER_NAME, TIER_ORDER } from "../../scripts/lib/tier.mjs";
 
-const FIXTURES = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../fixtures");
+const HERE = path.dirname(fileURLToPath(import.meta.url));
+const FIXTURES = path.resolve(HERE, "../fixtures");
 
 test("renderIndex lists each skill with its description", () => {
   const md = renderIndex(loadPlugin(path.join(FIXTURES, "golden/minimal-skill")));
@@ -48,6 +50,37 @@ test("a composite row renders only its surviving fragments, still ending in one 
     assert.ok(!md.includes("RELEASE-NOTES"), "must not assert an absent RELEASE-NOTES.md");
   } finally {
     rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+// --- Round-4 adversarial review, Finding 3 (single-source-of-truth still not real): round 3 moved
+// TIER_NAME / TIER_SUB into scripts/lib/tier.mjs so report-render.mjs and check-readme-version.mjs
+// could share them, and the CHANGELOG claims "one mapping, three consumers, no second copy to
+// drift". gen-index.mjs kept its own independent TIER_LABEL mapping instead of importing the shared
+// one, so its generated tier text could diverge from the reports and the README guard without any
+// test catching it. These cover the fix: no local copy survives, and the rendered label always
+// tracks the shared export.
+
+test("gen-index.mjs imports its tier label from the shared tier.mjs module, not a local copy", () => {
+  const src = readFileSync(path.resolve(HERE, "../../scripts/generators/gen-index.mjs"), "utf8");
+  assert.ok(!/const\s+TIER_LABEL\s*=/.test(src), "gen-index.mjs must not define its own TIER_LABEL mapping");
+  assert.match(src, /from\s+["']\.\.\/lib\/tier\.mjs["']/, "gen-index.mjs must import from scripts/lib/tier.mjs");
+});
+
+test("renderIndex's Tier line always uses tier.mjs's TIER_NAME, for every declared tier", () => {
+  for (const tier of TIER_ORDER) {
+    const dir = mkdtempSync(path.join(tmpdir(), "genidx-tier-"));
+    try {
+      writeFileSync(path.join(dir, "library.json"), JSON.stringify({ name: "t", version: "0.1.0", tier }));
+      const md = renderIndex(loadPlugin(dir));
+      assert.match(
+        md,
+        new RegExp(`\\*\\*Tier:\\*\\* ${TIER_NAME[tier]} \\(${tier}\\)\\.`),
+        `tier "${tier}" must render the shared TIER_NAME label "${TIER_NAME[tier]}"`
+      );
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
   }
 });
 

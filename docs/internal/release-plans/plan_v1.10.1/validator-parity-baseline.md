@@ -105,37 +105,53 @@ landed.
 | `node scripts/check.mjs .` | Tier: Advanced, 0 errors, 0 warnings |
 | `npm test` | all passing |
 
-## The open question this baseline records
+## What "24 of 24 PASS" does not mean, and why this section exists
 
-`metadata.chain` is a **nested list**:
+> **Rewritten 2026-08-11 against HEAD.** The first draft of this section recorded the nested-list form
+> as an open question routed to a later release. Investigating it during this cut turned it into a
+> fixed defect, and round 4 of the adversarial review caught that this file still described the old
+> state.
 
-```yaml
-metadata:
-  version: 0.1.2
-  tier: universal
-  audience: beginner
-  chain:
-    - askit-skill-author
-    - askit-reviewer
+**A `skills-ref` pass is weaker evidence than it reads as.** The validator checks that top-level
+frontmatter keys are in `ALLOWED_FIELDS` and format-checks `name`, `description` and `compatibility`.
+It **never inspects the contents of `metadata` at all.** Meanwhile the parser coerces the whole
+namespace:
+
+```python
+# skills_ref/parser.py, parse_frontmatter
+if "metadata" in metadata and isinstance(metadata["metadata"], dict):
+    metadata["metadata"] = {str(k): str(v) for k, v in metadata["metadata"].items()}
 ```
 
-The standards-watch run on 2026-08-11 found that upstream prose tightened `metadata` to "a map from
-string keys to string values", while all three `skills-ref` source blobs were **unchanged**. So the
-prose now describes something narrower than the implementation enforces, and our nested list sits in
-the gap.
+So a non-string value under `metadata` is **silently rewritten at parse time** and the validator
+reports success, because nothing looked.
 
-The repository's own pin conventions resolve which one governs:
+PR #204 had moved `chain` under `metadata` as a YAML list. Measured on the shipped file before this
+release:
 
-> `reference-implementation` = the executable validator sec 6 names ("MUST pass skills-ref-equivalent
-> validation"), whose behavior **defines conformance even when the prose does not move.**
+```
+chain value : "['askit-skill-author', 'askit-reviewer']"
+chain type  : str
+```
 
-By that rule we conform today, and the 24/24 above is the evidence. The prose change is a leading
-indicator that a future `skills-ref` release may reject the nesting. It is recorded as ADR 0040,
-**Proposed**, and the disposition is routed to the vendor-alignment batch rather than churned here.
+The declaration a consumer reads through the reference implementation was a string containing a Python
+list repr, while `agentskills validate` reported "Valid skill" for all 24 skills. **The 22-to-24
+improvement recorded above was real and also insufficient**, which is exactly the trap this file exists
+to document.
 
-**What would change this verdict:** a `skills-ref` release whose `models.py` or `validator.py` blob
-moves to enforce `Dict[str, str]`. `askit-standards-watch` watches exactly those blobs, which is why
-the answer arrives as a watch finding rather than as a consumer bug report.
+**Fixed in this release.** The declaration is now a comma-separated string that round-trips through the
+reference parser unchanged, and `S4` (chain contracts) reads the string, array and legacy top-level
+shapes, with the newly-readable string form shipping warn-first under ADR 0041 (warn-first
+string-shaped chain declarations).
+
+**The instruction this leaves for the parity harness scoped to v1.11.0:** assert on **parsed values**,
+not only on exit codes. A harness that runs `agentskills validate` and checks the status code would
+have reported this repository green throughout, and would reproduce the same blind spot in CI while
+calling it coverage.
+
+**What would still change the verdict:** a `skills-ref` release whose `models.py` or `validator.py`
+blob moves to enforce or reject rather than coerce. `askit-standards-watch` watches exactly those
+blobs, which is why such an answer arrives as a watch finding rather than as a consumer bug report.
 
 ## Reproducing this
 

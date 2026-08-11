@@ -1,13 +1,18 @@
 // what-it-is:   the INDEX.md generator
 // what-it-does: regenerates the navigational INDEX.md deterministically from library.json plus component frontmatter
-// why:          a generated index that is drift-checked (G4) cannot silently disagree with the components it lists
+// why:          a generated index that is drift-checked (G4) cannot silently disagree with the components it lists.
+//               The Bronze/Silver/Gold tier label comes from TIER_NAME in scripts/lib/tier.mjs, the same mapping
+//               report-render.mjs and check-readme-version.mjs read, rather than a local copy - round 4 of the
+//               pre-release adversarial review found this file had kept its own independent TIER_LABEL even after
+//               round 3 centralized the mapping for the other two consumers, so the generated index could have
+//               drifted from the reports and the README guard without any test catching it. The values happen to
+//               be byte-identical, so importing the shared mapping changed no generated output on this repository.
 // used-by:      run by contributors and the per-phase cadence; its output is drift-checked by index-drift (G4)
 import { loadPlugin } from "../lib/load-plugin.mjs";
 import { writeFileSync, existsSync } from "node:fs";
 import path from "node:path";
 import { normalizeArgPath } from "../lib/fs-utils.mjs";
-
-const TIER_LABEL = { universal: "Bronze", convergent: "Silver", advanced: "Gold" };
+import { TIER_NAME } from "../lib/tier.mjs";
 
 /**
  * The Manifests and Documentation rows, as data rather than fixed strings.
@@ -82,7 +87,7 @@ export function renderIndex(ctx) {
   const data = ctx.library?.data ?? {};
   const name = data.name ?? "plugin";
   const tier = data.tier;
-  const label = TIER_LABEL[tier];
+  const label = TIER_NAME[tier];
   const skills = [...(ctx.skills ?? [])].sort(byName);
   const subagents = [...(ctx.subagents ?? [])].sort(byName);
   const commands = [...(ctx.commands ?? [])].sort(byName);

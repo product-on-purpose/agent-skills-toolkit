@@ -17,7 +17,7 @@
 | Standard pin | 0.12 |
 | Spine | 30 checks |
 | Skills | 24 |
-| Tests | 673, 0 failures (measured at the v1.10.1 cut, 2026-08-11) |
+| Tests | 682, 0 failures (measured at the v1.10.1 cut, 2026-08-11) |
 | Self-proving | `node scripts/check.mjs .` exits 0 at Advanced, 0 errors, 0 warnings |
 
 ## What is open

@@ -157,9 +157,61 @@ future maintainer reading the decision record would have got the opposite status
 standing above its correction on purpose: it was written, reviewed, and believed, and the fact that
 only an outside pass reading code against claims caught it is the useful part of the record.
 
+## Round 4
+
+Re-run after round 3's fixes, scoped to release readiness and instructed to report only what should
+block a tag.
+
+**Verdict: needs-attention.** Four findings. **Two were regressions in round 3's own fixes.**
+
+### R4-1 [medium] The tier guard accepted contradictory public grades
+
+Round 3's tier check tested whether the claim contained **either** expected synonym anywhere:
+
+```js
+new RegExp(`\\b(${wantName}|${wantSub})\\b`, "i").test(claim)
+```
+
+With `library.json.tier` of `advanced`, **`Advanced (Silver)` passes**, because it contains
+`Advanced`. So the guard added to prevent public tier drift would greenlight a README claiming two
+different grades in one line. **Resolution:** validate a canonical, internally consistent claim and
+reject tokens belonging to another tier, with contradictory-claim tests in both directions.
+
+### R4-2 [medium] Mixed findings still lost migration notices
+
+Round 3 projected `migrationNotice` from the **lead** finding of each requirement only. A real `S4`
+(chain contracts) result containing an array-shaped orphan **error** plus a capped string-shaped
+**warning** makes the error the lead, so the warning's notice disappeared from both renderers again.
+The round-3 fix worked exactly when the capped finding happened to sort first. **Resolution:** collect
+and render all unique notices for the requirement, with a regression case combining an uncapped error
+and a capped warning.
+
+### R4-3 [medium] The tier mapping was still not single-source
+
+Round 3 moved `TIER_NAME` / `TIER_SUB` into `scripts/lib/tier.mjs` and the CHANGELOG claimed "One
+mapping, three consumers, no second copy to drift." `scripts/generators/gen-index.mjs` retained an
+independent `TIER_LABEL` and used it for generated tier text, so `G4` (generated-docs drift) output
+could diverge from the reports and the README guard. The claim was written about the two consumers
+that were looked at.
+
+### R4-4 [medium] The release packet was a pre-fix snapshot
+
+`plan_v1.10.1/README.md` still said `metadata.chain` is a nested list, ADR 0040 (re-pin after an
+editorial metadata clarification) is Proposed, the pin was deliberately not moved, and the review had
+two rounds with four findings. At HEAD the value is a comma-separated string, ADR 0040 is Accepted, the
+pin moved, and the record held three rounds with eight findings. `RELEASE-PLAN.md` and
+`validator-parity-baseline.md` repeated parts of the same stale state, so the tag's own advertised
+evidence contradicted the code it described.
+
+**This is the third instance of one mechanism inside this release**, after the test count and ADR 0040:
+a document written to describe the plan, a plan that moved underneath it, and nothing re-reading the
+document. **Resolution:** the whole packet rebaselined against HEAD, with the drift itself recorded at
+the top of the README rather than quietly corrected, and the superseded scope rows kept as visible
+corrections rather than deleted.
+
 ## What this review is evidence for
 
-Eight findings across three rounds. **Seven were introduced by this release**, and the pattern
+Twelve findings across four rounds. **Eleven were introduced by this release**, and the pattern
 sharpens with each round:
 
 - **Round 1** found defects in the implementation. Two had already been seen by a human and waved
@@ -174,10 +226,25 @@ sharpens with each round:
 The value of the pass was never that it read code nobody had read. It is that it read the code
 **against the claims**, which the author stopped doing the moment the claims were written.
 
+- **Round 4** found two **regressions in round 3's own fixes**, one duplicate the round-3 claim had
+  overlooked, and a release packet that had gone stale under the work it described.
+
 That is worth being precise about, because it is the difference between "review catches bugs" and what
 actually happened here: by round 3 the code was essentially correct and the documentation was still
 wrong in four places, including one number that would have shipped as false verification evidence in
 the technical history of a release whose entire subject is unverified claims.
+
+**The single recurring mechanism, stated once so it is not lost in twelve findings.** Every
+documentation finding in rounds 3 and 4 has the same shape: a document was written describing intended
+state, the state changed underneath it, and nothing re-read the document. It happened to the test
+count, to ADR 0040, and to the release packet, three times inside the release whose thesis is that a
+claim nothing verifies drifts from true to false without anyone deciding to lie. The code fixes here
+are worth less than that observation.
+
+It also sets the honest expectation for the next release. Four rounds were needed because rounds 2, 3
+and 4 were each reviewing the previous round's corrections, and corrections written quickly under a
+"nearly done" framing are exactly where this failure mode lives. The lesson is not "review more"; it
+is that the claims should be written **last**, from the code, rather than first, from the plan.
 
 That is the same lesson this repository keeps re-learning under different names, and the reason
 `docs/internal/STATUS.md` needed rewriting in this very release: a document asserting facts about a

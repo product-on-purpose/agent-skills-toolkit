@@ -298,3 +298,49 @@ test("renderHtml projects migrationNotice into the S4 evidence-ledger row (Findi
   assert.match(html, /capped at warn until Standard 0\.13/, "the migration cap explanation must reach the HTML report");
   assert.match(html, /your configured severity would otherwise be &quot;error&quot;|your configured severity would otherwise be "error"/, "the full migrationNotice text must be preserved (HTML-escaped) in the report");
 });
+
+// Round-4 adversarial review, Finding 2 (regression in round-3's own fix): deriveModel picks a
+// single LEAD finding per requirement and, in round 3, copied migrationNotice from that lead only.
+// A real S4 result can carry BOTH an array-shaped orphan finding (severity "error", untouched by
+// the ADR 0041 migration cap, so its migrationNotice is null) AND a string-shaped finding capped to
+// "warn" (migrationNotice set). deriveModel's lead-picking prefers the "error" finding, so the
+// capped warning's migrationNotice was silently dropped whenever an uncapped error shared its
+// requirement - the round-3 fix only worked when the capped finding happened to be the lead. The
+// fix must collect and render every unique migrationNotice among the LIVE findings for a
+// requirement, not just the lead's.
+function orphanErrorFinding() {
+  return {
+    check: "chain-contract", severity: "error", effectiveSeverity: "error", reqId: "S4",
+    message: "chain declared as an array but no matching chain contract found in agents/_chain-permitted.yaml",
+    file: "skills/example-array/SKILL.md",
+    migrationNotice: null,
+  };
+}
+function mixedReport() {
+  const err = orphanErrorFinding();
+  const warn = cappedFinding();
+  return { scope: "plugin", target: "mixed", tier: "convergent", satisfies: ["universal", "convergent"], blocked: {}, summary: { errors: 1, warns: 1 }, findings: [err, warn], byRule: { S4: [err, warn] } };
+}
+
+test("renderMarkdown: a mixed error-plus-capped-warning S4 result still surfaces the warning's migrationNotice (Finding 2)", () => {
+  const r = mixedReport();
+  const md = renderMarkdown(r, optsFor(r));
+  const s4Line = md.split("\n").find((l) => l.includes("S4") && l.includes("FAIL"));
+  assert.ok(s4Line, "expected an S4 FAIL row (the error outranks the warn for status)");
+  assert.match(md, /capped at warn until Standard 0\.13/, "the capped warning's migration notice must still reach the Markdown report even though an uncapped error is the lead finding");
+});
+
+test("renderHtml: a mixed error-plus-capped-warning S4 result still surfaces the warning's migrationNotice (Finding 2)", () => {
+  const r = mixedReport();
+  const html = renderHtml(r, optsFor(r));
+  assert.match(html, /capped at warn until Standard 0\.13/, "the capped warning's migration notice must still reach the HTML report even though an uncapped error is the lead finding");
+});
+
+test("renderMarkdown: an identical migrationNotice repeated across findings in one requirement renders once, not duplicated", () => {
+  const f1 = cappedFinding();
+  const f2 = { ...cappedFinding(), file: "skills/other/SKILL.md" }; // same migrationNotice text, different finding
+  const r = { scope: "plugin", target: "dup", tier: "convergent", satisfies: ["universal", "convergent"], blocked: {}, summary: { errors: 0, warns: 2 }, findings: [f1, f2], byRule: { S4: [f1, f2] } };
+  const md = renderMarkdown(r, optsFor(r));
+  const occurrences = md.split("capped at warn until Standard 0.13").length - 1;
+  assert.equal(occurrences, 1, "an identical migrationNotice shared by multiple findings must be deduplicated, not repeated");
+});

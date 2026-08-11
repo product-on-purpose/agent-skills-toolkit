@@ -209,6 +209,56 @@ test("check-readme-version: exits 1 when library.json declares a tier and the St
   }
 });
 
+// --- The contradictory tier claim: round-4 adversarial review, Finding 1 (regression in round-3's
+// own fix) ---
+//
+// The round-3 matcher tested only whether the claim contained EITHER expected synonym anywhere in
+// the string. "Advanced (Silver)" against library.json.tier "advanced" passed, because the string
+// contains "Advanced" - even though "Silver" names a different tier outright. A claim naming the
+// declared tier plus a foreign tier token is a contradiction, not agreement, and must fail.
+
+test("check-readme-version: exits 1 when the Status tier claim names the declared tier AND a foreign tier token (Advanced (Silver) against tier advanced)", () => {
+  const dir = mkFixture("11.0.0", "11.0.0", { libTier: "advanced", statusTier: "Advanced (Silver)" });
+  try {
+    const r = spawnSync(process.execPath, [SCRIPT, dir], { encoding: "utf8" });
+    assert.equal(r.status, 1, "a claim naming both the declared tier and a foreign tier token is a contradiction and must fail");
+    const out = (r.stdout ?? "") + (r.stderr ?? "");
+    assert.match(out, /tier/i, "output must name the tier claim");
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test("check-readme-version: exits 1 for the same contradiction in the other direction (Silver (Gold) against tier convergent)", () => {
+  const dir = mkFixture("12.0.0", "12.0.0", { libTier: "convergent", statusTier: "Silver (Gold)" });
+  try {
+    const r = spawnSync(process.execPath, [SCRIPT, dir], { encoding: "utf8" });
+    assert.equal(r.status, 1, "the correct sub-name plus a foreign tier name is still a contradiction");
+    const out = (r.stdout ?? "") + (r.stderr ?? "");
+    assert.match(out, /tier/i, "output must name the tier claim");
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test("check-readme-version: a reasonable single-token claim still passes (Gold alone against tier advanced)", () => {
+  // The fix forbids foreign tokens; it must not over-tighten into requiring the exact canonical
+  // pair. Naming just one of the two correct synonyms, with no foreign token present, is agreement.
+  const dir = mkFixture("13.0.0", "13.0.0", { libTier: "advanced", statusTier: "Gold" });
+  try {
+    const r = spawnSync(process.execPath, [SCRIPT, dir], { encoding: "utf8" });
+    assert.equal(r.status, 0, "a single correct synonym with no foreign token is a legitimate claim");
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test("check-readme-version: the real repository's Status tier claim still passes its own guard", () => {
+  const ROOT = path.resolve(HERE, "..", "..");
+  const r = spawnSync(process.execPath, [SCRIPT, ROOT], { encoding: "utf8" });
+  assert.equal(r.status, 0, "this repository's own README/library.json must pass the tier guard");
+});
+
 test("check-readme-version: exits 1 when the Status section misstates the skill count", () => {
   const dir = mkdtempSync(path.join(tmpdir(), "askit-readme-"));
   try {

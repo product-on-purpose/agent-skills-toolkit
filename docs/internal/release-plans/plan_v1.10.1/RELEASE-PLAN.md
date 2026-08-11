@@ -83,16 +83,46 @@
 ### T6 - standards-watch re-run + ADR 0040
 
 - **Why:** pin 15 days stale; the freshness invariant wants a run under 30 days old at release time.
-- **Do:** run `npm run standards-watch`, record the result, draft the ADR as **Proposed**.
+- **Do:** run `npm run standards-watch`, record the result, read the upstream diff, and write the ADR.
 - **What it found:** `docs/specification.mdx` moved; `metadata` tightened to "a map from string keys to
   string values"; two section bodies changed and were deliberately left unclassified; all three
   `skills-ref` blobs unchanged.
-- **Disposition:** the pin is **not** moved. The watcher proposes, and a re-pin lands beside the ADR
-  that motivated it. ADR 0040 is Proposed and routed to the vendor-alignment batch, where the U3
-  vocabulary-strictness work already sits. This respects the audit's dependency spine: fix the
-  instances, then tighten the rule, so the tightening lands with zero self-findings.
-- **Acceptance:** watch run recorded; ADR 0040 present, status Proposed, carrying its TL;DR and
-  Implementation sites; `upstream-pin.json` unchanged.
+- **Disposition, as shipped (this row was rewritten on 2026-08-11; the plan's first draft deferred the
+  decision, and reading the diff resolved it):** the delta is **editorial**, so ADR 0040 is **Accepted
+  as re-pin only** and the pin **has moved**. The parenthetical the upstream added to its summary table
+  already existed verbatim in the pinned revision's own `#### metadata field` subsection,
+  byte-identical, and upstream's own commit is titled `issue-474-clarify-metadata`. There is no
+  requirement to track, so no check changes, no Standard bump, and no ADR 0027 burndown is owed.
+  Deferring a resolved question would only have left an alarm on: every future watch run would
+  re-report the same delta forever.
+- **What investigating it found, which is the part that mattered:** our own `metadata.chain` violated a
+  value-type rule that predates the pin. That is fixed separately in T8 below and is not a Standard
+  change.
+- **Acceptance:** watch run recorded; ADR 0040 present, status **Accepted**, carrying its TL;DR and
+  Implementation sites; `upstream-pin.json` re-pinned to `d9a2db099d90` with `verified.date`
+  2026-08-11; `npm run standards-watch` reports `VERDICT: unchanged`.
+
+### T8 - `metadata.chain` value type, and warn-first for reading it
+
+- **Why:** `skills-ref` coerces every `metadata` value through `str()`, so the nested list PR #204
+  introduced survived as the string `"['askit-skill-author', 'askit-reviewer']"` while
+  `agentskills validate` reported "Valid skill" for all 24 skills. A loud failure had become a silent
+  corruption.
+- **Do:** migrate to a comma-separated string in both flagship skills and `agents/askit-skill-author.md`;
+  teach `S4` (chain contracts) to read string, array and legacy top-level shapes.
+- **The compatibility problem, and why it needed its own ADR:** teaching `S4` to see the string form
+  makes the check newly able to fire, which is a tightening, and a patch may not tighten. ADR 0041
+  (warn-first string-shaped chain declarations) ships string-derived findings as `warn`, graduating to
+  `error` at Standard 0.13. Severity is decided by the value's **shape**, not by which key it came from.
+- **And why that was not sufficient on its own:** `askit.config.json` per-rule overrides are applied
+  after a check emits severity, so `rules: { "S4": "error" }` escalated the warning straight back to a
+  failing error. A finding-level migration cap now applies last in `resolveFindings`, as a ceiling and
+  never a floor, with suppression and `off` still winning and a `migrationNotice` surfaced to the
+  terminal, the JSON and both report formats.
+- **Acceptance:** the reference parser round-trips the declaration unchanged; 24/24 skills still
+  validate; a plugin whose only chaining signal is a string declaration, with `rules.S4` set to
+  `error`, exits 0; the array-shaped equivalent still exits 1; a capped finding that is suppressed
+  stays suppressed.
 
 ### T7 - Validator-parity baseline
 
@@ -119,7 +149,20 @@
 
 ## Explicitly out of scope
 
-- Re-pinning `upstream-pin.json` (rides ADR 0040's acceptance).
-- Changing `S8` (E24 filed, not implemented).
+- Changing `S8` (E24 filed, not implemented): whether components-mirror should require version
+  agreement from everyone moves third-party verdicts and is ADR-gated.
+- Changing `U13` (E26 filed): it carries the same config-escalation exposure the migration cap closes
+  for the new case. Lowering a severity is always safe under ADR 0027, so this is scope-bound rather
+  than policy-bound.
+- Rendering `clampNotice` in the designed reports (E28 filed): a pre-existing gap in an untouched code
+  path, found while fixing the same gap for `migrationNotice`. A release four review rounds deep is the
+  wrong place for an unreviewed behavior change.
+- Automating the test-count claim (E27 filed): the count is quoted by hand in two places and nothing
+  verifies it, which this release proved by publishing a wrong one.
 - The `templates/seed-plugin` manifest fix (v1.11.0, needs its companion Standard decision).
-- Any new check, any Standard bump, anything that moves a third-party verdict.
+- Any new check, any Standard bump, anything that moves a third-party tier or exit code.
+
+*(Re-pinning `upstream-pin.json` was listed here in the first draft, on the assumption ADR 0040 would
+land Proposed. Reading the upstream diff resolved the question instead, so the pin moved inside this
+release. The row is left here as a correction rather than deleted, because a plan that quietly changes
+its own scope is the thing this release is about.)*

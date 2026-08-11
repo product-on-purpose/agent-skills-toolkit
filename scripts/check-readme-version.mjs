@@ -28,7 +28,7 @@
 import { readFileSync, existsSync } from "node:fs";
 import path from "node:path";
 import { CHECKS } from "./lib/registry.mjs";
-import { TIER_NAME, TIER_SUB } from "./lib/tier.mjs";
+import { TIER_NAME, TIER_SUB, TIER_ORDER } from "./lib/tier.mjs";
 
 const dir = process.argv[2] ? path.resolve(process.argv[2]) : process.cwd();
 const libPath = path.join(dir, "library.json");
@@ -109,10 +109,24 @@ for (const m of statusBody.matchAll(/\b(\d+\.\d+\.\d+)\b/g)) {
 
 // 2. The Status section's tier claim must match library.json.tier (Finding B, round-3 adversarial
 // review). Only enforced when library.json actually declares a tier; see the "Scope note" above.
+//
+// The claim must name the declared tier's own vocabulary AND must not also name a DIFFERENT tier's
+// vocabulary (round-4 adversarial review, Finding 1: "the tier guard accepts contradictory public
+// grades"). The round-3 matcher tested only for presence of either synonym, so "Advanced (Silver)"
+// against a declared tier of "advanced" passed - the string contains "Advanced", and the foreign
+// token "Silver" was never checked for. That is a contradictory claim, not agreement.
+//
+// The rule enforced here is "no foreign token", not "exactly the canonical pair". A claim naming
+// only one of the two correct synonyms (e.g. "Gold" alone) is accepted as long as it names no other
+// tier; requiring both synonyms in the exact "Sub (Name)" order would reject reasonable phrasings a
+// maintainer might write and is tighter than the promise in docs/internal/RELEASE.md actually needs.
 const declaredTier = lib?.tier ?? null;
 if (declaredTier != null) {
   const wantName = TIER_NAME[declaredTier] ?? declaredTier; // e.g. "Gold"
   const wantSub = TIER_SUB[declaredTier] ?? declaredTier;   // e.g. "Advanced"
+  const foreignTokens = TIER_ORDER
+    .filter((t) => t !== declaredTier)
+    .flatMap((t) => [TIER_NAME[t], TIER_SUB[t]]);
   const tierClaim = statusBody.match(/\*\*Tier\*\*\s*[-:]\s*([^\n]+)/i);
   if (!tierClaim) {
     failures.push(
@@ -120,10 +134,16 @@ if (declaredTier != null) {
     );
   } else {
     const claim = tierClaim[1].trim();
-    const claimsDeclaredTier = new RegExp(`\\b(${wantName}|${wantSub})\\b`, "i").test(claim);
-    if (!claimsDeclaredTier) {
+    const namesOwnTier = new RegExp(`\\b(${wantName}|${wantSub})\\b`, "i").test(claim);
+    const namesForeignTier = foreignTokens.length > 0
+      && new RegExp(`\\b(${foreignTokens.join("|")})\\b`, "i").test(claim);
+    if (!namesOwnTier) {
       failures.push(
         `README.md  "## Status" tier claim "${claim}" does not match library.json tier "${declaredTier}" (${wantSub} (${wantName}))`
+      );
+    } else if (namesForeignTier) {
+      failures.push(
+        `README.md  "## Status" tier claim "${claim}" names both the declared tier "${declaredTier}" (${wantSub} (${wantName})) and a different tier - a contradictory claim`
       );
     }
   }

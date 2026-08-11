@@ -65,7 +65,15 @@ function deriveModel(report, opts = {}) {
     // migration ceiling (ADR 0041), so a consumer whose askit.config.json override was overruled is
     // told why instead of seeing a plain, unexplained warning. check.mjs and evaluate.mjs already
     // surface it in text output; carrying it onto the row here is what lets both renderers do the same.
-    return { reqId, id, tier, tierName: TIER_NAME[tier] ?? tier, status, evidence, module, file: lead?.file ?? null, why: metaFor(reqId).why, migrationNotice: lead?.migrationNotice ?? null };
+    //
+    // round-3 copied ONLY the lead finding's migrationNotice. A requirement can carry more than one
+    // live finding at once - e.g. S4 (chain contracts) raising an array-shaped orphan ERROR (never
+    // capped, so its migrationNotice is null) alongside a string-shaped WARN that IS capped (its
+    // migrationNotice is set). The lead-picking above prefers the error, so the warn's notice was
+    // silently dropped whenever it was not the lead (round-4 adversarial review, Finding 2). Collect
+    // every unique, non-empty migrationNotice across the LIVE findings instead of only the lead's.
+    const migrationNotices = [...new Set(live.map((f) => f.migrationNotice).filter(Boolean))];
+    return { reqId, id, tier, tierName: TIER_NAME[tier] ?? tier, status, evidence, module, file: lead?.file ?? null, why: metaFor(reqId).why, migrationNotices };
   });
 
   const tiers = TIER_ORDER.map((tier) => {
@@ -313,8 +321,8 @@ function renderMarkdown(report, opts = {}) {
       out.push(mdTable(["Req", "Status", "Evidence"], t.rows.map((r) => [`${r.reqId} ${r.id}`, r.status, `${r.evidence} Module: ${r.module}.`])));
       out.push("");
       for (const r of t.rows.filter((x) => x.status !== "PASS" && x.status !== "N/A")) {
-        if (r.migrationNotice) {
-          out.push(`> Severity capped for ${r.reqId}: ${r.migrationNotice}`);
+        for (const notice of r.migrationNotices) {
+          out.push(`> Severity capped for ${r.reqId}: ${notice}`);
           out.push("");
         }
         out.push(`> Why ${r.reqId} matters: ${r.why}`);
@@ -712,8 +720,9 @@ function htmlLedger(m) {
         ? `<div class="why${r.status === "WARN" ? " warn" : ""}"><b>Why it matters</b>${escapeHtml(r.why)}</div>` : "";
       // Same "why is this severity not what you expected" category as `why` above; reuses the same
       // .why box styling (warn variant) with its own label, so it reads as a sibling note, not a
-      // second unrelated callout.
-      const migration = r.migrationNotice ? `<div class="why warn"><b>Severity capped</b>${escapeHtml(r.migrationNotice)}</div>` : "";
+      // second unrelated callout. One div per unique notice (a requirement can carry more than one
+      // live finding, each with its own migration cap; round-4 adversarial review, Finding 2).
+      const migration = r.migrationNotices.map((n) => `<div class="why warn"><b>Severity capped</b>${escapeHtml(n)}</div>`).join("");
       const fileBit = r.file ? ` <span class="src">${escapeHtml(r.file)}</span>` : "";
       return `<div class="lrow${cls}" id="row-${r.reqId}"><div class="lst"><span class="rid">${escapeHtml(r.reqId)}</span><span class="rname">${escapeHtml(r.id)}</span><span class="badge ${badgeClass(r.status)}"><span class="dot ${r.status === "N/A" ? "na" : r.status.toLowerCase()}"></span>${badgeLabel(r.status)}</span></div><div class="lbody"><p class="ev">${escapeHtml(r.evidence)}${fileBit} <span class="src">${escapeHtml(r.module)}</span></p>${migration}${why}</div></div>`;
     }).join("\n");
