@@ -1,13 +1,13 @@
 ---
 name: askit-build-skill
 description: Creates and improves agentskills.io skills to the Advanced Skill Library Standard. Use when you need to author a new SKILL.md, scaffold a skill directory, or raise an existing skill's conformance and description quality.
-chain:
-  - askit-skill-author
-  - askit-reviewer
 metadata:
-  version: 0.1.1
+  version: 0.1.2
   tier: universal
   audience: beginner
+  chain:
+    - askit-skill-author
+    - askit-reviewer
 ---
 
 # askit-build-skill

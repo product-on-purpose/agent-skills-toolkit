@@ -17,7 +17,7 @@ The user asked:
 
 ## Output
 
-### Step 1: verify the `chain:` declarations in the skill frontmatter
+### Step 1: verify the `metadata.chain` declarations in the skill frontmatter
 
 Each skill must declare its own intent before the contract can grant permission. These are the relevant excerpts from the two skill files:
 
@@ -27,11 +27,11 @@ Each skill must declare its own intent before the contract can grant permission.
 ---
 name: da-draft
 description: Drafts a documentation section from a spec. Use when authoring new docs from a component spec or an outline.
-chain:
-  - da-writer
 metadata:
   version: 0.1.0
   tier: universal
+  chain:
+    - da-writer
 ---
 ```
 
@@ -41,12 +41,12 @@ metadata:
 ---
 name: da-review
 description: Reviews and grades a documentation page for completeness. Use when a docs page needs a quality pass or gap analysis before publishing.
-chain:
-  - da-grader
-  - da-writer
 metadata:
   version: 0.1.0
   tier: universal
+  chain:
+    - da-grader
+    - da-writer
 ---
 ```
 

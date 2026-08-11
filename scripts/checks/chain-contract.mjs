@@ -20,12 +20,18 @@ export function check(ctx) {
   const hasWorkflows = isDir(workflowsDir);
 
   const components = [...(ctx.skills || []), ...(ctx.subagents || [])];
-  // A component "declares an invocation" via a frontmatter `chain:` list (Standard sec 3.6, 3.8).
+  // A component "declares an invocation" via a `chain:` list (Standard sec 3.6, 3.8), read from
+  // `metadata.chain` (the sanctioned extension namespace) and falling back to a legacy top-level
+  // `chain:` key so a third-party plugin still using the old location is still read and no
+  // existing verdict moves. metadata.chain wins when both are present (no merge).
   const declaredChains = components
-    .map((c) => ({
-      name: c.name,
-      chain: Array.isArray(c.frontmatter?.chain) ? c.frontmatter.chain.filter((x) => typeof x === "string") : [],
-    }))
+    .map((c) => {
+      const declared = c.frontmatter?.metadata?.chain ?? c.frontmatter?.chain;
+      return {
+        name: c.name,
+        chain: Array.isArray(declared) ? declared.filter((x) => typeof x === "string") : [],
+      };
+    })
     .filter((c) => c.chain.length > 0);
 
   // Conditional: chaining is "in use" iff a contract OR workflows OR a frontmatter chain declaration exists.

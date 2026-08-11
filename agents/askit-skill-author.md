@@ -6,14 +6,14 @@ tools:
   - Write
   - Edit
   - Bash
-chain:
-  - askit-evaluator
 metadata:
-  version: 0.1.0
+  version: 0.1.1
   tier: convergent
   status: active
   agent-targets:
     - claude
+  chain:
+    - askit-evaluator
 ---
 
 # askit-skill-author

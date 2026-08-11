@@ -35,12 +35,12 @@ evals/dependency-audit-to-risk-analyst.eval.json
 ---
 name: dependency-audit
 description: Audits a project's dependency tree for known vulnerabilities and returns a triaged report ranking each advisory by whether the vulnerable code path is reachable. Use when the user asks to audit dependencies, check for CVEs, triage npm audit output, or decide which advisory to fix first.
-chain:
-  - dep-risk-analyst
 metadata:
   version: 0.1.0
   tier: convergent
   audience: intermediate
+  chain:
+    - dep-risk-analyst
 ---
 
 # dependency-audit

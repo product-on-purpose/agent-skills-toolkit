@@ -33,14 +33,14 @@ description: Validates a skill's evidence set (examples/ and evals/) for drift a
 tools:
   - Read
   - Bash
-chain:
-  - askit-evaluator
 metadata:
   version: 0.1.0
   tier: convergent
   status: active
   agent-targets:
     - claude
+  chain:
+    - askit-evaluator
 ---
 
 # askit-samples-validator
@@ -62,7 +62,7 @@ The delegated drift-detection role behind `askit-build-samples` validate mode. R
 
 ### `agents/_chain-permitted.yaml` entries needed
 
-The subagent declares `chain: [askit-evaluator]`, so S4 (`chain-contract`) requires this entry. The parent skill (`askit-build-samples`) must also declare its edge to this subagent, which requires a second entry. **These are shown as a patch to the file, not a full replacement:**
+The subagent declares `metadata.chain: [askit-evaluator]`, so S4 (`chain-contract`) requires this entry. The parent skill (`askit-build-samples`) must also declare its edge to this subagent, which requires a second entry. **These are shown as a patch to the file, not a full replacement:**
 
 ```yaml
 # Add to agents/_chain-permitted.yaml:
@@ -121,7 +121,7 @@ A `chain` declaration creates a G3 `library-regression` obligation: there must b
 
 ## Why this is golden
 
-- **All required frontmatter fields present (Standard sec 3.8, authoring-subagents.md):** `name` equals the file basename; `description` states what AND when with concrete trigger keywords (U5 score: 1.0); `tools` is the narrowest set (Read + Bash only - no Write because assessment must not mutate what it checks, sec 9); `chain` lists only the one component it actually invokes; `metadata` carries `version`, `tier`, `status`, and `agent-targets: [claude]`.
+- **All required frontmatter fields present (Standard sec 3.8, authoring-subagents.md):** `name` equals the file basename; `description` states what AND when with concrete trigger keywords (U5 score: 1.0); `tools` is the narrowest set (Read + Bash only - no Write because assessment must not mutate what it checks, sec 9); `metadata` carries `version`, `tier`, `status`, `agent-targets: [claude]`, and `chain`, which lists only the one component it actually invokes.
 - **Chain safety demonstrated end-to-end (Standard sec 3.6, authoring-subagents.md):** The `chain` declaration requires two `_chain-permitted.yaml` entries (parent-to-subagent and subagent-to-callee), a `library.json` entry (S3), and a G3 eval file. The golden shows all four. Showing only the subagent definition without its companion artifacts would leave the gate in error.
 - **Claude-only scope is explicit (Standard sec 3.3):** `agent-targets: [claude]` is declared; the Codex constraint is stated in the Input table. There is no Codex artifact because Codex v0.135 plugins cannot ship subagents (Standard sec 3.3).
 - **Tool scoping reasoning included (sec 9):** The Tools section explains WHY each tool is present and WHY write access is withheld. A reader can verify the grant without reading the full Standard.
@@ -148,12 +148,12 @@ Output (run against `C:/Users/jpris/AppData/Local/Temp/claude/.../scratchpad/ask
   "name": "askit-samples-validator",
   "description": "Validates a skill's evidence set (examples/ and evals/) for drift against current behavior. Use when delegating drift detection to confirm that golden samples still match the skill's current output and that eval expectations still hold.",
   "tools": ["Read", "Bash"],
-  "chain": ["askit-evaluator"],
   "metadata": {
     "version": "0.1.0",
     "tier": "convergent",
     "status": "active",
-    "agent-targets": ["claude"]
+    "agent-targets": ["claude"],
+    "chain": ["askit-evaluator"]
   }
 }
 ```
