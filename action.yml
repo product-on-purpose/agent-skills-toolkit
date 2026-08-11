@@ -136,6 +136,12 @@ runs:
         if [ -n "$ASKIT_PROFILE" ]; then FLAGS+=(--profile "$ASKIT_PROFILE"); fi
         if [ "$ASKIT_STRICT" = "true" ]; then FLAGS+=(--strict); fi
 
+        # Every gate invocation below runs under explicit exit-code CAPTURE, never bare "set -e"
+        # propagation: a normal gate failure exits non-zero by design (that is how check.mjs reports a
+        # failing grade), and letting that non-zero status kill the script mid-sequence is exactly the
+        # pre-release defect this rewrite fixes - it silently dropped the SARIF artifact and made
+        # fail-on-error: false fail the build anyway. fail-on-error is applied exactly ONCE, at the
+        # bottom, after every output below has already been set.
         set +e
         node "$ACTION_PATH/scripts/check.mjs" "$ASKIT_PATH" "${FLAGS[@]}" --json > "$RUNNER_TEMP/askit-gate.json"
         GATE_EXIT=$?
@@ -148,12 +154,31 @@ runs:
         fi
 
         if [ "$ASKIT_SARIF" = "true" ]; then
+          set +e
           node "$ACTION_PATH/scripts/check.mjs" "$ASKIT_PATH" "${FLAGS[@]}" --sarif > "$RUNNER_TEMP/askit-gate.sarif"
+          SARIF_EXIT=$?
+          set -e
+
+          # The --json and --sarif calls above are two separate invocations of the SAME deterministic
+          # gate over the SAME input; they must always agree on exit code. A disagreement means the gate
+          # itself is non-deterministic or broken, not that grading found something new - that is a
+          # defect in this tool, and it must surface loudly rather than be papered over by picking one
+          # of the two exit codes and moving on.
+          if [ "$SARIF_EXIT" != "$GATE_EXIT" ]; then
+            echo "::error::agent-skills-toolkit gate disagreement: --json exited $GATE_EXIT but --sarif exited $SARIF_EXIT for the same input ($ASKIT_PATH). This is a gate defect, not a grading result; failing closed rather than reporting either verdict."
+            exit 1
+          fi
+
+          # Serialization already succeeded above (set -e would have already stopped this script on a
+          # crash), so the artifact is published regardless of the grade - a failing grade is exactly
+          # when a consumer needs the SARIF to diagnose what failed.
           echo "sarif-path=$RUNNER_TEMP/askit-gate.sarif" >> "$GITHUB_OUTPUT"
         else
           echo "sarif-path=" >> "$GITHUB_OUTPUT"
         fi
 
+        # The single final decision point: every output above (tier, errors, warnings, sarif-path) is
+        # already set no matter what this decides.
         if [ "$ASKIT_FAIL_ON_ERROR" = "true" ] && [ "$GATE_EXIT" -ne 0 ]; then
           echo "::error::agent-skills-toolkit gate failed ($GATE_EXIT error-bearing exit); set fail-on-error: false to report without failing the build."
           exit 1

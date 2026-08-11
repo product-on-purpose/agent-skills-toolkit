@@ -9,14 +9,45 @@
 # `deployment` environment with a required reviewer, not a bare "on: push: tags" trigger here.
 #
 # Two modes, structurally distinct rather than a flag on one code path:
-#   - dry_run: true  (default) -> "npm pack --dry-run" only. The literal string "npm publish" does
-#     not appear anywhere in this mode's execution path, so a typo'd flag can never turn a preview
-#     into a real publish.
-#   - dry_run: false -> "npm publish --provenance" for real. Requires typing "false" into the
-#     dispatch form; there is no way to reach this step by accident.
+#   - dry_run: true  (default) -> "npm pack --dry-run" (and "npm pack") only, inside the shared
+#     `prepare` job below. The literal string "npm publish" does not appear anywhere in this mode's
+#     execution path, so a typo'd flag can never turn a preview into a real publish - and this mode
+#     never runs in a job holding `id-token: write` (see the SECURITY note below).
+#   - dry_run: false -> a SEPARATE `publish` job runs "npm publish --provenance" for real, gated on
+#     `needs: prepare` succeeding. Requires typing "false" into the dispatch form; there is no way to
+#     reach this job by accident.
 #
-# Per Standard sec 4.1/4.4, holds no validation logic beyond the guard below: the gate and test
-# suite are the same portable scripts a contributor runs locally (node scripts/check.mjs, npm test).
+# Per Standard sec 4.1/4.4, holds no validation logic of its own: every decision (tag format,
+# scripts/verify-release-tag.mjs; tag ancestry, scripts/verify-tag-ancestry.mjs; tag/manifest
+# agreement, scripts/verify-tag-matches-manifests.mjs; the test suite and the gate, npm test and
+# node scripts/check.mjs) lives in a portable script under scripts/ - the same command a contributor
+# runs locally. release.yml runs an inline copy of the tag/manifest-agreement check at GitHub-release
+# time rather than calling verify-tag-matches-manifests.mjs; that duplication is real and predates
+# this review. Unifying it was judged out of scope here, since release.yml was not one of the files
+# this pass touched - flagged rather than silently left unmentioned (see verify-tag-matches-
+# manifests.mjs's own docblock).
+#
+# SECURITY (v1.11.0 pre-release adversarial review): this file previously interpolated
+# `${{ inputs.tag }}` directly into Bash `run:` lines. GitHub Actions expands that expression into
+# literal source text BEFORE Bash ever parses the line, so a tag crafted with shell metacharacters
+# (quotes, semicolons, backticks, "$(...)") could terminate the intended statement and run arbitrary
+# commands - in a job that held `id-token: write`, reachable even with `dry_run: true` since the
+# dry-run guard sat downstream of the injection point. This file no longer interpolates the input
+# into a `run:` block anywhere:
+#   1. The tag is read ONCE into job-level `env: TAG:` on `prepare` and referenced everywhere after
+#      as the shell variable "$TAG" - never re-interpolated as a raw `${{ }}` expression inside a
+#      `run:` block. The `publish` job below never touches the tag string at all; it checks out a
+#      resolved commit sha instead (see its own comments).
+#   2. scripts/verify-release-tag.mjs rejects anything that is not exactly "vX.Y.Z", run right after
+#      checkout, before npm ci, before the version guard, before the tests, before the gate - before
+#      the tag is trusted for anything at all.
+#   3. scripts/verify-tag-ancestry.mjs requires the checked-out commit to be a proven ancestor of
+#      `origin/main` (`git merge-base --is-ancestor`), closing the gap where a tag whose four version
+#      strings agree with each other could still point at a commit that never passed branch
+#      protection on main.
+#   4. `id-token: write` lives ONLY on the `publish` job below, behind an `npm-publish` GitHub
+#      environment (configure a required reviewer for it once in repo Settings -> Environments) -
+#      never on `prepare`, never at the workflow level.
 
 name: Publish to npm
 
@@ -41,19 +72,33 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  publish:
+  # Shared prep-and-preview path: runs for BOTH dry_run: true and dry_run: false. Validates the tag,
+  # proves it is reachable from main, installs, tests, gates, and either previews the tarball (dry
+  # run) or hands a validated commit sha to the `publish` job (live). Deliberately carries no
+  # `id-token: write` - nothing in this job can mint an OIDC token, so even a successful script
+  # injection here could not reach npm.
+  prepare:
     runs-on: ubuntu-latest
-    # id-token: write is npm provenance's own requirement (Sigstore-signed attestation linking the
-    # published tarball back to this exact workflow run and commit); granted only on this job, not
-    # workflow-wide, and only actually exercised on the live-publish path.
     permissions:
       contents: read
-      id-token: write
+    # Read the untrusted input exactly once, here, as an environment variable - never again as a raw
+    # `${{ inputs.tag }}` expression inside any `run:` block below. Every step that needs the tag
+    # references it as the shell variable "$TAG", which Bash treats as DATA (a single string value),
+    # never as source text to re-parse - the actual fix for the injection class described above.
+    env:
+      TAG: ${{ inputs.tag }}
+    outputs:
+      sha: ${{ steps.resolve.outputs.sha }}
     steps:
-      - name: Checkout tag ${{ inputs.tag }}
+      - name: Checkout ${{ env.TAG }}
         uses: actions/checkout@v7
         with:
-          ref: ${{ inputs.tag }}
+          ref: ${{ env.TAG }}
+          # Full history, not the default shallow single-commit fetch: the tag-ancestry check below
+          # walks history from origin/main's tip looking for this commit, and a shallow clone can
+          # make an actually-reachable commit look unreachable simply because history was truncated
+          # before it. Correctness of a security check comes before saving a few seconds of clone time.
+          fetch-depth: 0
 
       - name: Set up Node from .nvmrc (the committed pin is the single CI source of truth)
         uses: actions/setup-node@v7
@@ -61,37 +106,34 @@ jobs:
           node-version-file: .nvmrc
           cache: npm
           cache-dependency-path: package-lock.json
-          registry-url: https://registry.npmjs.org
+
+      # Fail closed before anything else runs. Reads "$TAG" as a shell variable, never the raw
+      # `${{ }}` expression - see the SECURITY note above. The actual pattern match lives in the
+      # portable script per Standard sec 4.4; this line only invokes it.
+      - name: Validate release tag format
+        run: node scripts/verify-release-tag.mjs "$TAG"
+
+      # Ensures a local `origin/main` ref exists to compare against, independent of whatever refspec
+      # actions/checkout used for the tag ref above. Plumbing only, no pass/fail decision made here -
+      # the decision lives in scripts/verify-tag-ancestry.mjs, called next.
+      - name: Fetch origin/main
+        run: git fetch origin main
+
+      # Finding 2: proves the checked-out commit is reachable from protected main, not merely that
+      # its version strings agree with the tag. Runs before npm ci - a commit this check rejects
+      # never gets far enough to install dependencies or execute anything from the tree.
+      - name: Verify tag is reachable from main
+        run: node scripts/verify-tag-ancestry.mjs HEAD origin/main
 
       - name: Install dependencies
         run: npm ci
 
-      # Mirrors release.yml's tag/version guard exactly (same four version-bearing manifests), so a
-      # tag that was never actually released (or a version bumped after the tag) cannot be published.
+      # Same four version-bearing manifests release.yml checks, so a tag that was never actually
+      # released (or a version bumped after the tag) cannot be published. "$TAG" here is the
+      # job-level env var set above, not a re-interpolated `${{ }}` expression; the comparison logic
+      # itself lives in the script, not here (Standard sec 4.4).
       - name: Guard - tag must equal every version-bearing manifest
-        run: |
-          set -euo pipefail
-          TAG="${{ inputs.tag }}"
-          TAG="${TAG#v}"
-          fail=0
-          check() {
-            file="$1"
-            actual="$(node -p "JSON.parse(require('fs').readFileSync('$file','utf8')).version")"
-            if [ "$actual" != "$TAG" ]; then
-              echo "::error file=$file::version $actual does not match tag $TAG"
-              fail=1
-            else
-              echo "ok: $file = $actual"
-            fi
-          }
-          check package.json
-          check library.json
-          check .claude-plugin/plugin.json
-          check .codex-plugin/plugin.json
-          if [ "$fail" -ne 0 ]; then
-            echo "::error::tag/version mismatch; aborting before publishing anything"
-            exit 1
-          fi
+        run: node scripts/verify-tag-matches-manifests.mjs "$TAG"
 
       - name: Unit tests
         run: npm test
@@ -110,9 +152,62 @@ jobs:
         run: |
           npm pack
           echo "### Dry run - nothing was published" >> "$GITHUB_STEP_SUMMARY"
-          echo "Tag \`${{ inputs.tag }}\` packs cleanly. Re-run with dry_run unchecked to publish for real." >> "$GITHUB_STEP_SUMMARY"
+          echo "Tag \`$TAG\` packs cleanly. Re-run with dry_run unchecked to publish for real." >> "$GITHUB_STEP_SUMMARY"
 
-      # --- dry_run: false ------------------------------------------------------------------------
+      # Hands the `publish` job an immutable commit sha rather than the tag string. A tag is a
+      # movable ref: if it were re-pointed between this job finishing and `publish` starting, a
+      # second checkout of the same TAG NAME could resolve to a different, unvalidated commit. This
+      # output pins exactly the commit that passed every check above.
+      - name: Resolve the validated commit
+        id: resolve
+        run: echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+
+  # Live publish only. Runs only when dry_run is explicitly false AND `prepare` succeeded - which
+  # means the tag was format-valid, proven reachable from main, version-consistent, tested, and
+  # gated before this job ever starts. Checks out the exact commit `prepare` resolved (not the tag
+  # string), so this job never re-reads the untrusted input at all.
+  publish:
+    needs: prepare
+    # success() is spelled out rather than relied on implicitly: GitHub Actions only auto-applies a
+    # success() check to a job's `if:` when the expression contains no status-check function at all,
+    # and this gate is security-critical enough that "relies on an implicit default" is not good
+    # enough - it must be unambiguous on inspection that a failed `prepare` (a rejected tag, a failed
+    # ancestry check, a failed test run, a failed gate) can never let this job run regardless of
+    # dry_run's value.
+    if: ${{ success() && !inputs.dry_run }}
+    runs-on: ubuntu-latest
+    # Configure this environment once in repo Settings -> Environments (name: npm-publish) with a
+    # required reviewer. GitHub Actions YAML cannot itself create that rule - naming the environment
+    # here only makes it apply once the environment exists with a reviewer configured. Until that
+    # one-time repo setup happens, this job is gated on `needs: prepare` + `dry_run: false` alone;
+    # treat the environment setup as part of this fix, not optional follow-up polish.
+    environment:
+      name: npm-publish
+    # id-token: write lives ONLY here - not on `prepare`, not at the workflow level. It is npm
+    # provenance's own requirement (a Sigstore-signed attestation linking the published tarball back
+    # to this exact run and commit), and it is exercised on exactly one step below. This is the
+    # actual severity fix for Finding 1: even a successful script injection anywhere earlier in this
+    # file runs in a job that can never mint an OIDC token, because that job is not this one.
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - name: Checkout the commit prepare validated
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ needs.prepare.outputs.sha }}
+
+      - name: Set up Node from .nvmrc (the committed pin is the single CI source of truth)
+        uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+          cache-dependency-path: package-lock.json
+          registry-url: https://registry.npmjs.org
+
+      - name: Install dependencies
+        run: npm ci
+
       # npm provenance requires GitHub Actions' OIDC id-token permission (granted above) plus a
       # trusted-publisher relationship configured once on npmjs.com for this package, pointing at
       # this repo and this workflow file. Without that one-time setup, npm falls back to whatever
@@ -120,7 +215,6 @@ jobs:
       # secret) and fails closed with a clear auth error rather than publishing unsigned - it never
       # silently drops provenance.
       - name: "Publish to npm (LIVE - irreversible)"
-        if: ${{ !inputs.dry_run }}
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: |

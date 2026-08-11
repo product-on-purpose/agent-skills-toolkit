@@ -24,6 +24,19 @@ name: Deploy docs site to GitHub Pages
 # exists to prevent). This rides the existing Pages deploy rather than adding a second publishing job,
 # since one artifact upload already exists here and the badge generator needs nothing the site build
 # does not already have (Node, and this repository's own root dependencies for the gate itself).
+#
+# SECURITY (v1.11.0 pre-release adversarial review, Finding 3, medium): `workflow_dispatch` used to
+# carry no ref pin, so a manual dispatch from the Actions UI while an OLDER branch happened to be
+# selected would check out and grade THAT branch, then deploy its badge and site to the canonical
+# Pages URL - overwriting a newer main's badge with an older sha and tier. That reproduces exactly
+# the stale-front-door defect this badge exists to retire (see the badge docblock above), which is
+# worse than an ordinary bug: the badge's entire justification is that a CI-computed value cannot go
+# stale, so a path that lets it go stale defeats the feature. The fix: the checkout step below always
+# checks out `main` explicitly, ignoring whatever ref a dispatch happened to select - so a manual
+# dispatch from any branch now builds and deploys current main's tip, never that branch's content.
+# `cancel-in-progress: true` (below, changed from false) is the second half: if a dispatch and a push
+# race, the newer trigger supersedes the older in-flight run rather than letting an earlier-started,
+# later-finishing run overwrite a newer deploy.
 
 on:
   push:
@@ -37,7 +50,13 @@ permissions:
 
 concurrency:
   group: pages
-  cancel-in-progress: false
+  # true (changed from false, Finding 3): a newer trigger - another push to main, or a repeat manual
+  # dispatch - cancels an older in-flight run in this group rather than queuing behind it, so an
+  # earlier-started run can never complete AFTER a newer one and overwrite its badge/site with older
+  # content. Safe for Pages specifically: GitHub Pages activation is atomic (an interrupted run before
+  # `actions/deploy-pages` completes simply leaves the previous deployment live), so cancellation can
+  # only ever drop a superseded build, never leave the public site half-published.
+  cancel-in-progress: true
 
 jobs:
   build:
@@ -46,8 +65,15 @@ jobs:
       run:
         working-directory: site
     steps:
-      - name: Checkout
+      # ref: main is explicit and not the trigger's default (Finding 3): a push to main and github.ref
+      # already agree, but workflow_dispatch's ref defaults to whatever branch the Actions UI (or API
+      # caller) happened to have selected, which this workflow must never trust for what it deploys.
+      # Pinning here means every dispatch, from any branch, builds and deploys current main - never
+      # the dispatched branch's own content.
+      - name: Checkout main
         uses: actions/checkout@v7
+        with:
+          ref: main
       - name: Setup Node from .nvmrc (pin 24; the committed pin is the single CI source of truth)
         uses: actions/setup-node@v7
         with:

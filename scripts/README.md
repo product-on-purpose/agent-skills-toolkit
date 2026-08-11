@@ -21,3 +21,6 @@ The portable, zero-runtime-framework Node tooling: the conformance gate, the tie
 - `lib/` - the shared library used by the checks, generators, and gate.
 - `standards-watch.mjs` - the upstream standards-watch CLI (compare the agentskills.io pin against what is current; prints, never writes).
 - `tier-report.mjs` - the tier report (the satisfied tier plus the keyed burndown to the next).
+- `verify-release-tag.mjs` - release-tag format guard (v1.11.0 pre-release review, Finding 1): rejects any `workflow_dispatch` tag input that is not exactly `vX.Y.Z`, including shell-metacharacter injection payloads; run by `.github/workflows/publish-npm.yml` before the tag is used anywhere else.
+- `verify-tag-ancestry.mjs` - tag-reachability guard (v1.11.0 pre-release review, Finding 2): fails closed unless the checked-out commit is a proven ancestor of `origin/main` via `git merge-base --is-ancestor`; run by `.github/workflows/publish-npm.yml` before any live npm publish.
+- `verify-tag-matches-manifests.mjs` - tag/version-manifest agreement guard: the four-manifest version comparison pulled out of `.github/workflows/publish-npm.yml`'s inline `run:` block and into a portable script (Standard sec 4.4); collects every disagreement rather than stopping at the first.

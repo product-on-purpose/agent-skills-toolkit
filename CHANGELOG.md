@@ -11,7 +11,7 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [1.11.0] - 2026-08-11
 
-Reach. The project had finished building a grade worth trusting and the grade was consumed nowhere outside this repository. Everything here makes it reachable: installable, `npx`-runnable, emitted in the formats CI systems read, wrapped in an Action, and reported on a badge computed at a known sha. Spine stays **30 checks**, Standard stays **v0.12**, and **no plugin's tier or exit code moves**. **854 tests, 0 failures**, gate Advanced 0/0. Release packet: `docs/internal/release-plans/plan_v1.11.0/`.
+Reach. The project had finished building a grade worth trusting and the grade was consumed nowhere outside this repository. Everything here makes it reachable: installable, `npx`-runnable, emitted in the formats CI systems read, wrapped in an Action, and reported on a badge computed at a known sha. Spine stays **30 checks**, Standard stays **v0.12**, and **no plugin's tier or exit code moves**. **912 tests, 0 failures**, gate Advanced 0/0. Release packet: `docs/internal/release-plans/plan_v1.11.0/`.
 
 The governing rule for the whole release: **every output added is a pure serialization of data the gate already computes.** No new computation entered the gate path. Where a field could not be filled from what the gate already knew, it is not emitted and the gap is documented, which is why there is no invented line number anywhere in this release.
 

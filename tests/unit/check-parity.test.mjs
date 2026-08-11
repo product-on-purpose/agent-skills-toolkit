@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { mkdtempSync, writeFileSync, mkdirSync, rmSync } from "node:fs";
+import { mkdtempSync, writeFileSync, mkdirSync, rmSync, readFileSync, cpSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -19,6 +19,7 @@ import {
   validateExceptions,
   summarizeDisagreements,
   formatResultLine,
+  metadataParityUnavailableResult,
 } from "../../scripts/check-parity.mjs";
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
@@ -224,9 +225,30 @@ test("anyDisagreement: a result that did not run (ran: false) is never a disagre
   assert.equal(anyDisagreement(results), false);
 });
 
-test("anyDisagreement: non-vendor-validate result kinds (e.g. metadata-parity) never count toward disagreement", () => {
+test("anyDisagreement: an executed metadata-parity mismatch DOES count - this is the class the harness exists to detect (pre-release review finding, corrected)", () => {
   const results = [{ kind: "metadata-parity", ran: true, pass: false }];
+  assert.equal(anyDisagreement(results), true);
+});
+
+test("anyDisagreement: a passing metadata-parity result does not count", () => {
+  const results = [{ kind: "metadata-parity", ran: true, pass: true }];
   assert.equal(anyDisagreement(results), false);
+});
+
+test("anyDisagreement: FAIL CLOSED - metadataParityUnavailableResult() (the reference parser could not run at all) counts as a disagreement", () => {
+  assert.equal(anyDisagreement([metadataParityUnavailableResult()]), true);
+});
+
+test("anyDisagreement: an unrecognized result kind never counts - the function does not accidentally treat everything as gating", () => {
+  const results = [{ kind: "pin-skew", ran: true, pass: false }];
+  assert.equal(anyDisagreement(results), false);
+});
+
+test("metadataParityUnavailableResult: fails closed by construction - pass is the literal false, not null/undefined", () => {
+  const r = metadataParityUnavailableResult();
+  assert.equal(r.kind, "metadata-parity");
+  assert.equal(r.pass, false);
+  assert.equal(r.ran, false);
 });
 
 test("anyDisagreement: a documented exception is never counted, even though pass is false", () => {
@@ -418,5 +440,83 @@ test(
     // harness must ANNOTATE that line rather than print a bare, unexplained [FAIL].
     assert.match(r.stdout, /\[FAIL, documented exception: ADR 0043\]\s+templates\/seed-plugin/);
     assert.match(r.stdout, /reason:.*author/i);
+  }
+);
+
+// --- The gating flip, proven end-to-end (pre-release adversarial review finding, corrected): a real
+// seeded metadata-parity mismatch must exit 0 in report-only (the shipped default) and 1 once gating.
+// Driven by the `--mode=gating` CLI override (see main() in scripts/check-parity.mjs) rather than by
+// editing the PARITY_MODE constant, so this test exercises the gating branch without leaving the
+// shipped default flipped for every other test and every real invocation. ---
+
+/**
+ * An ISOLATED copy of just the subtrees scripts/check-parity.mjs reads from its `root` argument
+ * (skills/, templates/seed-plugin/, .claude-plugin/, docs/internal/decisions/,
+ * docs/internal/standards-watch/), in a fresh temp directory. The test below mutates a skill's
+ * SKILL.md to seed a real metadata-parity failure; an EARLIER version of this test mutated the real,
+ * shared, concurrently-edited repository file in place instead, and it raced - caught live when a
+ * full `npm test` run failed with "the fixture line was not found" because some other process had the
+ * real file mid-mutation at the same moment. A throwaway copy removes the race entirely: nothing here
+ * is shared with any other agent or process, and there is no restore step to skip on a crash - the
+ * whole directory is simply deleted afterward, mutated or not.
+ */
+function buildIsolatedParityCopy() {
+  const dir = mkdtempSync(path.join(tmpdir(), "askit-parity-copy-"));
+  for (const rel of [".claude-plugin", "templates/seed-plugin", "skills", "docs/internal/decisions", "docs/internal/standards-watch"]) {
+    cpSync(path.join(REPO_ROOT, rel), path.join(dir, rel), { recursive: true });
+  }
+  return dir;
+}
+
+test(
+  "CLI: a real seeded metadata-parity mismatch exits 0 in report-only and 1 under the --mode=gating override (this is the exact class the pre-release review found was NOT gating)",
+  { skip: !(HAS_CLAUDE && HAS_UVX) && "claude and/or uvx not on PATH in this environment" },
+  () => {
+    const copyRoot = buildIsolatedParityCopy();
+    try {
+      const skillMd = path.join(copyRoot, "skills", "askit-decision", "SKILL.md");
+      const original = readFileSync(skillMd, "utf8");
+      const mutated = original.replace(
+        "  audience: advanced",
+        "  audience:\n    - advanced\n    - beginner"
+      );
+      assert.notEqual(
+        mutated,
+        original,
+        "the fixture line \"  audience: advanced\" was not found in skills/askit-decision/SKILL.md - update this test if that file's frontmatter changed"
+      );
+      writeFileSync(skillMd, mutated);
+
+      const reportOnly = spawnSync(process.execPath, [SCRIPT, copyRoot], { encoding: "utf8" });
+      assert.equal(reportOnly.status, 0, `report-only must still exit 0 even with a real seeded mismatch; stderr: ${reportOnly.stderr}`);
+      assert.match(reportOnly.stdout, /\[MISMATCH\] skills\/askit-decision/);
+      assert.match(reportOnly.stdout, /metadata-parity: \d+ finding/);
+
+      const gating = spawnSync(process.execPath, [SCRIPT, copyRoot, "--mode=gating"], { encoding: "utf8" });
+      assert.equal(
+        gating.status,
+        1,
+        `gating mode must exit 1 on a real metadata-parity mismatch - this is the exact defect the pre-release review found; stdout:\n${gating.stdout}\nstderr: ${gating.stderr}`
+      );
+      assert.match(gating.stdout, /GATING/);
+      assert.match(gating.stdout, /\[MISMATCH\] skills\/askit-decision/);
+    } finally {
+      rmSync(copyRoot, { recursive: true, force: true });
+    }
+  }
+);
+
+test(
+  "CLI: --mode=gating with NO disagreement (clean repo state) still exits 0 - gating only fails on a real disagreement, not on being in gating mode",
+  { skip: !(HAS_CLAUDE && HAS_UVX) && "claude and/or uvx not on PATH in this environment" },
+  () => {
+    // Run against the real, unmodified repository: its only known vendor-validate disagreement
+    // (templates/seed-plugin vs --strict) is documented (ADR 0043) and every skill's metadata.*
+    // currently round-trips clean, so this proves the gating override does not fail merely by being
+    // engaged - only an actual undocumented disagreement (proven by the test above) does.
+    const r = spawnSync(process.execPath, [SCRIPT, ".", "--mode=gating"], { cwd: REPO_ROOT, encoding: "utf8" });
+    // The live repo's one documented exception (ADR 0043) is expected and must not gate even here.
+    assert.equal(r.status, 0, `expected exit 0 (documented exception only, no undocumented disagreement); stdout:\n${r.stdout}\nstderr: ${r.stderr}`);
+    assert.match(r.stdout, /GATING/);
   }
 );

@@ -151,25 +151,65 @@ export function decideExitCode(mode, hasDisagreement) {
   return mode === "gating" && hasDisagreement ? 1 : 0;
 }
 
-/** True iff any vendor-validate result actually ran, did not pass, and carries NO documented exception
- *  (see PARITY_EXCEPTIONS / applyExceptions below), OR any exception-list entry itself failed integrity
- *  validation (see validateExceptions). A result that never ran (tool unavailable, fallback engaged or
- *  not) is never counted - "we could not check" is not "it failed", and conflating the two is exactly
- *  the false-green failure mode this harness exists to avoid. A DOCUMENTED disagreement is also never
- *  counted: it is a decision this project made on the record (ADR 0042, following the ADR 0029
- *  reclassification precedent), not a defect, and must not gate once PARITY_MODE flips - that is the
- *  entire reason the exception path exists rather than every disagreement being treated alike. A
- *  BROKEN exception (its ADR does not resolve to a real file) is the opposite case: an authorization
- *  nobody can check is worse than no authorization, so it counts as if undocumented. Only
- *  "vendor-validate" and "exception-integrity" kind results count toward disagreement; the
- *  metadata-parity and pin-skew sections are evidence, not first-party verdicts, and are never gating
- *  even after PARITY_MODE flips (see ADR 0042). */
+/**
+ * True iff this run contains a disagreement that must gate once PARITY_MODE is "gating". THREE result
+ * kinds are checked, deliberately with DIFFERENT rules per kind - the asymmetry is load-bearing, not an
+ * oversight, so it is spelled out per branch rather than folded into one predicate:
+ *
+ * - `vendor-validate` (claude / skills-ref exit-code results): counts only when it actually ran, did
+ *   not pass, and carries NO documented exception (see PARITY_EXCEPTIONS / applyExceptions below). A
+ *   result that never ran (tool unavailable) is never counted here - "we could not check" is not "it
+ *   failed" for this kind, because CI always installs the real tools (see ADR 0042) and a local run
+ *   without them still gets the reduced-fidelity claude fallback, so silence on this kind is a real
+ *   environment gap, not the harness's central claim going unverified.
+ * - `metadata-parity` (the parsed-values round-trip, ADR 0040's own instruction): counts whenever
+ *   `pass !== true` - that is, an executed mismatch (`pass: false`) AND the section not having run at
+ *   all (also `pass: false`, via the dedicated `metadataParityUnavailableResult()` below) BOTH count.
+ *   This is deliberately NOT symmetric with `vendor-validate`'s "ran" gate: this is the harness's
+ *   central, novel check - the one the metadata.chain incident (ADR 0040) shows an exit-code-only
+ *   harness cannot catch - so its own absence must fail closed rather than report a clean parity
+ *   result. A previous version of this function excluded `metadata-parity` from gating entirely, which
+ *   pre-release adversarial review found and is corrected here; see ADR 0042's dated correction. There
+ *   is deliberately no exception/suppression path for this kind (unlike `vendor-validate`): a corrupted
+ *   parsed value is never a legitimate difference of opinion with a vendor to document away the way a
+ *   missing placeholder `author` is - it is always a real defect - so "unsuppressed" is true by
+ *   construction here, not by an override mechanism that would need its own trust boundary.
+ * - `exception-integrity` (a documented exception whose ADR does not resolve to a real file): counts
+ *   whenever `pass === false`, unconditionally - an authorization nobody can check is worse than none,
+ *   so it counts as if undocumented.
+ *
+ * Pin-skew (Section D) is NOT a result kind pushed into `results` at all, and is intentionally excluded
+ * from every branch above: it compares a git-blob-SHA pin against an installed PyPI release, two
+ * identities ADR 0042 documents as not expected to always agree, so a skew is evidence to report, never
+ * a first-party rejection to gate on. That exclusion was checked during the same review that found the
+ * metadata-parity gap and is correct as-is - see ADR 0042's dated correction for the record of both.
+ */
 export function anyDisagreement(results) {
   return results.some(
     (r) =>
       (r.kind === "vendor-validate" && r.ran && r.pass === false && !r.exception) ||
+      (r.kind === "metadata-parity" && r.pass !== true) ||
       (r.kind === "exception-integrity" && r.pass === false)
   );
+}
+
+/**
+ * The result Section C pushes when the reference parser could not be invoked at all (`uvx` not on
+ * PATH), rather than pushing nothing. `pass: false`, never `null` or omitted - fail CLOSED, on purpose:
+ * a harness that goes silent about its own most important check must not thereby report a clean
+ * parity result (see anyDisagreement's `metadata-parity` branch and ADR 0042's dated correction). Pure
+ * and zero-argument so its shape - specifically that `pass` is the literal `false` anyDisagreement
+ * checks for - is asserted directly in tests/unit/check-parity.test.mjs without spawning anything.
+ */
+export function metadataParityUnavailableResult() {
+  return {
+    kind: "metadata-parity",
+    tool: "skills-ref",
+    target: "skills/* (all)",
+    ran: false,
+    pass: false,
+    detail: "uvx not found on PATH - the parsed-values round-trip could not be verified for any skill.",
+  };
 }
 
 // ---------------------------------------------------------------------------------------------------
@@ -407,10 +447,23 @@ function main() {
   const root = path.resolve(argv[0] ? normalizeArgPath(argv[0]) : process.cwd());
   const results = []; // { kind, tool, target, ran, fallback, pass, detail }
 
+  // Test-only override: `--mode=gating` lets tests/unit/check-parity.test.mjs prove the gating branch
+  // end-to-end (a real seeded metadata mismatch really exits 1) WITHOUT editing the PARITY_MODE
+  // constant above, which would leave the shipped default flipped. This is not a documented or
+  // supported way to run the harness for real - PARITY_MODE is still the one line that flips gating
+  // for every normal invocation (CI, a contributor's own machine). Any value other than exactly
+  // "gating" behaves identically to the default, matching decideExitCode()'s own strict-equality check.
+  const modeArg = argv.find((a) => a.startsWith("--mode="));
+  const mode = modeArg ? modeArg.slice("--mode=".length) : PARITY_MODE;
+
   line("=".repeat(78));
   line(`check-parity: first-party validator parity harness (${ADR})`);
-  line(`>>> REPORT-ONLY (PARITY_MODE = "${PARITY_MODE}"): findings below never fail this job. <<<`);
-  line(`>>> Flip to gating: change PARITY_MODE in scripts/check-parity.mjs to "gating" (one line). <<<`);
+  if (mode === "gating") {
+    line(`>>> GATING (PARITY_MODE override = "gating"): an undocumented disagreement below WILL fail this run. <<<`);
+  } else {
+    line(`>>> REPORT-ONLY (PARITY_MODE = "${mode}"): findings below never fail this job. <<<`);
+    line(`>>> Flip to gating: change PARITY_MODE in scripts/check-parity.mjs to "gating" (one line). <<<`);
+  }
   line("=".repeat(78));
   line("");
 
@@ -500,7 +553,13 @@ function main() {
     }
     if (!anyMetadataMismatch) line(`  OK: all ${skillDirs.length} skill(s)' metadata.* values round-trip unchanged through the reference parser.`);
   } else {
+    // FAIL CLOSED (ADR 0042's dated correction): this is the harness's central, novel check - the one
+    // an exit-code-only harness cannot do (ADR 0040) - so its own absence must not report a clean
+    // parity result. Pushed into `results` so anyDisagreement() counts it once PARITY_MODE is gating,
+    // unlike the "tool unavailable" case for vendor-validate results, which deliberately does not gate.
+    results.push(metadataParityUnavailableResult());
     line("  NOT VERIFIED (same uvx dependency as skills-ref validate above).");
+    line("  FAIL-CLOSED: this is the harness's central check; its own absence counts as a disagreement once PARITY_MODE is gating (ADR 0042).");
   }
   line("");
 
@@ -552,6 +611,7 @@ function main() {
   // --- Summary ---
   const disagreement = anyDisagreement(results);
   const { total, documented, undocumented } = summarizeDisagreements(results);
+  const metadataParityFailures = results.filter((r) => r.kind === "metadata-parity" && r.pass !== true);
   const notRun = results.filter((r) => r.kind === "vendor-validate" && !r.ran);
   line("-- summary --");
   if (total === 0) {
@@ -564,11 +624,18 @@ function main() {
   if (integrityFindings.length) {
     line(`  exception-list integrity: ${integrityFindings.length} BROKEN reference(s) (see above) - counted as undocumented, since a citation nobody can check authorizes nothing.`);
   }
+  // metadata-parity has NO documented-exception path (see anyDisagreement's docblock) and fails closed
+  // when the reference parser cannot even run, so every entry here would block once gating starts.
+  if (metadataParityFailures.length) {
+    line(`  metadata-parity: ${metadataParityFailures.length} finding(s) (a real mismatch, or the section being unable to run at all) - WOULD block once gating starts; there is no exception path for this kind.`);
+  } else {
+    line("  metadata-parity: clean.");
+  }
   if (notRun.length) line(`  sections that DID NOT RUN (tool unavailable): ${notRun.length} target(s) - see NOT VERIFIED lines above.`);
-  line(`  PARITY_MODE: ${PARITY_MODE} -> exit code ${decideExitCode(PARITY_MODE, disagreement)} regardless of the findings above.`);
+  line(`  PARITY_MODE: ${mode} -> exit code ${decideExitCode(mode, disagreement)} regardless of the findings above.`);
   line("");
 
-  process.exitCode = decideExitCode(PARITY_MODE, disagreement);
+  process.exitCode = decideExitCode(mode, disagreement);
 }
 
 // Guarded like every other CLI entry point in this repo (check.mjs, check-release-counts.mjs,
