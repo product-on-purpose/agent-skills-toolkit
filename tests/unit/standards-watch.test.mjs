@@ -336,6 +336,47 @@ test("emitPin drops a repoHeadSha it was not given rather than inheriting the pr
   assert.equal(withHead.verified.repoHeadSha, "abc123", "a supplied repoHeadSha is recorded");
 });
 
+test("emitPin drops a stale lastUpstreamCommit when the artifact's bytes moved", () => {
+  // Raised by adversarial review on the v1.10.1 release branch, and it is the same defect as the
+  // repoHeadSha one directly above, one field over. `lastUpstreamCommit` says WHICH upstream commit
+  // produced the pinned bytes. Once `blobSha` moves, the old commit no longer explains the content,
+  // so an offline reviewer following the pin is sent to the wrong diff. Observed on the real re-pin:
+  // the proposal would have kept 6868401b (2026-05-16) beside freshly fetched bytes whose change
+  // actually arrived in 217be548 (2026-08-04).
+  const changed = spec({ fields: [...BASE_FIELDS, { name: "extra", required: "No", description: "a new field" }] });
+  const withStaleProvenance = structuredClone(PIN);
+  withStaleProvenance.artifacts[0].lastUpstreamCommit = { sha: "deadbeef", date: "2020-01-01", subject: "old" };
+
+  const dropped = emitPin(withStaleProvenance, asObserved(changed), { date: "2026-02-02", by: "tester" });
+  assert.notEqual(dropped.artifacts[0].blobSha, withStaleProvenance.artifacts[0].blobSha, "precondition: the blob moved");
+  assert.equal(
+    dropped.artifacts[0].lastUpstreamCommit,
+    undefined,
+    "provenance the run could not establish must be dropped, not inherited"
+  );
+
+  const supplied = { sha: "abc1234", date: "2026-02-01", subject: "the commit that actually moved it" };
+  const refreshed = emitPin(withStaleProvenance, asObserved(changed), {
+    date: "2026-02-02",
+    by: "tester",
+    artifactCommits: { [PIN.artifacts[0].path]: supplied },
+  });
+  assert.deepEqual(refreshed.artifacts[0].lastUpstreamCommit, supplied, "supplied provenance is recorded");
+});
+
+test("emitPin keeps lastUpstreamCommit when the artifact's bytes did NOT move", () => {
+  // The converse guard: an unchanged artifact's provenance is still accurate, so dropping it would
+  // throw away a verified fact for no reason.
+  const same = spec({ fields: BASE_FIELDS });
+  const withProvenance = structuredClone(PIN);
+  const provenance = { sha: "cafe123", date: "2026-01-01", subject: "still current" };
+  withProvenance.artifacts[0].lastUpstreamCommit = provenance;
+  withProvenance.artifacts[0].blobSha = gitBlobSha(Buffer.from(same, "utf8"));
+
+  const next = emitPin(withProvenance, asObserved(same), { date: "2026-02-02", by: "tester" });
+  assert.deepEqual(next.artifacts[0].lastUpstreamCommit, provenance, "unchanged bytes keep their provenance");
+});
+
 /* -------------------------------------------------------------- reqId join */
 
 test("reqIdIndex reads the existing reference table rather than restating the mapping", () => {

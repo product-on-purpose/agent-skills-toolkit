@@ -42,12 +42,19 @@ export function relPath(root, abs) {
  * clean pass (see docs/how-to/troubleshoot-the-gate.md and tests/unit/eval-run.test.mjs).
  *
  * On Windows (`sep === "\\"`, the default - taken from the live `path.sep`) backslashes are converted to
- * forward slashes. On POSIX (`sep === "/"`) the value is returned unchanged apart from trimming: a
- * backslash is a LEGAL filename character there ("my\dir" is a real directory, distinct from "my/dir"),
- * so an unconditional swap would silently resolve to the WRONG path in the opposite direction - the same
- * class of defect, just facing the other way. Do not "simplify" this guard away; the asymmetry is
- * deliberate and both branches are exercised, with an injected separator, in tests/unit/fs-utils.test.mjs
- * so neither platform's behavior can regress unnoticed by only running the suite on the other one.
+ * forward slashes. On POSIX (`sep === "/"`) the value is returned UNCHANGED: a backslash is a LEGAL
+ * filename character there ("my\dir" is a real directory, distinct from "my/dir"), so an unconditional
+ * swap would silently resolve to the WRONG path in the opposite direction - the same class of defect,
+ * just facing the other way. Do not "simplify" this guard away; the asymmetry is deliberate and both
+ * branches are exercised, with an injected separator, in tests/unit/fs-utils.test.mjs so neither
+ * platform's behavior can regress unnoticed by only running the suite on the other one.
+ *
+ * It does NOT trim. An earlier draft did, and adversarial review caught why that is wrong: leading and
+ * trailing spaces are legal in a POSIX filename, so "/srv/plugin " and "/srv/plugin" are two different
+ * directories, and several callers here (gen-index, gen-manifest, sync-agents-md in --write mode) WRITE.
+ * Trimming would silently retarget a write at a sibling directory, which is a strictly worse version of
+ * the read-the-wrong-tree defect this function exists to close. The separator conversion is the only
+ * transformation applied; whatever else the caller typed is theirs.
  *
  * `sep` is a parameter (not read internally from `path.sep` unconditionally) purely so tests can force
  * both branches deterministically on any host.
@@ -60,7 +67,7 @@ export function relPath(root, abs) {
  * different; see resolvePosix's own docblock for the mirror of this note.
  */
 export function normalizeArgPath(p, sep = path.sep) {
-  const s = String(p ?? "").trim();
+  const s = String(p ?? "");
   if (!s) return s;
   return sep === "\\" ? s.split("\\").join("/") : s;
 }

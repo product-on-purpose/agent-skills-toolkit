@@ -566,7 +566,7 @@ export function renderAdrDraft(report, { number = "NNNN", date = report.generate
  * blob SHAs and the freshly extracted surface; preserves every human-authored field (touches, notes,
  * roles) untouched. The re-pin is a reviewed file change in a pull request, never a side effect.
  */
-export function emitPin(pin, observed, { date = new Date().toISOString().slice(0, 10), by = "unrecorded", repoHeadSha = null } = {}) {
+export function emitPin(pin, observed, { date = new Date().toISOString().slice(0, 10), by = "unrecorded", repoHeadSha = null, artifactCommits = {} } = {}) {
   const next = structuredClone(pin);
   next.verified = { ...(pin.verified ?? {}), date, by };
 
@@ -582,7 +582,23 @@ export function emitPin(pin, observed, { date = new Date().toISOString().slice(0
   for (const a of next.artifacts) {
     const got = observed.get(a.path);
     if (!got) refuse(`cannot re-pin: artifact "${a.path}" was not fetched`, "fetch-incomplete");
+    const previousSha = a.blobSha;
     a.blobSha = gitBlobSha(got.bytes);
+
+    // Per-artifact provenance follows the same rule as `verified.repoHeadSha` above (backlog E25):
+    // never carry forward a fact this run did not establish. `lastUpstreamCommit` describes WHICH
+    // upstream commit produced the pinned bytes, so once `blobSha` moves the old value names a
+    // commit that no longer explains the content. Left inherited, it points an offline reviewer at
+    // the wrong diff, which is precisely the failure this file exists to prevent: observed
+    // 2026-08-11, where a re-pin to blob d9a2db099d90 would have kept `6868401b` from 2026-05-16
+    // while the change actually arrived in 217be548 on 2026-08-04.
+    // Supplied metadata wins; otherwise the field is DROPPED rather than kept stale.
+    if (a.blobSha !== previousSha) {
+      const supplied = artifactCommits[a.path];
+      if (supplied) a.lastUpstreamCommit = supplied;
+      else delete a.lastUpstreamCommit;
+    }
+
     if (a.structural === true) next.surface = extractSurface(got.text);
   }
   return next;

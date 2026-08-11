@@ -38,9 +38,9 @@
         "U7"
       ],
       "lastUpstreamCommit": {
-        "sha": "6868401b64f791e9ff565f29beb6338826b73a2b",
-        "date": "2026-05-16",
-        "subject": "docs: fix name field character range to include digits"
+        "sha": "217be548739f21d6008915c29aefe320ea1a90af",
+        "date": "2026-08-04",
+        "subject": "Merge pull request #479 from jonathanhefner/issue-474-clarify-metadata"
       },
       "notes": "The complete format specification for Agent Skills. This is what STANDARD.md sec 3.1 restates and what the Universal tier claims to be a strict superset of."
     },

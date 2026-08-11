@@ -124,9 +124,19 @@ test("normalizeArgPath returns '' for empty or undefined input on both platforms
   assert.equal(normalizeArgPath(undefined, "/"), "");
 });
 
-test("normalizeArgPath trims surrounding whitespace on both platforms", () => {
-  assert.equal(normalizeArgPath("  C:\\plugins\\my-lib  ", "\\"), "C:/plugins/my-lib");
-  assert.equal(normalizeArgPath("  my-lib  ", "/"), "my-lib");
+test("normalizeArgPath does NOT trim, because surrounding spaces are part of a POSIX filename", () => {
+  // Raised by adversarial review on the v1.10.1 release branch. An earlier draft trimmed, which is
+  // wrong for the same reason unconditional backslash replacement is wrong: leading and trailing
+  // spaces are legal in a POSIX filename, so "/srv/plugin " and "/srv/plugin" are two different
+  // directories. Several callers of this function WRITE (gen-index, gen-manifest and sync-agents-md
+  // in --write mode), so trimming would silently retarget a write at a sibling directory - a
+  // strictly worse outcome than the read-the-wrong-tree defect the function exists to close.
+  // The separator conversion is the ONLY transformation applied.
+  assert.equal(normalizeArgPath("/srv/plugin ", "/"), "/srv/plugin ", "a trailing space is part of the name");
+  assert.equal(normalizeArgPath(" /srv/plugin", "/"), " /srv/plugin", "a leading space is part of the name");
+  assert.notEqual(normalizeArgPath("/srv/plugin ", "/"), "/srv/plugin", "the two must stay distinct paths");
+  // On Windows the separator still converts, and the surrounding spaces are still preserved.
+  assert.equal(normalizeArgPath(" C:\\plugins\\my-lib ", "\\"), " C:/plugins/my-lib ");
 });
 
 test("normalizeArgPath does NOT mangle a POSIX-legal backslash filename when sep is /", () => {

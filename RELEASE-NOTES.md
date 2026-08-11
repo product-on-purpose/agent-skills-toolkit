@@ -22,7 +22,11 @@ A patch that ships no new capability. Everything in it is the toolkit correcting
 
 ### Why this is a patch release
 
-Nothing that grades your plugin changed. The spine stays at 30 checks and the Standard stays at v0.12. No check was added, removed, or retightened, and no plugin's tier moves because of anything here. The one behavioral change in a check is additive: a chain declaration written as a string used to be read as no declaration at all, and is now read correctly.
+Nothing that grades your plugin changed. The spine stays at 30 checks and the Standard stays at v0.12. No check was added or removed, and **no plugin's tier or exit code moves because of anything here.**
+
+There is one behavioral change in a check, and it is deliberately scheduled rather than immediate. A delegation chain written as a single string used to be read as no declaration at all, so the chain-contract check could not see it. It can now. That means the check can newly fire on a plugin it was previously blind to, which would be a tightening, and a patch release is the wrong place to tighten anything. So findings that come from a **string-shaped** declaration are **warnings** in this release and become errors at Standard 0.13. Declarations written as a list keep the behavior they have always had. If you get a new warning here, you have until the next Standard minor to add the contract entry, and nothing about your tier changes in the meantime.
+
+This was caught by a pre-release adversarial review, not by us. The plan for this release asserted that no third-party verdict would move while the implementation carried an exception to that, and nobody noticed until an outside pass read both.
 
 ### Upgrade
 

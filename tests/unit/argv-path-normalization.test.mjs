@@ -3,6 +3,10 @@ import assert from "node:assert/strict";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { execFileSync } from "node:child_process";
+import { mkdtempSync, mkdirSync, writeFileSync, readFileSync, existsSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+
+const HERE = path.dirname(fileURLToPath(import.meta.url));
 import { normalizeArgPath } from "../../scripts/lib/fs-utils.mjs";
 import { parseArgs as parseCheckArgs } from "../../scripts/check.mjs";
 import { parseArgs as parseWatchArgs } from "../../scripts/standards-watch.mjs";
@@ -39,9 +43,15 @@ function runCli(script, args) {
 
 // --- check.mjs: the positional root ---
 
-test("check.mjs parseArgs trims the positional root (proves it is routed through normalizeArgPath)", () => {
-  const { root } = parseCheckArgs(["  tests/fixtures/golden/silver-fixture  "]);
-  assert.equal(root, "tests/fixtures/golden/silver-fixture");
+// Routing is proven by agreeing with normalizeArgPath on the same input, which holds on every
+// platform. It is deliberately NOT proven by trimming: an earlier draft trimmed, adversarial review
+// caught that a leading or trailing space is a legal POSIX filename character, and these assertions
+// now pin the corrected behavior so the trim cannot come back.
+test("check.mjs parseArgs routes the positional root through normalizeArgPath and preserves surrounding spaces", () => {
+  const raw = " tests/fixtures/golden/silver-fixture ";
+  const { root } = parseCheckArgs([raw]);
+  assert.equal(root, normalizeArgPath(raw), "the positional must agree with normalizeArgPath");
+  assert.equal(root, raw, "spaces are part of a POSIX filename and must survive");
 });
 
 test("check.mjs parseArgs normalizes a backslash-spelled root the same way normalizeArgPath does on this host", () => {
@@ -59,15 +69,20 @@ test("check.mjs parseArgs leaves non-path flags (--mode, --profile, --strict) un
 
 // --- standards-watch.mjs: the positional root, --pin, --snapshot-dir ---
 
-test("standards-watch.mjs parseArgs trims the positional root (proves it is routed through normalizeArgPath)", () => {
-  const { root } = parseWatchArgs(["  my-plugin  "]);
-  assert.equal(root, "my-plugin");
+test("standards-watch.mjs parseArgs routes the positional root through normalizeArgPath and preserves surrounding spaces", () => {
+  const raw = " my-plugin ";
+  const { root } = parseWatchArgs([raw]);
+  assert.equal(root, normalizeArgPath(raw));
+  assert.equal(root, raw, "spaces are part of a POSIX filename and must survive");
 });
 
-test("standards-watch.mjs parseArgs trims --pin and --snapshot-dir", () => {
-  const { pin, snapshotDir } = parseWatchArgs(["--pin", "  docs/pin.json  ", "--snapshot-dir", "  local/mirror  "]);
-  assert.equal(pin, "docs/pin.json");
-  assert.equal(snapshotDir, "local/mirror");
+test("standards-watch.mjs parseArgs routes --pin and --snapshot-dir through normalizeArgPath without trimming", () => {
+  const rawPin = " docs/pin.json ";
+  const rawDir = " local/mirror ";
+  const { pin, snapshotDir } = parseWatchArgs(["--pin", rawPin, "--snapshot-dir", rawDir]);
+  assert.equal(pin, normalizeArgPath(rawPin));
+  assert.equal(snapshotDir, normalizeArgPath(rawDir));
+  assert.equal(pin, rawPin, "a path-valued flag must not be trimmed either");
 });
 
 test("standards-watch.mjs parseArgs normalizes a backslash-spelled root the same way normalizeArgPath does on this host", () => {
@@ -78,9 +93,11 @@ test("standards-watch.mjs parseArgs normalizes a backslash-spelled root the same
 
 // --- eval-run.mjs (the CLI, not the lib): positionals plus the path-valued flags ---
 
-test("eval-run.mjs parseArgs normalizes positionals (target ids/paths)", () => {
-  const args = parseEvalRunArgs(["  fixture-plugin  "]);
-  assert.equal(args.positionals[0], "fixture-plugin");
+test("eval-run.mjs parseArgs routes positionals (target ids/paths) through normalizeArgPath without trimming", () => {
+  const raw = " fixture-plugin ";
+  const args = parseEvalRunArgs([raw]);
+  assert.equal(args.positionals[0], normalizeArgPath(raw));
+  assert.equal(args.positionals[0], raw, "spaces are part of a POSIX filename and must survive");
 });
 
 test("eval-run.mjs parseArgs normalizes path-valued flags but leaves non-path flags untouched", () => {
@@ -91,10 +108,12 @@ test("eval-run.mjs parseArgs normalizes path-valued flags but leaves non-path fl
     "--subpath", "  sub/dir  ",
     "--sha", "  abc123  ",
   ]);
-  assert.equal(args["out-dir"], "my-out");
-  assert.equal(args["manifest"], "my-manifest.json");
-  assert.equal(args["subpath"], "sub/dir");
+  assert.equal(args["out-dir"], "  my-out  ", "a path-valued flag keeps its spaces");
+  assert.equal(args["manifest"], "  my-manifest.json  ");
+  assert.equal(args["subpath"], "  sub/dir  ");
   assert.equal(args["sha"], "  abc123  ", "a sha is not a filesystem path and must be left exactly as typed");
+  // The distinction that matters is the separator conversion, not trimming.
+  assert.equal(args["out-dir"], normalizeArgPath("  my-out  "), "routed through normalizeArgPath");
 });
 
 test("eval-run.mjs parseArgs normalizes a backslash-spelled --manifest the same way normalizeArgPath does on this host", () => {
@@ -154,3 +173,71 @@ test(
     }
   }
 );
+
+// --- Write-mode targeting: the path must not be silently retargeted at a sibling ---
+//
+// Raised by adversarial review on the v1.10.1 release branch. An earlier draft of normalizeArgPath
+// trimmed surrounding whitespace. On POSIX a leading or trailing space is a legal filename character,
+// so "plugin " and "plugin" are two DIFFERENT directories, and three callers of this function write
+// files (gen-index, gen-manifest, sync-agents-md, all in --write mode). Trimming would therefore
+// silently emit generated files into a sibling directory the caller never named, which is a worse
+// outcome than the read-the-wrong-tree defect the normalization exists to close.
+//
+// This is the integration proof rather than a unit assertion: it builds two real, distinct plugin
+// roots and confirms a --write run touches only the one it was given. It is POSIX-only because
+// Windows silently strips trailing spaces from directory names, so the two roots cannot be made to
+// exist there at all. Skipped loudly with a reason instead of quietly asserting nothing.
+test("gen-index --write targets only the requested root when a sibling differs by a trailing space", (t) => {
+  if (path.sep === "\\") {
+    t.skip("POSIX-only: Windows strips trailing spaces from directory names, so the two roots cannot coexist");
+    return;
+  }
+
+  const base = mkdtempSync(path.join(tmpdir(), "askit-argv-space-"));
+  const plain = path.join(base, "plugin");
+  const spaced = path.join(base, "plugin ");
+
+  const seed = (root, name) => {
+    mkdirSync(path.join(root, "skills", "demo-skill"), { recursive: true });
+    writeFileSync(
+      path.join(root, "library.json"),
+      JSON.stringify({
+        name,
+        version: "0.1.0",
+        standard: "0.12",
+        tier: "universal",
+        prefix: "demo-",
+        "agent-targets": ["claude"],
+        components: { skills: [{ name: "demo-skill", path: "skills/demo-skill/SKILL.md", version: "0.1.0", tier: "universal", status: "active" }] },
+      }),
+      "utf8"
+    );
+    writeFileSync(
+      path.join(root, "skills", "demo-skill", "SKILL.md"),
+      "---\nname: demo-skill\ndescription: A demo skill used as a fixture. Use when testing argv path targeting.\n---\n\n# demo-skill\n",
+      "utf8"
+    );
+  };
+
+  try {
+    mkdirSync(plain, { recursive: true });
+    mkdirSync(spaced, { recursive: true });
+    seed(plain, "plain-plugin-fixture");
+    seed(spaced, "spaced-plugin-fixture");
+
+    const GEN = path.resolve(HERE, "../../scripts/generators/gen-index.mjs");
+    execFileSync(process.execPath, [GEN, spaced, "--write"], { encoding: "utf8" });
+
+    assert.ok(existsSync(path.join(spaced, "INDEX.md")), "the requested root must receive the generated index");
+    assert.ok(
+      !existsSync(path.join(plain, "INDEX.md")),
+      "the sibling root differing only by a trailing space must be left untouched"
+    );
+
+    // And the content must belong to the root that was actually named.
+    const written = readFileSync(path.join(spaced, "INDEX.md"), "utf8");
+    assert.match(written, /spaced-plugin-fixture/, "the index must describe the plugin it was pointed at");
+  } finally {
+    rmSync(base, { recursive: true, force: true });
+  }
+});

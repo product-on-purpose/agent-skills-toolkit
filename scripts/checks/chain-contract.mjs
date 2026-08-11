@@ -1,6 +1,11 @@
 // what-it-is:   the chain-contract check (S4)
-// what-it-does: asserts every inter-component invocation is permitted by agents/_chain-permitted.yaml (no orphan or phantom edges)
-// why:          enforces the Standard requirement S4 deterministically, one module per reqId, so the gate stays model-free
+// what-it-does: asserts every inter-component invocation is permitted by agents/_chain-permitted.yaml (no orphan or phantom
+//               edges); a finding that exists ONLY because a STRING-shaped chain declaration was parsed (an orphan, or "chaining
+//               used but no contract") is SEVERITY.WARN in this release, not ERROR - the identical finding from an ARRAY-shaped
+//               declaration, or from an existing contract/_workflows/, stays SEVERITY.ERROR, unchanged
+// why:          enforces the Standard requirement S4 deterministically, one module per reqId, so the gate stays model-free;
+//               the warn/error split holds ADR 0027's warn-first policy for a shape newly PARSED by this reader (ADR 0040), so
+//               no plugin passing S4 today can newly gate-fail from upgrading the toolkit alone (ADR 0041)
 // used-by:      registered in scripts/lib/registry.mjs; run by scripts/check.mjs and tier-report.mjs
 import { finding, SEVERITY } from "../lib/findings.mjs";
 import { existsSync, readFileSync, statSync } from "node:fs";
@@ -8,6 +13,11 @@ import path from "node:path";
 import { parse as parseYaml } from "yaml";
 
 export const meta = { id: "chain-contract", tier: "convergent", reqId: "S4", since: "0.x", provenance: "house" };
+
+// ADR 0041: a finding that is newly reachable ONLY because a STRING-shaped chain declaration was
+// parsed graduates from WARN to ERROR at Standard 0.13. Appended to a finding's message so a reader
+// knows the WARN is scheduled, not optional.
+const GRADUATION_NOTE = " This is a warning at Standard 0.12 and becomes an error at Standard 0.13 (ADR 0041).";
 
 function isDir(p) { return existsSync(p) && statSync(p).isDirectory(); }
 function isFile(p) { return existsSync(p) && statSync(p).isFile(); }
@@ -47,12 +57,20 @@ export function check(ctx) {
   // "['a', 'b']", which no consumer downstream can use) or an ARRAY (still read, unchanged, so
   // existing plugins on that shape do not regress). The legacy top-level `chain:` key accepts
   // either shape too.
+  //
+  // `shape` records which of the two the author actually wrote, independent of WHICH key it came
+  // from (metadata.chain and the legacy top-level key both accept both shapes). Severity below is
+  // decided by shape, not location (ADR 0041): main never parsed a string declaration at all, so a
+  // finding reachable only through a string is newly parsed by this reader and is WARN for now; a
+  // finding reachable through an array declaration was already parsed and gated on before this
+  // change, so it stays ERROR.
   const declaredChains = components
     .map((c) => {
       const declared = c.frontmatter?.metadata?.chain ?? c.frontmatter?.chain;
       return {
         name: c.name,
         chain: parseChainDeclaration(declared),
+        shape: Array.isArray(declared) ? "array" : typeof declared === "string" ? "string" : "none",
       };
     })
     .filter((c) => c.chain.length > 0);
@@ -62,7 +80,15 @@ export function check(ctx) {
   if (!chainingInUse) return [];
 
   if (!hasContract) {
-    out.push(finding(meta.id, SEVERITY.ERROR, "chaining is used (a component declares a frontmatter `chain:` or _workflows/ is present) but agents/_chain-permitted.yaml is missing (chain contract is REQUIRED when chaining is used; Standard sec 3.6).", { file: "agents/_chain-permitted.yaml", reqId: meta.reqId }));
+    // ADR 0041: this branch is only reached when there is no contract file, so the remaining
+    // pre-existing signals are _workflows/ and an ARRAY-shaped declaration. If chaining is "in use"
+    // for one of those reasons, this is unchanged behavior: ERROR. If the ONLY reason is one or more
+    // newly-parsed STRING declarations, this is the scheduled tightening: WARN, with a note.
+    const hasArrayDeclaration = declaredChains.some((c) => c.shape === "array");
+    const preexistingSignal = hasWorkflows || hasArrayDeclaration;
+    const severity = preexistingSignal ? SEVERITY.ERROR : SEVERITY.WARN;
+    const note = preexistingSignal ? "" : GRADUATION_NOTE;
+    out.push(finding(meta.id, severity, `chaining is used (a component declares a frontmatter \`chain:\` or _workflows/ is present) but agents/_chain-permitted.yaml is missing (chain contract is REQUIRED when chaining is used; Standard sec 3.6).${note}`, { file: "agents/_chain-permitted.yaml", reqId: meta.reqId }));
     return out;
   }
 
@@ -99,11 +125,15 @@ export function check(ctx) {
     }
   }
   // Orphan detection: a declared (frontmatter chain) invocation not permitted by the contract.
-  for (const { name, chain } of declaredChains) {
+  // ADR 0041: an ARRAY-shaped orphan is ERROR, unchanged. A STRING-shaped orphan - newly parsed by
+  // this reader (ADR 0040) - is WARN for one Standard minor (ADR 0027 burndown), with a note.
+  for (const { name, chain, shape } of declaredChains) {
     const permitted = new Set(Array.isArray(contract[name]) ? contract[name].filter((x) => typeof x === "string") : []);
+    const severity = shape === "array" ? SEVERITY.ERROR : SEVERITY.WARN;
+    const note = shape === "array" ? "" : GRADUATION_NOTE;
     for (const target of chain) {
       if (!permitted.has(target)) {
-        out.push(finding(meta.id, SEVERITY.ERROR, `"${name}" declares (frontmatter chain) that it may invoke "${target}" but agents/_chain-permitted.yaml does not permit "${name}" -> "${target}" (orphan; Standard sec 3.6).`, { file: "agents/_chain-permitted.yaml", reqId: meta.reqId }));
+        out.push(finding(meta.id, severity, `"${name}" declares (frontmatter chain) that it may invoke "${target}" but agents/_chain-permitted.yaml does not permit "${name}" -> "${target}" (orphan; Standard sec 3.6).${note}`, { file: "agents/_chain-permitted.yaml", reqId: meta.reqId }));
       }
     }
   }
