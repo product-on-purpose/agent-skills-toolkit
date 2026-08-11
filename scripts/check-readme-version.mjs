@@ -34,10 +34,19 @@
 // skill-count and spine-size claims instead require every occurrence to AGREE with the authoritative
 // number: neither has a canonical single bullet the way `**Tier**` does, so repeating the same
 // correct number twice is not itself an error, only a disagreeing repeat is.
+//
+// Scope note on number parsing: the skill-count and spine-size claims are extracted with
+// scripts/lib/stated-counts.mjs's extractLabeledCounts, not a local `\d+` regex (round-6 adversarial
+// review, Finding 3: the local `(\d+)\s+skills\b` / `(\d+)\s+checks\b` patterns had no leading
+// numeric boundary, so a contradictory grouped claim like "1,024 skills" was read as the substring
+// "024" -> Number("024") === 24, coincidentally matching a real count of 24 and passing as
+// agreement). extractLabeledCounts reads the complete grouped number and normalizes the thousands
+// separator before comparing.
 import { readFileSync, existsSync } from "node:fs";
 import path from "node:path";
 import { CHECKS } from "./lib/registry.mjs";
 import { TIER_NAME, TIER_SUB, TIER_ORDER } from "./lib/tier.mjs";
+import { extractLabeledCounts } from "./lib/stated-counts.mjs";
 
 const dir = process.argv[2] ? path.resolve(process.argv[2]) : process.cwd();
 const libPath = path.join(dir, "library.json");
@@ -179,9 +188,9 @@ if (declaredTier != null) {
 // passes; a second, contradictory count fails, which is the actual soundness gap Finding 1 named.
 const declaredSkills = Array.isArray(lib?.components?.skills) ? lib.components.skills.length : null;
 if (declaredSkills != null) {
-  for (const m of statusBody.matchAll(/(\d+)\s+skills\b/g)) {
-    if (Number(m[1]) !== declaredSkills) {
-      failures.push(`README.md  "## Status" claims ${m[1]} skills; library.json registers ${declaredSkills}`);
+  for (const c of extractLabeledCounts(statusBody, "skills")) {
+    if (c.count !== declaredSkills) {
+      failures.push(`README.md  "## Status" claims ${c.raw}; library.json registers ${declaredSkills}`);
     }
   }
 }
@@ -190,9 +199,9 @@ if (declaredSkills != null) {
 // treatment as the skill count above, and the same reasoning: disagreement fails, repetition of the
 // same correct number does not.
 const spineSize = CHECKS.length;
-for (const m of statusBody.matchAll(/(\d+)\s+checks\b/g)) {
-  if (Number(m[1]) !== spineSize) {
-    failures.push(`README.md  "## Status" claims a ${m[1]}-check spine; the registry has ${spineSize}`);
+for (const c of extractLabeledCounts(statusBody, "checks")) {
+  if (c.count !== spineSize) {
+    failures.push(`README.md  "## Status" claims a ${c.raw} spine; the registry has ${spineSize}`);
   }
 }
 

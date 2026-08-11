@@ -10,28 +10,31 @@
 //               Filing a backlog item for the fourth instance of the same defect, inside the release
 //               that documents it, was not credible when the fix is small; this is that fix.
 // used-by:      npm run release-counts (wired to the release gate, deliberately NOT to npm test - see
-//               the note below); tests/unit/check-release-counts.test.mjs
+//               the note below); tests/unit/check-release-counts.test.mjs; imports the number-parsing
+//               half from scripts/lib/stated-counts.mjs
 //
 // Scope note, and why this does NOT run inside `npm test`: running the suite from inside the suite is
 // circular, and doubling test time on every push to guard a number that changes once per release is
 // the wrong trade. This is a release-time gate, run by hand or by the release checklist, the same
 // boundary `docs/internal/RELEASE.md` already draws around `scripts/check-readme-version.mjs`.
 //
-// Scope note on what counts as a "stated test count": STATED_COUNT_RE deliberately requires a count
-// paired with an ADJACENT failures count, in the "N (tests,)? M failures" shape this repository
-// already uses everywhere it states a LIVE total (CHANGELOG's "**682 tests, 0 failures**", STATUS's
-// "682, 0 failures"). A bare "NNN tests" mention with no adjacent failures count does not match, by
-// design: `docs/internal/release-plans/plan_v1.10.1/RELEASE-PLAN.md` states "613 tests, spine 30" as
-// a HISTORICAL baseline fact (the branch point, not the current suite), and this release's own
-// adversarial-review record quotes 647, 667, 613 and 673 as PAST evidence while narrating the four
-// instances of this exact defect. None of those pairs a number with a failures count, so none of them
-// is misread as a live claim. What this misses, honestly: a genuinely stale LIVE claim phrased without
-// a failures count ("the suite now has 673 tests", "673 tests pass") would slip past this guard
-// undetected. The narrower shape was chosen because it has zero false positives against every count
-// mention this repository's own release packet already contains, several of which are deliberately
-// historical; a looser "any digits near the word tests" pattern would have flagged the RELEASE-PLAN.md
-// baseline line and the adversarial-review record's own history section on every run, which is a
-// worse guard than none because a maintainer who sees it cry wolf stops reading its output.
+// Scope note on what counts as a "stated test count": extractStatedCounts (scripts/lib/stated-
+// counts.mjs's extractTestCountClaims, re-exported here under its original name) deliberately
+// requires a count paired with an ADJACENT failures count, in the "N (tests,)? M failures" shape
+// this repository already uses everywhere it states a LIVE total (CHANGELOG's "**682 tests, 0
+// failures**", STATUS's "682, 0 failures"). A bare "NNN tests" mention with no adjacent failures
+// count does not match, by design: `docs/internal/release-plans/plan_v1.10.1/RELEASE-PLAN.md` states
+// "613 tests, spine 30" as a HISTORICAL baseline fact (the branch point, not the current suite), and
+// this release's own adversarial-review record quotes 647, 667, 613 and 673 as PAST evidence while
+// narrating the four instances of this exact defect. None of those pairs a number with a failures
+// count, so none of them is misread as a live claim. What this misses, honestly: a genuinely stale
+// LIVE claim phrased without a failures count ("the suite now has 673 tests", "673 tests pass") would
+// slip past this guard undetected. The narrower shape was chosen because it has zero false positives
+// against every count mention this repository's own release packet already contains, several of
+// which are deliberately historical; a looser "any digits near the word tests" pattern would have
+// flagged the RELEASE-PLAN.md baseline line and the adversarial-review record's own history section
+// on every run, which is a worse guard than none because a maintainer who sees it cry wolf stops
+// reading its output.
 //
 // Only DISAGREEMENT fails, never absence. `docs/internal/release-plans/plan_v1.10.1/README.md`
 // deliberately states no test count at all ("the packet headline now states no test count at all and
@@ -43,10 +46,21 @@
 // Scope note on the release-plan packet scan: only `.md` files under the current version's packet
 // directory are read. Every file in every packet this repository has shipped is Markdown; a non-
 // Markdown artifact placed there in the future would not be scanned.
+//
+// Scope note on number parsing: the ACTUAL regex - a complete-integer-token match with thousands-
+// separator normalization - lives in scripts/lib/stated-counts.mjs, not here, and this file does not
+// keep its own copy (round-6 adversarial review, Findings 1 and 2: the identical first-match-only
+// defect that round-5 fixed in check-readme-version.mjs was reintroduced in this file's own
+// isolateStatusTestsRow, and a second, independent defect - no leading numeric boundary, no
+// thousands-separator support - let a false claim like "1,720 tests, 0 failures" match on the
+// substring "720 tests, 0 failures" against an actual 720 and silently pass). isolateStatusTestsRows
+// (plural) below mirrors that same lesson: it collects EVERY "| Tests |" row and requires exactly
+// one, the same treatment check-readme-version.mjs already gives its own "exactly one" claims.
 import { readFileSync, existsSync, statSync } from "node:fs";
 import path from "node:path";
 import { spawnSync } from "node:child_process";
 import { normalizeArgPath, relPath, walkFiles } from "./lib/fs-utils.mjs";
+import { extractTestCountClaims } from "./lib/stated-counts.mjs";
 
 /** Read library.json and return its `version` field. Throws (never returns null) on a missing file,
  *  unparseable JSON, or a missing version, the same fail-closed shape check-readme-version.mjs uses
@@ -113,18 +127,13 @@ export function parseTapSummary(tapText) {
   return { total: Number(totalM[1]), failures: Number(failM[1]) };
 }
 
-// See the module docblock's "Scope note on what counts as a stated test count" for why this shape was
-// chosen and what it deliberately does not catch.
-export const STATED_COUNT_RE = /(\d+)\s*(?:tests?)?\s*,\s*(\d+)\s+failures?\b/gi;
-
-/** Every "N (tests,)? M failures" claim in `text`, with its match index for line-number reporting. */
-export function extractStatedCounts(text) {
-  const out = [];
-  for (const m of text.matchAll(STATED_COUNT_RE)) {
-    out.push({ total: Number(m[1]), failures: Number(m[2]), index: m.index, raw: m[0] });
-  }
-  return out;
-}
+// The actual parsing lives in scripts/lib/stated-counts.mjs (extractTestCountClaims): a complete-
+// integer-token match, with thousands-separator normalization, found via matchAll so every "N
+// (tests,)? M failures" claim in `text` is returned, never just the first. Re-exported under this
+// file's original name so existing callers/tests need not change; see the module docblock's "Scope
+// note on what counts as a stated test count" for why this shape was chosen and what it deliberately
+// does not catch.
+export const extractStatedCounts = extractTestCountClaims;
 
 function lineAt(text, index) {
   return text.slice(0, index).split("\n").length;
@@ -151,13 +160,20 @@ export function isolateChangelogSection(changelogText, version) {
   return { text: changelogText.slice(bodyStart, bodyEnd), startLine: lineAt(changelogText, bodyStart) };
 }
 
-/** Isolate the "| Tests | ... |" row of STATUS.md's current-state table. Returns null when no row's
- *  first cell is exactly "Tests" (case-insensitive), so a reshaped table fails closed rather than
- *  silently checking nothing. */
-export function isolateStatusTestsRow(statusText) {
-  const m = /^\|\s*Tests\s*\|([^\n]*)$/im.exec(statusText);
-  if (!m) return null;
-  return { text: m[0], startLine: lineAt(statusText, m.index) };
+/** Every "| Tests | ... |" row of STATUS.md's current-state table, in document order. Collected with
+ *  matchAll - never just the first match (round-6 adversarial review, Finding 1: the identical
+ *  first-match-only defect round-5 fixed in check-readme-version.mjs's tier-claim scan was
+ *  reintroduced here, in a brand-new file, in the same commit - a correct first row followed by a
+ *  stale second row passed unseen). Returns [] (distinct from throwing) when no row's first cell is
+ *  exactly "Tests" (case-insensitive); evaluateReleaseCounts treats that as a missing anchor and
+ *  fails closed the same way it already does for a missing CHANGELOG heading or packet directory. */
+export function isolateStatusTestsRows(statusText) {
+  const re = /^\|\s*Tests\s*\|([^\n]*)$/gim;
+  const out = [];
+  for (const m of statusText.matchAll(re)) {
+    out.push({ text: m[0], startLine: lineAt(statusText, m.index) });
+  }
+  return out;
 }
 
 /** Absolute path of the release-plan packet directory for `version`. */
@@ -219,14 +235,26 @@ export function evaluateReleaseCounts({ root, version, tapText }) {
     throw new Error(`check-release-counts: docs/internal/STATUS.md not found at ${statusPath}`);
   }
   const statusText = readFileSync(statusPath, "utf8");
-  const row = isolateStatusTestsRow(statusText);
-  if (!row) {
+  const rows = isolateStatusTestsRows(statusText);
+  if (rows.length === 0) {
     throw new Error(
       `check-release-counts: no "| Tests |" row found in docs/internal/STATUS.md. This guard is anchored ` +
       `to that row; update this script if the table was reshaped.`
     );
   }
-  checkClaims(extractStatedCounts(row.text), "docs/internal/STATUS.md", row.text, row.startLine);
+  // Exactly one "| Tests |" row is required (the same "exactly one" treatment
+  // check-readme-version.mjs already gives its own single-labeled-bullet claim, the tier claim): a
+  // table stating two counts at once is a defect in its own right, even before either row's content
+  // is inspected. Every row found is still checked for a disagreeing count below, so a stale SECOND
+  // row is named specifically rather than only reported as "ambiguous".
+  if (rows.length > 1) {
+    failures.push(
+      `docs/internal/STATUS.md  has ${rows.length} "| Tests |" rows; exactly one is required so the front door cannot state two counts at once`
+    );
+  }
+  for (const row of rows) {
+    checkClaims(extractStatedCounts(row.text), "docs/internal/STATUS.md", row.text, row.startLine);
+  }
 
   const files = collectPacketFiles(root, version);
   if (files === null) {

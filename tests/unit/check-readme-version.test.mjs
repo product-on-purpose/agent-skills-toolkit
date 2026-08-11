@@ -344,6 +344,59 @@ test("check-readme-version: exits 1 when the Status section carries two contradi
   }
 });
 
+// --- Round-6 adversarial review, Finding 3: the skill/checks matchAll loops had no leading numeric
+// boundary and no thousands-separator understanding, so a contradictory grouped claim like "1,024
+// skills" was read as the substring "024" -> Number("024") === 24, coincidentally matching a real
+// count of 24 and passing as if it agreed. ---
+
+test("check-readme-version: exits 1 when a second skill-count claim is a false grouped total (\"1,024 skills\" against 24 registered skills)", () => {
+  const dir = mkdtempSync(path.join(tmpdir(), "askit-readme-"));
+  try {
+    writeFileSync(
+      path.join(dir, "library.json"),
+      JSON.stringify({
+        name: "t",
+        version: "19.0.0",
+        components: { skills: Array.from({ length: 24 }, (_, i) => ({ name: `s${i}` })) },
+      }),
+      "utf8"
+    );
+    writeFileSync(
+      path.join(dir, "README.md"),
+      '# T\n\n<img src="https://img.shields.io/badge/version-19.0.0-blue" alt="v">\n\n## Status\n\n- **Components** - 24 skills.\n- **Also** - 1,024 skills, elsewhere.\n',
+      "utf8"
+    );
+    const r = spawnSync(process.execPath, [SCRIPT, dir], { encoding: "utf8" });
+    assert.equal(
+      r.status,
+      1,
+      "\"1,024\" must be read as the full 1024, not misread as the substring \"024\" -> 24, which would coincidentally match"
+    );
+    const out = (r.stdout ?? "") + (r.stderr ?? "");
+    assert.match(out, /1,?024/, "output must name the disagreeing grouped claim");
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test("check-readme-version: exits 1 when a second checks-count claim is a false grouped total (\"1,030 checks\" against a 30-check spine)", () => {
+  const dir = mkFixture("20.0.0", "20.0.0", {
+    extraStatus: "- **Validation spine** - 30 checks.\n- **Also** - 1,030 checks, elsewhere.\n",
+  });
+  try {
+    const r = spawnSync(process.execPath, [SCRIPT, dir], { encoding: "utf8" });
+    assert.equal(
+      r.status,
+      1,
+      "\"1,030\" must be read as the full 1030, not misread as the substring \"030\" -> 30, which would coincidentally match"
+    );
+    const out = (r.stdout ?? "") + (r.stderr ?? "");
+    assert.match(out, /1,?030/, "output must name the disagreeing grouped claim");
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
 test("check-readme-version: a reasonable single-token claim still passes (Gold alone against tier advanced)", () => {
   // The fix forbids foreign tokens; it must not over-tighten into requiring the exact canonical
   // pair. Naming just one of the two correct synonyms, with no foreign token present, is agreement.

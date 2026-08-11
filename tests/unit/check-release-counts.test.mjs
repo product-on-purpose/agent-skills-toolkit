@@ -10,7 +10,7 @@ import {
   parseTapSummary,
   extractStatedCounts,
   isolateChangelogSection,
-  isolateStatusTestsRow,
+  isolateStatusTestsRows,
   collectPacketFiles,
   evaluateReleaseCounts,
 } from "../../scripts/check-release-counts.mjs";
@@ -155,18 +155,36 @@ test("isolateChangelogSection: returns null when the version heading is not pres
   assert.equal(isolateChangelogSection(changelog, "9.9.9"), null);
 });
 
-// --- isolateStatusTestsRow ---
+// --- isolateStatusTestsRows ---
+//
+// Collects EVERY "| Tests |" row via matchAll, never just the first (round-6 adversarial review,
+// Finding 1: the identical first-match-only defect that round-5 fixed in check-readme-version.mjs's
+// tier-claim scan was reintroduced here, in a brand-new file, in the same commit).
 
-test("isolateStatusTestsRow: finds the row whose first cell is exactly \"Tests\"", () => {
+test("isolateStatusTestsRows: finds the row whose first cell is exactly \"Tests\"", () => {
   const status = "| Fact | Value |\n|---|---|\n| Version | 1.10.1 |\n| Tests | 682, 0 failures (measured 2026-08-11) |\n| Spine | 30 checks |\n";
-  const row = isolateStatusTestsRow(status);
-  assert.ok(row);
-  assert.match(row.text, /682, 0 failures/);
+  const rows = isolateStatusTestsRows(status);
+  assert.equal(rows.length, 1);
+  assert.match(rows[0].text, /682, 0 failures/);
 });
 
-test("isolateStatusTestsRow: returns null when there is no \"Tests\" row", () => {
+test("isolateStatusTestsRows: returns [] when there is no \"Tests\" row", () => {
   const status = "| Fact | Value |\n|---|---|\n| Version | 1.10.1 |\n";
-  assert.equal(isolateStatusTestsRow(status), null);
+  assert.deepEqual(isolateStatusTestsRows(status), []);
+});
+
+test("isolateStatusTestsRows: returns BOTH rows when the table carries a correct first \"Tests\" row and a stale second one, not just the first", () => {
+  const status = [
+    "| Fact | Value |",
+    "|---|---|",
+    "| Tests | 720, 0 failures |",
+    "| Tests | 682, 0 failures |",
+    "",
+  ].join("\n");
+  const rows = isolateStatusTestsRows(status);
+  assert.equal(rows.length, 2, "a first-match-only scan would silently see only the first row");
+  assert.match(rows[0].text, /720, 0 failures/);
+  assert.match(rows[1].text, /682, 0 failures/);
 });
 
 // --- evaluateReleaseCounts: the full pipeline against a fixture root and an injected TAP string.
@@ -362,6 +380,73 @@ test("evaluateReleaseCounts: throws when the release-plan packet directory for t
       () => evaluateReleaseCounts({ root: dir, version: "9.8.0", tapText: tapText({ total: 7, failures: 0 }) }),
       /no release-plan packet found/
     );
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+// --- Round-6 adversarial review, Finding 1: the isolateStatusTestsRow first-match-only bypass,
+// exercised at the evaluateReleaseCounts level (not just isolateStatusTestsRows in isolation). ---
+
+test("evaluateReleaseCounts: fails when STATUS.md has a correct first Tests row and a stale second Tests row", () => {
+  const dir = mkRoot({ version: "9.9.1" });
+  writeFileSync(
+    path.join(dir, "docs", "internal", "STATUS.md"),
+    [
+      "# STATUS",
+      "",
+      "| Fact | Value |",
+      "|---|---|",
+      "| Tests | 7, 0 failures |",
+      "| Tests | 682, 0 failures |",
+      "",
+    ].join("\n"),
+    "utf8"
+  );
+  try {
+    const r = evaluateReleaseCounts({ root: dir, version: "9.9.1", tapText: tapText({ total: 7, failures: 0 }) });
+    assert.ok(r.failures.length > 0, "a stale second Tests row must not be invisible to a first-match-only scan");
+    assert.ok(
+      r.failures.some((f) => /STATUS\.md/.test(f) && /682/.test(f)),
+      "the failure must name the disagreeing second row's stale count"
+    );
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+// --- Round-6 adversarial review, Finding 2: STATED_COUNT_RE matched grouped totals by suffix, with
+// no leading numeric boundary and no thousands-separator understanding. ---
+
+test("evaluateReleaseCounts: fails when CHANGELOG.md states a false grouped-thousands total (\"1,720 tests, 0 failures\" against an actual 720)", () => {
+  const dir = mkRoot({ version: "9.9.2", changelogSection: "**1,720 tests, 0 failures**.", statusRow: "720, 0 failures" });
+  try {
+    const r = evaluateReleaseCounts({ root: dir, version: "9.9.2", tapText: tapText({ total: 720, failures: 0 }) });
+    assert.equal(r.failures.length, 1, "\"1,720\" must be read as 1720, which disagrees with 720 - not matched as the substring \"720\"");
+    assert.match(r.failures[0], /CHANGELOG\.md/);
+    assert.match(r.failures[0], /1,?720/);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test("evaluateReleaseCounts: fails when STATUS.md's row states a false grouped-thousands total (\"1,720, 0 failures\" against an actual 720)", () => {
+  const dir = mkRoot({ version: "9.9.3", changelogSection: "**720 tests, 0 failures**.", statusRow: "1,720, 0 failures" });
+  try {
+    const r = evaluateReleaseCounts({ root: dir, version: "9.9.3", tapText: tapText({ total: 720, failures: 0 }) });
+    assert.equal(r.failures.length, 1, "\"1,720\" in the STATUS.md row form must also be read as the full 1720");
+    assert.match(r.failures[0], /STATUS\.md/);
+    assert.match(r.failures[0], /1,?720/);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test("evaluateReleaseCounts: passes when a genuinely correct grouped total is stated (actual 1720, claim \"1,720 tests, 0 failures\")", () => {
+  const dir = mkRoot({ version: "9.9.4", changelogSection: "**1,720 tests, 0 failures**.", statusRow: "1,720, 0 failures" });
+  try {
+    const r = evaluateReleaseCounts({ root: dir, version: "9.9.4", tapText: tapText({ total: 1720, failures: 0 }) });
+    assert.deepEqual(r.failures, [], "a genuinely correct grouped total must not be flagged once the suite legitimately reaches that size");
   } finally {
     rmSync(dir, { recursive: true, force: true });
   }

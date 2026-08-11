@@ -248,9 +248,63 @@ circular, and doubling test time on every push to guard a once-per-release numbe
 The packet headline now states **no** test count at all and points at the two files the checker
 verifies. Reducing the number of hand-maintained copies is a better fix than correcting one of them.
 
+## Round 6 (scoped to one commit)
+
+Not a re-review of the branch. Scoped to the single commit that resolved round 5, because the
+empirical pattern by this point was that **each fix round introduced a regression into the previous
+round's fix**, and that pattern deserved a check rather than an assumption.
+
+**Verdict: needs-attention.** Three findings, all bypasses in the guard code written the round before.
+
+### R6-1 [high] The new script repeated the first-match-only bypass
+
+`isolateStatusTestsRow` in `scripts/check-release-counts.mjs` returned only the **first** matching
+`Tests` row, so a correct first row followed by a **stale second** row passed. This is the identical
+defect that had just been fixed in `check-readme-version.mjs` **in the same commit**, reintroduced in
+the new file by the same change.
+
+### R6-2 [high] Grouped totals matched by suffix, so a false count passed
+
+`STATED_COUNT_RE` had no leading numeric boundary and did not understand thousands separators. Against
+a real total of 720, a **false** claim written as `1,720` followed by the usual `tests, 0 failures`
+phrasing matched on its trailing substring and passed. A correct grouped total would also have started
+failing once the suite legitimately reached that size.
+
+> **Note on how this paragraph is worded, which is itself a finding.** The first draft quoted both
+> example strings verbatim, and `npm run release-counts` then flagged **this file** as carrying a stale
+> claim. The guard reads raw text and cannot tell a live assertion from a quoted example, even inside
+> backticks. That limit was written into backlog E27 when the guard shipped, one round before it
+> demonstrated itself. The correct fix is to strip code spans before scanning, exactly as `U6`
+> (reference-links) was calibrated to do under ADR 0032 (calibrate U6 inline code and U12 non-live
+> mermaid). It is **not** done here: `stripCode` currently lives private inside
+> `scripts/checks/reference-links.mjs`, so sharing it means editing a graded check's internals in a
+> patch release at round 6, and a behavior-preserving refactor of a spine check is exactly the kind of
+> change this release has repeatedly proved is not as safe as it looks. Filed as E29; the paragraph is
+> reworded instead.
+
+### R6-3 [medium] The skill and spine agreement checks accepted contradictory grouped counts
+
+Same missing boundary. A contradictory second claim of `1,024 skills` read as `024`, converted to 24,
+and was accepted; `1,030 checks` likewise. The all-occurrences-agree rule was bypassable while
+`npm test` stayed green.
+
+### Why these were fixed rather than filed
+
+All three are individually low-probability: they need a grouped number, or a duplicated table row. But
+`CHANGELOG.md` claimed the guard "fails on any disagreeing count", and that claim was false. The
+options were to fix the code or narrow the claim, and a release whose subject is claims exceeding
+implementations does not get to narrow the claim.
+
+**The resolution is structural, not a third careful regex.** Both defect classes kept recurring because
+each fix was written in isolation against the single instance reported, which is the same mistake that
+produced the duplicated tier mapping in round 4. The parsing rule now lives in one shared helper that
+both scripts import, returning **all** occurrences with proper integer boundaries and normalized
+thousands separators, with an existence-only invariant test in the spirit of the `SKIP_DIRS` guard so a
+fourth private copy cannot be added quietly.
+
 ## What this review is evidence for
 
-Fourteen findings across five rounds. **Thirteen were introduced by this release**, and the pattern
+Seventeen findings across six rounds. **Sixteen were introduced by this release**, and the pattern
 sharpens with each round:
 
 - **Round 1** found defects in the implementation. Two had already been seen by a human and waved
@@ -282,11 +336,22 @@ are worth less than that observation.
 
 - **Round 5** found a bypass in round 4's own guard and, for the fourth time, a stale hand-written
   count - this one inside the document that had just been rebaselined to fix the third.
+- **Round 6**, scoped to round 5's fix commit alone, found that the commit which fixed a
+  first-match-only bypass in one file had **reintroduced the identical bypass in the new file it
+  added**, plus two numeric-boundary holes that let a false count pass.
 
 It also sets the honest expectation for the next release. Five rounds were needed because rounds 2
 through 5 were each reviewing the previous round's corrections, and corrections written quickly under a
 "nearly done" framing are exactly where this failure mode lives. The lesson is not "review more"; it
 is that the claims should be written **last**, from the code, rather than first, from the plan.
+
+**The second recurring mechanism, which took six rounds to name.** A defect gets reported as one
+instance, the fix is written against that instance, and the identical defect one file or one field
+away is left standing - sometimes created in the same commit. It produced the `emitPin` provenance
+pair, the tier-mapping duplicate, the first-match-only trio, and the numeric-boundary pair. The
+countermeasure that worked every time was the same: put the rule in one shared place and add an
+existence-only invariant so a second private copy cannot be added quietly. The countermeasure that
+never worked was intending to be careful.
 
 **What actually closed it was structure, not diligence.** The count defect recurred four times across
 five rounds while everyone involved knew about it, was actively documenting it, and was specifically
