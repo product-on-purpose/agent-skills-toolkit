@@ -14,13 +14,19 @@ const SCRIPT = path.resolve(HERE, "../../scripts/check-readme-version.mjs");
 // worse than no check, which is the lesson `docs/internal/STATUS.md` learned the expensive way.
 // `statusVersion` defaults to the library version so the badge tests stay focused on the badge;
 // pass it explicitly to exercise Status-section drift.
-function mkFixture(libVersion, badgeVersion, { statusVersion = libVersion, extraStatus = "" } = {}) {
+// libTier / statusTier default to undefined (no tier field in library.json, no Tier bullet in
+// Status): every existing call site that omits them keeps behaving exactly as before, since the
+// tier guard only activates when library.json actually declares a tier.
+function mkFixture(libVersion, badgeVersion, { statusVersion = libVersion, extraStatus = "", libTier, statusTier } = {}) {
   const dir = mkdtempSync(path.join(tmpdir(), "askit-readme-"));
-  writeFileSync(path.join(dir, "library.json"), JSON.stringify({ name: "test-lib", version: libVersion }), "utf8");
+  const lib = { name: "test-lib", version: libVersion };
+  if (libTier !== undefined) lib.tier = libTier;
+  writeFileSync(path.join(dir, "library.json"), JSON.stringify(lib), "utf8");
   const badgeLine = badgeVersion
     ? `<img src="https://img.shields.io/badge/version-${badgeVersion}-blue?style=flat-square" alt="Version">`
     : "<!-- no version badge -->";
-  const status = `## Status\n\n- **Version** - \`${statusVersion}\`.\n${extraStatus}`;
+  const tierLine = statusTier !== undefined ? `- **Tier** - ${statusTier}.\n` : "";
+  const status = `## Status\n\n- **Version** - \`${statusVersion}\`.\n${tierLine}${extraStatus}`;
   writeFileSync(path.join(dir, "README.md"), `# Test Lib\n\n${badgeLine}\n\n${status}\n`, "utf8");
   return dir;
 }
@@ -141,6 +147,63 @@ test("check-readme-version: exits 1 when the Status section misstates the spine 
     assert.equal(r.status, 1, "a wrong spine count must fail");
     const out = (r.stdout ?? "") + (r.stderr ?? "");
     assert.match(out, /spine/i, "output must name the spine claim");
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+// --- The tier claim: round-3 adversarial review, Finding B (the README release guard still does
+// not validate tier) ---
+//
+// docs/internal/RELEASE.md promises "README Status matches the declared tier + version (drift =
+// error)". This script's own docblock claimed to be a one-to-one mirror of that promise, but only
+// read library.json.version and the skill/spine counts; library.json.tier and the Status section's
+// tier claim were never compared, so the README could claim a different grade than the manifest
+// declares and the guard would still pass. These cover the fix, in both mismatch directions plus
+// the missing-claim case (a guard that silently skips when its subject is absent is worse than no
+// guard - the same reasoning already recorded above for the missing-`## Status` case).
+
+test("check-readme-version: exits 0 when the Status tier claim matches library.json.tier", () => {
+  const dir = mkFixture("7.0.0", "7.0.0", { libTier: "advanced", statusTier: "Advanced (Gold)" });
+  try {
+    const r = spawnSync(process.execPath, [SCRIPT, dir], { encoding: "utf8" });
+    assert.equal(r.status, 0, "a matching tier claim must pass");
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test("check-readme-version: exits 1 when the README claims a tier the manifest does not declare (README says Silver, manifest says advanced)", () => {
+  const dir = mkFixture("8.0.0", "8.0.0", { libTier: "advanced", statusTier: "Silver (Convergent)" });
+  try {
+    const r = spawnSync(process.execPath, [SCRIPT, dir], { encoding: "utf8" });
+    assert.equal(r.status, 1, "a README tier claim that disagrees with library.json.tier must fail");
+    const out = (r.stdout ?? "") + (r.stderr ?? "");
+    assert.match(out, /tier/i, "output must name the tier claim");
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test("check-readme-version: exits 1 when the manifest declares a tier the README does not claim (manifest says universal, README says Gold)", () => {
+  const dir = mkFixture("9.0.0", "9.0.0", { libTier: "universal", statusTier: "Advanced (Gold)" });
+  try {
+    const r = spawnSync(process.execPath, [SCRIPT, dir], { encoding: "utf8" });
+    assert.equal(r.status, 1, "a manifest tier that the README does not claim must fail");
+    const out = (r.stdout ?? "") + (r.stderr ?? "");
+    assert.match(out, /tier/i, "output must name the tier claim");
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test("check-readme-version: exits 1 when library.json declares a tier and the Status section carries no tier claim at all", () => {
+  const dir = mkFixture("10.0.0", "10.0.0", { libTier: "advanced" }); // statusTier omitted: no Tier bullet
+  try {
+    const r = spawnSync(process.execPath, [SCRIPT, dir], { encoding: "utf8" });
+    assert.equal(r.status, 1, "a missing tier claim must fail rather than silently skip, once the manifest declares a tier");
+    const out = (r.stdout ?? "") + (r.stderr ?? "");
+    assert.match(out, /tier/i, "output must say the tier claim is missing");
   } finally {
     rmSync(dir, { recursive: true, force: true });
   }

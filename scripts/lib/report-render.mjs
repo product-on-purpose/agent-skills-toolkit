@@ -4,12 +4,13 @@
 // used-by:      scripts/evaluate.mjs (--format), the askit-evaluate skill
 import { metaFor } from "./report-meta.mjs";
 import { escapeMdCell } from "./md-escape.mjs";
+import { TIER_NAME, TIER_SUB, TIER_ORDER } from "./tier.mjs";
 
 // --- tier display vocabulary (universal/convergent/advanced -> Bronze/Silver/Gold) ---
-const TIER_NAME = { universal: "Bronze", convergent: "Silver", advanced: "Gold" };
-const TIER_SUB = { universal: "Universal", convergent: "Convergent", advanced: "Advanced" };
+// TIER_NAME, TIER_SUB, and TIER_ORDER come from tier.mjs (the canonical tier-mapping module) rather
+// than being restated here, so this renderer and check-readme-version.mjs's README-tier guard read
+// the same vocabulary and cannot drift against each other. TIER_CLASS is CSS-only and stays local.
 const TIER_CLASS = { universal: "bronze", convergent: "silver", advanced: "gold" };
-const TIER_ORDER = ["universal", "convergent", "advanced"];
 
 const effSev = (f) => f.effectiveSeverity ?? f.severity;
 
@@ -59,7 +60,12 @@ function deriveModel(report, opts = {}) {
     if (status === "PASS") evidence = "Requirement satisfied; no finding raised.";
     else if (status === "N/A") evidence = "Nothing to validate for this subject (vacuous pass).";
     else evidence = lead?.message ?? "Finding raised.";
-    return { reqId, id, tier, tierName: TIER_NAME[tier] ?? tier, status, evidence, module, file: lead?.file ?? null, why: metaFor(reqId).why };
+    // migrationNotice (round-3 finding, "designed reports discard the migration-cap explanation"):
+    // resolveFindings attaches it when a finding's severity was pulled back down to a warn-first
+    // migration ceiling (ADR 0041), so a consumer whose askit.config.json override was overruled is
+    // told why instead of seeing a plain, unexplained warning. check.mjs and evaluate.mjs already
+    // surface it in text output; carrying it onto the row here is what lets both renderers do the same.
+    return { reqId, id, tier, tierName: TIER_NAME[tier] ?? tier, status, evidence, module, file: lead?.file ?? null, why: metaFor(reqId).why, migrationNotice: lead?.migrationNotice ?? null };
   });
 
   const tiers = TIER_ORDER.map((tier) => {
@@ -307,6 +313,10 @@ function renderMarkdown(report, opts = {}) {
       out.push(mdTable(["Req", "Status", "Evidence"], t.rows.map((r) => [`${r.reqId} ${r.id}`, r.status, `${r.evidence} Module: ${r.module}.`])));
       out.push("");
       for (const r of t.rows.filter((x) => x.status !== "PASS" && x.status !== "N/A")) {
+        if (r.migrationNotice) {
+          out.push(`> Severity capped for ${r.reqId}: ${r.migrationNotice}`);
+          out.push("");
+        }
         out.push(`> Why ${r.reqId} matters: ${r.why}`);
         out.push("");
       }
@@ -700,8 +710,12 @@ function htmlLedger(m) {
       const cls = r.status === "FAIL" ? " is-fail" : r.status === "WARN" ? " is-warn" : r.status === "N/A" ? " is-na" : "";
       const why = (r.status === "FAIL" || r.status === "WARN")
         ? `<div class="why${r.status === "WARN" ? " warn" : ""}"><b>Why it matters</b>${escapeHtml(r.why)}</div>` : "";
+      // Same "why is this severity not what you expected" category as `why` above; reuses the same
+      // .why box styling (warn variant) with its own label, so it reads as a sibling note, not a
+      // second unrelated callout.
+      const migration = r.migrationNotice ? `<div class="why warn"><b>Severity capped</b>${escapeHtml(r.migrationNotice)}</div>` : "";
       const fileBit = r.file ? ` <span class="src">${escapeHtml(r.file)}</span>` : "";
-      return `<div class="lrow${cls}" id="row-${r.reqId}"><div class="lst"><span class="rid">${escapeHtml(r.reqId)}</span><span class="rname">${escapeHtml(r.id)}</span><span class="badge ${badgeClass(r.status)}"><span class="dot ${r.status === "N/A" ? "na" : r.status.toLowerCase()}"></span>${badgeLabel(r.status)}</span></div><div class="lbody"><p class="ev">${escapeHtml(r.evidence)}${fileBit} <span class="src">${escapeHtml(r.module)}</span></p>${why}</div></div>`;
+      return `<div class="lrow${cls}" id="row-${r.reqId}"><div class="lst"><span class="rid">${escapeHtml(r.reqId)}</span><span class="rname">${escapeHtml(r.id)}</span><span class="badge ${badgeClass(r.status)}"><span class="dot ${r.status === "N/A" ? "na" : r.status.toLowerCase()}"></span>${badgeLabel(r.status)}</span></div><div class="lbody"><p class="ev">${escapeHtml(r.evidence)}${fileBit} <span class="src">${escapeHtml(r.module)}</span></p>${migration}${why}</div></div>`;
     }).join("\n");
     return `${bar}<div class="ledger">${rows}</div>`;
   }).join("\n");

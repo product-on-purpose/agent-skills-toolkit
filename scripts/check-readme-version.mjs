@@ -1,13 +1,15 @@
 // what-it-is:   README front-door claim drift guard
-// what-it-does: reads library.json and the check registry for the canonical version, skill count
-//               and spine size, then fails if the README's version badge or its `## Status`
-//               section disagrees with any of them
+// what-it-does: reads library.json (version, tier, skill count) and the check registry (spine
+//               size), then fails if the README's version badge, or its `## Status` section's
+//               version / tier / skill-count / spine-size claims, disagrees with any of them
 // why:          docs/internal/RELEASE.md promises "README Status matches the declared tier +
-//               version (drift = error)" and describes itself as a one-to-one mirror of an
-//               automated gate, but only the shields.io badge was ever checked. The Status
-//               section's own version, skill count and spine size were unguarded prose, which is
-//               the same class of unverified claim that left STATUS.md asserting shipped work was
-//               open for six weeks. These are the numbers a stranger reads first.
+//               version (drift = error)". Through v1.10.0 this script covered only the version half
+//               of that promise (badge plus the Status prose); the tier half was never read at all,
+//               so the README could claim a different Bronze/Silver/Gold grade than library.json.tier
+//               declares - or lose its tier claim entirely - and the guard still passed. Both halves
+//               are unguarded prose otherwise, which is the same class of unverified claim that left
+//               STATUS.md asserting shipped work was open for six weeks. These are the numbers and
+//               the grade a stranger reads first.
 // used-by:      npm test (prepended to the node --test invocation in package.json)
 //
 // Scope note: the `## Status` scan requires EVERY three-part version string in that section to be
@@ -15,9 +17,18 @@
 // present state, so a historical version mentioned there is far more likely to be a stale edit
 // than an intentional reference. If a genuine historical mention is ever wanted, move it out of
 // `## Status` rather than loosening this guard.
+//
+// Scope note: the tier claim is only enforced when library.json declares a `tier` field. A plugin
+// that declares no askit tier is not graded against the tier ladder (see scripts/lib/tier.mjs and
+// tier-report.mjs humanLine()), so there is nothing for a README tier claim to agree or disagree
+// with; requiring one anyway would invent a claim this script has no basis for. Once library.json
+// DOES declare a tier, a missing Status tier claim fails rather than silently skipping, for the same
+// reason a missing `## Status` section fails: a guard that passes when its subject is absent is
+// worse than no guard.
 import { readFileSync, existsSync } from "node:fs";
 import path from "node:path";
 import { CHECKS } from "./lib/registry.mjs";
+import { TIER_NAME, TIER_SUB } from "./lib/tier.mjs";
 
 const dir = process.argv[2] ? path.resolve(process.argv[2]) : process.cwd();
 const libPath = path.join(dir, "library.json");
@@ -96,14 +107,36 @@ for (const m of statusBody.matchAll(/\b(\d+\.\d+\.\d+)\b/g)) {
   }
 }
 
-// 2. The declared skill count must match library.json.
+// 2. The Status section's tier claim must match library.json.tier (Finding B, round-3 adversarial
+// review). Only enforced when library.json actually declares a tier; see the "Scope note" above.
+const declaredTier = lib?.tier ?? null;
+if (declaredTier != null) {
+  const wantName = TIER_NAME[declaredTier] ?? declaredTier; // e.g. "Gold"
+  const wantSub = TIER_SUB[declaredTier] ?? declaredTier;   // e.g. "Advanced"
+  const tierClaim = statusBody.match(/\*\*Tier\*\*\s*[-:]\s*([^\n]+)/i);
+  if (!tierClaim) {
+    failures.push(
+      `README.md  "## Status" has no tier claim (library.json declares tier "${declaredTier}" = ${wantSub} (${wantName}))`
+    );
+  } else {
+    const claim = tierClaim[1].trim();
+    const claimsDeclaredTier = new RegExp(`\\b(${wantName}|${wantSub})\\b`, "i").test(claim);
+    if (!claimsDeclaredTier) {
+      failures.push(
+        `README.md  "## Status" tier claim "${claim}" does not match library.json tier "${declaredTier}" (${wantSub} (${wantName}))`
+      );
+    }
+  }
+}
+
+// 3. The declared skill count must match library.json.
 const declaredSkills = Array.isArray(lib?.components?.skills) ? lib.components.skills.length : null;
 const skillClaim = statusBody.match(/(\d+)\s+skills\b/);
 if (declaredSkills != null && skillClaim && Number(skillClaim[1]) !== declaredSkills) {
   failures.push(`README.md  "## Status" claims ${skillClaim[1]} skills; library.json registers ${declaredSkills}`);
 }
 
-// 3. The declared spine size must match the check registry.
+// 4. The declared spine size must match the check registry.
 const spineSize = CHECKS.length;
 const spineClaim = statusBody.match(/(\d+)\s+checks\b/);
 if (spineClaim && Number(spineClaim[1]) !== spineSize) {

@@ -19,6 +19,7 @@ A public `0.x` tag ships at every wave boundary (RELEASE-PLAN v0.2 Section 5); `
 - [ ] **All tier-applicable conformance checks green** (`node scripts/check.mjs`).
 - [ ] **No em-dashes / en-dashes** in committed text (author-time hook; house style, retired as a gate check in Standard v0.11).
 - [ ] **Codex round-trip** run manually for this tag (Q-E gate): `CODEX_REQUIRED=1 npm test`; record the result in the release notes.
+- [ ] **Volatile counts written LAST**, after the final suite run. Test counts, skill counts and spine sizes are quoted in `CHANGELOG.md` and `docs/internal/STATUS.md` by hand. This is a **process step, not a gated check**, and it is on this list because v1.10.1 got it wrong in its own trust patch: the changelog was written early and published `647 tests` while the real number had reached `667`, and `STATUS.md` still claimed the pre-release `613`. Skill count and spine size ARE mechanically checked against the repository (`scripts/check-readme-version.mjs`); the test count is not, so `STATUS.md` states the date it was measured rather than implying it is live. Automating this is backlog E27.
 
 ## One-command release (target)
 

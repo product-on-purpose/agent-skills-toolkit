@@ -106,13 +106,78 @@ never a floor**, with suppression and `off` still winning so a consumer can alwa
 lowering a severity is always safe under ADR 0027, so that work is scope-bound rather than
 policy-bound.
 
+## Round 3
+
+Re-run after round 2's fix, with an explicit instruction to attack the migration cap itself and to
+check whether the release records accurately describe what the code does.
+
+**Verdict: needs-attention.** Four findings, all medium. The cap survived the severity-ordering
+matrix; every finding was about a claim exceeding the implementation.
+
+### R3-1 [medium] Designed reports discarded the migration-cap explanation
+
+The terminal and JSON paths carried `migrationNotice`; the Markdown and HTML renderers projected only
+`lead.message` and dropped it. So a consumer who set `rules: { "S4": "error" }`, got a warning, and
+opened the shareable report saw no explanation for why their configuration appeared to be ignored. The
+CHANGELOG for this release claimed the notice "reaches the terminal and the report", which was false
+in the artifact a third party is most likely to read.
+
+### R3-2 [medium] The README release guard still did not validate tier
+
+`docs/internal/RELEASE.md` promises "README Status matches the declared **tier** + version". The guard
+extended in this release checks version, skill count and spine size, and never reads `library.json`'s
+tier or the README's tier claim. Its own docblock cited the tier promise as its justification. The
+public grade could drift while the new trust gate reported green.
+
+### R3-3 [medium] The changelog published the wrong test count
+
+**The finding that matters most, because it is this release's own thesis failing inside this release.**
+`CHANGELOG.md` claimed **647 tests**; three rounds of review had pushed the real number to **667**, and
+`STATUS.md` still carried the pre-release **613**. Tagging would have published false verification
+evidence in the trust patch's primary technical history.
+
+Nobody wrote 647 dishonestly. It was true when typed and nothing re-read it, which is verbatim the
+mechanism the `STATUS.md` rewrite in this same release exists to document: a number in prose that
+nothing verifies drifts from true to false without anyone deciding to lie.
+
+**Resolution:** counts reconciled; `STATUS.md` now states the **date** its count was measured so a
+stale figure reads as stale; `docs/internal/RELEASE.md` gains "volatile counts written LAST" as an
+explicit process step, labeled a process step and not a gated check; automation filed as backlog E27.
+Skill count and spine size were already mechanically checked; the test count is not, because knowing it
+requires running the suite.
+
+### R3-4 [medium] ADR 0040 described superseded behavior as current
+
+ADR 0040 (re-pin after an editorial metadata clarification) still asserted the string reader was purely
+additive and moved no verdict, the exact claim ADR 0041 was written to correct, and still described
+`emitPin` inheriting an unsupplied `repoHeadSha` as an open defect after this branch had fixed it. A
+future maintainer reading the decision record would have got the opposite status from the code.
+
+**Resolution:** two dated correction notes, appended rather than edited away. The false claim is left
+standing above its correction on purpose: it was written, reviewed, and believed, and the fact that
+only an outside pass reading code against claims caught it is the useful part of the record.
+
 ## What this review is evidence for
 
-Three of the four findings were introduced by this release, and two of them were seen by a human and
-waved through: the trim was noticed and judged theoretical, and the `S4` carve-out was explicitly
-authorized in writing against an invariant stated in the same packet. The value of the pass was not
-that it read code nobody had read. It is that it read the code against the claims, which the author had
-stopped doing after writing them.
+Eight findings across three rounds. **Seven were introduced by this release**, and the pattern
+sharpens with each round:
+
+- **Round 1** found defects in the implementation. Two had already been seen by a human and waved
+  through: the trim was noticed and judged theoretical, and the `S4` carve-out was explicitly
+  authorized in writing against an invariant stated three paragraphs above it in the same packet.
+- **Round 2** found that round 1's own fix did not deliver what its ADR claimed.
+- **Round 3** found almost nothing wrong with the code and four things wrong with the **claims about**
+  the code: a notice that did not reach the reports it was said to reach, a guard whose docblock cited
+  a promise it did not keep, a published test count that was stale, and a decision record describing
+  fixed behavior as broken and corrected behavior as current.
+
+The value of the pass was never that it read code nobody had read. It is that it read the code
+**against the claims**, which the author stopped doing the moment the claims were written.
+
+That is worth being precise about, because it is the difference between "review catches bugs" and what
+actually happened here: by round 3 the code was essentially correct and the documentation was still
+wrong in four places, including one number that would have shipped as false verification evidence in
+the technical history of a release whose entire subject is unverified claims.
 
 That is the same lesson this repository keeps re-learning under different names, and the reason
 `docs/internal/STATUS.md` needed rewriting in this very release: a document asserting facts about a

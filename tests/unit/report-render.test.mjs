@@ -260,3 +260,41 @@ test("renderHtml: a subject that DOES declare a tier still reports it (HTML fals
   assert.match(html, /silver-fixture declares the .*tier/i, "HTML: a real declaration must still be reported");
   assert.ok(!/no .*tier declared/i.test(html), "HTML: a declared tier must not be described as undeclared");
 });
+
+// Round-3 adversarial review, Finding A (designed reports discard the migration-cap explanation):
+// resolveFindings (scripts/lib/resolve-config.mjs) attaches migrationNotice to a finding whose
+// effectiveSeverity was pulled back down to a warn-first migration ceiling (ADR 0041). check.mjs and
+// evaluate.mjs both surface it in their text output, but deriveModel here projected only
+// lead.message into each rule row, so a consumer who set rules.S4 = "error" saw a plain warning in
+// the Markdown/HTML report with no explanation for why their override was not honored, even though
+// the CHANGELOG claims the notice "reaches the terminal and the report". A capped S4 finding is
+// built directly (mirroring the "hostile finding" pattern above) rather than exercising the full
+// chain-contract check, since only the migrationNotice projection is under test here.
+function cappedFinding() {
+  return {
+    check: "chain-contract", severity: "warn", effectiveSeverity: "warn", reqId: "S4",
+    message: "chain declared as a string but no matching chain contract found in agents/_chain-permitted.yaml",
+    file: "skills/example/SKILL.md",
+    migrationNotice: 'capped at warn until Standard 0.13 (ADR 0041: warn-first until Standard 0.13); your configured severity would otherwise be "error"',
+  };
+}
+function cappedReport() {
+  const f = cappedFinding();
+  return { scope: "plugin", target: "capped", tier: "convergent", satisfies: ["universal", "convergent"], blocked: {}, summary: { errors: 0, warns: 1 }, findings: [f], byRule: { S4: [f] } };
+}
+
+test("renderMarkdown projects migrationNotice into the S4 evidence-ledger row (Finding A)", () => {
+  const r = cappedReport();
+  const md = renderMarkdown(r, optsFor(r));
+  const s4Line = md.split("\n").find((l) => l.includes("S4") && l.includes("WARN"));
+  assert.ok(s4Line, "expected an S4 WARN row in the evidence ledger");
+  assert.match(md, /capped at warn until Standard 0\.13/, "the migration cap explanation must reach the Markdown report");
+  assert.match(md, /your configured severity would otherwise be "error"/, "the full migrationNotice text must be preserved, not summarized away");
+});
+
+test("renderHtml projects migrationNotice into the S4 evidence-ledger row (Finding A)", () => {
+  const r = cappedReport();
+  const html = renderHtml(r, optsFor(r));
+  assert.match(html, /capped at warn until Standard 0\.13/, "the migration cap explanation must reach the HTML report");
+  assert.match(html, /your configured severity would otherwise be &quot;error&quot;|your configured severity would otherwise be "error"/, "the full migrationNotice text must be preserved (HTML-escaped) in the report");
+});
