@@ -39,8 +39,7 @@ metadata:
   version: 0.1.0
   tier: convergent
   audience: intermediate
-  chain:
-    - dep-risk-analyst
+  chain: dep-risk-analyst
 ---
 
 # dependency-audit
@@ -76,10 +75,11 @@ Done when every advisory carries a verdict and a recommended action, and every `
 cites the evidence that supports it.
 
 ## Chain
-This skill declares `chain: [dep-risk-analyst]` in its frontmatter. That declaration is one of three
-places the delegation has to be written down: the contract at `agents/_chain-permitted.yaml` must
-permit `dependency-audit -> dep-risk-analyst`, and `evals/` must carry a set whose `covers.chain` is
-that pair, or the Gold regression check (G3) reports the edge as uncovered.
+This skill declares `metadata.chain: dep-risk-analyst` in its frontmatter (a string, the recommended
+shape - see `authoring-chain-contracts.md` for why). That declaration is one of three places the
+delegation has to be written down: the contract at `agents/_chain-permitted.yaml` must permit
+`dependency-audit -> dep-risk-analyst`, and `evals/` must carry a set whose `covers.chain` is that
+pair, or the Gold regression check (G3) reports the edge as uncovered.
 ```
 
 ### `agents/_chain-permitted.yaml`
@@ -172,7 +172,7 @@ Note the asymmetry in the first row. `S4` and `G3` both key off what is declared
 - **All three halves agree, and the agreement is verified by the real checks** (`S4` and `G3`) rather than asserted, including a transcript of each check failing when one half is removed.
 - **The subagent contract closes the failure mode the delegation introduces.** Rule 2 in the callee and step 4 in the caller both refuse an unevidenced `unreachable`, which is the recorded cheap-tier failure pattern: a confident all-clear that nothing supports.
 - **The eval set is real coverage, not a placeholder.** The three cases exercise the dispatch, the evidence rule, and the no-dispatch path, which is what makes it a regression signal (Standard sec 8.3, `G3`).
-- **Frontmatter and layout conform:** `name` equals the directory (`U4`), the `chain:` list is a sequence per sec 3.6, `metadata.version` is present per sec 3.7, and the contract lives at the plugin level per sec 10.1.
+- **Frontmatter and layout conform:** `name` equals the directory (`U4`), `metadata.chain` is a comma-separated string (the recommended shape) per sec 3.6, `metadata.version` is present per sec 3.7, and the contract lives at the plugin level per sec 10.1.
 
 ## Verification
 

@@ -12,7 +12,7 @@ User asked: "Create a subagent for askit-build-samples validate mode. It should 
 | Name (kebab-case, equals file basename) | `askit-samples-validator` |
 | Bounded job | Drift detection: re-run a skill's `examples/` and `evals/` against current behavior; report each case that no longer holds as an error |
 | Narrowest tools | `Read` (inspect evidence files), `Bash` (run `node scripts/evaluate.mjs` when a drift case requires a gate pass) |
-| Chain (invoked components) | `[askit-evaluator]` - delegates conformance gate runs when drift touches a Standard requirement |
+| Chain (invoked components) | `askit-evaluator` - delegates conformance gate runs when drift touches a Standard requirement |
 | Targets | Claude only (`agent-targets: [claude]`) - Codex v0.135 plugins cannot ship subagents (Standard sec 3.3) |
 | Parent skill | `askit-build-samples` validate mode |
 
@@ -39,8 +39,7 @@ metadata:
   status: active
   agent-targets:
     - claude
-  chain:
-    - askit-evaluator
+  chain: askit-evaluator
 ---
 
 # askit-samples-validator
@@ -62,7 +61,7 @@ The delegated drift-detection role behind `askit-build-samples` validate mode. R
 
 ### `agents/_chain-permitted.yaml` entries needed
 
-The subagent declares `metadata.chain: [askit-evaluator]`, so S4 (`chain-contract`) requires this entry. The parent skill (`askit-build-samples`) must also declare its edge to this subagent, which requires a second entry. **These are shown as a patch to the file, not a full replacement:**
+The subagent declares `metadata.chain: askit-evaluator` (a string, the recommended shape), so S4 (`chain-contract`) requires this entry. The parent skill (`askit-build-samples`) must also declare its edge to this subagent, which requires a second entry. **These are shown as a patch to the file, not a full replacement:**
 
 ```yaml
 # Add to agents/_chain-permitted.yaml:
@@ -141,7 +140,7 @@ import('./scripts/lib/frontmatter.mjs').then(m => {
 "
 ```
 
-Output (run against `C:/Users/jpris/AppData/Local/Temp/claude/.../scratchpad/askit-samples-validator.md`):
+Output (run against `C:/Users/jpris/AppData/Local/Temp/claude/.../scratchpad/askit-samples-validator.md`, frontmatter updated to the recommended string form for `metadata.chain`):
 
 ```json
 {
@@ -153,12 +152,12 @@ Output (run against `C:/Users/jpris/AppData/Local/Temp/claude/.../scratchpad/ask
     "tier": "convergent",
     "status": "active",
     "agent-targets": ["claude"],
-    "chain": ["askit-evaluator"]
+    "chain": "askit-evaluator"
   }
 }
 ```
 
-Real output, not invented.
+Real output, not invented. `metadata.chain` parses as the string `"askit-evaluator"`, not a list - the recommended shape, because the reference implementation `skills-ref` coerces every `metadata` value through Python's `str()`; a YAML list under `metadata.chain` would parse back as a string containing a Python list repr instead. S4 (`chain-contract`) reads the string form (splitting on commas and/or whitespace), and still reads the YAML-list and legacy top-level `chain:` forms for compatibility.
 
 ### U5 description score
 

@@ -1,6 +1,6 @@
 {
   "name": "agent-skills-toolkit",
-  "version": "1.10.0",
+  "version": "1.10.1",
   "description": "Toolkit and Standard for authoring, validating, governing, and scaling cross-agent skill libraries (Claude Code and Codex) to a tiered Bronze/Silver/Gold quality bar. Use when building or grading agent skill plugins, when emitting components for multiple agents, or when adopting the Advanced Skill Library Standard.",
   "standard": "0.12",
   "tier": "advanced",
@@ -11,8 +11,8 @@
   "keywords": ["agent-skills", "skills", "claude-code", "codex", "plugin", "standard"],
   "components": {
     "skills": [
-      { "name": "askit-build-skill", "path": "skills/askit-build-skill/SKILL.md", "version": "0.1.0", "tier": "universal", "status": "active" },
-      { "name": "askit-evaluate", "path": "skills/askit-evaluate/SKILL.md", "version": "0.1.0", "tier": "universal", "status": "active" },
+      { "name": "askit-build-skill", "path": "skills/askit-build-skill/SKILL.md", "version": "0.1.3", "tier": "universal", "status": "active" },
+      { "name": "askit-evaluate", "path": "skills/askit-evaluate/SKILL.md", "version": "0.1.3", "tier": "universal", "status": "active" },
       { "name": "askit-build-subagent", "path": "skills/askit-build-subagent/SKILL.md", "version": "0.1.0", "tier": "universal", "status": "active" },
       { "name": "askit-build-command", "path": "skills/askit-build-command/SKILL.md", "version": "0.1.0", "tier": "universal", "status": "active" },
       { "name": "askit-build-mcp", "path": "skills/askit-build-mcp/SKILL.md", "version": "0.1.0", "tier": "universal", "status": "active" },
@@ -37,13 +37,13 @@
       { "name": "askit-standards-watch", "path": "skills/askit-standards-watch/SKILL.md", "version": "0.1.0", "tier": "universal", "status": "active" }
     ],
     "subagents": [
-      { "name": "askit-skill-author", "path": "agents/askit-skill-author.md", "version": "0.1.0", "tier": "convergent", "status": "active" },
+      { "name": "askit-skill-author", "path": "agents/askit-skill-author.md", "version": "0.1.2", "tier": "convergent", "status": "active" },
       { "name": "askit-evaluator", "path": "agents/askit-evaluator.md", "version": "0.1.0", "tier": "convergent", "status": "active" },
       { "name": "askit-explorer", "path": "agents/askit-explorer.md", "version": "0.1.0", "tier": "convergent", "status": "active" },
       { "name": "askit-file-search", "path": "agents/askit-file-search.md", "version": "0.1.0", "tier": "convergent", "status": "active" },
       { "name": "askit-file-ops", "path": "agents/askit-file-ops.md", "version": "0.1.0", "tier": "convergent", "status": "active" },
-      { "name": "askit-reviewer", "path": "agents/askit-reviewer.md", "version": "0.1.0", "tier": "convergent", "status": "active" },
-      { "name": "askit-quality-grader", "path": "agents/askit-quality-grader.md", "version": "0.1.0", "tier": "convergent", "status": "active" }
+      { "name": "askit-reviewer", "path": "agents/askit-reviewer.md", "version": "0.1.1", "tier": "convergent", "status": "active" },
+      { "name": "askit-quality-grader", "path": "agents/askit-quality-grader.md", "version": "0.1.1", "tier": "convergent", "status": "active" }
     ],
     "commands": [
       { "name": "askit-evaluate", "path": "commands/askit-evaluate.md", "version": "0.1.0", "tier": "convergent", "status": "active" },

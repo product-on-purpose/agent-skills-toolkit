@@ -18,9 +18,9 @@
     "versioningNote": "The upstream publishes NO version number and cuts NO git tags or GitHub releases (verified 2026-07-27: `gh api repos/agentskills/agentskills/tags` and `.../releases` are both empty). There is therefore no upstream version string to pin, which is why this file pins content hashes instead. If the upstream ever starts versioning itself, re-pinning to that version is strictly better and this file should record it."
   },
   "verified": {
-    "date": "2026-07-27",
-    "by": "askit-standards-watch bootstrap",
-    "repoHeadSha": "38a2ff82958afee88dadf4831509e6f7e9d8ef4e",
+    "date": "2026-08-11",
+    "by": "askit-standards-watch run, reviewed under ADR 0040 (re-pin after an editorial metadata clarification)",
+    "repoHeadSha": "69ef37e9424c0a7ea9dd2293b559e43ec8176379",
     "method": "GitHub API (git/trees and contents) for the blob shas, re-derived locally with `git hash-object` on the fetched bytes; the published page at https://agentskills.io/specification.md was read alongside and matches docs/specification.mdx in substance."
   },
   "artifacts": [
@@ -28,7 +28,7 @@
       "path": "docs/specification.mdx",
       "role": "normative-prose",
       "rawUrl": "https://raw.githubusercontent.com/agentskills/agentskills/main/docs/specification.mdx",
-      "blobSha": "20cf9f6b672391e3295733c7863480905de6b887",
+      "blobSha": "d9a2db099d905da8b879a5c6f996728073985279",
       "structural": true,
       "touches": [
         "U3",
@@ -38,9 +38,9 @@
         "U7"
       ],
       "lastUpstreamCommit": {
-        "sha": "6868401b64f791e9ff565f29beb6338826b73a2b",
-        "date": "2026-05-16",
-        "subject": "docs: fix name field character range to include digits"
+        "sha": "217be548739f21d6008915c29aefe320ea1a90af",
+        "date": "2026-08-04",
+        "subject": "Merge pull request #479 from jonathanhefner/issue-474-clarify-metadata"
       },
       "notes": "The complete format specification for Agent Skills. This is what STANDARD.md sec 3.1 restates and what the Universal tier claims to be a strict superset of."
     },
@@ -198,7 +198,7 @@
       {
         "field": "metadata",
         "required": false,
-        "constraints": "Arbitrary key-value mapping for additional metadata."
+        "constraints": "Arbitrary key-value mapping for additional metadata (a map from string keys to string values)."
       },
       {
         "field": "name",
@@ -237,7 +237,7 @@
       },
       {
         "key": "### Frontmatter",
-        "hash": "16ac77639d18fae8",
+        "hash": "e07743a7fdf80b0a",
         "lines": 34
       },
       {
@@ -277,8 +277,8 @@
       },
       {
         "key": "## Optional directories",
-        "hash": "e3b0c44298fc1c14",
-        "lines": 1
+        "hash": "a1214eb3733c23a2",
+        "lines": 3
       },
       {
         "key": "### `scripts/`",
@@ -313,4 +313,3 @@
     ]
   }
 }
-

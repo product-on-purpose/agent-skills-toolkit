@@ -13,8 +13,14 @@ export const SEVERITY = Object.freeze({ ERROR: "error", WARN: "warn" });
 export const PROVENANCE = Object.freeze({ OBJECTIVE: "objective", VENDOR: "vendor-cited", HOUSE: "house" });
 
 /**
- * Build a normalized Finding.
- * @returns {{check:string,severity:"error"|"warn",message:string,file:string|null,reqId:string|null}}
+ * Build a normalized Finding. `migration`, when present, declares a warn-first Standard-version
+ * migration this specific finding is riding out: `{ capAt, until, reason }`, where `capAt` is the
+ * highest severity resolve-config.mjs's migration cap will ever let this finding reach (a ceiling,
+ * never a floor - see resolveFindings), `until` names the Standard version the cap graduates at, and
+ * `reason` is a short human sentence a consumer sees when their own override was overruled by it.
+ * Only a check that itself needs this (e.g. S4's string-shaped chain declarations, ADR 0041) sets it;
+ * every other finding carries `migration: null` and is untouched by the cap.
+ * @returns {{check:string,severity:"error"|"warn",message:string,file:string|null,reqId:string|null,migration:{capAt:string,until:string,reason:string}|null}}
  */
 export function finding(check, severity, message, opts = {}) {
   if (severity !== SEVERITY.ERROR && severity !== SEVERITY.WARN) {
@@ -26,5 +32,6 @@ export function finding(check, severity, message, opts = {}) {
     message,
     file: opts.file ?? null,
     reqId: opts.reqId ?? null,
+    migration: opts.migration ?? null,
   };
 }

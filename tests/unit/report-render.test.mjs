@@ -260,3 +260,87 @@ test("renderHtml: a subject that DOES declare a tier still reports it (HTML fals
   assert.match(html, /silver-fixture declares the .*tier/i, "HTML: a real declaration must still be reported");
   assert.ok(!/no .*tier declared/i.test(html), "HTML: a declared tier must not be described as undeclared");
 });
+
+// Round-3 adversarial review, Finding A (designed reports discard the migration-cap explanation):
+// resolveFindings (scripts/lib/resolve-config.mjs) attaches migrationNotice to a finding whose
+// effectiveSeverity was pulled back down to a warn-first migration ceiling (ADR 0041). check.mjs and
+// evaluate.mjs both surface it in their text output, but deriveModel here projected only
+// lead.message into each rule row, so a consumer who set rules.S4 = "error" saw a plain warning in
+// the Markdown/HTML report with no explanation for why their override was not honored, even though
+// the CHANGELOG claims the notice "reaches the terminal and the report". A capped S4 finding is
+// built directly (mirroring the "hostile finding" pattern above) rather than exercising the full
+// chain-contract check, since only the migrationNotice projection is under test here.
+function cappedFinding() {
+  return {
+    check: "chain-contract", severity: "warn", effectiveSeverity: "warn", reqId: "S4",
+    message: "chain declared as a string but no matching chain contract found in agents/_chain-permitted.yaml",
+    file: "skills/example/SKILL.md",
+    migrationNotice: 'capped at warn until Standard 0.13 (ADR 0041: warn-first until Standard 0.13); your configured severity would otherwise be "error"',
+  };
+}
+function cappedReport() {
+  const f = cappedFinding();
+  return { scope: "plugin", target: "capped", tier: "convergent", satisfies: ["universal", "convergent"], blocked: {}, summary: { errors: 0, warns: 1 }, findings: [f], byRule: { S4: [f] } };
+}
+
+test("renderMarkdown projects migrationNotice into the S4 evidence-ledger row (Finding A)", () => {
+  const r = cappedReport();
+  const md = renderMarkdown(r, optsFor(r));
+  const s4Line = md.split("\n").find((l) => l.includes("S4") && l.includes("WARN"));
+  assert.ok(s4Line, "expected an S4 WARN row in the evidence ledger");
+  assert.match(md, /capped at warn until Standard 0\.13/, "the migration cap explanation must reach the Markdown report");
+  assert.match(md, /your configured severity would otherwise be "error"/, "the full migrationNotice text must be preserved, not summarized away");
+});
+
+test("renderHtml projects migrationNotice into the S4 evidence-ledger row (Finding A)", () => {
+  const r = cappedReport();
+  const html = renderHtml(r, optsFor(r));
+  assert.match(html, /capped at warn until Standard 0\.13/, "the migration cap explanation must reach the HTML report");
+  assert.match(html, /your configured severity would otherwise be &quot;error&quot;|your configured severity would otherwise be "error"/, "the full migrationNotice text must be preserved (HTML-escaped) in the report");
+});
+
+// Round-4 adversarial review, Finding 2 (regression in round-3's own fix): deriveModel picks a
+// single LEAD finding per requirement and, in round 3, copied migrationNotice from that lead only.
+// A real S4 result can carry BOTH an array-shaped orphan finding (severity "error", untouched by
+// the ADR 0041 migration cap, so its migrationNotice is null) AND a string-shaped finding capped to
+// "warn" (migrationNotice set). deriveModel's lead-picking prefers the "error" finding, so the
+// capped warning's migrationNotice was silently dropped whenever an uncapped error shared its
+// requirement - the round-3 fix only worked when the capped finding happened to be the lead. The
+// fix must collect and render every unique migrationNotice among the LIVE findings for a
+// requirement, not just the lead's.
+function orphanErrorFinding() {
+  return {
+    check: "chain-contract", severity: "error", effectiveSeverity: "error", reqId: "S4",
+    message: "chain declared as an array but no matching chain contract found in agents/_chain-permitted.yaml",
+    file: "skills/example-array/SKILL.md",
+    migrationNotice: null,
+  };
+}
+function mixedReport() {
+  const err = orphanErrorFinding();
+  const warn = cappedFinding();
+  return { scope: "plugin", target: "mixed", tier: "convergent", satisfies: ["universal", "convergent"], blocked: {}, summary: { errors: 1, warns: 1 }, findings: [err, warn], byRule: { S4: [err, warn] } };
+}
+
+test("renderMarkdown: a mixed error-plus-capped-warning S4 result still surfaces the warning's migrationNotice (Finding 2)", () => {
+  const r = mixedReport();
+  const md = renderMarkdown(r, optsFor(r));
+  const s4Line = md.split("\n").find((l) => l.includes("S4") && l.includes("FAIL"));
+  assert.ok(s4Line, "expected an S4 FAIL row (the error outranks the warn for status)");
+  assert.match(md, /capped at warn until Standard 0\.13/, "the capped warning's migration notice must still reach the Markdown report even though an uncapped error is the lead finding");
+});
+
+test("renderHtml: a mixed error-plus-capped-warning S4 result still surfaces the warning's migrationNotice (Finding 2)", () => {
+  const r = mixedReport();
+  const html = renderHtml(r, optsFor(r));
+  assert.match(html, /capped at warn until Standard 0\.13/, "the capped warning's migration notice must still reach the HTML report even though an uncapped error is the lead finding");
+});
+
+test("renderMarkdown: an identical migrationNotice repeated across findings in one requirement renders once, not duplicated", () => {
+  const f1 = cappedFinding();
+  const f2 = { ...cappedFinding(), file: "skills/other/SKILL.md" }; // same migrationNotice text, different finding
+  const r = { scope: "plugin", target: "dup", tier: "convergent", satisfies: ["universal", "convergent"], blocked: {}, summary: { errors: 0, warns: 2 }, findings: [f1, f2], byRule: { S4: [f1, f2] } };
+  const md = renderMarkdown(r, optsFor(r));
+  const occurrences = md.split("capped at warn until Standard 0.13").length - 1;
+  assert.equal(occurrences, 1, "an identical migrationNotice shared by multiple findings must be deduplicated, not repeated");
+});

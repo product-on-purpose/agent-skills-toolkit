@@ -1,6 +1,6 @@
 {
   "name": "agent-skills-toolkit",
-  "version": "1.10.0",
+  "version": "1.10.1",
   "license": "Apache-2.0",
   "private": true,
   "type": "module",
@@ -11,7 +11,8 @@
     "tier-report": "node scripts/tier-report.mjs",
     "evaluate": "node scripts/evaluate.mjs",
     "eval-run": "node scripts/eval-run.mjs",
-    "standards-watch": "node scripts/standards-watch.mjs ."
+    "standards-watch": "node scripts/standards-watch.mjs .",
+    "release-counts": "node scripts/check-release-counts.mjs ."
   },
   "dependencies": {
     "yaml": "^2.5.0"

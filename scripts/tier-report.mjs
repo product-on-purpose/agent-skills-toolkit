@@ -8,6 +8,7 @@ import { applyStandardDowngrade } from "./lib/standard-gate.mjs";
 import { loadConfig } from "./lib/config.mjs";
 import { resolveFindings } from "./lib/resolve-config.mjs";
 import { TIER_ORDER, tierForReq } from "./lib/tier.mjs";
+import { normalizeArgPath } from "./lib/fs-utils.mjs";
 
 // F1 + F3: when no findings are passed, default to the fully resolved set (the standard-aware downgrade,
 // then config/profile/suppression resolution), so the burndown agrees with the gate. check.mjs and
@@ -61,7 +62,11 @@ export function humanLine(r) {
 const cap = (s) => s.charAt(0).toUpperCase() + s.slice(1);
 
 if (process.argv[1]?.endsWith("tier-report.mjs")) {
-  const root = process.argv.find((a, i) => i >= 2 && !a.startsWith("--")) ?? process.cwd();
+  // Normalized through normalizeArgPath so a Windows backslash root is not silently misread (the
+  // historical defect: docs/how-to/troubleshoot-the-gate.md). Only the argv-sourced value is
+  // normalized; the process.cwd() default is left as the OS gave it.
+  const rawRoot = process.argv.find((a, i) => i >= 2 && !a.startsWith("--"));
+  const root = rawRoot !== undefined ? normalizeArgPath(rawRoot) : process.cwd();
   const r = computeTierReport(root);
   if (process.argv.includes("--json")) console.log(JSON.stringify(r, null, 2));
   else console.log(humanLine(r));

@@ -65,7 +65,7 @@ Output: an updated `SKILL.md` that passes the Universal checks for that skill.
 
 Artifact handed on: the list of improved skill paths (one path per invocation; iterate over all skills with failures).
 
-Inter-component invocation: `askit-build-skill` dispatches `askit-skill-author` for the drafting work. This is a real inter-component invocation. `askit-build-skill` declares `metadata.chain: [askit-skill-author, askit-reviewer]` in its own frontmatter, and `agents/_chain-permitted.yaml` permits the edge under `askit-build-skill: [askit-skill-author, askit-reviewer]`. S4 enforces this: if the frontmatter declares the edge but the contract entry is missing or incomplete, S4 emits an orphan error. This invocation is governed; no additional contract entry is required in the adopting plugin's contract for a call that `askit-build-skill` governs internally.
+Inter-component invocation: `askit-build-skill` dispatches `askit-skill-author` for the drafting work. This is a real inter-component invocation. `askit-build-skill` declares `metadata.chain: askit-skill-author, askit-reviewer` (a comma-separated string, the recommended shape) in its own frontmatter, and `agents/_chain-permitted.yaml` permits the edge under `askit-build-skill: [askit-skill-author, askit-reviewer]`. S4 enforces this: if the frontmatter declares the edge but the contract entry is missing or incomplete, S4 emits an orphan error. This invocation is governed; no additional contract entry is required in the adopting plugin's contract for a call that `askit-build-skill` governs internally.
 
 Exit criterion: `node scripts/evaluate.mjs skills/<name> --json` reports 0 Universal errors for the improved skill. Repeat for each skill in the failure list from step 1 before moving to step 3.
 
@@ -109,7 +109,7 @@ This entry already exists in this toolkit's `agents/_chain-permitted.yaml`. The 
 ## Why this is golden
 
 - **Sec 3.4 (workflow, branching):** the flat `steps` sequence lists all three skills that can run. S5 validates each exists. The body carries the branch condition explicitly: "if `bronze_errors == 0`, skip step 2." The craft doc notes that `steps` is a flat YAML sequence and cannot express a branch; the body is the right place for branch logic, not the frontmatter.
-- **Inter-component invocation documented correctly (sec 3.4, 3.6):** step 2's body calls out exactly what S4 does and why: `askit-build-skill` has `metadata.chain: [askit-skill-author, askit-reviewer]` in its frontmatter; the contract has the matching entry; S4 enforces the edge. The workflow author does not need to add a new contract entry, but the body makes the invocation visible so a reader knows the arc is not purely runner-driven.
+- **Inter-component invocation documented correctly (sec 3.4, 3.6):** step 2's body calls out exactly what S4 does and why: `askit-build-skill` has `metadata.chain: askit-skill-author, askit-reviewer` (string form) in its frontmatter; the contract has the matching entry; S4 enforces the edge. The workflow author does not need to add a new contract entry, but the body makes the invocation visible so a reader knows the arc is not purely runner-driven.
 - **`agent-targets: [claude]` narrowed honestly (sec 3.4):** step 2 uses `askit-build-skill`, which dispatches `askit-skill-author` as a subagent. Codex plugins cannot ship subagents (sec 3.3). Narrowing `agent-targets` to `[claude]` is accurate; copying `[claude, codex]` from the template would misrepresent the arc's capabilities.
 - **Body exit criteria are evaluable (craft doc):** "0 Universal errors for the improved skill" and "`askit-evaluate` reports 0 errors at the target tier" are conditions a reader can check. "The step is done" is not.
 - **S5 (workflow-skills) would pass:** every skill in `steps` exists on disk. Verified by hand below.
@@ -131,7 +131,7 @@ skills/askit-evaluate/SKILL.md
 
 `askit-build-skill` frontmatter confirms the declared chain:
 
-`askit-build-skill/SKILL.md` contains `metadata.chain: [askit-skill-author, askit-reviewer]`.
+`askit-build-skill/SKILL.md` contains `metadata.chain: askit-skill-author, askit-reviewer` (the recommended comma-separated-string shape; S4 splits it into `["askit-skill-author", "askit-reviewer"]`).
 
 `agents/_chain-permitted.yaml` entry confirmed:
 

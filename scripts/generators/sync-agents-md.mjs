@@ -3,6 +3,7 @@
 // why:          keeps the agent navigation entrypoint honest with the actual component set
 // used-by:      run by contributors and the cadence
 import { loadPlugin } from "../lib/load-plugin.mjs";
+import { normalizeArgPath } from "../lib/fs-utils.mjs";
 
 /** Returns the generated component-list block AGENTS.md should contain. Wiring into AGENTS.md is Silver. */
 export function renderAgentsComponentBlock(ctx) {
@@ -13,6 +14,9 @@ export function renderAgentsComponentBlock(ctx) {
 }
 
 if (process.argv[1]?.endsWith("sync-agents-md.mjs")) {
-  const root = process.argv.find((a, i) => i >= 2 && !a.startsWith("--")) ?? process.cwd();
+  // Normalized through normalizeArgPath so a Windows backslash root is not silently misread (the
+  // historical defect: docs/how-to/troubleshoot-the-gate.md).
+  const rawRoot = process.argv.find((a, i) => i >= 2 && !a.startsWith("--"));
+  const root = rawRoot !== undefined ? normalizeArgPath(rawRoot) : process.cwd();
   process.stdout.write(renderAgentsComponentBlock(loadPlugin(root)));
 }

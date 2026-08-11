@@ -9,6 +9,7 @@
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { EvalRunError, loadCorpus, resolveTarget, planBatch, runOne, toPosix, RUNS_DIR_REL, DISPATCH_TEMPLATES } from "./lib/eval-run.mjs";
+import { normalizeArgPath } from "./lib/fs-utils.mjs";
 
 const REPO_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 
@@ -41,8 +42,15 @@ report and the record row, never in this exit code. Exit 2 means a refusal (an u
 tree, a seam that could not grade) - a refusal is always loud.`;
 
 const VALUE_FLAGS = new Set(["--profile", "--report-type", "--subpath", "--sha", "--limit", "--date", "--out-dir", "--manifest", "--aggregate", "--label", "--runs-dir", "--record", "--dossier"]);
+// The subset of VALUE_FLAGS that are filesystem paths, normalized through normalizeArgPath so a Windows
+// backslash path is not silently misread (the historical defect: docs/how-to/troubleshoot-the-gate.md).
+// --sha, --profile, --report-type, --limit, --date, --aggregate, and --label are not paths and are left
+// exactly as typed. scripts/lib/eval-run.mjs's resolvePosix() separately (and unconditionally) normalizes
+// clone paths sourced from the corpus manifest itself - see its docblock for why that stays unconditional.
+const PATH_FLAGS = new Set(["--subpath", "--out-dir", "--manifest", "--runs-dir", "--record", "--dossier"]);
 
-function parseArgs(argv) {
+/** Exported for unit testing (tests/unit/argv-path-normalization.test.mjs). */
+export function parseArgs(argv) {
   const out = { positionals: [], all: false, dryRun: false };
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
@@ -51,13 +59,13 @@ function parseArgs(argv) {
     else if (a.startsWith("--") && a.includes("=")) {
       const [k, v] = [a.slice(0, a.indexOf("=")), a.slice(a.indexOf("=") + 1)];
       if (!VALUE_FLAGS.has(k)) throw new EvalRunError(`unknown flag ${k}`, "usage");
-      out[k.slice(2)] = v;
+      out[k.slice(2)] = PATH_FLAGS.has(k) ? normalizeArgPath(v) : v;
     } else if (VALUE_FLAGS.has(a)) {
       const v = argv[++i];
       if (v === undefined) throw new EvalRunError(`${a} needs a value`, "usage");
-      out[a.slice(2)] = v;
+      out[a.slice(2)] = PATH_FLAGS.has(a) ? normalizeArgPath(v) : v;
     } else if (a.startsWith("--")) throw new EvalRunError(`unknown flag ${a}`, "usage");
-    else out.positionals.push(a);
+    else out.positionals.push(normalizeArgPath(a));
   }
   return out;
 }

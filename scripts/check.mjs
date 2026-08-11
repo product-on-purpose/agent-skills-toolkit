@@ -11,6 +11,7 @@ import { resolveFindings, gatingFindings } from "./lib/resolve-config.mjs";
 import { computeTierReport, humanLine } from "./tier-report.mjs";
 import { TIER_ORDER, tierForReq, ceilingIndex } from "./lib/tier.mjs";
 import { compareStandard } from "./lib/standard-version.mjs";
+import { normalizeArgPath } from "./lib/fs-utils.mjs";
 
 /** Filter error severity by declared-tier ceiling. Exported for unit testing. */
 export function gateExitFromFindings(findings, declaredTier) {
@@ -82,6 +83,7 @@ function findingLine(f) {
   return `  [${sev}] ${f.check}${f.reqId ? " (" + f.reqId + ")" : ""}: ${f.message}` +
     `${f.downgraded ? ` [downgraded: introduced in Standard ${f.since}, after pinned ${f.pinned}]` : ""}` +
     `${f.clampNotice ? ` [clamped to warn: published-verdict, ${f.provenance}]` : ""}` +
+    `${f.migrationNotice ? ` [${f.migrationNotice}]` : ""}` +
     `${f.file ? "  -> " + f.file : ""}`;
 }
 
@@ -98,8 +100,12 @@ export function format(findings, declaredTier) {
   return parts.join("\n");
 }
 
-/** Parse the CLI: the first non-flag token is the root; --strict and --mode <val> (or --mode=<val>) are flags. */
-function parseArgs(argv) {
+/**
+ * Parse the CLI: the first non-flag token is the root (normalized through normalizeArgPath, so a
+ * Windows backslash path is not silently misread - the historical defect); --strict and --mode <val>
+ * (or --mode=<val>) are flags. Exported for unit testing (tests/unit/argv-path-normalization.test.mjs).
+ */
+export function parseArgs(argv) {
   let root, mode, profile, strict = false;
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
@@ -108,7 +114,7 @@ function parseArgs(argv) {
     else if (a.startsWith("--mode=")) mode = a.slice("--mode=".length);
     else if (a === "--profile") profile = argv[++i];
     else if (a.startsWith("--profile=")) profile = a.slice("--profile=".length);
-    else if (!a.startsWith("--") && root === undefined) root = a;
+    else if (!a.startsWith("--") && root === undefined) root = normalizeArgPath(a);
   }
   return { root: root ?? process.cwd(), mode, profile, strict };
 }

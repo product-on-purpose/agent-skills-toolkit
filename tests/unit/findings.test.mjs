@@ -10,6 +10,7 @@ test("finding() builds a normalized Finding with defaults", () => {
     message: "boom",
     file: null,
     reqId: null,
+    migration: null,
   });
 });
 
@@ -18,6 +19,12 @@ test("finding() accepts file and reqId", () => {
   assert.equal(f.severity, "warn");
   assert.equal(f.file, "skills/x/SKILL.md");
   assert.equal(f.reqId, "U5");
+});
+
+test("finding() accepts migration metadata (the round-2 ADR 0041 severity-cap ceiling), defaulting to null", () => {
+  const migration = { capAt: "warn", until: "0.13", reason: "warn-first until Standard 0.13" };
+  const f = finding("c", SEVERITY.WARN, "msg", { migration });
+  assert.deepEqual(f.migration, migration);
 });
 
 test("finding() rejects an unknown severity", () => {

@@ -58,7 +58,7 @@ S5 reads the workflow's frontmatter `steps` key and checks that each named skill
 
 **`S4` (chain-contract) does not catch it either.**
 
-S4 reads each component's `metadata.chain` list (falling back to a legacy top-level `chain:`), then checks: does the contract permit every declared invocation (orphan check), and does every contract entry name a component that exists (phantom check)?
+S4 reads each component's `metadata.chain` (a comma-separated string, the recommended shape, or a YAML list; falling back to a legacy top-level `chain:` in either shape), then checks: does the contract permit every declared invocation (orphan check), and does every contract entry name a component that exists (phantom check)?
 
 `askit-migrate`'s `SKILL.md` has no `chain:` key. S4 sees no declared invocation from `askit-migrate`, so there is no orphan to detect. S4 never reads the workflow's `steps` list. The contract has no entry for `askit-migrate -> askit-evaluate`, but since there is no `chain:` declaration on `askit-migrate` to match against, S4 has nothing to flag.
 
@@ -148,9 +148,10 @@ If `askit-migrate` genuinely dispatches `askit-evaluate` programmatically, both 
 
 ```yaml
 metadata:
-  chain:
-    - askit-evaluate
+  chain: askit-evaluate
 ```
+
+(A comma-separated string is the recommended shape for `metadata.chain` - see `authoring-chain-contracts.md` for why. S4 still reads a YAML list here too.)
 
 `agents/_chain-permitted.yaml` (addition):
 
@@ -168,7 +169,7 @@ The deterministic gate does NOT detect this mistake. Here is exactly what each c
 | Check | Reads | Catches | Does NOT catch |
 |---|---|---|---|
 | `S5` (workflow-skills) | the workflow's frontmatter `steps` | a step naming a skill not on disk | anything about permission or dispatch |
-| `S4` (chain-contract) | each component's `metadata.chain` list (falling back to a legacy top-level `chain:`) + the contract file | an orphan (declared chain without a matching contract entry) and a phantom (contract entry with no matching component) | the workflow's `steps` list; a dispatch that is not declared |
+| `S4` (chain-contract) | each component's `metadata.chain` (string or list; falling back to a legacy top-level `chain:`) + the contract file | an orphan (declared chain without a matching contract entry) and a phantom (contract entry with no matching component) | the workflow's `steps` list; a dispatch that is not declared |
 
 A workflow body that claims a dispatch but has no `metadata.chain` declaration on the invoking skill is invisible to both checks. The gate reports 0 errors. The author must inspect the body by hand and confirm: does any step claim to dispatch the next? If yes, is the dispatching skill's `metadata.chain` declared? Is the contract entry present? The answers must all be yes, or the arc must be re-framed as runner-driven.
 

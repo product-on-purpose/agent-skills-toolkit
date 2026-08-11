@@ -1,0 +1,7 @@
+{
+  "name": "chain-string-orphan-rules-error",
+  "version": "0.1.0",
+  "tier": "convergent",
+  "agent-targets": ["claude"],
+  "components": { "skills": [{ "name": "cso-caller", "path": "skills/cso-caller/SKILL.md", "version": "0.1.0", "tier": "universal", "status": "active" }] }
+}

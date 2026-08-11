@@ -19,6 +19,7 @@ A public `0.x` tag ships at every wave boundary (RELEASE-PLAN v0.2 Section 5); `
 - [ ] **All tier-applicable conformance checks green** (`node scripts/check.mjs`).
 - [ ] **No em-dashes / en-dashes** in committed text (author-time hook; house style, retired as a gate check in Standard v0.11).
 - [ ] **Codex round-trip** run manually for this tag (Q-E gate): `CODEX_REQUIRED=1 npm test`; record the result in the release notes.
+- [ ] **`npm run release-counts`** green. Runs the suite and fails on any test count in the newest `CHANGELOG.md` section, in `docs/internal/STATUS.md`, or in the current release packet that disagrees with what the suite actually reports. Compares totals and failures only, never pass counts, because the argv coverage skips its platform-specific halves on opposite platforms. **Write volatile counts LAST**, after the final suite run, then run this. It exists because v1.10.1 got this wrong four times in a single release: the changelog published `647` when the truth was `667`, `STATUS.md` carried the pre-release `613`, and the release packet claimed `673` against `682` one paragraph after saying it had been rebaselined. Three of those were corrected by hand and the defect recurred anyway. Skill count and spine size are separately checked by `scripts/check-readme-version.mjs`, which runs inside `npm test`.
 
 ## One-command release (target)
 

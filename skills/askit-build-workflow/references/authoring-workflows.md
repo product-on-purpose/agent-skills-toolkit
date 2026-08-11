@@ -26,8 +26,12 @@ existence of a `_workflows/` directory is one of them**
 
     chainingInUse = a contract exists  OR  _workflows/ exists  OR  some component declares metadata.chain
 
-`S4` reads a component's `metadata.chain` list, preferring it; the top-level `chain:` location
-predates Standard vocabulary alignment and is still read for compatibility.
+`S4` reads a component's `metadata.chain`, preferring it over the legacy top-level `chain:` location
+(which predates Standard vocabulary alignment and is still read for compatibility). Write
+`metadata.chain` as a comma-separated string - `chain: first-callee, second-callee` - the recommended
+shape: the reference implementation coerces every `metadata` value through Python's `str()`, so a
+YAML list there gets silently rewritten to a string containing a Python list repr. `S4` still reads a
+YAML list under `metadata.chain` too, so an existing plugin on that shape does not regress.
 
 Chain contracts are a conditional MUST (sec 3.6): required if and only if chaining is used. So a
 plugin that has never chained anything passes `S4` vacuously today, and the moment you add the first
@@ -82,7 +86,7 @@ actually do before you rely on them:
 | Check | Reads | Catches | Does NOT catch |
 |---|---|---|---|
 | `S5` (workflow-skills) | the workflow's frontmatter `steps` | a step naming a skill that is not on disk | anything about permission |
-| `S4` (chain-contract) | each component's `metadata.chain` list (falling back to a legacy top-level `chain:`), plus the contract | an orphan (a declared chain the contract does not permit) and a phantom (a contract entry naming a missing component) | the workflow's `steps` list, which it never reads |
+| `S4` (chain-contract) | each component's `metadata.chain` (string or list; falling back to a legacy top-level `chain:`), plus the contract | an orphan (a declared chain the contract does not permit) and a phantom (a contract entry naming a missing component) | the workflow's `steps` list, which it never reads |
 
 So a workflow step that hands off to a skill with no permitting contract entry satisfies `S5` and is
 invisible to `S4`. The deterministic workflow-step permission check is a planned enhancement; until it
@@ -98,9 +102,9 @@ directions.
   step 2. No component invoked another. Nothing is owed to the contract; sec 3.6 is conditional
   precisely so plugins do not ship empty governance.
 - **A step dispatches the next.** Step 1's skill delegates to step 2's skill or to a subagent. That is
-  an inter-component invocation. The **invoking component** declares `metadata.chain: [callee]` in its
-  own frontmatter and the contract permits `caller: [callee]`. Both halves must agree, which is exactly
-  what `S4` then enforces for you.
+  an inter-component invocation. The **invoking component** declares `metadata.chain: callee` (a
+  string; a comma-separated string for more than one) in its own frontmatter and the contract permits
+  `caller: [callee]`. Both halves must agree, which is exactly what `S4` then enforces for you.
 
 Getting it wrong in the "safe" direction is not free. A blanket contract entry for an invocation that
 does not exist becomes a phantom the day the callee is renamed, and at Gold it becomes an eval
