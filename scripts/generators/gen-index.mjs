@@ -5,6 +5,7 @@
 import { loadPlugin } from "../lib/load-plugin.mjs";
 import { writeFileSync, existsSync } from "node:fs";
 import path from "node:path";
+import { normalizeArgPath } from "../lib/fs-utils.mjs";
 
 const TIER_LABEL = { universal: "Bronze", convergent: "Silver", advanced: "Gold" };
 
@@ -144,7 +145,10 @@ export function renderIndex(ctx) {
 }
 
 if (process.argv[1]?.endsWith("gen-index.mjs")) {
-  const root = process.argv.find((a, i) => i >= 2 && !a.startsWith("--")) ?? process.cwd();
+  // Normalized through normalizeArgPath so a Windows backslash root is not silently misread (the
+  // historical defect: docs/how-to/troubleshoot-the-gate.md).
+  const rawRoot = process.argv.find((a, i) => i >= 2 && !a.startsWith("--"));
+  const root = rawRoot !== undefined ? normalizeArgPath(rawRoot) : process.cwd();
   const ctx = loadPlugin(root);
   const text = renderIndex(ctx);
   if (process.argv.includes("--write")) writeFileSync(path.join(root, "INDEX.md"), text);

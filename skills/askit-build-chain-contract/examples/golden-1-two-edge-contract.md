@@ -19,7 +19,7 @@ The user asked:
 
 ### Step 1: verify the `metadata.chain` declarations in the skill frontmatter
 
-Each skill must declare its own intent before the contract can grant permission. These are the relevant excerpts from the two skill files:
+Each skill must declare its own intent before the contract can grant permission. `metadata.chain` is written as a comma-separated string, the recommended shape (a YAML list under `metadata.chain` gets silently rewritten to a Python list repr by the reference implementation's metadata coercion - see `authoring-chain-contracts.md`). These are the relevant excerpts from the two skill files:
 
 #### `skills/da-draft/SKILL.md` (frontmatter excerpt)
 
@@ -30,8 +30,7 @@ description: Drafts a documentation section from a spec. Use when authoring new 
 metadata:
   version: 0.1.0
   tier: universal
-  chain:
-    - da-writer
+  chain: da-writer
 ---
 ```
 
@@ -44,9 +43,7 @@ description: Reviews and grades a documentation page for completeness. Use when 
 metadata:
   version: 0.1.0
   tier: universal
-  chain:
-    - da-grader
-    - da-writer
+  chain: da-grader, da-writer
 ---
 ```
 

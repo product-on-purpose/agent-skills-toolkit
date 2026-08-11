@@ -57,3 +57,42 @@ test("when both metadata.chain and top-level chain are declared, metadata.chain 
   ctx.skills[0].frontmatter.chain = ["sf-not-permitted"];
   assert.deepEqual(check(ctx), []);
 });
+
+test("golden chain-string-fixture: metadata.chain as a comma-separated string is read (the recommended shape)", () => {
+  const ctx = loadPlugin(path.join(FIXTURES, "golden/chain-string-fixture"));
+  const caller = ctx.skills.find((s) => s.name === "cs-caller-comma");
+  // Confirm the fixture actually exercises the string path, not an array.
+  assert.equal(typeof caller.frontmatter?.metadata?.chain, "string");
+  assert.equal(caller.frontmatter.metadata.chain, "cs-worker-a, cs-worker-b");
+  assert.deepEqual(check(ctx), []);
+});
+
+test("golden chain-string-fixture: metadata.chain as a whitespace-only-separated string is tolerated", () => {
+  const ctx = loadPlugin(path.join(FIXTURES, "golden/chain-string-fixture"));
+  const caller = ctx.skills.find((s) => s.name === "cs-caller-space");
+  assert.equal(typeof caller.frontmatter?.metadata?.chain, "string");
+  assert.equal(caller.frontmatter.metadata.chain, "cs-worker-a cs-worker-b");
+  assert.deepEqual(check(ctx), []);
+});
+
+test("metadata.chain string form: extra whitespace is trimmed and empty segments (e.g. a trailing comma) are dropped", () => {
+  const ctx = loadPlugin(path.join(FIXTURES, "golden/subagent-fixture"));
+  // sf-caller -> sf-worker is permitted by this fixture's contract. Overwrite the declared chain
+  // with a messy string form of the same single edge and confirm it still resolves to [] findings.
+  ctx.skills[0].frontmatter.metadata.chain = "  sf-worker ,  ";
+  assert.deepEqual(check(ctx), []);
+});
+
+test("metadata.chain string form still fires an S4 orphan when the declared invocation is not permitted (proves the string path is actually read, not silently dropped)", () => {
+  const ctx = loadPlugin(path.join(FIXTURES, "golden/subagent-fixture"));
+  ctx.skills[0].frontmatter.metadata.chain = "sf-not-permitted";
+  const r = check(ctx);
+  assert.ok(r.some((f) => f.reqId === "S4" && /sf-caller/.test(f.message) && /sf-not-permitted/.test(f.message) && /orphan/.test(f.message)));
+});
+
+test("metadata.chain as a string still wins over a conflicting legacy top-level chain (no merge)", () => {
+  const ctx = loadPlugin(path.join(FIXTURES, "golden/subagent-fixture"));
+  ctx.skills[0].frontmatter.metadata.chain = "sf-worker";
+  ctx.skills[0].frontmatter.chain = ["sf-not-permitted"];
+  assert.deepEqual(check(ctx), []);
+});

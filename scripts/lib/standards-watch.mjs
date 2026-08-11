@@ -568,7 +568,17 @@ export function renderAdrDraft(report, { number = "NNNN", date = report.generate
  */
 export function emitPin(pin, observed, { date = new Date().toISOString().slice(0, 10), by = "unrecorded", repoHeadSha = null } = {}) {
   const next = structuredClone(pin);
-  next.verified = { ...(pin.verified ?? {}), date, by, ...(repoHeadSha ? { repoHeadSha } : {}) };
+  next.verified = { ...(pin.verified ?? {}), date, by };
+
+  // A verification fact this run did not establish is DROPPED, never inherited (backlog E25).
+  // Spreading the previous `verified` block used to carry the old `repoHeadSha` forward while every
+  // blob SHA around it was refreshed, so the emitted document asserted a verification at a commit
+  // nobody checked. Observed 2026-08-11: the proposal offered a 15-day-old HEAD beside a `by` field
+  // reading the literal string "unrecorded". This file exists so a reviewer can verify it by hand,
+  // offline, without trusting this tool; a stale fact inside `verified` defeats exactly that.
+  // Omitting is always safe, inheriting is not.
+  if (repoHeadSha) next.verified.repoHeadSha = repoHeadSha;
+  else delete next.verified.repoHeadSha;
   for (const a of next.artifacts) {
     const got = observed.get(a.path);
     if (!got) refuse(`cannot re-pin: artifact "${a.path}" was not fetched`, "fetch-incomplete");

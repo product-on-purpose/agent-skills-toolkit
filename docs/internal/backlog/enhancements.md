@@ -209,6 +209,34 @@ That made G8's requirement of a folder README in `agents/` actively harmful: bot
 
 **Worth reading for the lesson:** `docs/internal/release-plans/plan_v1.1.0/P4-folder-readme/SPEC.md` line 194 records that this toolkit already hit this bug once. "Adding `agents/README.md` exposed that the subagent/command enumeration ... treated every `agents/*.md` as a component, so a folder README became a bogus 'README' subagent." It was fixed "at the single enumeration point: `README.md` is excluded from component discovery everywhere." That fixed the **toolkit's** idea of what an agent is and left the **runtime's** untouched, which is the one that ships. **The `commands/` half is now probed and closed, 2026-08-07.** A probe plugin holding `real-command.md`, `README.md` and `_README.md` in `commands/` was loaded with `claude --plugin-dir` and asked to enumerate its slash commands. It returned **`real-command` only**. Same prompt shape that made the `agents/` probe return all three files, so this is a real behavioral difference and not the model self-filtering: **Claude Code excludes `README.md` from command discovery but not from agent discovery.** `commands/` is safe, `agents/` was not, and the enumeration mismatch in `listCommandFiles` is therefore harmless rather than latent. No action needed. Recorded so nobody re-opens this as a theoretical risk.
 
+### E25 - `emitPin` inherits a `repoHeadSha` it did not verify  [correctness, effort XS]
+
+- **Target:** `scripts/lib/standards-watch.mjs` (`emitPin`), `scripts/standards-watch.mjs` (the `--emit-pin` CLI path).
+- **The defect:** `emitPin(pin, observed, { date, by = "unrecorded", repoHeadSha = null })` spreads `repoHeadSha` into the emitted `verified` block **only when it is supplied**, and the CLI never supplies it. The previous pin's value therefore survives into a document whose blob SHAs have all been refreshed around it. The `verified` block ends up asserting a verification at a commit nobody checked.
+- **The reproduction (2026-08-11, during the v1.10.1 re-pin):** `npm run standards-watch -- --emit-pin` proposed `verified.repoHeadSha` of `38a2ff82958afee88dadf4831509e6f7e9d8ef4e`, the value pinned on 2026-07-27, while `gh api repos/agentskills/agentskills/commits/main --jq .sha` returned `69ef37e9424c0a7ea9dd2293b559e43ec8176379`. The emitted `verified.by` was the literal string `"unrecorded"` beside it, which is the honest default doing its job while the field next to it quietly lied.
+- **Why it matters more than its size suggests:** `upstream-pin.json` exists so that a reviewer can verify every pinned value **by hand, offline, without trusting this tool**. A stale fact inside the `verified` block undermines exactly the property the file is for. It was caught by the documented human-review step, which is the process working; the repository's standing position is that a correct outcome depending on someone remembering to look is not yet a fix.
+- **Preferred change:** `emitPin` should **omit** `repoHeadSha` when it cannot establish one, rather than inheriting the prior value. Dropping a fact you did not verify is always safe; carrying one forward is not. Optionally the CLI can fetch and supply the real HEAD, but the omit-by-default behavior should land first and independently, because it is the part that cannot be wrong. Pair it with a unit test asserting that an emitted pin never carries a `verified` field the caller did not provide.
+- **Status:** backlog (recorded 2026-08-11, during the v1.10.1 cut). Raised by ADR 0040 (re-pin after an editorial metadata clarification); the v1.10.1 re-pin wrote the correct value by hand.
+
+### E24 - `S8` (components-mirror) mirrors status and tier but not `version`, and the field drifts silently  [correctness, effort S, ADR-gated]
+
+- **Target:** `scripts/checks/components-mirror.mjs` (`S8`), `STANDARD.md` sec 5.1.
+- **The measurement (2026-08-11, during the v1.10.1 cut):** every one of this repo's 33 registered components was compared against its own frontmatter. **Five had drifted**, in two independent directions and from two separate causes:
+
+  | Component | Kind | `library.json` | frontmatter |
+  |---|---|---|---|
+  | `askit-build-skill` | skill | 0.1.0 | 0.1.2 |
+  | `askit-evaluate` | skill | 0.1.0 | 0.1.2 |
+  | `askit-skill-author` | subagent | 0.1.0 | 0.1.1 |
+  | `askit-reviewer` | subagent | 0.1.0 | 0.1.1 |
+  | `askit-quality-grader` | subagent | 0.1.0 | 0.1.1 |
+
+- **Why the count matters more than the fact:** PR #204 surfaced this as a two-component problem, because two components were what that PR happened to touch. A systematic sweep found five. An ungated field does not drift where you looked; it drifts everywhere, and what gets noticed is a subset of what is true.
+- **Change:** decide whether `S8` should mirror `version` alongside `status` and `tier`. This is deliberately routed through the why-gate rather than fixed in place, because `S8` grades third-party plugins: tightening it moves existing verdicts, which ADR 0027 (Standard versioning and compatibility policy) governs through a warn-first burndown and a Standard MINOR. The cheap in-repo half is already done (see below); this item is only about the Standard question.
+- **What already shipped in v1.10.1, and what it deliberately does not do:** the five instances were bumped into agreement, and `tests/unit/component-version-mirror.test.mjs` now fails the build if any registered component's `version` disagrees with its frontmatter. That guard is **repo-local**, in the same family as `scripts/check-readme-version.mjs`: it protects this tree and carries **no Standard implication and no verdict movement for anyone else**. Fixing the instances and guarding our own tree is not the same as changing the rule, and only the third of those needs an ADR.
+- **Open question for the ADR:** whether a version disagreement is an error, a warning, or advisory. A plugin mid-edit legitimately has a bumped frontmatter and an unbumped manifest for the length of one commit, so the strict reading has a real false-positive mode that `status` and `tier` do not share.
+- **Status:** backlog (recorded 2026-08-11). Instances fixed and repo-local guard shipped in v1.10.1; the Standard question is open.
+
 ### E23 - Surface check provenance in the report output  [discoverability, effort S]
 
 - **Target:** `scripts/check.mjs` and `scripts/tier-report.mjs` output; folds naturally into E1's evidence ledger.

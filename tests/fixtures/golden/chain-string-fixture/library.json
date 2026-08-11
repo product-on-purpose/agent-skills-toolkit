@@ -1,0 +1,17 @@
+{
+  "name": "chain-string-fixture",
+  "version": "0.1.0",
+  "tier": "convergent",
+  "prefix": "cs-",
+  "agent-targets": ["claude"],
+  "components": {
+    "skills": [
+      { "name": "cs-caller-comma", "path": "skills/cs-caller-comma/SKILL.md", "version": "0.1.0", "tier": "universal", "status": "active" },
+      { "name": "cs-caller-space", "path": "skills/cs-caller-space/SKILL.md", "version": "0.1.0", "tier": "universal", "status": "active" }
+    ],
+    "subagents": [
+      { "name": "cs-worker-a", "path": "agents/cs-worker-a.md", "version": "0.1.0", "tier": "convergent", "status": "active" },
+      { "name": "cs-worker-b", "path": "agents/cs-worker-b.md", "version": "0.1.0", "tier": "convergent", "status": "active" }
+    ]
+  }
+}

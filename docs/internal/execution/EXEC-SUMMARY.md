@@ -2,12 +2,25 @@
 title: "askit uplift program - executive summary"
 description: "The one page to review before saying go - what ships, what it costs, what waits for you, and the risks"
 status: draft
-last-updated: "2026-07-06"
+last-updated: "2026-08-11"
 ---
 
 # Executive summary: the askit uplift program
 
-**You are approving:** a four-release program (v1.7.0 through v1.10.0) executed autonomously inside this repository by one orchestrator (Fable) directing Opus and Sonnet subagents, that deepens the builders, industrializes the eval loop, ships marketplace-scope grading, closes the Manage gaps, fixes every stale trust surface, and delivers the first visual slice of the studio - while writing to no other repository. Your one action after review: say "go" (or give feedback on any line of this packet first).
+> **Note on renumbering (2026-08-11):** the release labels below are as originally scoped on
+> 2026-07-06 and no longer match the current plan. v1.9.0 went to `askit-standards-watch` and the
+> decisions discipline (shipped 2026-07-27) - work outside this program, which took the number
+> because a new skill is a MINOR. That pushed marketplace scope from v1.9.0 to v1.10.0; a later
+> renumbering moved it again to **v1.12.0**. Manage-and-studio, originally slated for v1.10.0 and
+> then v1.11.0, is now **deferred indefinitely**: a UI over a grade nothing consumes yet. Current
+> sequencing lives in [`../STATUS.md`](../STATUS.md).
+
+**You are approving:** a four-release program (v1.7.0 through v1.10.0 as originally scoped - see
+the renumbering note above) executed autonomously inside this repository by one orchestrator
+(Fable) directing Opus and Sonnet subagents, that deepens the builders, industrializes the eval
+loop, ships marketplace-scope grading, closes the Manage gaps, fixes every stale trust surface,
+and delivers the first visual slice of the studio - while writing to no other repository. Your
+one action after review: say "go" (or give feedback on any line of this packet first).
 
 ## What this delivers and why it matters (plain language)
 
@@ -21,8 +34,8 @@ After this program: the front page is true and cannot silently drift again; the 
 |---|---|---|
 | **v1.7.0 "trust and craft"** | Every stale surface fixed; the stalled craft-pass thread shipped | H1 (hygiene batch: README + comparison + subagents reference + QUICKSTART + branch pruning + small correctness fixes + CI hardening), SP1 (builder craft pass - the consent-gated advisory review you designed 2026-06-25), F2 (eval-run pipeline) |
 | **v1.8.0 "deep builders, measured advisory"** | Builders become teachers; advisory becomes a number | SP2 (craft references + working golden/anti examples for the four complex builders), F3 (advisory quality measurement - seeded defects, precision/recall per model and effort), F5 (authoring token measurements, riding SP2's runs), corpus batch 3, first real evals/ fixtures |
-| **v1.9.0 "marketplace scope"** | The program headline | Marketplace-scope evaluation (one run grades all members + collection findings; ADR-first; built relocation-friendly), SP3 (guided author-a-coherent-plugin journey) |
-| **v1.10.0 "manage and studio"** | Manage gaps closed; the product gets a face | SP4 (deprecate removal automation + workflow step-orphan check), the read-only studio dashboard (local launch via `npm run ui`, localhost-only; npm publish stays out of scope under AU-2); stretch: E4 (SARIF output), E9 (provenance contract) |
+| **v1.12.0 "marketplace scope"** (was v1.9.0, then v1.10.0 - see the note above) | The program headline | Marketplace-scope evaluation (one run grades all members + collection findings; ADR-first; built relocation-friendly), SP3 (guided author-a-coherent-plugin journey) |
+| **Deferred indefinitely "manage and studio"** (was v1.10.0, then v1.11.0 - see the note above) | Manage gaps closed; the product gets a face | SP4 (deprecate removal automation + workflow step-orphan check), the read-only studio dashboard (local launch via `npm run ui`, localhost-only; npm publish stays out of scope under AU-2); stretch: E4 (SARIF output), E9 (provenance contract) |
 
 ## What happens on "go" - and what waits for you
 

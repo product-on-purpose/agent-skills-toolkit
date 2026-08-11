@@ -314,6 +314,28 @@ test("emitPin returns a proposed document and mutates nothing", () => {
   assert.deepEqual(next.touches, PIN.touches, "human-authored mapping survives a re-pin");
 });
 
+test("emitPin drops a repoHeadSha it was not given rather than inheriting the previous one", () => {
+  // Backlog E25. `verified` used to be built by spreading the previous block, so a re-pin refreshed
+  // every blob SHA while silently carrying the OLD repoHeadSha into a document that now claims to
+  // describe a different upstream revision. Observed live 2026-08-11: the proposal offered a
+  // 15-day-old HEAD beside a `by` field reading the literal string "unrecorded". This file exists so
+  // a reviewer can verify it by hand without trusting the tool, so an unverified fact inside
+  // `verified` defeats the file's entire purpose. Omitting is safe; inheriting is not.
+  const text = spec({ fields: BASE_FIELDS });
+  const stale = structuredClone(PIN);
+  stale.verified = { ...(stale.verified ?? {}), repoHeadSha: "0000000000000000000000000000000000000000" };
+
+  const withoutHead = emitPin(stale, asObserved(text), { date: "2026-02-02", by: "tester" });
+  assert.equal(
+    withoutHead.verified.repoHeadSha,
+    undefined,
+    "a repoHeadSha the caller did not supply must not survive into the emitted pin"
+  );
+
+  const withHead = emitPin(stale, asObserved(text), { date: "2026-02-02", by: "tester", repoHeadSha: "abc123" });
+  assert.equal(withHead.verified.repoHeadSha, "abc123", "a supplied repoHeadSha is recorded");
+});
+
 /* -------------------------------------------------------------- reqId join */
 
 test("reqIdIndex reads the existing reference table rather than restating the mapping", () => {

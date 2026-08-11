@@ -7,13 +7,12 @@ tools:
   - Edit
   - Bash
 metadata:
-  version: 0.1.1
+  version: 0.1.2
   tier: convergent
   status: active
   agent-targets:
     - claude
-  chain:
-    - askit-evaluator
+  chain: askit-evaluator
 ---
 
 # askit-skill-author

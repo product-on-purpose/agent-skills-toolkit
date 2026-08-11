@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { mkdtempSync, writeFileSync, mkdirSync, readFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
-import { readJsonSafe, fileExists, listSkillDirs, walkFiles, SKIP_DIRS } from "../../scripts/lib/fs-utils.mjs";
+import { readJsonSafe, fileExists, listSkillDirs, walkFiles, SKIP_DIRS, normalizeArgPath } from "../../scripts/lib/fs-utils.mjs";
 
 function tmpRepo() {
   return mkdtempSync(path.join(tmpdir(), "ast-"));
@@ -86,5 +86,80 @@ test("every repo-wide content scanner shares one SKIP_DIRS, with no local redefi
     const src = readFileSync(new URL(r, import.meta.url), "utf8");
     assert.match(src, /import \{[^}]*SKIP_DIRS[^}]*\} from "\.\.\/lib\/fs-utils\.mjs"/, `${r} must import the shared SKIP_DIRS`);
     assert.doesNotMatch(src, /^const SKIP_DIRS = new Set\(/m, `${r} must not redefine SKIP_DIRS locally`);
+  }
+});
+
+// --- normalizeArgPath: the CLI-argv path normalizer ---
+//
+// A backslash path handed to a CLI entry point was once silently read as a different directory (the
+// gate graded an empty tree and printed a clean pass; see tests/unit/eval-run.test.mjs and
+// docs/how-to/troubleshoot-the-gate.md). normalizeArgPath converts backslashes to forward slashes ONLY
+// on Windows (sep === "\\"): on POSIX a backslash is a legal filename character, so an unconditional
+// swap would silently resolve to the wrong path in the opposite direction - the same class of defect,
+// facing the other way. Both branches are exercised here with an INJECTED separator, not the host's
+// real path.sep, so the guard is verified on every CI platform rather than only on whichever OS
+// happens to run the suite (a test that no-ops on the "wrong" platform is worse than no test).
+
+test("normalizeArgPath converts a Windows backslash path to forward slashes when sep is \\\\", () => {
+  assert.equal(normalizeArgPath("C:\\plugins\\my-lib", "\\"), "C:/plugins/my-lib");
+});
+
+test("normalizeArgPath leaves a forward-slash path unchanged when sep is \\\\", () => {
+  assert.equal(normalizeArgPath("C:/plugins/my-lib", "\\"), "C:/plugins/my-lib");
+});
+
+test("normalizeArgPath fully converts a mixed-separator path when sep is \\\\", () => {
+  assert.equal(normalizeArgPath("C:\\plugins/my-lib\\skills", "\\"), "C:/plugins/my-lib/skills");
+});
+
+test("normalizeArgPath leaves a relative '.' default unchanged on both platforms", () => {
+  assert.equal(normalizeArgPath(".", "\\"), ".");
+  assert.equal(normalizeArgPath(".", "/"), ".");
+});
+
+test("normalizeArgPath returns '' for empty or undefined input on both platforms", () => {
+  assert.equal(normalizeArgPath("", "\\"), "");
+  assert.equal(normalizeArgPath(undefined, "\\"), "");
+  assert.equal(normalizeArgPath("", "/"), "");
+  assert.equal(normalizeArgPath(undefined, "/"), "");
+});
+
+test("normalizeArgPath trims surrounding whitespace on both platforms", () => {
+  assert.equal(normalizeArgPath("  C:\\plugins\\my-lib  ", "\\"), "C:/plugins/my-lib");
+  assert.equal(normalizeArgPath("  my-lib  ", "/"), "my-lib");
+});
+
+test("normalizeArgPath does NOT mangle a POSIX-legal backslash filename when sep is /", () => {
+  // On Linux/macOS "my\\dir" is a real, distinct directory name. Unconditional replacement would
+  // silently resolve to "my/dir" instead - a different path - which is the mirror-image of the
+  // Windows defect this function exists to close.
+  assert.equal(normalizeArgPath("my\\dir", "/"), "my\\dir");
+  assert.equal(normalizeArgPath("/home/user/my\\backslash\\name", "/"), "/home/user/my\\backslash\\name");
+});
+
+test("normalizeArgPath defaults its separator to the live path.sep", () => {
+  const input = "a\\b/c";
+  assert.equal(normalizeArgPath(input), normalizeArgPath(input, path.sep));
+});
+
+// Existence-only invariant (mirrors the SKIP_DIRS invariant above): every CLI entry point that takes a
+// filesystem path from argv must import the ONE shared normalizeArgPath rather than growing its own
+// separator-handling copy. Presence-only by design - this repo deliberately does not automate
+// completeness judgments (which argv sites got the call applied is left to code review / the report).
+test("every CLI entry point with an argv path imports the shared normalizeArgPath, with no local redefinition", () => {
+  const entryPoints = [
+    "../../scripts/check.mjs",
+    "../../scripts/evaluate.mjs",
+    "../../scripts/tier-report.mjs",
+    "../../scripts/standards-watch.mjs",
+    "../../scripts/eval-run.mjs",
+    "../../scripts/generators/gen-index.mjs",
+    "../../scripts/generators/gen-manifest.mjs",
+    "../../scripts/generators/sync-agents-md.mjs",
+  ];
+  for (const r of entryPoints) {
+    const src = readFileSync(new URL(r, import.meta.url), "utf8");
+    assert.match(src, /import \{[^}]*normalizeArgPath[^}]*\} from "\.+\/lib\/fs-utils\.mjs"/, `${r} must import the shared normalizeArgPath`);
+    assert.doesNotMatch(src, /function normalizeArgPath\(/, `${r} must not redefine normalizeArgPath locally`);
   }
 });

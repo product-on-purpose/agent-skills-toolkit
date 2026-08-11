@@ -16,6 +16,7 @@ import {
   PIN_REL, StandardsWatchError, buildReport, emitPin, exitCodeFor,
   readPin, renderAdrDraft, renderReport,
 } from "./lib/standards-watch.mjs";
+import { normalizeArgPath } from "./lib/fs-utils.mjs";
 
 const USAGE = `Usage: node scripts/standards-watch.mjs [root] [options]
 
@@ -35,14 +36,21 @@ Exit: 0 unchanged or cosmetic-only | 1 a human must look | 2 refused (could not 
 This command never writes a file. It cannot amend a check or STANDARD.md; the Standard grows only
 by ADR with the sec 7.7 warn-first burndown.`;
 
-function parseArgs(argv) {
+/**
+ * Parse the CLI. `root`, `--pin`, and `--snapshot-dir` are all filesystem paths from argv, normalized
+ * through normalizeArgPath so a Windows backslash path is not silently misread (the historical defect:
+ * docs/how-to/troubleshoot-the-gate.md). Exported for unit testing
+ * (tests/unit/argv-path-normalization.test.mjs) - safe to import in isolation because the main() call
+ * below is guarded, so importing this module for parseArgs alone never triggers a network fetch.
+ */
+export function parseArgs(argv) {
   const opts = { root: ".", pin: PIN_REL, snapshotDir: null, json: false, adrDraft: false, adrNumber: "NNNN", emitPin: false, by: "unrecorded" };
   const rest = [];
   for (let i = 0; i < argv.length; i += 1) {
     const a = argv[i];
     if (a === "-h" || a === "--help") { console.log(USAGE); process.exit(0); }
-    else if (a === "--pin") opts.pin = argv[++i];
-    else if (a === "--snapshot-dir") opts.snapshotDir = argv[++i];
+    else if (a === "--pin") opts.pin = normalizeArgPath(argv[++i]);
+    else if (a === "--snapshot-dir") opts.snapshotDir = normalizeArgPath(argv[++i]);
     else if (a === "--json") opts.json = true;
     else if (a === "--adr-draft") opts.adrDraft = true;
     else if (a === "--adr-number") opts.adrNumber = argv[++i];
@@ -51,7 +59,7 @@ function parseArgs(argv) {
     else if (a.startsWith("-")) { console.error(`unknown option: ${a}\n\n${USAGE}`); process.exit(2); }
     else rest.push(a);
   }
-  if (rest.length > 0) opts.root = rest[0];
+  if (rest.length > 0) opts.root = normalizeArgPath(rest[0]);
   return opts;
 }
 
@@ -100,9 +108,14 @@ async function main() {
   return exitCodeFor(report);
 }
 
-main()
-  .then((code) => { process.exitCode = code; })
-  .catch((e) => {
-    if (e instanceof StandardsWatchError) { console.error(e.message); process.exitCode = 2; return; }
-    throw e;
-  });
+// Guarded like every other CLI entry point (check.mjs, evaluate.mjs, tier-report.mjs, eval-run.mjs, the
+// generators): running main() only when invoked as a script, never on import, means a test can import
+// parseArgs() in isolation without triggering a live network fetch.
+if (process.argv[1]?.endsWith("standards-watch.mjs")) {
+  main()
+    .then((code) => { process.exitCode = code; })
+    .catch((e) => {
+      if (e instanceof StandardsWatchError) { console.error(e.message); process.exitCode = 2; return; }
+      throw e;
+    });
+}

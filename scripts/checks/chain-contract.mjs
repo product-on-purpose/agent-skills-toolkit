@@ -12,6 +12,21 @@ export const meta = { id: "chain-contract", tier: "convergent", reqId: "S4", sin
 function isDir(p) { return existsSync(p) && statSync(p).isDirectory(); }
 function isFile(p) { return existsSync(p) && statSync(p).isFile(); }
 
+// Reads a declared `chain` value in either shape a frontmatter author may have written:
+// - an array (unchanged, filtered to strings, exactly as before this function existed);
+// - a string: split on commas and/or whitespace (any run of either), trim each piece, drop
+//   empties. This tolerates "a, b", "a,b", "a b", and mixes of the two - the split regex
+//   consumes commas and whitespace identically, so a trailing comma or extra spacing never
+//   produces a stray empty entry.
+// Any other shape (missing, null, number, object) declares no chain: [].
+function parseChainDeclaration(declared) {
+  if (Array.isArray(declared)) return declared.filter((x) => typeof x === "string");
+  if (typeof declared === "string") {
+    return declared.split(/[,\s]+/).map((s) => s.trim()).filter(Boolean);
+  }
+  return [];
+}
+
 export function check(ctx) {
   const out = [];
   const contractPath = path.join(ctx.root, "agents", "_chain-permitted.yaml");
@@ -20,16 +35,24 @@ export function check(ctx) {
   const hasWorkflows = isDir(workflowsDir);
 
   const components = [...(ctx.skills || []), ...(ctx.subagents || [])];
-  // A component "declares an invocation" via a `chain:` list (Standard sec 3.6, 3.8), read from
+  // A component "declares an invocation" via `chain:` (Standard sec 3.6, 3.8), read from
   // `metadata.chain` (the sanctioned extension namespace) and falling back to a legacy top-level
   // `chain:` key so a third-party plugin still using the old location is still read and no
   // existing verdict moves. metadata.chain wins when both are present (no merge).
+  //
+  // `metadata.chain` may be a comma-and/or-whitespace-delimited STRING (the recommended shape:
+  // the agentskills.io spec defines `metadata` as a map of string keys to string values, and the
+  // reference implementation `skills-ref` coerces every metadata value through Python's str() -
+  // a YAML list silently becomes a string containing a Python list repr, e.g.
+  // "['a', 'b']", which no consumer downstream can use) or an ARRAY (still read, unchanged, so
+  // existing plugins on that shape do not regress). The legacy top-level `chain:` key accepts
+  // either shape too.
   const declaredChains = components
     .map((c) => {
       const declared = c.frontmatter?.metadata?.chain ?? c.frontmatter?.chain;
       return {
         name: c.name,
-        chain: Array.isArray(declared) ? declared.filter((x) => typeof x === "string") : [],
+        chain: parseChainDeclaration(declared),
       };
     })
     .filter((c) => c.chain.length > 0);

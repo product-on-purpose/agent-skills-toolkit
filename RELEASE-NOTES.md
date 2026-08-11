@@ -2,6 +2,56 @@
 
 Curated, user-facing highlights. For the full technical history see [`CHANGELOG.md`](CHANGELOG.md).
 
+## 1.10.1 - 2026-08-11
+
+A patch that ships no new capability. Everything in it is the toolkit correcting a claim it was making about itself, and then arranging for a machine to catch that claim next time.
+
+### What changed
+
+- **Two fixes that were already merged finally reach you.** The previous release changed how `INDEX.md` is generated, which puts any plugin with a previously-generated index into a `G4` drift error on upgrade, and it shipped without an upgrade note explaining that. The instruction telling you how to fix it then pointed at a command you do not have, because nothing installs the generators into your plugin. Both were repaired weeks ago and sat unreleased. A fix nobody can install is not a fix.
+
+- **Our own fix from the last release was incomplete, and the incomplete version was worse.** We had moved the delegation-chain declaration in two skills out of a frontmatter field the specification does not allow and into the `metadata` namespace, which it does. That stopped the specification's validator rejecting them. It also introduced a quieter problem: the specification defines `metadata` values as strings, and its reference implementation does not reject a non-string, it silently rewrites one. Our list came back as a string containing a printed list. The validator kept reporting "Valid skill" the whole time, because it never looks inside `metadata` at all. We traded a loud failure for a silent one. The declaration is now a plain comma-separated string that survives the round trip unchanged, and the check that reads it accepts the old shapes too, so nothing you have written stops working.
+
+  Worth taking from this if you write skills: **a validator passing is weaker evidence than it looks.** Ours passed 24 of 24 while carrying corrupted data, because nothing in the validation path inspected the field.
+
+- **A path you typed is now normalized before it is used.** Every command-line entry point took a filesystem path and used it as given. Our own troubleshooting page told you to work around this by remembering to use forward slashes. The workaround is gone. The normalization is deliberately applied only where the platform makes a backslash a separator, because on Linux and macOS a backslash is a legal character in a filename and rewriting it there would be the same bug pointed the other way. A Windows CI job now runs the full suite and the gate on every change, so this is checked rather than reasoned about.
+
+- **Three claims the repository made about itself are now machine-checked.** Our release checklist has always said the README's status must match the declared version, and only the badge was ever compared, so the version written in the prose beside it went unchecked. That is now checked, along with the skill count and the number of checks in the spine, all read from the repository rather than from a second list somebody has to update. The internal status document, which describes itself as the single live source of truth, had grown into a 151-line log that at one point described already-shipped work as outstanding; it is rewritten to 104 lines of current state.
+
+- **The upstream specification moved, and we looked properly.** Our watcher flagged a change to the `metadata` field as material. Reading the actual diff showed the upstream had copied a sentence into a summary table from its own prose a few paragraphs down, where it had been all along. Nothing upstream requires changed. We re-pinned and changed no rule. The finding that mattered came from investigating it: our own skills had been violating that already-published sentence.
+
+### Why this is a patch release
+
+Nothing that grades your plugin changed. The spine stays at 30 checks and the Standard stays at v0.12. No check was added, removed, or retightened, and no plugin's tier moves because of anything here. The one behavioral change in a check is additive: a chain declaration written as a string used to be read as no declaration at all, and is now read correctly.
+
+### Upgrade
+
+**No action required.** Nothing here breaks an existing plugin.
+
+**One thing worth checking if you declare a delegation chain.** If you copied our earlier guidance and wrote it as a YAML list under `metadata`:
+
+```yaml
+metadata:
+  chain:
+    - some-subagent
+    - another-subagent
+```
+
+that still works with this toolkit, and we intend to keep reading it. But any tool that parses your skill through the agentskills.io reference implementation will silently turn that list into a string containing a printed list, because the specification defines `metadata` values as strings. If you care about how your skill reads to other tools, write it as:
+
+```yaml
+metadata:
+  chain: some-subagent, another-subagent
+```
+
+You can confirm the difference yourself without taking our word for it:
+
+```bash
+uvx --from skills-ref python -c "from skills_ref.parser import parse_frontmatter; import pathlib; md,_ = parse_frontmatter(pathlib.Path('skills/your-skill/SKILL.md').read_text(encoding='utf-8')); print(repr(md['metadata']))"
+```
+
+**If you are still carrying the `G4` index drift from v1.10.0**, that upgrade note is in the 1.10.0 entry below and is unchanged.
+
 ## 1.10.0 - 2026-08-07
 
 The release where the grader got graded. `critique-skills` was the first plugin built against this Standard from scratch, and being on the receiving end of it found three defects in this toolkit that no amount of self-validation had surfaced.

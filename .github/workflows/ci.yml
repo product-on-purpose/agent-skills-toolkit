@@ -53,6 +53,34 @@ jobs:
       - name: Conformance gate (self-validation)
         run: node scripts/check.mjs
 
+  # Windows platform guard: proves the suite and the gate pass on native win32 path handling (backslash
+  # separators, CommandLineToArgvW argv parsing), which ubuntu-latest cannot exercise. A single Node
+  # version, not the full matrix - this job is a platform guard, not a second full cost multiplier.
+  # NOTE: this is a NEW required-check candidate. Branch protection's required status checks do not pick
+  # up a new job automatically; the maintainer must add "validate-windows" to the required list by hand,
+  # or a green PR will keep implying Windows coverage it does not actually have.
+  validate-windows:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Set up Node 24
+        uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Unit tests
+        run: npm test
+
+      - name: Conformance gate (self-validation)
+        run: node scripts/check.mjs
+
   # Non-deploying site build: proves the Astro Starlight site in site/ compiles on
   # every push and PR, so a green PR predicts a green deploy. Catalog drift is covered
   # by the validate job (npm test). Deployment itself lives in deploy-pages.yml; this

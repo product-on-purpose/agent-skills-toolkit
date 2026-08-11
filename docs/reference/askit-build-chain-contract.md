@@ -16,6 +16,7 @@ Authors a plugin's chain contract (`agents/_chain-permitted.yaml`, Standard sec 
 ## Rules (sec 3.6)
 - Conditional MUST: required if and only if a component invokes another; no empty contract for a plugin that does not chain.
 - Every `metadata.chain` invocation MUST be permitted (no orphan); every entry MUST name an on-disk component (no phantom). A legacy top-level `chain:` location predates Standard vocabulary alignment and is still read for compatibility.
+- `metadata.chain` SHOULD be written as a comma-separated string (`chain: askit-skill-author, askit-reviewer`), the recommended shape: the agentskills.io spec defines `metadata` as a map of string keys to string values, and the reference implementation `skills-ref` coerces every metadata value through Python's `str()` - a YAML list under `metadata.chain` is silently rewritten to a string containing a Python list repr (e.g. `"['a', 'b']"`), which no consumer can use. S4 also still reads `metadata.chain` written as a YAML list, and the legacy top-level `chain:` key in either shape, so existing plugins on those shapes do not regress.
 - The contract is agent-agnostic (one file, no per-target form).
 
 ## Validation

@@ -13,7 +13,7 @@ import { resolveFindings } from "./lib/resolve-config.mjs";
 import { computeTierReport } from "./tier-report.mjs";
 import { checkAgentskills } from "./checks/agentskills.mjs";
 import { finding, SEVERITY } from "./lib/findings.mjs";
-import { readJsonSafe, SKIP_DIRS } from "./lib/fs-utils.mjs";
+import { readJsonSafe, SKIP_DIRS, normalizeArgPath } from "./lib/fs-utils.mjs";
 import { gateExitFromFindings } from "./check.mjs";
 
 function groupByRule(findings) {
@@ -229,12 +229,17 @@ async function runCli() {
     const i = argv.indexOf(name);
     return i >= 0 ? argv[i + 1] : undefined;
   };
-  const target = argv.find((a, i) => !a.startsWith("--") && !(i > 0 && valueFlags.has(argv[i - 1]))) ?? process.cwd();
+  // Path-valued argv sites (positional target, --out, --advisory) are normalized through normalizeArgPath
+  // so a Windows backslash path is not silently misread (the historical defect: docs/how-to/troubleshoot-the-gate.md).
+  // Only the argv-sourced value is normalized; the process.cwd() default is left as the OS gave it.
+  const normArg = (v) => (v === undefined ? v : normalizeArgPath(v));
+  const rawTarget = argv.find((a, i) => !a.startsWith("--") && !(i > 0 && valueFlags.has(argv[i - 1])));
+  const target = normArg(rawTarget) ?? process.cwd();
   const mode = getFlag("--mode");
-  const out = getFlag("--out");
+  const out = normArg(getFlag("--out"));
   const report = getFlag("--report") ?? "conformance";
   const targetTier = getFlag("--target-tier");
-  const advisory = getFlag("--advisory");
+  const advisory = normArg(getFlag("--advisory"));
   const profile = getFlag("--profile");
   const format = getFlag("--format") ?? (argv.includes("--json") ? "json" : "text"); // --json stays an alias
   if (mode !== undefined && mode !== "local" && mode !== "published-verdict") {

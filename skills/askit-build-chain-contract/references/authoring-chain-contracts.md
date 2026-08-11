@@ -16,7 +16,18 @@ caller-component:
   - another-callee
 ```
 
-A component declares its intent with a `metadata.chain` list in its own frontmatter; the contract grants the permission. Both must agree. The top-level `chain:` location predates Standard vocabulary alignment and is still read for compatibility.
+A component declares its intent with `metadata.chain` in its own frontmatter; the contract grants the permission. Both must agree.
+
+Write `metadata.chain` as a comma-separated **string**, the recommended shape:
+
+```yaml
+metadata:
+  chain: caller-invoked-component, another-invoked-component
+```
+
+Why a string and not a YAML list: the agentskills.io spec defines `metadata` as "a map from string keys to string values", and the reference implementation `skills-ref` enforces that by coercion, not rejection - every value under `metadata` is passed through Python's `str()`. A YAML list under `metadata.chain` is silently rewritten to a string containing a Python list repr (for example `"['a', 'b']"`), which no consumer downstream can parse back into names. `agentskills validate` does not catch this, because it never inspects `metadata` contents - the corruption is invisible to the validator.
+
+S4 still reads `metadata.chain` written as a YAML list (unchanged), and the legacy top-level `chain:` key in either shape (string or list) - both predate Standard vocabulary alignment and remain supported so existing plugins on those shapes do not regress. When more than one shape is present, `metadata.chain` wins; there is no merge.
 
 ## What S4 checks
 

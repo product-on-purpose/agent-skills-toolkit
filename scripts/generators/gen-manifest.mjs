@@ -5,6 +5,7 @@
 import { loadPlugin } from "../lib/load-plugin.mjs";
 import { writeFileSync, mkdirSync } from "node:fs";
 import path from "node:path";
+import { normalizeArgPath } from "../lib/fs-utils.mjs";
 
 /** manifest.generated.json = the resolved/expanded form of library.json + on-disk skills (Q1.3). */
 export function renderManifest(ctx) {
@@ -95,7 +96,10 @@ const RENDERERS = {
 };
 
 if (process.argv[1]?.endsWith("gen-manifest.mjs")) {
-  const root = process.argv.find((a, i) => i >= 2 && !a.startsWith("--")) ?? process.cwd();
+  // Normalized through normalizeArgPath so a Windows backslash root is not silently misread (the
+  // historical defect: docs/how-to/troubleshoot-the-gate.md).
+  const rawRoot = process.argv.find((a, i) => i >= 2 && !a.startsWith("--"));
+  const root = rawRoot !== undefined ? normalizeArgPath(rawRoot) : process.cwd();
   const targetArg = process.argv.find((a) => a.startsWith("--target="));
   const target = targetArg ? targetArg.slice("--target=".length) : "all";
   const write = process.argv.includes("--write");

@@ -51,6 +51,14 @@ export function toPosix(p) {
  * "<cwd>/\\tmp\\x" - one relative file whose name contains backslashes - and a later toPosix() then
  * rewrites that into the plausible-looking nonsense "<cwd>/tmp/x". A corpus manifest authored on
  * Windows and run in Linux CI hit exactly that. Normalizing first makes the two platforms agree.
+ *
+ * This is DELIBERATELY UNCONDITIONAL (unlike scripts/lib/fs-utils.mjs's normalizeArgPath, which swaps
+ * only on Windows): resolvePosix normalizes a clone path sourced from the TRACKED CORPUS MANIFEST, which
+ * may be authored on one OS and read on another, so portability of the pinned reference has to outrank
+ * the rare case of a clone path that is a legal POSIX filename containing a literal backslash. Do not
+ * "fix" this to match normalizeArgPath's guard - that would silently break the cross-platform manifest
+ * case this function exists for. normalizeArgPath is for a path a human types on the machine running the
+ * command right now, where the POSIX literal-backslash case is real and must be respected instead.
  */
 export function resolvePosix(p) {
   return toPosix(path.resolve(toPosix(p ?? "")));
