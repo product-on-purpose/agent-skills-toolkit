@@ -47,9 +47,20 @@ name: Deploy docs site to GitHub Pages
 # the `github-pages` environment carries a deployment branch policy admitting **only `main`**. Verified
 # live 2026-08-11 via the repository environments API: one branch policy, `main`. An old workflow
 # dispatched from another ref can still build, and is then refused at the deploy gate, so the canonical
-# badge URL cannot be overwritten from a non-main ref. The ref pin below is defence in depth and a
-# clearer failure mode (it fails at checkout rather than at deploy), not the load-bearing control.
-# If that environment policy is ever removed, this workflow's own pin will NOT be sufficient.
+# badge URL cannot be overwritten from a non-main ref.
+#
+# The ref pin below is defence in depth, not the load-bearing control, and its scope is narrower than
+# an earlier draft of this very comment claimed. **That draft said the pin "fails at checkout rather
+# than at deploy". It does not.** `ref: main` succeeds from any trigger ref; the pin changes WHAT gets
+# built, never WHETHER the run proceeds. A non-main run executing this revision builds main's content
+# and is then refused at the `github-pages` environment when the deploy job asks for it. So the pin
+# buys exactly one thing: a run executing THIS revision cannot publish another branch's content. It
+# buys nothing at all against a run executing an older revision, because that revision does not
+# contain it. If the environment policy is ever removed, neither the pin nor anything else in this
+# file is sufficient.
+#
+# Two false claims in two consecutive drafts of one comment is itself the lesson: reasoning about a
+# control from inside the file it protects keeps producing confident, wrong statements about scope.
 
 on:
   push:
@@ -81,8 +92,10 @@ jobs:
       # ref: main is explicit and not the trigger's default (Finding 3): a push to main and github.ref
       # already agree, but workflow_dispatch's ref defaults to whatever branch the Actions UI (or API
       # caller) happened to have selected, which this workflow must never trust for what it deploys.
-      # Pinning here means every dispatch, from any branch, builds and deploys current main - never
-      # the dispatched branch's own content.
+      # Scope, stated precisely because two earlier drafts overstated it: pinning here means a dispatch
+      # that EXECUTES THIS REVISION builds main's content rather than the dispatched branch's. It says
+      # nothing about a dispatch executing an older revision of this file, which does not contain this
+      # line. Non-main deployment is refused by the `github-pages` environment policy, not here.
       - name: Checkout main
         uses: actions/checkout@v7
         with:

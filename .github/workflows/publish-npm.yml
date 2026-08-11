@@ -252,9 +252,29 @@ jobs:
     runs-on: ubuntu-latest
     # Configure this environment once in repo Settings -> Environments (name: npm-publish) with a
     # required reviewer. GitHub Actions YAML cannot itself create that rule - naming the environment
-    # here only makes it apply once the environment exists with a reviewer configured. Until that
-    # one-time repo setup happens, this job is gated on `needs: prepare` + `dry_run: false` alone;
-    # treat the environment setup as part of this fix, not optional follow-up polish.
+    # THE LOAD-BEARING CONTROL IS EXTERNAL TO THIS FILE, and round 3 of the pre-release review is why.
+    #
+    # Everything above - the trust-root ordering, the tag allowlist, the ancestry proof - protects this
+    # workflow against a hostile INPUT. None of it protects against a hostile COPY. `workflow_dispatch`
+    # runs the workflow definition present at the caller-selected ref, so a collaborator with write
+    # access can push a branch carrying a `publish-npm.yml` with the trust-root steps simply deleted and
+    # dispatch that. The boundary then does not exist, because the file that defines it was never run.
+    # An in-workflow ref check cannot close this: a branch copy can delete that too.
+    #
+    # What closes it is the `npm-publish` environment's deployment branch policy, which lives in
+    # repository settings and no branch copy can edit. Created and verified live 2026-08-11 via the
+    # environments API: one branch policy, `main`. A run dispatched from any other ref is refused
+    # before this job starts, whatever its YAML says.
+    #
+    # TWO STANDING REQUIREMENTS for whoever configures publishing, because this file cannot enforce
+    # either and both are load-bearing:
+    #   1. `NPM_TOKEN`, if used at all, MUST be an ENVIRONMENT secret on `npm-publish` - never a
+    #      repository secret. A repository secret is readable by any workflow on any branch, which
+    #      re-opens exactly the hole the environment policy just closed.
+    #   2. If npm trusted publishing is used instead, bind it to this exact environment.
+    # Verified 2026-08-11: this repository currently has NO repository-level Actions secrets and no
+    # npm credential of any kind, so the path is not exploitable today. It becomes exploitable the
+    # moment a credential is added in the wrong place, which is precisely when nobody is looking.
     environment:
       name: npm-publish
     # id-token: write lives ONLY here - not on `prepare`, not at the workflow level. It is npm
