@@ -49,8 +49,17 @@ field and been a lie; a gate whose value is that it does not guess does not get 
 - **E29** (the count guard cannot tell a quoted example from a live claim; the fix needs `stripCode`,
   currently private to a graded check module). Dropped rather than rushed, exactly as the plan
   reserved the right to do.
-- Flipping the parity harness to gating. One line, and it waits one release: the mechanism has only
-  ever run locally and has not yet executed on a real runner.
+- **Flipping the parity harness to gating.** This was reserved on the grounds that the mechanism had
+  only ever run locally. **That condition is now satisfied and the observation belongs on the record:**
+  the `validator-parity` job ran on `ubuntu-latest` during this release's own CI and installed and
+  executed the real vendor tools unauthenticated, reporting `claude CLI: 2.1.227` and
+  `skills-ref (PyPI): 0.1.1`, round-tripping all 24 skills' `metadata` values through the reference
+  parser, and annotating the single documented exception with its authorizing ADR. So the harness is
+  no longer unproven in CI.
+  It still does not flip here, for a different and narrower reason: the flip would be a scope change
+  made **after** the pre-release review had already assessed this branch, and enabling enforcement on
+  unreviewed terms is how a gate acquires authority it has not earned. It is a one-line change with a
+  green real-runner execution now standing behind it, and it belongs at the top of v1.12.0.
 - Line numbers on the other 29 checks.
 - Any new spine check, any Standard bump.
 

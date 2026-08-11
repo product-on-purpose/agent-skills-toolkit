@@ -154,24 +154,33 @@ runs:
         fi
 
         if [ "$ASKIT_SARIF" = "true" ]; then
+          # This whole command runs under "set +e", not "set -e" - a crash in the SARIF renderer does
+          # NOT stop this script, it just leaves SARIF_EXIT set to whatever the process happened to exit
+          # with (commonly 1, the SAME code a real failing grade also exits with). So SARIF_EXIT alone
+          # proves nothing about whether "$RUNNER_TEMP/askit-gate.sarif" is a real document; the guard
+          # invoked below is what actually decides that, by parsing and validating the file's CONTENT
+          # (round 2 of the pre-release adversarial review: exit-code equality alone let a garbage or
+          # partial file through whenever it coincidentally matched GATE_EXIT).
           set +e
           node "$ACTION_PATH/scripts/check.mjs" "$ASKIT_PATH" "${FLAGS[@]}" --sarif > "$RUNNER_TEMP/askit-gate.sarif"
           SARIF_EXIT=$?
           set -e
 
-          # The --json and --sarif calls above are two separate invocations of the SAME deterministic
-          # gate over the SAME input; they must always agree on exit code. A disagreement means the gate
-          # itself is non-deterministic or broken, not that grading found something new - that is a
-          # defect in this tool, and it must surface loudly rather than be papered over by picking one
-          # of the two exit codes and moving on.
-          if [ "$SARIF_EXIT" != "$GATE_EXIT" ]; then
-            echo "::error::agent-skills-toolkit gate disagreement: --json exited $GATE_EXIT but --sarif exited $SARIF_EXIT for the same input ($ASKIT_PATH). This is a gate defect, not a grading result; failing closed rather than reporting either verdict."
+          # scripts/gha-sarif-guard.mjs holds the actual decision (Standard sec 4.1/4.4: no validation
+          # logic in YAML) - structural content validity as its own signal, PLUS exit-code agreement with
+          # the JSON gate as a separate "like with like" check, since both check.mjs invocations compute
+          # the identical runGate().exitCode. It deletes the file itself on any rejection, so nothing
+          # partial or disagreeing is left for a later step or a consumer to pick up.
+          set +e
+          node "$ACTION_PATH/scripts/gha-sarif-guard.mjs" "$RUNNER_TEMP/askit-gate.sarif" "$SARIF_EXIT" "$GATE_EXIT"
+          GUARD_EXIT=$?
+          set -e
+
+          if [ "$GUARD_EXIT" -ne 0 ]; then
+            echo "::error::agent-skills-toolkit SARIF artifact failed validation (see the guard's message above) and has been removed; refusing to emit sarif-path. An invalid-but-present artifact is worse than an absent one."
             exit 1
           fi
 
-          # Serialization already succeeded above (set -e would have already stopped this script on a
-          # crash), so the artifact is published regardless of the grade - a failing grade is exactly
-          # when a consumer needs the SARIF to diagnose what failed.
           echo "sarif-path=$RUNNER_TEMP/askit-gate.sarif" >> "$GITHUB_OUTPUT"
         else
           echo "sarif-path=" >> "$GITHUB_OUTPUT"

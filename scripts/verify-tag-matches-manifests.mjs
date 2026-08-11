@@ -1,8 +1,8 @@
 // what-it-is:   tag/version-manifest agreement guard
 // what-it-does: strips a leading "v" from a release tag and checks it equals the `version` field of
 //               all four version-bearing manifests (package.json, library.json,
-//               .claude-plugin/plugin.json, .codex-plugin/plugin.json), collecting every
-//               disagreement rather than stopping at the first
+//               .claude-plugin/plugin.json, .codex-plugin/plugin.json) under a given `root`,
+//               collecting every disagreement rather than stopping at the first
 // why:          publish-npm.yml checks out a commit that already passed tag-format validation
 //               (scripts/verify-release-tag.mjs) and the tag-ancestry check
 //               (scripts/verify-tag-ancestry.mjs), but must still refuse to publish if a maintainer
@@ -17,8 +17,20 @@
 //               judged out of scope here because release.yml was not one of the files this pass
 //               touched (see the v1.11.0 pre-release adversarial-review fix for publish-npm.yml and
 //               deploy-pages.yml) - flagged rather than silently left unmentioned.
-// used-by:      .github/workflows/publish-npm.yml (the "Guard - tag must equal every version-
-//               bearing manifest" step, after npm ci, before the test suite)
+// note:         round 2 of that same review named a related risk in verify-release-tag.mjs and
+//               verify-tag-ancestry.mjs (a verifier shipped by the candidate, checking the
+//               candidate) and did not name this script, but the reviewer's own framing applies to
+//               it just as much: running the CANDIDATE's copy of this file to check the candidate's
+//               own manifests would be the same self-referential shape. publish-npm.yml now runs
+//               MAIN's copy of this script (from a `trust-root/` checkout) with `root` pointed at
+//               the candidate's checked-out files - reading those files as data (a `version` string
+//               field) rather than executing the candidate's own copy of this code. The `root`
+//               parameter already existed for testability; the workflow fix is free because of it.
+// used-by:      .github/workflows/publish-npm.yml, the "Guard - tag must equal every version-
+//               bearing manifest (main's code, candidate's files)" step - runs from `trust-root/`
+//               (main's checkout) with `root` set to `../candidate` (the candidate's checkout),
+//               after the candidate is checked out (it needs the candidate's files) but before
+//               npm ci (it needs no npm dependencies, only node:fs/node:path)
 import { readFileSync } from "node:fs";
 import path from "node:path";
 

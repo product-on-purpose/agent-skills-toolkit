@@ -1,19 +1,31 @@
-// what-it-is:   tag-reachability guard (Finding 2, v1.11.0 pre-release adversarial review, high)
+// what-it-is:   tag-reachability guard (Finding 2, v1.11.0 pre-release adversarial review; round 1
+//               "high", round 2 raised this to CRITICAL - see below)
 // what-it-does: verifies a commit is an ancestor of a base ref (default "origin/main") using
 //               `git merge-base --is-ancestor`; fails closed - "proved unreachable" and "cannot
 //               prove reachable" (unknown revision, shallow history, git error) get the identical
 //               refuse-to-publish outcome, never a default-to-trusting-the-input outcome
-// why:          .github/workflows/publish-npm.yml checks out whatever tag workflow_dispatch names
-//               and only verifies that four version strings inside it agree with the tag - it never
-//               proves the tagged commit is reachable from protected `main`. A collaborator who can
-//               push a tag and dispatch Actions, but cannot merge to main, could tag an unmerged
-//               commit that edits the package AND the tests AND the gate so everything agrees with
-//               itself, and publish it - branch protection on `main` never enters the picture. This
-//               script is the proof that closes that gap.
-// used-by:      .github/workflows/publish-npm.yml (the "Verify tag is reachable from main" step,
-//               run after tag-format validation, before npm ci and before any live publish; the
-//               checkout step it follows uses fetch-depth: 0 plus an explicit `git fetch origin
-//               main`, so the history this walks is actually complete)
+// why:          round 1: .github/workflows/publish-npm.yml checked out whatever tag workflow_dispatch
+//               named and only verified that four version strings inside it agreed with the tag - it
+//               never proved the tagged commit was reachable from protected `main`. A collaborator
+//               who can push a tag and dispatch Actions, but cannot merge to main, could tag an
+//               unmerged commit that edits the package AND the tests AND the gate so everything
+//               agrees with itself, and publish it - branch protection on `main` never entered the
+//               picture. This script's `isAncestorOfMain` function is the proof that closes that gap,
+//               and that function has not changed since round 1.
+//               round 2 (CRITICAL): what changed is WHERE this script runs from. Round 1 still
+//               checked out the candidate tag before invoking this file, so the copy of this script
+//               that ran the proof came from the very commit whose trust it was supposed to
+//               establish - a malicious tag could ship a stub of this file that always exits 0, and
+//               the workflow would run that stub against itself. The fix moved this script's
+//               invocation to a checkout of protected `main` (a `trust-root/` directory), run before
+//               the candidate is checked out at all, so the code making the ancestry decision is
+//               always main's own reviewed copy, never the candidate's.
+// used-by:      .github/workflows/publish-npm.yml, the "Verify tag is reachable from main (main's
+//               code, before the candidate is ever checked out)" step - run from `trust-root/` (a
+//               checkout of `main`, fetch-depth: 0, plus an explicit `git fetch origin main`, so the
+//               history this walks is complete) against the tag's resolved commit sha, after
+//               tag-format validation and tag-to-sha resolution, before the candidate is checked out,
+//               before npm ci, and before any live publish
 import { spawnSync } from "node:child_process";
 
 /**
