@@ -7,6 +7,14 @@
 //               catches it deterministically without the heavy mermaid runtime (the astro-mermaid
 //               build is the render-time second layer of the toolkit's two-layer philosophy)
 // used-by:      scripts/lib/registry.mjs (the CHECKS array), scripts/check.mjs, scripts/tier-report.mjs
+//
+// U12 is the one check in the repo that populates finding().line (the optional structured line
+// number added for SARIF's region.startLine and GitHub Actions annotations - see
+// scripts/lib/sarif-render.mjs). It was chosen because it is the cheapest honest source: every
+// finding below already computes an exact line number and cites it in its own message text (the
+// `${b.startLine}` / `${lineNo}` interpolations), so carrying that same number onto the finding
+// object is a one-line addition per call site, not new scanning work. No other check in the spine
+// currently tracks a line number this cheaply; retrofitting the rest is out of scope here.
 import { readFileSync, readdirSync, statSync, existsSync } from "node:fs";
 import path from "node:path";
 import { relPath, SKIP_DIRS } from "../lib/fs-utils.mjs"; // SKIP_DIRS: shared directory skip set, matched by basename at any depth
@@ -245,12 +253,12 @@ export function check(ctx) {
     const rel = relPath(root, f);
     for (const b of extractMermaidBlocks(stripHtmlComments(text))) {
       if (b.unterminated) {
-        out.push(finding(meta.id, SEVERITY.ERROR, `unterminated mermaid fence starting at line ${b.startLine}.`, { file: rel, reqId: meta.reqId }));
+        out.push(finding(meta.id, SEVERITY.ERROR, `unterminated mermaid fence starting at line ${b.startLine}.`, { file: rel, reqId: meta.reqId, line: b.startLine }));
         continue;
       }
       const body = b.body;
       if (body.trim() === "") {
-        out.push(finding(meta.id, SEVERITY.ERROR, `mermaid block at line ${b.startLine} is empty.`, { file: rel, reqId: meta.reqId }));
+        out.push(finding(meta.id, SEVERITY.ERROR, `mermaid block at line ${b.startLine} is empty.`, { file: rel, reqId: meta.reqId, line: b.startLine }));
         continue;
       }
       // Find the diagram-type line, skipping any leading --- config block, %%{init}%% directive, and
@@ -264,15 +272,15 @@ export function check(ctx) {
       const diagramType = DIAGRAM_KEYWORDS.find((kw) => dl.text.startsWith(kw));
       if (dl.index === -1 || !DIAGRAM_KEYWORDS.some((kw) => dl.text.startsWith(kw))) {
         const lineNo = dl.index === -1 ? b.startLine : b.startLine + 1 + dl.index;
-        out.push(finding(meta.id, SEVERITY.ERROR, `mermaid block starting at line ${b.startLine} has no recognized diagram keyword on its first diagram line (line ${lineNo}, got ${JSON.stringify(firstWord)}).`, { file: rel, reqId: meta.reqId }));
+        out.push(finding(meta.id, SEVERITY.ERROR, `mermaid block starting at line ${b.startLine} has no recognized diagram keyword on its first diagram line (line ${lineNo}, got ${JSON.stringify(firstWord)}).`, { file: rel, reqId: meta.reqId, line: lineNo }));
       }
       // Strip %% comments/directives (honoring quotes) before counting, so a lone bracket in comment
       // prose or an init directive's JSON braces does not fail the balance rule.
       if (!bracketsBalanced(stripComments(body), diagramType)) {
-        out.push(finding(meta.id, SEVERITY.ERROR, `mermaid block at line ${b.startLine} has unbalanced brackets [] () {} or an unterminated quote (quotes ignored for bracket counting).`, { file: rel, reqId: meta.reqId }));
+        out.push(finding(meta.id, SEVERITY.ERROR, `mermaid block at line ${b.startLine} has unbalanced brackets [] () {} or an unterminated quote (quotes ignored for bracket counting).`, { file: rel, reqId: meta.reqId, line: b.startLine }));
       }
       if (body.includes("\t")) {
-        out.push(finding(meta.id, SEVERITY.ERROR, `mermaid block at line ${b.startLine} contains a tab character; mermaid is whitespace-sensitive, use spaces.`, { file: rel, reqId: meta.reqId }));
+        out.push(finding(meta.id, SEVERITY.ERROR, `mermaid block at line ${b.startLine} contains a tab character; mermaid is whitespace-sensitive, use spaces.`, { file: rel, reqId: meta.reqId, line: b.startLine }));
       }
     }
   }

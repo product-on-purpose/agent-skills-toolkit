@@ -5,4 +5,4 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 ## [Unreleased]
 
 ### Added
-- Initial scaffold (Bronze anatomy: `library.json` + `AGENTS.md`).
+- Initial scaffold (Bronze anatomy: `library.json` + `AGENTS.md` + a minimal `.claude-plugin/plugin.json`).

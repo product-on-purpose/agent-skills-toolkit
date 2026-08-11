@@ -1,0 +1,328 @@
+# Publish agent-skills-toolkit to the npm registry.
+#
+# Trigger: workflow_dispatch ONLY. A tag push does NOT publish - this is deliberately more
+# conservative than release.yml's "push: tags: v*" (which only cuts the GitHub release). Publishing
+# to a public registry is a one-way door (a version can be unpublished only within npm's 72-hour
+# window and never re-published under the same number afterward), so it stays behind an explicit
+# human dispatch rather than firing automatically off the same tag push that creates the GitHub
+# release. If a future maintainer wants tag-triggered publishing, the safe way to add it is a
+# `deployment` environment with a required reviewer, not a bare "on: push: tags" trigger here.
+#
+# Two modes, structurally distinct rather than a flag on one code path:
+#   - dry_run: true  (default) -> "npm pack --dry-run" (and "npm pack") only, inside the shared
+#     `prepare` job below. The literal string "npm publish" does not appear anywhere in this mode's
+#     execution path, so a typo'd flag can never turn a preview into a real publish - and this mode
+#     never runs in a job holding `id-token: write` (see the SECURITY note below).
+#   - dry_run: false -> a SEPARATE `publish` job runs "npm publish --provenance" for real, gated on
+#     `needs: prepare` succeeding. Requires typing "false" into the dispatch form; there is no way to
+#     reach this job by accident.
+#
+# Per Standard sec 4.1/4.4, holds no validation logic of its own: every decision (tag format,
+# scripts/verify-release-tag.mjs; tag ancestry, scripts/verify-tag-ancestry.mjs; tag/manifest
+# agreement, scripts/verify-tag-matches-manifests.mjs; the test suite and the gate, npm test and
+# node scripts/check.mjs) lives in a portable script under scripts/ - the same command a contributor
+# runs locally. release.yml runs an inline copy of the tag/manifest-agreement check at GitHub-release
+# time rather than calling verify-tag-matches-manifests.mjs; that duplication is real and predates
+# this review. Unifying it was judged out of scope here, since release.yml was not one of the files
+# this pass touched - flagged rather than silently left unmentioned (see verify-tag-matches-
+# manifests.mjs's own docblock).
+#
+# SECURITY, round 1 (v1.11.0 pre-release adversarial review): this file previously interpolated
+# `${{ inputs.tag }}` directly into Bash `run:` lines. GitHub Actions expands that expression into
+# literal source text BEFORE Bash ever parses the line, so a tag crafted with shell metacharacters
+# (quotes, semicolons, backticks, "$(...)") could terminate the intended statement and run arbitrary
+# commands - in a job that held `id-token: write`, reachable even with `dry_run: true` since the
+# dry-run guard sat downstream of the injection point. The round-1 fix stopped that class of attack:
+# the tag is read ONCE into job-level `env: TAG:` and referenced everywhere after as the shell
+# variable "$TAG", never re-interpolated as a raw `${{ }}` expression inside a `run:` block; and
+# `id-token: write` lives ONLY on the `publish` job below, behind an `npm-publish` GitHub environment
+# (configure a required reviewer for it once in repo Settings -> Environments), never on `prepare`,
+# never at the workflow level.
+#
+# SECURITY, round 2 (same review, second pass, CRITICAL - this is the fix this file now encodes):
+# round 1 also added scripts/verify-tag-ancestry.mjs, requiring the checked-out commit to be a
+# proven ancestor of `origin/main`. But round 1 still checked out the CANDIDATE tag first, then ran
+# both scripts/verify-release-tag.mjs and scripts/verify-tag-ancestry.mjs from THAT checkout - so the
+# verifiers came from the very commit whose trust they were supposed to establish. A collaborator who
+# can push a tag and dispatch Actions, but cannot merge to main, could tag an unmerged commit that
+# replaces both scripts with stubs that always report success, supply manifests that agree with the
+# tag, and the ancestry gate would run its own stub against itself and pass. That commit would then
+# reach the privileged `publish` job, which runs candidate-controlled `npm ci` and `npm publish` with
+# `id-token: write` and any configured `NPM_TOKEN`. A control that lives inside the thing it controls
+# is not a control.
+#
+# The fix: protected `main` is the trust root, and its tree - never the candidate's - runs every
+# check that decides whether the candidate is trustworthy at all.
+#   1. `main` is checked out FIRST, into its own `trust-root/` directory, with full history
+#      (fetch-depth: 0). Branch protection governs this tree, which is exactly why it is the root of
+#      trust here; nothing about the candidate's tag has been touched yet.
+#   2. scripts/verify-release-tag.mjs runs from `trust-root/`, validating "$TAG"'s shape - still
+#      main's code, not the candidate's.
+#   3. The tag is resolved to a commit sha via `git rev-parse "refs/tags/$TAG^{commit}"`, plumbing
+#      only (no pass/fail decision; Standard sec 4.1/4.4), run against `trust-root/`'s object
+#      database, which fetch-depth: 0 populated with full history including every tag.
+#   4. scripts/verify-tag-ancestry.mjs runs from `trust-root/` against that resolved sha, proving it
+#      is an ancestor of `origin/main` using `git merge-base --is-ancestor` - main's code, main's git
+#      object graph, never the candidate's.
+#   5. ONLY after that proof succeeds is the candidate sha checked out at all, into its own
+#      `candidate/` directory. Everything from here on is candidate-controlled code: `npm ci` (which
+#      runs lifecycle scripts from the candidate's own package.json - the first candidate-controlled
+#      code execution in this job, and it sits strictly after the ancestry proof), the test suite,
+#      the gate, and (in the separate `publish` job) `npm publish` itself.
+#   6. The tag/manifest-agreement guard (scripts/verify-tag-matches-manifests.mjs) is a middle case,
+#      the same class of self-referential risk the reviewer did not name but flagged as covered by
+#      the same principle: it runs main's own copy of the script (`working-directory: trust-root`),
+#      but points its `root` argument at the candidate's checked-out files (`candidate/`). This reads
+#      the candidate's four manifest JSON files as DATA (a `version` string field) - never executes a
+#      byte of the candidate's own copy of that script. Once ancestry is proven, the candidate sha is
+#      by construction already part of main's reviewed history, so this is defense in depth rather
+#      than a second trust boundary - but it is free (the function already took `root` as a
+#      parameter) and it closes the same class of finding, so it is done.
+# See tests/unit/publish-npm-yml.test.mjs for the structural assertion of this ordering, and
+# tests/unit/publish-npm-trust-root.test.mjs for a real scratch-repository demonstration of the
+# stubbed-verifier attack failing against this fix.
+
+name: Publish to npm
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Release tag to publish (e.g. v1.11.0). Must already exist."
+        required: true
+        type: string
+      dry_run:
+        description: "Dry run (npm pack --dry-run only, no publish). Uncheck for a real, irreversible npm publish."
+        required: true
+        type: boolean
+        default: true
+
+permissions:
+  contents: read
+
+concurrency:
+  group: publish-npm
+  cancel-in-progress: false
+
+jobs:
+  # Shared prep-and-preview path: runs for BOTH dry_run: true and dry_run: false. Validates the tag,
+  # proves it is reachable from main, installs, tests, gates, and either previews the tarball (dry
+  # run) or hands a validated commit sha to the `publish` job (live). Deliberately carries no
+  # `id-token: write` - nothing in this job can mint an OIDC token, so even a successful script
+  # injection here could not reach npm.
+  prepare:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    # Read the untrusted input exactly once, here, as an environment variable - never again as a raw
+    # `${{ inputs.tag }}` expression inside any `run:` block below. Every step that needs the tag
+    # references it as the shell variable "$TAG", which Bash treats as DATA (a single string value),
+    # never as source text to re-parse.
+    env:
+      TAG: ${{ inputs.tag }}
+    outputs:
+      sha: ${{ steps.resolve-tag.outputs.sha }}
+    steps:
+      # --- Trust root: everything from here through "Verify tag is reachable from main" runs main's
+      # code against main's own tree. The candidate has not been checked out yet and nothing below
+      # this comment block executes a single byte of it. ---
+
+      - name: Checkout main (the trust root - branch protection governs this tree, not the candidate's)
+        uses: actions/checkout@v7
+        with:
+          ref: main
+          path: trust-root
+          # Full history, not the default shallow single-commit fetch: the tag-to-sha resolution and
+          # the ancestry check both need it - the former to see the candidate's tag at all (a shallow
+          # fetch can miss tags outside its depth window), the latter to walk history from
+          # origin/main's tip looking for the candidate's commit. Correctness of a security check
+          # comes before saving a few seconds of clone time.
+          fetch-depth: 0
+
+      - name: Set up Node from .nvmrc (main's pin; used to run main's own verifier scripts below)
+        uses: actions/setup-node@v7
+        with:
+          node-version-file: trust-root/.nvmrc
+          cache: npm
+          cache-dependency-path: trust-root/package-lock.json
+
+      # Fail closed before anything else runs. Reads "$TAG" as a shell variable, never the raw
+      # `${{ }}` expression. Runs from trust-root: this is main's copy of the script, not whatever
+      # the candidate's tag might contain. The actual pattern match lives in the portable script per
+      # Standard sec 4.4; this line only invokes it.
+      - name: Validate release tag format (main's code)
+        working-directory: trust-root
+        run: node scripts/verify-release-tag.mjs "$TAG"
+
+      # Plumbing only - no pass/fail decision made here (Standard sec 4.1/4.4). Ensures a local
+      # `origin/main` ref exists to compare against, independent of whatever refspec actions/checkout
+      # used above, and fetches the candidate's tag ref explicitly so it can be resolved to a sha even
+      # if fetch-depth: 0 did not already bring it in. "$TAG" is already proven to match `vX.Y.Z` by
+      # the step above, so it is safe to place inside a git refspec here.
+      - name: Fetch origin/main and the candidate's tag ref
+        working-directory: trust-root
+        run: |
+          git fetch origin main
+          git fetch origin "+refs/tags/$TAG:refs/tags/$TAG"
+
+      # Plumbing only: dereferences the tag ref to the commit it points at (unwrapping an annotated
+      # tag object via "^{commit}" if needed). No trust decision is made here - that is what the next
+      # step is for. Fails closed on its own if the tag does not exist: `git rev-parse` exits non-zero
+      # and the step fails.
+      - name: Resolve the tag to a commit sha (plumbing; main's git object database)
+        id: resolve-tag
+        working-directory: trust-root
+        run: echo "sha=$(git rev-parse "refs/tags/$TAG^{commit}")" >> "$GITHUB_OUTPUT"
+
+      # Finding 2 (round 1) fixed correctly this time (round 2): proves the resolved commit is
+      # reachable from protected main, not merely that its version strings agree with the tag - and
+      # does so using main's own copy of the script against main's own git history, never the
+      # candidate's. This is the step that closes the round-2 finding: a commit this refuses never
+      # gets checked out, so it never gets the chance to run npm ci, the tests, the gate, or publish.
+      - name: Verify tag is reachable from main (main's code, before the candidate is ever checked out)
+        working-directory: trust-root
+        run: node scripts/verify-tag-ancestry.mjs "${{ steps.resolve-tag.outputs.sha }}" origin/main
+
+      # --- End of trust root. The sha above is now proven to be an ancestor of origin/main using
+      # only main's own code. Only now may the candidate be checked out, and only from here on does
+      # any candidate-controlled code run. ---
+
+      - name: Checkout the proven candidate commit
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ steps.resolve-tag.outputs.sha }}
+          path: candidate
+          fetch-depth: 1
+
+      # Same four version-bearing manifests release.yml checks, so a tag that was never actually
+      # released (or a version bumped after the tag) cannot be published. This is main's own copy of
+      # the script (working-directory: trust-root) reading the candidate's checked-out files as DATA
+      # via the `root` argument - never the candidate's own copy of this script. It needs no npm
+      # dependencies (only node:fs/node:path), so it runs before "npm ci" rather than after: a
+      # mismatch is caught before spending time installing anything.
+      - name: Guard - tag must equal every version-bearing manifest (main's code, candidate's files)
+        working-directory: trust-root
+        run: node scripts/verify-tag-matches-manifests.mjs "$TAG" ../candidate
+
+      # First candidate-controlled code execution in this job: "npm ci" runs lifecycle scripts
+      # (preinstall/install/postinstall, if the candidate's package.json declares any) from the tree
+      # that was just proven to be an ancestor of protected main. Everything above this line ran only
+      # main's own code.
+      - name: Install dependencies
+        working-directory: candidate
+        run: npm ci
+
+      - name: Unit tests
+        working-directory: candidate
+        run: npm test
+
+      - name: Conformance gate (the prover proves itself before it ships)
+        working-directory: candidate
+        run: node scripts/check.mjs
+
+      # Always runs, in both modes: shows exactly what would ship, same file list either way. Never
+      # touches the registry - "npm pack" only writes a local tarball.
+      - name: Preview tarball contents
+        working-directory: candidate
+        run: npm pack --dry-run
+
+      # --- dry_run: true (default) --------------------------------------------------------------
+      - name: "Dry run: npm pack (no publish - the word 'publish' does not appear on this path)"
+        if: ${{ inputs.dry_run }}
+        working-directory: candidate
+        run: |
+          npm pack
+          echo "### Dry run - nothing was published" >> "$GITHUB_STEP_SUMMARY"
+          echo "Tag \`$TAG\` packs cleanly. Re-run with dry_run unchecked to publish for real." >> "$GITHUB_STEP_SUMMARY"
+
+  # Live publish only. Runs only when dry_run is explicitly false AND `prepare` succeeded - which
+  # means the tag was format-valid, proven reachable from main (using main's own code), version-
+  # consistent, tested, and gated before this job ever starts. Checks out the exact sha `prepare`
+  # resolved from main's tree (not the tag string), so this job never re-reads the untrusted input at
+  # all and never re-derives the sha from anything candidate-controlled.
+  publish:
+    needs: prepare
+    # success() is spelled out rather than relied on implicitly: GitHub Actions only auto-applies a
+    # success() check to a job's `if:` when the expression contains no status-check function at all,
+    # and this gate is security-critical enough that "relies on an implicit default" is not good
+    # enough - it must be unambiguous on inspection that a failed `prepare` (a rejected tag, a failed
+    # ancestry check, a failed test run, a failed gate) can never let this job run regardless of
+    # dry_run's value.
+    if: ${{ success() && !inputs.dry_run }}
+    runs-on: ubuntu-latest
+    # Configure this environment once in repo Settings -> Environments (name: npm-publish) with a
+    # required reviewer. GitHub Actions YAML cannot itself create that rule - naming the environment
+    # THE LOAD-BEARING CONTROL IS EXTERNAL TO THIS FILE, and round 3 of the pre-release review is why.
+    #
+    # Everything above - the trust-root ordering, the tag allowlist, the ancestry proof - protects this
+    # workflow against a hostile INPUT. None of it protects against a hostile COPY. `workflow_dispatch`
+    # runs the workflow definition present at the caller-selected ref, so a collaborator with write
+    # access can push a branch carrying a `publish-npm.yml` with the trust-root steps simply deleted and
+    # dispatch that. The boundary then does not exist, because the file that defines it was never run.
+    # An in-workflow ref check cannot close this: a branch copy can delete that too.
+    #
+    # The `npm-publish` environment carries a deployment branch policy admitting only `main`, created
+    # and verified live 2026-08-11 via the environments API.
+    #
+    # CORRECTION, round 4: an earlier draft said a non-main run is "refused before this job starts,
+    # whatever its YAML says". **That is wrong**, and getting it right matters because it names the
+    # wrong control. Environment rules bind a job that REFERENCES the environment, so a branch copy
+    # can simply delete or rename this `environment:` block and the job will start.
+    #
+    # What that hostile job cannot do is OBTAIN A CREDENTIAL. An environment secret on `npm-publish`
+    # is not readable from a job bound to a different environment, and trusted publishing bound to
+    # this environment rejects a different OIDC subject. **The real trust boundary here is credential
+    # binding, not the branch policy.** The branch policy is what makes the credential bindable; it is
+    # not itself the gate. That distinction is exactly why the two standing requirements below are
+    # load-bearing rather than advisory: satisfy them and a hostile copy runs and fails empty-handed;
+    # violate either one and the branch policy protects nothing at all.
+    #
+    # TWO STANDING REQUIREMENTS for whoever configures publishing, because this file cannot enforce
+    # either and both are load-bearing:
+    #   1. `NPM_TOKEN`, if used at all, MUST be an ENVIRONMENT secret on `npm-publish` - never a
+    #      repository secret. A repository secret is readable by any workflow on any branch, which
+    #      re-opens exactly the hole the environment policy just closed.
+    #   2. If npm trusted publishing is used instead, bind it to this exact environment.
+    # Verified 2026-08-11: this repository currently has NO repository-level Actions secrets and no
+    # npm credential of any kind, so the path is not exploitable today. It becomes exploitable the
+    # moment a credential is added in the wrong place, which is precisely when nobody is looking.
+    environment:
+      name: npm-publish
+    # id-token: write lives ONLY here - not on `prepare`, not at the workflow level. It is npm
+    # provenance's own requirement (a Sigstore-signed attestation linking the published tarball back
+    # to this exact run and commit), and it is exercised on exactly one step below. This is the
+    # actual severity fix for round 1's Finding 1: even a successful script injection anywhere
+    # earlier in this file runs in a job that can never mint an OIDC token, because that job is not
+    # this one.
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - name: Checkout the commit prepare validated
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ needs.prepare.outputs.sha }}
+
+      - name: Set up Node from .nvmrc (the committed pin is the single CI source of truth)
+        uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+          cache-dependency-path: package-lock.json
+          registry-url: https://registry.npmjs.org
+
+      - name: Install dependencies
+        run: npm ci
+
+      # npm provenance requires GitHub Actions' OIDC id-token permission (granted above) plus a
+      # trusted-publisher relationship configured once on npmjs.com for this package, pointing at
+      # this repo and this workflow file. Without that one-time setup, npm falls back to whatever
+      # registry credential is configured (NODE_AUTH_TOKEN, wired here to an optional NPM_TOKEN
+      # secret) and fails closed with a clear auth error rather than publishing unsigned - it never
+      # silently drops provenance.
+      - name: "Publish to npm (LIVE - irreversible)"
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: |
+          npm publish --provenance --access public
+          echo "### Published agent-skills-toolkit@$(node -p "require('./package.json').version") to npm" >> "$GITHUB_STEP_SUMMARY"

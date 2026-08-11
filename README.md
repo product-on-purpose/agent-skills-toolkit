@@ -19,8 +19,8 @@ Most skill collections are a flat, single-agent, ungoverned pile. This is the St
 <p>
   <img src="https://img.shields.io/badge/status-active-success?style=flat-square" alt="Status: Active">
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-Apache--2.0-blue?style=flat-square" alt="License: Apache-2.0"></a>
-  <img src="https://img.shields.io/badge/version-1.10.1-blue?style=flat-square" alt="Version 1.10.1">
-  <img src="https://img.shields.io/badge/tier-Gold%20(Advanced)-yellow?style=flat-square" alt="Tier: Gold (Advanced)">
+  <img src="https://img.shields.io/badge/version-1.11.0-blue?style=flat-square" alt="Version 1.11.0">
+  <a href="https://product-on-purpose.github.io/agent-skills-toolkit/badges/tier.json"><img src="https://img.shields.io/endpoint?url=https%3A%2F%2Fproduct-on-purpose.github.io%2Fagent-skills-toolkit%2Fbadges%2Ftier.json&style=flat-square" alt="Tier badge, generated in CI at the graded commit sha - click through for the raw JSON (tier, sha, Standard pin, date)"></a>
   <a href="#the-catalog"><img src="https://img.shields.io/badge/skills-24-brightgreen?style=flat-square" alt="Skills: 24"></a>
   <img src="https://img.shields.io/badge/checks-30-brightgreen?style=flat-square" alt="Validation checks: 30">
   <a href="https://agentskills.io/specification"><img src="https://img.shields.io/badge/spec-agentskills.io-orange?style=flat-square" alt="Agent Skills Spec"></a>
@@ -66,6 +66,10 @@ Most skill collections are a flat, single-agent, ungoverned pile. This is the St
 
 ## Install
 
+Two install paths, for two different things: the full plugin (skills, subagents, commands) for an agent to run, or just the gate as an ordinary command-line tool with no agent involved.
+
+**As a Claude Code / Codex plugin** - skills, subagents, and commands, driven by an agent:
+
 ```bash
 # Add the marketplace once (by repo path)
 /plugin marketplace add product-on-purpose/agent-plugins
@@ -75,6 +79,15 @@ Most skill collections are a flat, single-agent, ungoverned pile. This is the St
 ```
 
 You **add** the marketplace by its repo path and **install** by the marketplace identity (`@product-on-purpose`): the path is the address, the identity is the brand. The toolkit installs on Claude Code and Codex (it ships both native manifests). New here? Read [What it is](#what-it-is) first, then [Use it](#use-it).
+
+**As a standalone gate** - the deterministic CLI only, via npm, with no agent runtime required:
+
+```bash
+npx agent-skills-toolkit /path/to/your-plugin   # one-shot, grades the given path and exits with its code
+npm install --save-dev agent-skills-toolkit     # or add it to your own toolchain / CI
+```
+
+`npx agent-skills-toolkit` (or `agent-skills-toolkit` once installed) runs `check` by default, so a bare path is enough to get a tier back; `evaluate` and `tier-report` are also available as subcommands. There is no `askit` bin alias - that name belongs to an unrelated package already on the npm registry. The npm package ships the gate and `STANDARD.md` only, not the `askit-*` authoring skills or the maintainer-only eval-run tooling; see [Install and run via npm](docs/how-to/install-and-run-via-npm.md) for the full command reference and exactly what is and is not included.
 
 <div align="right">(<a href="#readme-top">back to top</a>)</div>
 
@@ -375,9 +388,9 @@ The Claude slash commands that give the core flows an explicit `/command` entry 
 
 ## Status
 
-**`v1.10.1`, Gold grade, installable.** The repository declares `tier: advanced` and self-validates at Advanced in CI: the full gate is green and `tier-report` prints `advanced` with an empty burndown, so the toolkit is a self-proving example of the Standard it defines. Gold check `G1` (hooks) now grades the toolkit's own demonstrative no-dash `PreToolUse` hook; `G6` (deprecation) is still satisfied without exercise, since the toolkit ships no deprecated components yet. The toolkit installs from the `product-on-purpose` marketplace (see [Install](#install)).
+**`v1.11.0`, Gold grade, installable.** The repository declares `tier: advanced` and self-validates at Advanced in CI: the full gate is green and `tier-report` prints `advanced` with an empty burndown, so the toolkit is a self-proving example of the Standard it defines. Gold check `G1` (hooks) now grades the toolkit's own demonstrative no-dash `PreToolUse` hook; `G6` (deprecation) is still satisfied without exercise, since the toolkit ships no deprecated components yet. The toolkit installs from the `product-on-purpose` marketplace (see [Install](#install)).
 
-- **Version** - `1.10.1` (Standard `v0.12`).
+- **Version** - `1.11.0` (Standard `v0.12`).
 - **Tier** - Advanced (Gold), self-validated.
 - **Install** - `product-on-purpose` marketplace (`agent-plugins`).
 - **Components** - 24 skills, 7 subagents, 2 commands.

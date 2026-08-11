@@ -7,7 +7,7 @@ import { CHECKS } from "../../scripts/lib/registry.mjs";
 import { REPORT_META, metaFor } from "../../scripts/lib/report-meta.mjs";
 import { evaluate, buildConditional } from "../../scripts/evaluate.mjs";
 import { gateExitFromFindings } from "../../scripts/check.mjs";
-import { renderMarkdown, renderHtml } from "../../scripts/lib/report-render.mjs";
+import { renderMarkdown, renderHtml, deriveModel } from "../../scripts/lib/report-render.mjs";
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const FIXTURES = path.resolve(HERE, "../fixtures");
@@ -186,6 +186,50 @@ test("the renderer is a pure projection: it mutates nothing and renders the sour
   assert.ok(md.includes(TIER_LABEL[r.tier]), "the rendered grade must equal the source grade");
 });
 
+// --- provenance surfacing (E9/E23): resolveFindings already stamps `provenance` on every resolved
+// finding (scripts/lib/resolve-config.mjs); it was invisible in the designed reports. deriveModel
+// projects the lead finding's provenance onto its row exactly the way it already projects `file` and
+// `migrationNotices` - a pure serialization of data already on the finding, no new computation. ---
+
+function provenanceReport(provenance) {
+  const f = { check: "reference-links", severity: "error", effectiveSeverity: "error", provenance, message: "reference link does not resolve", file: "skills/example/SKILL.md", reqId: "U6" };
+  return { scope: "plugin", target: "prov", tier: "universal", satisfies: [], blocked: {}, summary: { errors: 1, warns: 0 }, findings: [f], byRule: { U6: [f] } };
+}
+
+test("deriveModel is exported and projects the lead finding's provenance onto its row", () => {
+  const m = deriveModel(provenanceReport("objective"), optsFor(provenanceReport("objective")));
+  const row = m.rows.find((r) => r.reqId === "U6");
+  assert.ok(row, "expected a U6 row from the real spine");
+  assert.equal(row.provenance, "objective");
+});
+
+test("deriveModel leaves provenance null on a row with no live finding (a PASS or N/A row)", () => {
+  const r = provenanceReport("objective");
+  const m = deriveModel(r, optsFor(r));
+  const passRow = m.rows.find((row) => row.status === "PASS");
+  assert.ok(passRow, "expected at least one PASS row in the real spine");
+  assert.equal(passRow.provenance, null, "no live finding means nothing to serialize a provenance from");
+});
+
+test("renderMarkdown surfaces provenance in the section 05 evidence ledger", () => {
+  const r = provenanceReport("vendor-cited");
+  const md = renderMarkdown(r, optsFor(r));
+  const gi = md.indexOf("## 05 Tier compliance");
+  assert.ok(gi >= 0);
+  const ledger = md.slice(gi, md.indexOf("## 06"));
+  assert.match(ledger, /Provenance/, "the ledger table must carry a Provenance column");
+  const u6Line = ledger.split("\n").find((l) => l.includes("U6") && l.includes("FAIL"));
+  assert.ok(u6Line, "expected a U6 FAIL row");
+  assert.match(u6Line, /vendor-cited/, "the U6 row must show its vendor-cited provenance");
+});
+
+test("renderHtml surfaces provenance in the section 05 evidence ledger", () => {
+  const r = provenanceReport("house");
+  const html = renderHtml(r, optsFor(r));
+  const u6Row = html.slice(html.indexOf('id="row-U6"'));
+  assert.match(u6Row.slice(0, u6Row.indexOf("</div></div>") + 12), /house/, "the U6 ledger row must show its house provenance");
+});
+
 // --- golden snapshots: the byte-for-byte regression lock (regenerate with UPDATE_SNAPSHOTS=1) ---
 
 const SNAP_DIR = path.join(FIXTURES, "golden/report-render");
@@ -343,4 +387,102 @@ test("renderMarkdown: an identical migrationNotice repeated across findings in o
   const md = renderMarkdown(r, optsFor(r));
   const occurrences = md.split("capped at warn until Standard 0.13").length - 1;
   assert.equal(occurrences, 1, "an identical migrationNotice shared by multiple findings must be deduplicated, not repeated");
+});
+
+// --- clampNotice (backlog E28, "the published-verdict clamp explanation never reached the shareable
+// report"): resolveFindings (scripts/lib/resolve-config.mjs) attaches clampNotice to a finding whose
+// severity was clamped from "off" back up to "warn" by published-verdict mode - a published verdict
+// cannot let a consumer's own suppression or off-rule silently disable an objective/vendor-cited check
+// the reader is trusting the report to surface. check.mjs's terminal format() already surfaces it
+// (`[clamped to warn: published-verdict, ...]`); a grep for clampNotice in report-render.mjs returned
+// zero matches before this fix. Mirrors the migrationNotice projection above exactly, including
+// collecting every unique, non-empty clampNotice across the LIVE findings for a requirement rather than
+// only the lead's - the same lead-only bug already fixed once for migrationNotice (round-4 adversarial
+// review, Finding 2) must not be reintroduced here. clampNotice and migrationNotice are different
+// mechanisms (a published-verdict trust clamp vs. a warn-first migration ceiling) and must be labeled
+// distinctly, not merged into one generic note. ---
+
+function clampedFinding() {
+  return {
+    check: "reference-links", severity: "off", effectiveSeverity: "warn", reqId: "U6",
+    message: "reference link does not resolve",
+    file: "skills/example/SKILL.md",
+    clampNotice: 'clamped to warn in published-verdict mode (provenance objective): a published verdict cannot disable an objective or vendor-cited check',
+  };
+}
+function clampedReport() {
+  const f = clampedFinding();
+  return { scope: "plugin", target: "clamped", tier: "convergent", satisfies: ["universal", "convergent"], blocked: {}, summary: { errors: 0, warns: 1 }, findings: [f], byRule: { U6: [f] } };
+}
+
+test("renderMarkdown projects clampNotice into the evidence-ledger row (E28)", () => {
+  const r = clampedReport();
+  const md = renderMarkdown(r, optsFor(r));
+  const u6Line = md.split("\n").find((l) => l.includes("U6") && l.includes("WARN"));
+  assert.ok(u6Line, "expected a U6 WARN row in the evidence ledger");
+  assert.match(md, /clamped to warn in published-verdict mode/, "the clamp explanation must reach the Markdown report");
+  assert.match(md, /a published verdict cannot disable an objective or vendor-cited check/, "the full clampNotice text must be preserved, not summarized away");
+});
+
+test("renderHtml projects clampNotice into the evidence-ledger row (E28)", () => {
+  const r = clampedReport();
+  const html = renderHtml(r, optsFor(r));
+  assert.match(html, /clamped to warn in published-verdict mode/, "the clamp explanation must reach the HTML report");
+});
+
+test("renderMarkdown labels a clampNotice distinctly from a migrationNotice (E28)", () => {
+  const r = clampedReport();
+  const md = renderMarkdown(r, optsFor(r));
+  assert.doesNotMatch(md, /Severity capped for U6/, "a clampNotice must not be rendered under the migrationNotice's label");
+  assert.match(md, /Published-verdict clamp for U6/, "a clampNotice needs its own distinct label");
+});
+
+test("renderHtml labels a clampNotice distinctly from a migrationNotice (E28)", () => {
+  const r = clampedReport();
+  const html = renderHtml(r, optsFor(r));
+  const u6Row = html.slice(html.indexOf('id="row-U6"'));
+  const rowSlice = u6Row.slice(0, u6Row.indexOf("</div></div>") + 12);
+  assert.ok(!/>Severity capped</.test(rowSlice), "a clampNotice must not reuse the migrationNotice's HTML label");
+  assert.match(rowSlice, />Published-verdict clamp</, "a clampNotice needs its own distinct HTML label");
+});
+
+// The regression the migrationNotice fix had to be corrected for once already: copying the notice from
+// only the LEAD finding of a requirement drops a notice attached to a non-lead finding. A requirement
+// whose lead finding is an uncapped error (no clampNotice) but whose non-lead finding IS clamped must
+// still surface the clamp.
+function orphanErrorFindingNoClamp() {
+  return {
+    check: "reference-links", severity: "error", effectiveSeverity: "error", reqId: "U6",
+    message: "reference link is malformed",
+    file: "skills/other/SKILL.md",
+    clampNotice: null,
+  };
+}
+function mixedClampReport() {
+  const err = orphanErrorFindingNoClamp();
+  const warn = clampedFinding();
+  return { scope: "plugin", target: "mixed-clamp", tier: "convergent", satisfies: ["universal", "convergent"], blocked: {}, summary: { errors: 1, warns: 1 }, findings: [err, warn], byRule: { U6: [err, warn] } };
+}
+
+test("renderMarkdown: a lead error with no clampNotice still surfaces a non-lead finding's clampNotice (E28)", () => {
+  const r = mixedClampReport();
+  const md = renderMarkdown(r, optsFor(r));
+  const u6Line = md.split("\n").find((l) => l.includes("U6") && l.includes("FAIL"));
+  assert.ok(u6Line, "the error must still be the lead (FAIL) row");
+  assert.match(md, /clamped to warn in published-verdict mode/, "the non-lead warn finding's clampNotice must still reach the Markdown report even though an uncapped error is the lead finding");
+});
+
+test("renderHtml: a lead error with no clampNotice still surfaces a non-lead finding's clampNotice (E28)", () => {
+  const r = mixedClampReport();
+  const html = renderHtml(r, optsFor(r));
+  assert.match(html, /clamped to warn in published-verdict mode/, "the non-lead warn finding's clampNotice must still reach the HTML report even though an uncapped error is the lead finding");
+});
+
+test("renderMarkdown: an identical clampNotice repeated across findings in one requirement renders once, not duplicated", () => {
+  const f1 = clampedFinding();
+  const f2 = { ...clampedFinding(), file: "skills/other/SKILL.md" }; // same clampNotice text, different finding
+  const r = { scope: "plugin", target: "dup-clamp", tier: "convergent", satisfies: ["universal", "convergent"], blocked: {}, summary: { errors: 0, warns: 2 }, findings: [f1, f2], byRule: { U6: [f1, f2] } };
+  const md = renderMarkdown(r, optsFor(r));
+  const occurrences = md.split("a published verdict cannot disable an objective or vendor-cited check").length - 1;
+  assert.equal(occurrences, 1, "an identical clampNotice shared by multiple findings must be deduplicated, not repeated");
 });

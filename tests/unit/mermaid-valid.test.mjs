@@ -46,30 +46,40 @@ test("an unrecognized first keyword fails naming the rule", () => {
     assert.ok(f, "expected a recognized-keyword finding");
     assert.equal(f.reqId, "U12");
     assert.equal(f.file, "a.md");
+    // U12 is the check chosen to populate `finding().line` (findings.mjs): it already computes the
+    // exact line number and cites it in the message text, so carrying it structurally on the finding
+    // is a one-line addition, not new scanning. Line 2 is the diagram-type line (line 1 is the fence).
+    assert.equal(f.line, 2, "the finding must carry the diagram line structurally, not just in the message");
   });
 });
 
-test("unbalanced brackets fail", () => {
+test("unbalanced brackets fail, carrying the fence's starting line", () => {
   inTmp("mermaid-bracket-", (dir) => {
     writeFileSync(path.join(dir, "a.md"), md("flowchart LR\n  A[unbalanced --> B]]"));
     const r = check({ root: dir });
-    assert.ok(r.some((x) => /unbalanced brackets/.test(x.message)));
+    const f = r.find((x) => /unbalanced brackets/.test(x.message));
+    assert.ok(f);
+    assert.equal(f.line, 1, "cites the fence-opener line, matching the message's own \"at line 1\"");
   });
 });
 
-test("an empty block fails", () => {
+test("an empty block fails, carrying the fence's starting line", () => {
   inTmp("mermaid-empty-", (dir) => {
     writeFileSync(path.join(dir, "a.md"), `${FENCE}mermaid\n${FENCE}\n`);
     const r = check({ root: dir });
-    assert.ok(r.some((x) => /is empty/.test(x.message)));
+    const f = r.find((x) => /is empty/.test(x.message));
+    assert.ok(f);
+    assert.equal(f.line, 1);
   });
 });
 
-test("a tab in a block fails (whitespace-sensitive)", () => {
+test("a tab in a block fails (whitespace-sensitive), carrying the fence's starting line", () => {
   inTmp("mermaid-tab-", (dir) => {
     writeFileSync(path.join(dir, "a.md"), md("flowchart LR\n\tA --> B"));
     const r = check({ root: dir });
-    assert.ok(r.some((x) => /tab character/.test(x.message)));
+    const f = r.find((x) => /tab character/.test(x.message));
+    assert.ok(f);
+    assert.equal(f.line, 1);
   });
 });
 
@@ -88,11 +98,13 @@ test("a quoted bracket does not trip the balance rule", () => {
   });
 });
 
-test("an unterminated fence fails", () => {
+test("an unterminated fence fails, carrying the fence's opening line", () => {
   inTmp("mermaid-unterm-", (dir) => {
     writeFileSync(path.join(dir, "a.md"), `${FENCE}mermaid\nflowchart LR\n  A --> B\n`);
     const r = check({ root: dir });
-    assert.ok(r.some((x) => /unterminated mermaid fence/.test(x.message)));
+    const f = r.find((x) => /unterminated mermaid fence/.test(x.message));
+    assert.ok(f);
+    assert.equal(f.line, 1);
   });
 });
 
@@ -185,6 +197,7 @@ test("a directive with no real diagram keyword after it still fails, citing the 
     const f = check({ root: dir }).find((x) => /recognized diagram keyword/.test(x.message));
     assert.ok(f, "a directive-led block with no keyword must still fail");
     assert.match(f.message, /line 3/, "the finding must cite the diagram line (3), not the fence opener");
+    assert.equal(f.line, 3, "the structural line must agree with the line cited in the message");
   });
 });
 

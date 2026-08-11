@@ -12,12 +12,12 @@
 
 | Fact | Value |
 |---|---|
-| Version | 1.10.1 (being cut now; v1.10.0 was cut 2026-08-07) |
+| Version | 1.11.0 (being cut now; v1.10.1 was cut 2026-08-11) |
 | Declared tier | Advanced (Gold) - `library.json` `tier: advanced` |
 | Standard pin | 0.12 |
 | Spine | 30 checks |
 | Skills | 24 |
-| Tests | 743, 0 failures (verified by `npm run release-counts`, 2026-08-11) |
+| Tests | 939, 0 failures (verified by `npm run release-counts`, 2026-08-11) |
 | Self-proving | `node scripts/check.mjs .` exits 0 at Advanced, 0 errors, 0 warnings |
 
 ## What is open

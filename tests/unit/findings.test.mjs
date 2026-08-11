@@ -11,7 +11,17 @@ test("finding() builds a normalized Finding with defaults", () => {
     file: null,
     reqId: null,
     migration: null,
+    line: null,
   });
+});
+
+// The SARIF renderer needs a line number to emit a physicalLocation.region; most checks cannot supply
+// one honestly (SEVERITY/S9 note in check.mjs), so `line` defaults to null and is opt-in per finding.
+test("finding() accepts an optional line number, defaulting to null", () => {
+  const withLine = finding("c", SEVERITY.ERROR, "msg", { line: 42 });
+  assert.equal(withLine.line, 42);
+  const withoutLine = finding("c", SEVERITY.ERROR, "msg");
+  assert.equal(withoutLine.line, null);
 });
 
 test("finding() accepts file and reqId", () => {

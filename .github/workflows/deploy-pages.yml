@@ -1,30 +1,101 @@
 name: Deploy docs site to GitHub Pages
 
-# Builds the Astro Starlight site in site/ and deploys it to GitHub Pages.
-# Triggers on pushes to main that touch site/, the public docs/ tree it now renders (the generated
-# Pattern S view, ADR 0024 D2), or this workflow, and on manual dispatch. Pages source must be set to
-# "GitHub Actions" in the repo settings for this to publish.
+# Builds the Astro Starlight site in site/ and deploys it to GitHub Pages, plus a CI-generated,
+# sha-pinned tier badge (workstream 3 of v1.11.0, "reach") published alongside it.
+#
+# TRIGGER, and the deliberate trade-off behind it: this fires on EVERY push to main, not only pushes
+# that touch site/ or docs/. Earlier this workflow was path-filtered to site/**, docs/**, and itself -
+# correct for the docs site alone, but wrong once the badge job landed here, because a CODE-ONLY push
+# to main (one that changes what tier the gate reports, without touching site/ or docs/ at all) would
+# then pass through unnoticed and the published badge would silently go stale - the exact failure mode
+# this badge exists to retire (a hand-maintained README badge did precisely that, twice, across two
+# releases). The accepted cost: a change touching only, say, tests/ now also triggers a full site
+# rebuild and redeploy, even though the rendered docs pages themselves did not change. That is a real
+# increase in Pages-deploy frequency and CI minutes, traded deliberately for "the badge can never be
+# behind HEAD" - see scripts/gen-tier-badge.mjs's own docblock for what the badge payload carries.
+# Pages source must be set to "GitHub Actions" in the repo settings for this to publish.
+#
+# THE BADGE ITSELF: after the site build, a dedicated step runs scripts/gen-tier-badge.mjs against the
+# repository root and writes its shields.io endpoint-badge JSON straight into site/dist/badges/tier.json
+# (after `astro build`, so the build step cannot wipe it), which GitHub Pages then serves at
+# https://product-on-purpose.github.io/agent-skills-toolkit/badges/tier.json - the same static-file
+# convention already used for site/public/robots.txt and site/public/favicon.svg, just written fresh at
+# deploy time instead of being a tracked file (a tracked copy is exactly the class of staleness this
+# exists to prevent). This rides the existing Pages deploy rather than adding a second publishing job,
+# since one artifact upload already exists here and the badge generator needs nothing the site build
+# does not already have (Node, and this repository's own root dependencies for the gate itself).
+#
+# SECURITY (v1.11.0 pre-release adversarial review, Finding 3, medium): `workflow_dispatch` used to
+# carry no ref pin, so a manual dispatch from the Actions UI while an OLDER branch happened to be
+# selected would check out and grade THAT branch, then deploy its badge and site to the canonical
+# Pages URL - overwriting a newer main's badge with an older sha and tier. That reproduces exactly
+# the stale-front-door defect this badge exists to retire (see the badge docblock above), which is
+# worse than an ordinary bug: the badge's entire justification is that a CI-computed value cannot go
+# stale, so a path that lets it go stale defeats the feature. The checkout step below therefore pins
+# `main` explicitly, ignoring whatever ref a dispatch happened to select, and `cancel-in-progress: true`
+# (below, changed from false) means a newer trigger supersedes an older in-flight run rather than
+# letting an earlier-started, later-finishing run overwrite a newer deploy.
+#
+# CORRECTION (round 2 of the same review): an earlier version of this comment claimed the ref pin means
+# "a manual dispatch from any branch now builds and deploys current main's tip". **That was wrong, and
+# the reason is worth stating because it generalizes.** GitHub runs the workflow definition present at
+# the dispatched ref, so a dispatch targeting a branch that predates this commit executes the OLD YAML,
+# which has no pin. **Editing a workflow cannot retroactively secure older copies of itself.** A control
+# that lives inside the artifact it controls is not a control.
+#
+# The `github-pages` environment carries a deployment branch policy admitting **only `main`**, verified
+# live 2026-08-11 via the environments API: one branch policy, `main`. A run executing THIS workflow
+# from a non-main ref builds and is then refused at the deploy gate.
+#
+# THIRD CORRECTION, round 4, and this one is the honest limit rather than another near-miss. An earlier
+# draft here said that policy "cannot be bypassed by any revision of it". **That is false.** Environment
+# rules bind a job that REFERENCES that environment. A branch copy of this file can point its deploy job
+# at a different environment name, which GitHub creates on first use with no protection rules at all,
+# and `actions/deploy-pages` explicitly permits an environment other than `github-pages`. So a hostile
+# revision can deploy; the policy protects the NAME, not the capability.
+#
+# What actually bounds this is who can run workflows here at all. Verified 2026-08-11: this repository
+# has exactly ONE collaborator, the owner, and `default_workflow_permissions` is `read`. The residual
+# risk is therefore "the owner attacks their own badge", which is not a threat model worth further
+# engineering. **Stated plainly rather than papered over**, because the badge's value comes from being
+# trustworthy, and a security comment that overclaims is the same defect as a stale badge: a confident
+# assertion nobody checked. If write access is ever granted to anyone else, revisit this, and the
+# control to reach for is an Actions actor policy, not another line in this file.
+#
+# The ref pin below is defence in depth, not the load-bearing control, and its scope is narrower than
+# an earlier draft of this very comment claimed. **That draft said the pin "fails at checkout rather
+# than at deploy". It does not.** `ref: main` succeeds from any trigger ref; the pin changes WHAT gets
+# built, never WHETHER the run proceeds. A non-main run executing this revision builds main's content
+# and is then refused at the `github-pages` environment when the deploy job asks for it. So the pin
+# buys exactly one thing: a run executing THIS revision cannot publish another branch's content. It
+# buys nothing at all against a run executing an older revision, because that revision does not
+# contain it. If the environment policy is ever removed, neither the pin nor anything else in this
+# file is sufficient.
+#
+# Two false claims in two consecutive drafts of one comment is itself the lesson: reasoning about a
+# control from inside the file it protects keeps producing confident, wrong statements about scope.
 
 on:
   push:
     branches: [main]
-    paths:
-      - 'site/**'
-      # The site is generated from the public docs/ tree, so a docs edit must redeploy. (A
-      # docs/internal/ edit also matches and triggers a harmless no-op rebuild; path filters cannot
-      # negate a subtree, and the generator excludes internal regardless.)
-      - 'docs/**'
-      - '.github/workflows/deploy-pages.yml'
   workflow_dispatch:
 
+# Least privilege at the workflow level: only `contents: read`. `pages: write` and `id-token: write`
+# are granted on the `deploy` job alone (round 4 of the v1.11.0 pre-release review). Holding them here
+# meant the `build` job - the one that runs the site build and this repository's own scripts - carried
+# deploy authority it never uses.
 permissions:
   contents: read
-  pages: write
-  id-token: write
 
 concurrency:
   group: pages
-  cancel-in-progress: false
+  # true (changed from false, Finding 3): a newer trigger - another push to main, or a repeat manual
+  # dispatch - cancels an older in-flight run in this group rather than queuing behind it, so an
+  # earlier-started run can never complete AFTER a newer one and overwrite its badge/site with older
+  # content. Safe for Pages specifically: GitHub Pages activation is atomic (an interrupted run before
+  # `actions/deploy-pages` completes simply leaves the previous deployment live), so cancellation can
+  # only ever drop a superseded build, never leave the public site half-published.
+  cancel-in-progress: true
 
 jobs:
   build:
@@ -33,18 +104,41 @@ jobs:
       run:
         working-directory: site
     steps:
-      - name: Checkout
+      # ref: main is explicit and not the trigger's default (Finding 3): a push to main and github.ref
+      # already agree, but workflow_dispatch's ref defaults to whatever branch the Actions UI (or API
+      # caller) happened to have selected, which this workflow must never trust for what it deploys.
+      # Scope, stated precisely because two earlier drafts overstated it: pinning here means a dispatch
+      # that EXECUTES THIS REVISION builds main's content rather than the dispatched branch's. It says
+      # nothing about a dispatch executing an older revision of this file, which does not contain this
+      # line. Non-main deployment is refused by the `github-pages` environment policy, not here.
+      - name: Checkout main
         uses: actions/checkout@v7
+        with:
+          ref: main
       - name: Setup Node from .nvmrc (pin 24; the committed pin is the single CI source of truth)
         uses: actions/setup-node@v7
         with:
           node-version-file: .nvmrc
           cache: npm
-          cache-dependency-path: site/package-lock.json
+          cache-dependency-path: |
+            site/package-lock.json
+            package-lock.json
       - name: Install dependencies
         run: npm ci
+      # The repository root's own dependency (just "yaml") - separate from site's, above - is what
+      # scripts/gen-tier-badge.mjs needs to run the gate (scripts/check.mjs's full check registry) it
+      # is built on. --prefix targets ../package.json without leaving this job's `site` working
+      # directory.
+      - name: Install root dependencies (for scripts/gen-tier-badge.mjs)
+        run: npm ci --prefix ..
       - name: Build site
         run: npm run build
+      # Runs AFTER the build (astro build owns and can wipe dist/) and BEFORE the upload, so the badge
+      # ships in the same Pages artifact as the rest of the site. Graded at the repository root ("..",
+      # this job's working directory is `site`), written into dist/badges/ so it is served alongside
+      # the docs pages at that path.
+      - name: Generate the CI tier badge (workstream 3, v1.11.0 "reach")
+        run: node ../scripts/gen-tier-badge.mjs .. --out dist/badges/tier.json
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v5
         with:
@@ -53,6 +147,10 @@ jobs:
   deploy:
     needs: build
     runs-on: ubuntu-latest
+    # Scoped here rather than workflow-wide, so the build job cannot deploy.
+    permissions:
+      pages: write
+      id-token: write
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}

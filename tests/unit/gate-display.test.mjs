@@ -86,3 +86,21 @@ test("format still prints every finding it printed before the sectioning (no fin
   const out = format(findings, "universal");
   for (const f of findings) assert.match(out, new RegExp(f.message), `${f.reqId} must still appear`);
 });
+
+// Provenance (E9/E23): resolveFindings already stamps every resolved finding with `provenance`; it was
+// computed but invisible in the terminal output. Surfaced next to severity so a reader scanning the
+// gate's own text can tell a portable objective failure from a house-convention one without leaving it.
+test("format surfaces each finding's provenance next to its severity", () => {
+  const out = format([err("U6", { provenance: "vendor-cited" })], "universal");
+  assert.match(out, /\[error\/vendor-cited\]/, "severity and provenance must both be visible together");
+});
+
+test("format falls back to the objective default when a finding carries no provenance (defensive, matches resolveFindings' own fallback)", () => {
+  const out = format([err("U6")], "universal");
+  assert.match(out, /\[error\/objective\]/);
+});
+
+test("format shows provenance on a warning too, not only an error", () => {
+  const out = format([{ ...err("G8"), severity: "warn", provenance: "house" }], "universal");
+  assert.match(out, /\[warn\/house\]/);
+});

@@ -8,6 +8,12 @@
 # Phase 1: the validation spine is now live. This workflow runs the full unit test
 # suite and then the conformance gate (`node scripts/check.mjs`). Both steps are
 # pure script invocations - the YAML itself holds no validation logic.
+#
+# validator-parity (ADR 0042): the same rule applies there too - this job installs the two vendor
+# CLIs and then runs ONE portable script, scripts/check-parity.mjs, which is where every parsing and
+# comparison decision actually lives. Report-only for v1.11.0 (see the script's PARITY_MODE), so this
+# job never fails the build on a disagreement; it always runs `node scripts/check-parity.mjs .` to
+# completion and its exit code is whatever that script decides.
 
 name: CI
 
@@ -129,3 +135,52 @@ jobs:
       - name: Check route parity (clause 14.11b; no published route removed without a redirect)
         if: ${{ !cancelled() && steps.build.outcome == 'success' }}
         run: node scripts/check-route-parity.mjs dist scripts/route-manifest.txt
+
+  # Validator-parity harness (ADR 0042 - validator parity is report-only and checks parsed values):
+  # runs the first-party validators (claude plugin validate, the skills-ref reference validator) and
+  # reports where they disagree with what this repository claims, plus a parsed-values round-trip of
+  # every skill's metadata.* through the reference PARSER (the ADR 0040 metadata.chain incident is why
+  # that half exists - a harness that only checked exit codes reported this repo clean while a value
+  # was being silently mangled). Report-only for v1.11.0: this job always runs to completion and its
+  # exit code is whatever scripts/check-parity.mjs's PARITY_MODE decides (today: always 0). A separate
+  # job, not a step folded into `validate`, because it installs two extra vendor CLIs the plain
+  # validate jobs deliberately do not carry, and because a report-only job must never occupy a
+  # required-status-check slot a gating job depends on.
+  validator-parity:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Set up Node 24
+        uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      # The claude CLI, from the npm package @anthropic-ai/claude-code. `claude plugin validate` was
+      # verified (2026-08-11) to run fully offline and unauthenticated: with an isolated HOME/config
+      # dir, no ANTHROPIC_API_KEY or OAuth token, and outbound traffic forced to fail via a bogus
+      # HTTP(S)_PROXY, the command still validated correctly. No secret is required here - only this
+      # install step's own outbound access to the npm registry, the same access `npm ci` above needs.
+      - name: Install the claude CLI
+        run: npm install -g @anthropic-ai/claude-code
+
+      # skills-ref (PyPI), run through uv/uvx exactly as the local reproduction commands in
+      # docs/internal/release-plans/plan_v1.10.1/validator-parity-baseline.md do, so a CI failure here
+      # reproduces with the identical command a contributor would type locally. Also verified offline
+      # and unauthenticated the same way as the claude CLI above.
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install uv (provides uvx)
+        run: pip install uv
+
+      - name: Validator parity (report-only - see ADR 0042 and PARITY_MODE in scripts/check-parity.mjs)
+        run: node scripts/check-parity.mjs .

@@ -1,0 +1,100 @@
+#!/usr/bin/env node
+// what-it-is:   the agent-skills-toolkit CLI entry point (npm "bin")
+// what-it-does: dispatches to the check (gate), evaluate, or tier-report script by subcommand, or
+//               defaults to the gate when the first argument is a plugin path rather than a subcommand
+// why:          the package name is the toolkit, not any one tool, so `npx agent-skills-toolkit <path>`
+//               (the one-minute experience the v1.11.0 "reach" release is built around) must grade a
+//               plugin without requiring a subcommand first, while still giving `evaluate` and
+//               `tier-report` a real entry point under the same installed name
+// used-by:      the "bin" field in package.json; installed by `npm install -g` or run via `npx`
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+import { spawnSync } from "node:child_process";
+import { readFileSync } from "node:fs";
+
+const SCRIPT_DIR = path.dirname(fileURLToPath(import.meta.url));
+const PKG_ROOT = path.resolve(SCRIPT_DIR, "..");
+
+// Subcommand name -> the script it dispatches to. Spawned as a real child process rather than
+// imported, because each target script's own CLI block is guarded by
+// `process.argv[1]?.endsWith("<name>.mjs")` - a plain `import()` would run inside THIS file's
+// process, so argv[1] would still be this wrapper and every one of those guards would stay false,
+// silently running nothing. Spawning also means this wrapper never has to duplicate check.mjs,
+// evaluate.mjs, or tier-report.mjs's own argv parsing, flag validation, or exit-code logic - it is a
+// thin dispatcher, not a second implementation of any of the three CLIs.
+const SUBCOMMANDS = {
+  check: path.join(PKG_ROOT, "scripts", "check.mjs"),
+  evaluate: path.join(PKG_ROOT, "scripts", "evaluate.mjs"),
+  "tier-report": path.join(PKG_ROOT, "scripts", "tier-report.mjs"),
+};
+
+// Deliberately no "askit" alias here. "askit" is a real, unrelated package already published on the
+// npm registry; adding it as a second bin name would mean `npx askit` on a clean machine (nothing of
+// ours installed) fetches and executes THEIR code instead, and the resulting failure would look like
+// this toolkit's bug. Do not "helpfully" add it back - see docs/how-to/install-and-run-via-npm.md.
+
+function readVersion() {
+  const pkg = JSON.parse(readFileSync(path.join(PKG_ROOT, "package.json"), "utf8"));
+  return pkg.version;
+}
+
+function helpText() {
+  return `agent-skills-toolkit ${readVersion()} - the Advanced Skill Library Standard gate
+
+Usage:
+  agent-skills-toolkit [path] [flags]              grade a plugin against the Standard (the gate; default)
+  agent-skills-toolkit check [path] [flags]         same as above, explicit subcommand
+  agent-skills-toolkit evaluate [path] [flags]      the structured evaluator (--format, --report, --mode, --profile, ...)
+  agent-skills-toolkit tier-report [path] [--json]  the tier-earned-plus-burndown report
+  agent-skills-toolkit --help, -h                   show this help
+  agent-skills-toolkit --version, -v                print the installed version
+
+[path] defaults to the current directory. Every flag after the subcommand (or after a bare path) is
+passed through unchanged to the underlying script - see STANDARD.md and the "Install and run via npm"
+how-to page on the published docs site for --strict, --mode, --profile, --format, and --report.
+
+Exit code is always the gate's: 0 means no gate-failing error at the plugin's declared tier, 1 means
+at least one. If your plugin directory is literally named "check", "evaluate", or "tier-report", pass
+an explicit subcommand first (e.g. "agent-skills-toolkit check ./evaluate") so it is read as a path,
+not mistaken for the subcommand of the same name.
+
+This package does not ship the maintainer-only corpus/eval-run tooling from the agent-skills-toolkit
+source repository (eval-run, its aggregator, the advisory scorer, standards-watch); those read paths
+relative to that repository's own tree and are not meant to run from inside someone else's install.`;
+}
+
+const argv = process.argv.slice(2);
+const [first, ...restRaw] = argv;
+
+if (first === "--help" || first === "-h") {
+  console.log(helpText());
+  process.exit(0);
+}
+if (first === "--version" || first === "-v") {
+  console.log(readVersion());
+  process.exit(0);
+}
+
+let script;
+let rest;
+if (first !== undefined && Object.prototype.hasOwnProperty.call(SUBCOMMANDS, first)) {
+  script = SUBCOMMANDS[first];
+  rest = restRaw;
+} else {
+  // No recognized subcommand: treat every argument (a path, flags, or nothing at all) as arguments
+  // to the gate, so `npx agent-skills-toolkit <path-to-plugin>` grades it with no subcommand needed -
+  // the one-minute experience this bin exists to make possible.
+  script = SUBCOMMANDS.check;
+  rest = argv;
+}
+
+const result = spawnSync(process.execPath, [script, ...rest], { stdio: "inherit" });
+if (result.error) {
+  console.error(`agent-skills-toolkit: failed to run ${path.basename(script)}: ${result.error.message}`);
+  process.exit(1);
+}
+if (result.signal) {
+  console.error(`agent-skills-toolkit: ${path.basename(script)} was terminated by signal ${result.signal}`);
+  process.exit(1);
+}
+process.exit(result.status ?? 1);

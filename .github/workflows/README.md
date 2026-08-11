@@ -11,4 +11,5 @@ The CI and release automation: the conformance gate and a non-deploying site bui
 - `ci.yml` - the ci.yml config.
 - `codeql.yml` - CodeQL static analysis (javascript-typescript suite, advanced setup).
 - `deploy-pages.yml` - the deploy-pages.yml config.
+- `publish-npm.yml` - the workflow_dispatch-only npm publish (dry-run by default; never fires on a tag push).
 - `release.yml` - the release.yml config.
