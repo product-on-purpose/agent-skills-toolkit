@@ -1,6 +1,7 @@
 ---
 name: co-caller
 description: Declares it invokes co-worker, which the chain contract does not permit. Use to exercise S4 orphan detection.
+# legacy top-level location, kept deliberately: S4 must keep reading it
 chain:
   - co-worker
 metadata:

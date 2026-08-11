@@ -1,14 +1,14 @@
 ---
 name: askit-evaluate
 description: Evaluates a skill or plugin against the Advanced Skill Library Standard across three modes, producing deterministic conformance findings and a tier, an opt-in behavioral pass, and a qualitative review. Use when you want to audit conformance, judge whether a skill behaves and triggers correctly, get a qualitative review, or see what blocks the next tier.
-chain:
-  - askit-evaluator
-  - askit-quality-grader
-  - askit-reviewer
 metadata:
-  version: 0.1.1
+  version: 0.1.2
   tier: universal
   audience: intermediate
+  chain:
+    - askit-evaluator
+    - askit-quality-grader
+    - askit-reviewer
 ---
 
 # askit-evaluate

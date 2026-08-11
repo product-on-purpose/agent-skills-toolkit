@@ -16,7 +16,7 @@ caller-component:
   - another-callee
 ```
 
-A component declares its intent with a `chain:` list in its own frontmatter; the contract grants the permission. Both must agree.
+A component declares its intent with a `metadata.chain` list in its own frontmatter; the contract grants the permission. Both must agree. The top-level `chain:` location predates Standard vocabulary alignment and is still read for compatibility.
 
 ## What S4 checks
 
