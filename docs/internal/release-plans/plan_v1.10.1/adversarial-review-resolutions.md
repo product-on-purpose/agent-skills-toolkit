@@ -209,9 +209,48 @@ document. **Resolution:** the whole packet rebaselined against HEAD, with the dr
 the top of the README rather than quietly corrected, and the superseded scope rows kept as visible
 corrections rather than deleted.
 
+## Round 5
+
+Scoped to release readiness and instructed to report only tag-blockers. **Verdict: needs-attention.**
+Two findings, both blockers under that scope.
+
+### R5-1 [high] Duplicate tier claims bypassed the contradiction guard
+
+Round 4's tier rule is implemented with `statusBody.match(...)`, which returns only the **first** match.
+A Status section carrying `- **Tier** - Advanced (Gold)` followed by `- **Tier** - Convergent (Silver)`
+therefore **passes** against `tier: advanced`, because the second, contradictory claim is never
+inspected. The guard added specifically to reject a contradictory public grade accepted one.
+
+**Resolution:** collect every tier claim with `matchAll`, require **exactly one**, and validate all of
+them. More than one tier claim in a section describing present state is itself a defect. The same
+first-match-only weakness was checked for in the neighbouring skill-count and spine scans rather than
+left one line below the hole just closed, since "fix one field and do not look at its neighbour" had
+already produced two findings in this release.
+
+### R5-2 [medium] The rebaselined packet carried a stale test count
+
+`plan_v1.10.1/README.md` claimed 673 tests against HEAD's 682, in a document whose opening paragraph
+states it was rebaselined against HEAD. `CHANGELOG.md` and `STATUS.md` had both been updated after
+round 4; the packet had not been re-read.
+
+**This is the fourth instance of one mechanism in a single release**, after the changelog's 647, the
+`STATUS.md` 613, and the round-4 packet snapshot. Backlog E27 had already been filed to automate it.
+
+**Resolution, and it is deliberately not another hand-correction.** Filing a backlog item for the
+fourth occurrence of a defect, inside the release that documents that defect, is not credible when the
+fix is small. E27 is implemented: `npm run release-counts` runs the suite, reads the authoritative
+total from its TAP output, and fails on any disagreeing count in the newest `CHANGELOG.md` section, in
+`STATUS.md`, or anywhere in the current release packet. It compares totals and failures only, never
+pass counts, because the argv coverage skips its platform-specific halves on opposite platforms. It is
+wired to the release gate rather than to `npm test`: running the suite from inside the suite is
+circular, and doubling test time on every push to guard a once-per-release number is the wrong trade.
+
+The packet headline now states **no** test count at all and points at the two files the checker
+verifies. Reducing the number of hand-maintained copies is a better fix than correcting one of them.
+
 ## What this review is evidence for
 
-Twelve findings across four rounds. **Eleven were introduced by this release**, and the pattern
+Fourteen findings across five rounds. **Thirteen were introduced by this release**, and the pattern
 sharpens with each round:
 
 - **Round 1** found defects in the implementation. Two had already been seen by a human and waved
@@ -241,10 +280,21 @@ count, to ADR 0040, and to the release packet, three times inside the release wh
 claim nothing verifies drifts from true to false without anyone deciding to lie. The code fixes here
 are worth less than that observation.
 
-It also sets the honest expectation for the next release. Four rounds were needed because rounds 2, 3
-and 4 were each reviewing the previous round's corrections, and corrections written quickly under a
+- **Round 5** found a bypass in round 4's own guard and, for the fourth time, a stale hand-written
+  count - this one inside the document that had just been rebaselined to fix the third.
+
+It also sets the honest expectation for the next release. Five rounds were needed because rounds 2
+through 5 were each reviewing the previous round's corrections, and corrections written quickly under a
 "nearly done" framing are exactly where this failure mode lives. The lesson is not "review more"; it
 is that the claims should be written **last**, from the code, rather than first, from the plan.
+
+**What actually closed it was structure, not diligence.** The count defect recurred four times across
+five rounds while everyone involved knew about it, was actively documenting it, and was specifically
+looking for it. Three of those four times it was corrected by hand and recurred anyway. It stopped
+when `npm run release-counts` started running the suite and comparing the number to every place it is
+claimed, and when the packet headline stopped restating a number it had no need to hold. That is the
+whole argument of this release, demonstrated on itself the hard way: attention does not survive
+contact with a moving target, and a check does.
 
 That is the same lesson this repository keeps re-learning under different names, and the reason
 `docs/internal/STATUS.md` needed rewriting in this very release: a document asserting facts about a

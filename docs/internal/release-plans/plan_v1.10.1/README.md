@@ -4,7 +4,10 @@ A patch release with no new capability and no Standard movement. Its whole job i
 repository's own claims true again, and to convert several of them from things somebody has to
 remember into things a machine checks.
 
-Spine stays **30 checks**, Standard stays **v0.12**, tier stays **Advanced**. **673 tests, 0 failures.**
+Spine stays **30 checks**, Standard stays **v0.12**, tier stays **Advanced**. The test count lives in
+`CHANGELOG.md` and `docs/internal/STATUS.md` only, and `npm run release-counts` verifies both against a
+real suite run; it is deliberately **not** restated here, because every additional hand-maintained copy
+of a number is another place for it to go stale.
 
 > **This document was rebaselined against HEAD on 2026-08-11, and the reason is on-topic.** Its first
 > draft was written before the work settled and then never re-read, so by the time the branch was
@@ -92,7 +95,8 @@ changed, and the pin **has moved**. `npm run standards-watch` now reports `VERDI
 - [RELEASE-PLAN.md](RELEASE-PLAN.md) - the item-by-item plan with acceptance criteria and verification.
 - [validator-parity-baseline.md](validator-parity-baseline.md) - the recorded first-party validator
   results at this tag, and the manual precursor to the automated parity harness targeted at v1.11.0.
-- [adversarial-review-resolutions.md](adversarial-review-resolutions.md) - **read this one first.** Four
-  rounds, twelve findings. Most were introduced by this release, several were seen by a human and
-  waved through, and by round 3 the code was essentially correct while the documentation was still
-  wrong in four places.
+- [adversarial-review-resolutions.md](adversarial-review-resolutions.md) - **read this one first.**
+  Five rounds, fourteen findings. Most were introduced by this release, several were seen by a human
+  and waved through, and from round 3 onward the code was essentially correct while the documentation
+  kept being wrong. The same mechanism recurred four times, the last of which was this very file
+  claiming a stale test count one paragraph after explaining that it had been rebaselined.

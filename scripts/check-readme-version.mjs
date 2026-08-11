@@ -25,6 +25,15 @@
 // DOES declare a tier, a missing Status tier claim fails rather than silently skipping, for the same
 // reason a missing `## Status` section fails: a guard that passes when its subject is absent is
 // worse than no guard.
+//
+// Scope note: every claim (tier, skill count, spine size) is collected with matchAll rather than
+// read with the first match only (round-5 adversarial review, Finding 1: a `statusBody.match(...)`
+// tier check saw only the first `**Tier**` bullet, so a second, contradictory one passed unseen).
+// The tier claim requires EXACTLY ONE occurrence: it is a single labeled field, and a section
+// describing present state naming two grades at once is a defect even when both are identical. The
+// skill-count and spine-size claims instead require every occurrence to AGREE with the authoritative
+// number: neither has a canonical single bullet the way `**Tier**` does, so repeating the same
+// correct number twice is not itself an error, only a disagreeing repeat is.
 import { readFileSync, existsSync } from "node:fs";
 import path from "node:path";
 import { CHECKS } from "./lib/registry.mjs";
@@ -120,6 +129,13 @@ for (const m of statusBody.matchAll(/\b(\d+\.\d+\.\d+)\b/g)) {
 // only one of the two correct synonyms (e.g. "Gold" alone) is accepted as long as it names no other
 // tier; requiring both synonyms in the exact "Sub (Name)" order would reject reasonable phrasings a
 // maintainer might write and is tighter than the promise in docs/internal/RELEASE.md actually needs.
+//
+// Every `**Tier**` claim in the section is collected with matchAll, not just the first (round-5
+// adversarial review, Finding 1: the round-4 matcher used `statusBody.match(...)`, which returns
+// only the first match, so a Status section carrying a correct claim followed by a second,
+// contradictory one passed - the second claim was never inspected). Exactly one claim is required:
+// a section describing present state that states two grades at once is a defect in its own right,
+// even when both claims happen to be identical, not a parsing inconvenience to tolerate.
 const declaredTier = lib?.tier ?? null;
 if (declaredTier != null) {
   const wantName = TIER_NAME[declaredTier] ?? declaredTier; // e.g. "Gold"
@@ -127,13 +143,17 @@ if (declaredTier != null) {
   const foreignTokens = TIER_ORDER
     .filter((t) => t !== declaredTier)
     .flatMap((t) => [TIER_NAME[t], TIER_SUB[t]]);
-  const tierClaim = statusBody.match(/\*\*Tier\*\*\s*[-:]\s*([^\n]+)/i);
-  if (!tierClaim) {
+  const tierClaims = [...statusBody.matchAll(/\*\*Tier\*\*\s*[-:]\s*([^\n]+)/gi)].map((m) => m[1].trim());
+  if (tierClaims.length === 0) {
     failures.push(
       `README.md  "## Status" has no tier claim (library.json declares tier "${declaredTier}" = ${wantSub} (${wantName}))`
     );
+  } else if (tierClaims.length > 1) {
+    failures.push(
+      `README.md  "## Status" has ${tierClaims.length} tier claims (${tierClaims.map((c) => `"${c}"`).join(", ")}); exactly one is required so the front door cannot state two grades at once`
+    );
   } else {
-    const claim = tierClaim[1].trim();
+    const claim = tierClaims[0];
     const namesOwnTier = new RegExp(`\\b(${wantName}|${wantSub})\\b`, "i").test(claim);
     const namesForeignTier = foreignTokens.length > 0
       && new RegExp(`\\b(${foreignTokens.join("|")})\\b`, "i").test(claim);
@@ -149,18 +169,31 @@ if (declaredTier != null) {
   }
 }
 
-// 3. The declared skill count must match library.json.
+// 3. The declared skill count must match library.json. Every occurrence in the section is checked
+// with matchAll, not just the first (round-5 adversarial review: the same first-match-only shape
+// that hid a contradictory tier claim was checked for here too, per the round-5 instruction not to
+// fix one field and leave its neighbour holding the identical hole). Decision, deliberately
+// different from the tier claim's "exactly one" rule: this number has no single canonical labeled
+// bullet the way `**Tier**` does, so more than one mention is not itself a defect - only
+// DISAGREEMENT among the mentions is. A skill count repeated twice with the same correct value
+// passes; a second, contradictory count fails, which is the actual soundness gap Finding 1 named.
 const declaredSkills = Array.isArray(lib?.components?.skills) ? lib.components.skills.length : null;
-const skillClaim = statusBody.match(/(\d+)\s+skills\b/);
-if (declaredSkills != null && skillClaim && Number(skillClaim[1]) !== declaredSkills) {
-  failures.push(`README.md  "## Status" claims ${skillClaim[1]} skills; library.json registers ${declaredSkills}`);
+if (declaredSkills != null) {
+  for (const m of statusBody.matchAll(/(\d+)\s+skills\b/g)) {
+    if (Number(m[1]) !== declaredSkills) {
+      failures.push(`README.md  "## Status" claims ${m[1]} skills; library.json registers ${declaredSkills}`);
+    }
+  }
 }
 
-// 4. The declared spine size must match the check registry.
+// 4. The declared spine size must match the check registry. Same matchAll-over-all-occurrences
+// treatment as the skill count above, and the same reasoning: disagreement fails, repetition of the
+// same correct number does not.
 const spineSize = CHECKS.length;
-const spineClaim = statusBody.match(/(\d+)\s+checks\b/);
-if (spineClaim && Number(spineClaim[1]) !== spineSize) {
-  failures.push(`README.md  "## Status" claims a ${spineClaim[1]}-check spine; the registry has ${spineSize}`);
+for (const m of statusBody.matchAll(/(\d+)\s+checks\b/g)) {
+  if (Number(m[1]) !== spineSize) {
+    failures.push(`README.md  "## Status" claims a ${m[1]}-check spine; the registry has ${spineSize}`);
+  }
 }
 
 if (failures.length > 0) {

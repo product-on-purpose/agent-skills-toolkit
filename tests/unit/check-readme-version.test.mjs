@@ -241,6 +241,109 @@ test("check-readme-version: exits 1 for the same contradiction in the other dire
   }
 });
 
+// --- The duplicate-claim bypass: round 5 adversarial review, Finding 1 (regression in round 4's own
+// fix) ---
+//
+// Round 4's matcher used `statusBody.match(...)`, which returns only the FIRST match. A Status
+// section carrying a correct `**Tier**` bullet followed by a second, contradictory one passed,
+// because the second claim was never inspected. The fix collects every `**Tier**` claim with
+// `matchAll` and requires EXACTLY ONE: a section stating two grades at once is a defect in its own
+// right, not merely a parsing inconvenience, whether or not the two claims happen to be identical.
+
+test("check-readme-version: exits 1 when the Status section carries two contradictory Tier claims (the second, disagreeing claim must not be invisible to a first-match-only check)", () => {
+  const dir = mkFixture("14.0.0", "14.0.0", {
+    libTier: "advanced",
+    statusTier: "Advanced (Gold)",
+    extraStatus: "- **Tier** - Convergent (Silver).\n",
+  });
+  try {
+    const r = spawnSync(process.execPath, [SCRIPT, dir], { encoding: "utf8" });
+    assert.equal(r.status, 1, "two contradictory tier claims must fail even though the first one is correct");
+    const out = (r.stdout ?? "") + (r.stderr ?? "");
+    assert.match(out, /tier/i, "output must name the tier claim");
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test("check-readme-version: exits 1 when the Status section carries two IDENTICAL correct Tier claims (exactly one is the rule)", () => {
+  const dir = mkFixture("15.0.0", "15.0.0", {
+    libTier: "advanced",
+    statusTier: "Advanced (Gold)",
+    extraStatus: "- **Tier** - Advanced (Gold).\n",
+  });
+  try {
+    const r = spawnSync(process.execPath, [SCRIPT, dir], { encoding: "utf8" });
+    assert.equal(r.status, 1, "two tier claims must fail even when both are correct and identical; exactly one is required");
+    const out = (r.stdout ?? "") + (r.stderr ?? "");
+    assert.match(out, /tier/i, "output must name the tier claim");
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+// --- Neighbouring first-match-only holes: the skill-count and spine-size scans used the same
+// `statusBody.match(...)` shape as the round-4 tier check. Decision (see report): a CONTRADICTORY
+// second claim must fail for both, same as tier. Unlike the tier claim, these numbers have no single
+// canonical labeled bullet the Standard promises exactly one of, so a second IDENTICAL (non-
+// contradictory) mention is not itself an error here; only disagreement is drift.
+
+test("check-readme-version: exits 1 when the Status section carries two contradictory skill-count claims", () => {
+  const dir = mkdtempSync(path.join(tmpdir(), "askit-readme-"));
+  try {
+    writeFileSync(
+      path.join(dir, "library.json"),
+      JSON.stringify({ name: "t", version: "16.0.0", components: { skills: [{ name: "a" }, { name: "b" }] } }),
+      "utf8"
+    );
+    writeFileSync(
+      path.join(dir, "README.md"),
+      '# T\n\n<img src="https://img.shields.io/badge/version-16.0.0-blue" alt="v">\n\n## Status\n\n- **Components** - 2 skills.\n- **Also** - 9 skills, elsewhere.\n',
+      "utf8"
+    );
+    const r = spawnSync(process.execPath, [SCRIPT, dir], { encoding: "utf8" });
+    assert.equal(r.status, 1, "a second, contradictory skill-count claim must not be invisible to a first-match-only check");
+    const out = (r.stdout ?? "") + (r.stderr ?? "");
+    assert.match(out, /9 skills/, "output must name the disagreeing claim");
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test("check-readme-version: exits 0 when the Status section repeats the SAME correct skill count twice", () => {
+  const dir = mkdtempSync(path.join(tmpdir(), "askit-readme-"));
+  try {
+    writeFileSync(
+      path.join(dir, "library.json"),
+      JSON.stringify({ name: "t", version: "17.0.0", components: { skills: [{ name: "a" }, { name: "b" }] } }),
+      "utf8"
+    );
+    writeFileSync(
+      path.join(dir, "README.md"),
+      '# T\n\n<img src="https://img.shields.io/badge/version-17.0.0-blue" alt="v">\n\n## Status\n\n- **Components** - 2 skills.\n- **Also** - 2 skills, elsewhere.\n',
+      "utf8"
+    );
+    const r = spawnSync(process.execPath, [SCRIPT, dir], { encoding: "utf8" });
+    assert.equal(r.status, 0, "repeating the same correct skill count is not a contradiction");
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test("check-readme-version: exits 1 when the Status section carries two contradictory spine-size claims", () => {
+  const dir = mkFixture("18.0.0", "18.0.0", {
+    extraStatus: "- **Validation spine** - 30 checks.\n- **Also** - 1 checks, elsewhere.\n",
+  });
+  try {
+    const r = spawnSync(process.execPath, [SCRIPT, dir], { encoding: "utf8" });
+    assert.equal(r.status, 1, "a second, contradictory spine-size claim must not be invisible to a first-match-only check");
+    const out = (r.stdout ?? "") + (r.stderr ?? "");
+    assert.match(out, /spine/i, "output must name the spine claim");
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
 test("check-readme-version: a reasonable single-token claim still passes (Gold alone against tier advanced)", () => {
   // The fix forbids foreign tokens; it must not over-tighten into requiring the exact canonical
   // pair. Naming just one of the two correct synonyms, with no foreign token present, is agreement.
