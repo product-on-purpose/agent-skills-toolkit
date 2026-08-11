@@ -261,10 +261,21 @@ jobs:
     # dispatch that. The boundary then does not exist, because the file that defines it was never run.
     # An in-workflow ref check cannot close this: a branch copy can delete that too.
     #
-    # What closes it is the `npm-publish` environment's deployment branch policy, which lives in
-    # repository settings and no branch copy can edit. Created and verified live 2026-08-11 via the
-    # environments API: one branch policy, `main`. A run dispatched from any other ref is refused
-    # before this job starts, whatever its YAML says.
+    # The `npm-publish` environment carries a deployment branch policy admitting only `main`, created
+    # and verified live 2026-08-11 via the environments API.
+    #
+    # CORRECTION, round 4: an earlier draft said a non-main run is "refused before this job starts,
+    # whatever its YAML says". **That is wrong**, and getting it right matters because it names the
+    # wrong control. Environment rules bind a job that REFERENCES the environment, so a branch copy
+    # can simply delete or rename this `environment:` block and the job will start.
+    #
+    # What that hostile job cannot do is OBTAIN A CREDENTIAL. An environment secret on `npm-publish`
+    # is not readable from a job bound to a different environment, and trusted publishing bound to
+    # this environment rejects a different OIDC subject. **The real trust boundary here is credential
+    # binding, not the branch policy.** The branch policy is what makes the credential bindable; it is
+    # not itself the gate. That distinction is exactly why the two standing requirements below are
+    # load-bearing rather than advisory: satisfy them and a hostile copy runs and fails empty-handed;
+    # violate either one and the branch policy protects nothing at all.
     #
     # TWO STANDING REQUIREMENTS for whoever configures publishing, because this file cannot enforce
     # either and both are load-bearing:

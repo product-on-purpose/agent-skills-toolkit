@@ -43,11 +43,24 @@ name: Deploy docs site to GitHub Pages
 # which has no pin. **Editing a workflow cannot retroactively secure older copies of itself.** A control
 # that lives inside the artifact it controls is not a control.
 #
-# What actually blocks this is external to the workflow and cannot be bypassed by any revision of it:
-# the `github-pages` environment carries a deployment branch policy admitting **only `main`**. Verified
-# live 2026-08-11 via the repository environments API: one branch policy, `main`. An old workflow
-# dispatched from another ref can still build, and is then refused at the deploy gate, so the canonical
-# badge URL cannot be overwritten from a non-main ref.
+# The `github-pages` environment carries a deployment branch policy admitting **only `main`**, verified
+# live 2026-08-11 via the environments API: one branch policy, `main`. A run executing THIS workflow
+# from a non-main ref builds and is then refused at the deploy gate.
+#
+# THIRD CORRECTION, round 4, and this one is the honest limit rather than another near-miss. An earlier
+# draft here said that policy "cannot be bypassed by any revision of it". **That is false.** Environment
+# rules bind a job that REFERENCES that environment. A branch copy of this file can point its deploy job
+# at a different environment name, which GitHub creates on first use with no protection rules at all,
+# and `actions/deploy-pages` explicitly permits an environment other than `github-pages`. So a hostile
+# revision can deploy; the policy protects the NAME, not the capability.
+#
+# What actually bounds this is who can run workflows here at all. Verified 2026-08-11: this repository
+# has exactly ONE collaborator, the owner, and `default_workflow_permissions` is `read`. The residual
+# risk is therefore "the owner attacks their own badge", which is not a threat model worth further
+# engineering. **Stated plainly rather than papered over**, because the badge's value comes from being
+# trustworthy, and a security comment that overclaims is the same defect as a stale badge: a confident
+# assertion nobody checked. If write access is ever granted to anyone else, revisit this, and the
+# control to reach for is an Actions actor policy, not another line in this file.
 #
 # The ref pin below is defence in depth, not the load-bearing control, and its scope is narrower than
 # an earlier draft of this very comment claimed. **That draft said the pin "fails at checkout rather
@@ -67,10 +80,12 @@ on:
     branches: [main]
   workflow_dispatch:
 
+# Least privilege at the workflow level: only `contents: read`. `pages: write` and `id-token: write`
+# are granted on the `deploy` job alone (round 4 of the v1.11.0 pre-release review). Holding them here
+# meant the `build` job - the one that runs the site build and this repository's own scripts - carried
+# deploy authority it never uses.
 permissions:
   contents: read
-  pages: write
-  id-token: write
 
 concurrency:
   group: pages
@@ -132,6 +147,10 @@ jobs:
   deploy:
     needs: build
     runs-on: ubuntu-latest
+    # Scoped here rather than workflow-wide, so the build job cannot deploy.
+    permissions:
+      pages: write
+      id-token: write
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
