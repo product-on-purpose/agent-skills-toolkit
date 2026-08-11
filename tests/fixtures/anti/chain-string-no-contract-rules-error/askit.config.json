@@ -1,0 +1,4 @@
+{
+  "profile": "plain-plugin",
+  "rules": { "S4": "error" }
+}

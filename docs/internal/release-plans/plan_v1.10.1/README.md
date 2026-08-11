@@ -73,3 +73,7 @@ motivated it.
 - [RELEASE-PLAN.md](RELEASE-PLAN.md) - the item-by-item plan with acceptance criteria and verification.
 - [validator-parity-baseline.md](validator-parity-baseline.md) - the recorded first-party validator
   results at this tag, and the manual precursor to the automated parity harness targeted at v1.11.0.
+- [adversarial-review-resolutions.md](adversarial-review-resolutions.md) - the pre-release review, two
+  rounds, four findings and their dispositions. Worth reading before the plan: three of the four
+  findings were introduced by this release, two of them were seen by a human and waved through, and
+  the highest-severity one contradicted an invariant stated in `RELEASE-PLAN.md` itself.

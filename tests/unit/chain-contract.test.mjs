@@ -146,3 +146,46 @@ test("ADR 0041: same chain-string-no-contract plugin, with the declaration mutat
   assert.match(r[0].message, /agents\/_chain-permitted\.yaml is missing/);
   assert.doesNotMatch(r[0].message, /0\.13/);
 });
+
+// Round-2 adversarial review (high severity): resolveFindings applied a consumer's rules override
+// with HIGHER precedence than the severity emitted here, so `rules.S4 = "error"` could promote a
+// warn-first string-shaped finding back into a gate-failing error - defeating the whole point of
+// this file's WARN branches. The fix is a finding-level migration cap (scripts/lib/resolve-config.mjs)
+// that `resolveFindings` enforces as a ceiling no override can cross. These two branches are where
+// that cap metadata must originate; the array-shaped paths must carry NONE of it.
+
+test("ADR 0041 round 2: the string-shaped missing-contract finding carries migration cap metadata (capAt warn, until 0.13)", () => {
+  const ctx = loadPlugin(path.join(FIXTURES, "anti/chain-string-no-contract"));
+  const r = check(ctx);
+  assert.equal(r.length, 1);
+  assert.deepEqual(r[0].migration, { capAt: SEVERITY.WARN, until: "0.13", reason: r[0].migration?.reason });
+  assert.equal(typeof r[0].migration.reason, "string");
+  assert.ok(r[0].migration.reason.length > 0, "the cap must carry a human-readable reason, surfaced to a consumer");
+});
+
+test("ADR 0041 round 2: the array-shaped missing-contract finding carries NO migration metadata at all", () => {
+  const ctx = loadPlugin(path.join(FIXTURES, "anti/chain-string-no-contract"));
+  ctx.skills[0].frontmatter.metadata.chain = ["cx-callee"];
+  const r = check(ctx);
+  assert.equal(r.length, 1);
+  assert.equal(r[0].migration, null, "the array path is completely untouched by the migration cap");
+});
+
+test("ADR 0041 round 2: a string-shaped orphan finding carries migration cap metadata (capAt warn, until 0.13)", () => {
+  const ctx = loadPlugin(path.join(FIXTURES, "golden/subagent-fixture"));
+  ctx.skills[0].frontmatter.metadata.chain = "sf-not-permitted";
+  const r = check(ctx);
+  const f = r.find((f) => f.reqId === "S4" && /orphan/.test(f.message));
+  assert.ok(f);
+  assert.deepEqual(f.migration, { capAt: SEVERITY.WARN, until: "0.13", reason: f.migration?.reason });
+  assert.ok(f.migration.reason.length > 0);
+});
+
+test("ADR 0041 round 2: an array-shaped orphan finding carries NO migration metadata at all", () => {
+  const ctx = loadPlugin(path.join(FIXTURES, "golden/subagent-fixture"));
+  ctx.skills[0].frontmatter.metadata.chain = ["sf-not-permitted"];
+  const r = check(ctx);
+  const f = r.find((f) => f.reqId === "S4" && /orphan/.test(f.message));
+  assert.ok(f);
+  assert.equal(f.migration, null, "the array path is completely untouched by the migration cap");
+});

@@ -83,6 +83,7 @@ function findingLine(f) {
   return `  [${sev}] ${f.check}${f.reqId ? " (" + f.reqId + ")" : ""}: ${f.message}` +
     `${f.downgraded ? ` [downgraded: introduced in Standard ${f.since}, after pinned ${f.pinned}]` : ""}` +
     `${f.clampNotice ? ` [clamped to warn: published-verdict, ${f.provenance}]` : ""}` +
+    `${f.migrationNotice ? ` [${f.migrationNotice}]` : ""}` +
     `${f.file ? "  -> " + f.file : ""}`;
 }
 

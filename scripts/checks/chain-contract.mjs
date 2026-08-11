@@ -5,7 +5,9 @@
 //               declaration, or from an existing contract/_workflows/, stays SEVERITY.ERROR, unchanged
 // why:          enforces the Standard requirement S4 deterministically, one module per reqId, so the gate stays model-free;
 //               the warn/error split holds ADR 0027's warn-first policy for a shape newly PARSED by this reader (ADR 0040), so
-//               no plugin passing S4 today can newly gate-fail from upgrading the toolkit alone (ADR 0041)
+//               no plugin passing S4 today can newly gate-fail from upgrading the toolkit alone (ADR 0041); the two
+//               string-derived findings also carry migration cap metadata so a consumer's own askit.config.json cannot
+//               promote the warn back to error either (round-2 adversarial review, ADR 0041 addendum)
 // used-by:      registered in scripts/lib/registry.mjs; run by scripts/check.mjs and tier-report.mjs
 import { finding, SEVERITY } from "../lib/findings.mjs";
 import { existsSync, readFileSync, statSync } from "node:fs";
@@ -18,6 +20,21 @@ export const meta = { id: "chain-contract", tier: "convergent", reqId: "S4", sin
 // parsed graduates from WARN to ERROR at Standard 0.13. Appended to a finding's message so a reader
 // knows the WARN is scheduled, not optional.
 const GRADUATION_NOTE = " This is a warning at Standard 0.12 and becomes an error at Standard 0.13 (ADR 0041).";
+
+// ADR 0041 addendum (round-2 adversarial review, high severity): the WARN this module emits for a
+// string-derived finding is not itself enough - scripts/lib/resolve-config.mjs applies a consumer's
+// askit.config.json rules override with HIGHER precedence than the severity emitted here, so
+// `rules.S4 = "error"` could promote this exact WARN back into a gate-failing error, from config
+// alone, with zero change to the plugin. This metadata rides along on the finding so resolveFindings
+// can enforce a ceiling no override can cross: capped at "warn" until Standard 0.13, matching the
+// GRADUATION_NOTE text above so the two can never drift apart. Attached ONLY to the two
+// string-derived branches below; the array-shaped and legacy-array paths carry no migration field at
+// all (finding()'s default), so they are completely untouched by the cap.
+const STRING_SHAPE_MIGRATION = Object.freeze({
+  capAt: SEVERITY.WARN,
+  until: "0.13",
+  reason: "ADR 0041: a string-shaped chain declaration is newly parsed at Standard 0.12; it stays capped at warn regardless of any rules.S4 override until Standard 0.13.",
+});
 
 function isDir(p) { return existsSync(p) && statSync(p).isDirectory(); }
 function isFile(p) { return existsSync(p) && statSync(p).isFile(); }
@@ -88,7 +105,8 @@ export function check(ctx) {
     const preexistingSignal = hasWorkflows || hasArrayDeclaration;
     const severity = preexistingSignal ? SEVERITY.ERROR : SEVERITY.WARN;
     const note = preexistingSignal ? "" : GRADUATION_NOTE;
-    out.push(finding(meta.id, severity, `chaining is used (a component declares a frontmatter \`chain:\` or _workflows/ is present) but agents/_chain-permitted.yaml is missing (chain contract is REQUIRED when chaining is used; Standard sec 3.6).${note}`, { file: "agents/_chain-permitted.yaml", reqId: meta.reqId }));
+    const migration = preexistingSignal ? undefined : STRING_SHAPE_MIGRATION;
+    out.push(finding(meta.id, severity, `chaining is used (a component declares a frontmatter \`chain:\` or _workflows/ is present) but agents/_chain-permitted.yaml is missing (chain contract is REQUIRED when chaining is used; Standard sec 3.6).${note}`, { file: "agents/_chain-permitted.yaml", reqId: meta.reqId, migration }));
     return out;
   }
 
@@ -131,9 +149,10 @@ export function check(ctx) {
     const permitted = new Set(Array.isArray(contract[name]) ? contract[name].filter((x) => typeof x === "string") : []);
     const severity = shape === "array" ? SEVERITY.ERROR : SEVERITY.WARN;
     const note = shape === "array" ? "" : GRADUATION_NOTE;
+    const migration = shape === "array" ? undefined : STRING_SHAPE_MIGRATION;
     for (const target of chain) {
       if (!permitted.has(target)) {
-        out.push(finding(meta.id, severity, `"${name}" declares (frontmatter chain) that it may invoke "${target}" but agents/_chain-permitted.yaml does not permit "${name}" -> "${target}" (orphan; Standard sec 3.6).${note}`, { file: "agents/_chain-permitted.yaml", reqId: meta.reqId }));
+        out.push(finding(meta.id, severity, `"${name}" declares (frontmatter chain) that it may invoke "${target}" but agents/_chain-permitted.yaml does not permit "${name}" -> "${target}" (orphan; Standard sec 3.6).${note}`, { file: "agents/_chain-permitted.yaml", reqId: meta.reqId, migration }));
       }
     }
   }

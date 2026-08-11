@@ -199,3 +199,48 @@ test("J2: a clamped finding is its OWN disposition, never folded into profile co
   assert.equal(clamped, 1);
   assert.equal(profileConformance, 0, "the clamped objective finding must not be counted as profile conformance");
 });
+
+// --- K: the migration cap (round-2 adversarial review, S4 warn-first findings promoted back to
+// errors) - a finding may carry `migration: { capAt, until, reason }`; resolveFindings applies it
+// LAST, after per-rule override, profile, and suppression have produced effectiveSeverity, as a
+// CEILING that can only lower severity, never raise it. -------------------------------------------
+
+const withMigration = (severity, reqId, migration, extra = {}) => f(severity, reqId, { migration, ...extra });
+
+test("K: a per-rule override that would raise severity past the cap is pulled back down to capAt, and the cap is surfaced (never silent)", () => {
+  const migration = { capAt: "warn", until: "0.13", reason: "ADR 0041: warn-first until Standard 0.13" };
+  const [out] = resolveFindings([withMigration("warn", "S4", migration)], cfg({ rules: { S4: "error" } }), PROV);
+  assert.equal(out.effectiveSeverity, "warn", "the override asked for error; the cap holds it at warn");
+  assert.ok(out.migrationNotice, "a consumer whose override was overruled must be told why");
+  assert.match(out.migrationNotice, /0\.13/);
+  assert.equal(gatingFindings([out]).length, 0, "a capped warn does not gate");
+});
+
+test("K2: the cap is a ceiling, never a floor - it does not raise an already-lower severity", () => {
+  const migration = { capAt: "warn", until: "0.13", reason: "r" };
+  // rules turn it fully off: the cap must not resurrect it to warn.
+  const [off] = resolveFindings([withMigration("warn", "S4", migration)], cfg({ rules: { S4: "off" } }), PROV);
+  assert.equal(off.effectiveSeverity, "off", "off must still win; the cap never raises off back to warn");
+  assert.equal(off.migrationNotice, null, "the cap did not act, so there is nothing to surface");
+  // no override at all: severity is already at (not above) the cap, so nothing changes.
+  const [atCap] = resolveFindings([withMigration("warn", "S4", migration)], cfg(), PROV);
+  assert.equal(atCap.effectiveSeverity, "warn");
+  assert.equal(atCap.migrationNotice, null, "a severity already at the cap is not reported as capped");
+});
+
+test("K3: a capped finding that is also suppressed stays suppressed and does not reappear as a warning", () => {
+  const migration = { capAt: "warn", until: "0.13", reason: "r" };
+  const sup = { reqId: "S4", reason: "waived for this fixture" };
+  const [out] = resolveFindings([withMigration("warn", "S4", migration)], cfg({ rules: { S4: "error" }, suppressions: [sup] }), PROV);
+  assert.equal(out.suppressed, true, "suppression still wins regardless of the cap");
+  assert.equal(out.effectiveSeverity, "warn", "the cap still resolves the severity underneath the suppression");
+  assert.equal(gatingFindings([out]).length, 0);
+  const wouldShowAsWarn = out.effectiveSeverity === "warn" && !out.suppressed;
+  assert.equal(wouldShowAsWarn, false, "a suppressed+capped finding must not reappear in a warn count");
+});
+
+test("K4: a finding with no migration metadata is completely unaffected by the cap mechanism", () => {
+  const [out] = resolveFindings([f("error", "U6")], cfg({ rules: { U6: "error" } }), PROV);
+  assert.equal(out.effectiveSeverity, "error");
+  assert.equal(out.migrationNotice, null, "no migration field means the cap never runs");
+});
