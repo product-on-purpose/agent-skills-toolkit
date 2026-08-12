@@ -2,6 +2,48 @@
 
 Curated, user-facing highlights. For the full technical history see [`CHANGELOG.md`](CHANGELOG.md).
 
+## 1.12.0 - 2026-08-12
+
+Until now, grading a marketplace meant running the gate once per plugin and reading six results. This release grades the **catalogue** - and the first thing it did was tell us ours is red.
+
+### The problem it solves
+
+A marketplace of six plugins can report six green grades and still be broken as a marketplace. Three things can only be seen by looking at the members together:
+
+- **Two plugins shipping the same skill name.** Each one is fine on its own. In the union they occupy one name in a shared pool, and which one an agent picks is undefined.
+- **A catalogue entry that resolves to nothing.** Every plugin that *did* resolve still grades green, so the summary reads healthy while anyone following that entry receives nothing.
+- **A version in the catalogue that disagrees with the plugin's own manifest.** Either the plugin released without its listing moving, or the listing moved past a release that never shipped.
+
+Nothing looked at any of these, because nothing looked at the catalogue.
+
+### How it decides
+
+Every member is graded **at its own declared tier and its own Standard version**, exactly as it would be graded alone. The collection is red if any member fails **its own** claim.
+
+That is the whole rule, and the two things it refuses to do are the point. It never measures a plugin against a bar it did not claim just because a sibling claimed a higher one. And there is no threshold to adjust - no "green if four of six pass" - because a bar you can move until the number looks good is not a bar.
+
+### Being told your own portfolio is red
+
+Running this against our own six-plugin marketplace returns **red**, for two different and equally real reasons. One member declares Gold and earns Silver, its single error caused by a fix we shipped in an earlier release of this very toolkit. Another declares no tier at all and carries 235 errors.
+
+We published the result rather than quietly fixing the rule, and there is now a [public page](https://product-on-purpose.github.io/agent-skills-toolkit/reference/family-registry/) showing it, with the exact command to reproduce every number on it.
+
+### What the report is careful about
+
+- **It tells you which tree it read.** A run grades the checkouts on your machine, not the commits the catalogue pins. So every row shows the pinned commit, the listed version, and the commit actually graded - **even when they agree**. A report that only mentions the pin when something is wrong teaches you to assume nothing is wrong when it stays quiet.
+- **It separates "your catalogue is broken" from "your laptop is incomplete."** A dead entry is a defect and fails the run. A plugin you simply have not cloned is not, and the verdict line always says how many of the members it actually covered.
+- **It shows what an old pin is hiding.** Each member's "Standard debt" counts the findings that are only warnings because that plugin targets an older version of the Standard. They become failures the day it updates.
+
+### Also in this release
+
+- Marketplaces can now list plugins from npm packages, from verified archives, and from subdirectories of a repository, and can record the names a plugin previously shipped under so people following an old name can be redirected.
+- Plugins that ship subagents get a warning when one declares a setting Claude Code refuses to honor for security reasons, so you find out from a report rather than from the feature silently not working.
+- A generated `INDEX.md` no longer tells the plugins that consume this toolkit to run a command only *this* repository has. Found by installing our own published package into an empty folder and following our own instructions.
+
+### Upgrade
+
+**No action required, and nothing you are graded by has changed.** No check was added, removed or tightened; the Standard is untouched at 0.12 and the check spine is unchanged at 30. Everything new here is a capability, available when you point the tool at a catalogue instead of a plugin.
+
 ## 1.11.1 - 2026-08-11
 
 A one-line story: v1.11.0 shipped a test that could not run in the shell most Windows users are sitting in, and because that test runs before publishing, it made publishing impossible.

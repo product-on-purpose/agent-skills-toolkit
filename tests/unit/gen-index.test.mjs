@@ -40,6 +40,32 @@ test("manifest and doc rows render only for artifacts the plugin actually ships"
   }
 });
 
+test("the self-validation line names a command the TARGET can actually run, not one only this repo has", () => {
+  // Found the way this repository's findings are always found: by running a published instruction from
+  // the consumer's position. `npm i -D agent-skills-toolkit` into a clean directory, regenerate a
+  // scaffolded plugin's INDEX, and the generated file told its owner to run `node scripts/check.mjs` -
+  // a path nothing installs into a consuming plugin. Same defect class as the two boilerplate sections
+  // above (and as the G4 remediation recorded 2026-08-10), except emitted INTO the consumer's own
+  // repository over their signature rather than published in ours.
+  const dir = mkdtempSync(path.join(tmpdir(), "genidx-selfvalidate-"));
+  try {
+    writeFileSync(path.join(dir, "library.json"), '{ "name": "consumer", "version": "0.1.0", "tier": "universal" }\n');
+    const consumer = renderIndex(loadPlugin(dir));
+    assert.match(consumer, /Self-validating: `npx agent-skills-toolkit \.`/, "a plugin without the gate is told how to run the published one");
+    assert.ok(!consumer.includes("node scripts/check.mjs"), "must not hand a consumer a path nothing installs for them");
+
+    // A plugin that HAS a scripts/check.mjs keeps the original line - the condition is a path test, not
+    // a claim about which validator that file is. This is why this repository's own INDEX.md does not
+    // move in the release that makes the line conditional.
+    mkdirSync(path.join(dir, "scripts"), { recursive: true });
+    writeFileSync(path.join(dir, "scripts", "check.mjs"), "// a check script in the target's own tree\n");
+    const vendored = renderIndex(loadPlugin(dir));
+    assert.match(vendored, /Self-validating: `node scripts\/check\.mjs`/);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
 test("a composite row renders only its surviving fragments, still ending in one period", () => {
   const dir = mkdtempSync(path.join(tmpdir(), "genidx-composite-"));
   try {

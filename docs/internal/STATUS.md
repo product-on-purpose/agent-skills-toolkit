@@ -6,27 +6,34 @@
 > technical history), and `docs/internal/release-plans/` (the per-release spec + implementation
 > packets). Do not add accretive per-release paragraphs here; append them to those instead.
 >
-> Last updated: 2026-08-11.
+> Last updated: 2026-08-12.
 
 ## Current state
 
 | Fact | Value |
 |---|---|
-| Version | 1.11.1 (being cut now; v1.11.0 was cut 2026-08-11) |
+| Version | 1.12.0 (being cut now; v1.11.1 was cut 2026-08-12) |
 | Declared tier | Advanced (Gold) - `library.json` `tier: advanced` |
 | Standard pin | 0.12 |
 | Spine | 30 checks |
+| Scopes | 3 (plugin, component, marketplace) |
 | Skills | 24 |
-| Tests | 948, 0 failures (verified by `npm run release-counts`, 2026-08-11) |
+| Tests | 993, 0 failures (verified by `npm run release-counts`, 2026-08-12) |
 | Self-proving | `node scripts/check.mjs .` exits 0 at Advanced, 0 errors, 0 warnings |
 
 ## What is open
 
-- **ADR 0039 (marketplace-scope evaluation) is Accepted** (2026-08-10), with zero implementing
-  code. This is the largest accepted-but-unbuilt capability on the books: a third evaluation
-  scope that grades a `marketplace.json` catalogue as a whole (cross-member skill/command
-  collisions, catalogue-entry resolvability, registry-vs-member version agreement), aggregated as
-  self-consistency worst-member. Implementation is targeted at **v1.12.0**.
+- **ADR 0039 (marketplace-scope evaluation) is IMPLEMENTED** in v1.12.0: a third evaluation scope
+  grading a `marketplace.json` catalogue as a whole, aggregated as self-consistency worst-member,
+  with the collection report as the sixth report type. The spine did not move; every finding it
+  emits is scope-local and carries no `reqId`. Two follow-ups are filed rather than done:
+  **E33** (A6 restricted fields are detected in marketplace scope but not in plugin scope) and
+  **E34** (whether any cross-member finding should become a numbered spine check at all). Both are
+  ADR-gated on the Standard 0.13 cut.
+- **The validator-parity harness is GATING** as of v1.12.0, discharging ADR 0042's scheduled flip.
+  Its stated condition was met by v1.11.0 and v1.11.1 completing real CI cycles green. One
+  consequence was accepted knowingly: under gating, a run where `uvx` cannot be installed reds a
+  required check rather than printing a line nobody reads.
 - **E13 (defect-rich model triple) is DONE.** Run 2026-08-04, recorded as batch 2026-08-04 runs
   12-14 in [`eval-runs.md`](eval-runs/eval-runs.md). Three real dispatches (Haiku 4.5, Sonnet 5,
   Opus 5, effort held at `high`) against the seeded-defect fixture. All three cells are
@@ -78,12 +85,16 @@ this file); the conclusions are stated here directly.
   `check.mjs`, SARIF plus GitHub annotations (E4), provenance on every finding in every output
   (E9, E23), a GitHub Action wrapping the gate, a CI-generated sha-pinned tier badge, and a
   validator-parity CI harness running report-only.
-- **v1.12.0 "marketplace scope":** implement ADR 0039 (marketplace-scope evaluation) - accept new
-  marketplace source kinds and the `renames` field, add the plugin-shipped-subagent
-  restricted-fields check.
+- **v1.12.0 "marketplace scope" (this cut):** implement ADR 0039 (marketplace-scope evaluation), the
+  collection report, new marketplace source kinds (`npm`, `archive`+`sha256`, `git-subdir`) and the
+  `renames` field, the plugin-shipped-agent restricted-fields reading, the docs-site registry page,
+  and the ADR 0042 parity flip to gating.
 - **v1.13.0 "current with the vendors":** the ADR pack (commands-as-skills, frontmatter
   vocabulary strictness, U5 scope per E14) followed by the code batch, plus standing up
-  vendor-watch.
+  vendor-watch. **This is the Standard 0.13 cut**, so it also carries `U13`'s warn-to-error
+  graduation, ADR 0041's chain-migration cap graduation, and the two v1.12.0 follow-ups that need a
+  Standard minor to land: **E33** (A6 as a numbered plugin-scope check) and **E34** (which, if any,
+  cross-member findings belong on the spine).
 - **v1.14.0 "evidence":** fix the measurement instrument (E16, E17, E20, E15), publish the E13
   readings as final, execute the live-hook behavioral evals.
 - **v1.15.0 "graded cohort":** grade an external cohort on portable checks and publish the

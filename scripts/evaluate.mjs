@@ -4,7 +4,8 @@
 // used-by:      run by the askit-evaluate skill and askit-build-docs improve mode
 import path from "node:path";
 import { existsSync, statSync, writeFileSync, readFileSync, readdirSync } from "node:fs";
-import { loadPlugin, loadSkill } from "./lib/load-plugin.mjs";
+import { loadPlugin, loadSkill, looksLikePlugin } from "./lib/load-plugin.mjs";
+import { detectMarketplaceScope, evaluateMarketplace, formatMarketplaceReport, marketplaceExitCode } from "./lib/marketplace/evaluate-marketplace.mjs";
 import { runAllChecks, provenanceByReq, CHECKS } from "./lib/registry.mjs";
 import { applyStandardDowngrade } from "./lib/standard-gate.mjs";
 import { loadConfig } from "./lib/config.mjs";
@@ -73,23 +74,21 @@ function evaluateComponent(target, opts = {}) {
   return { ...baseReport("component", target, resolved), profile: cfg.profile, mode: cfg.mode };
 }
 
-function isDir(p) { return existsSync(p) && statSync(p).isDirectory(); }
-
-function looksLikePlugin(target) {
-  // A directory looks like a plugin if it has library.json, AGENTS.md, or a skills/ subdir.
-  return (
-    existsSync(path.join(target, "library.json")) ||
-    existsSync(path.join(target, "AGENTS.md")) ||
-    isDir(path.join(target, "skills"))
-  );
-}
-
 export function evaluate(target, opts = {}) {
   const hasLibrary = existsSync(path.join(target, "library.json"));
   const hasSkillMd = existsSync(path.join(target, "SKILL.md"));
 
   if (hasSkillMd && !hasLibrary) {
     return evaluateComponent(target, opts);
+  }
+  // ADR 0039: the third scope. Ordered BEFORE the plugin branch because a catalogue root can also
+  // carry AGENTS.md or a skills/ directory of its own, which would otherwise make looksLikePlugin
+  // claim it first. detectMarketplaceScope() declines anything U13 owns (the marketplace-of-skills
+  // shape) and anything that is not a catalogue at all, so a plugin's scope never moves: the toolkit
+  // and every fixture carry no marketplace.json, and a plugin that gains one keeps plugin scope
+  // unless its entries catalogue other plugins.
+  if (detectMarketplaceScope(target)) {
+    return evaluateMarketplace(target, opts);
   }
   if (looksLikePlugin(target)) {
     const ctx = loadPlugin(target);
@@ -222,7 +221,7 @@ export function applyAdvisory(base, report, adv = {}) {
 // lazily-imported migrate-report / release-report modules import it back (avoids a cyclic top-level-await deadlock).
 async function runCli() {
   const argv = process.argv.slice(2);
-  const valueFlags = new Set(["--mode", "--out", "--format", "--report", "--target-tier", "--advisory", "--profile"]); // flags that consume the following arg
+  const valueFlags = new Set(["--mode", "--out", "--format", "--report", "--target-tier", "--advisory", "--profile", "--members"]); // flags that consume the following arg
   const getFlag = (name) => {
     const eq = argv.find((a) => a.startsWith(name + "="));
     if (eq) return eq.slice(name.length + 1);
@@ -241,6 +240,11 @@ async function runCli() {
   const targetTier = getFlag("--target-tier");
   const advisory = normArg(getFlag("--advisory"));
   const profile = getFlag("--profile");
+  // --members: where to look for the local checkouts of a marketplace's members. Repeatable, and
+  // normalized like every other path-valued argv site. Ignored outside marketplace scope, deliberately
+  // rather than rejected: a wrapper script that always passes it should not fail on a plugin target.
+  const memberRootArgs = argv.flatMap((a, i) => (a === "--members" && argv[i + 1] ? [argv[i + 1]] : a.startsWith("--members=") ? [a.slice("--members=".length)] : []));
+  const searchRoots = memberRootArgs.map((v) => normalizeArgPath(v));
   const format = getFlag("--format") ?? (argv.includes("--json") ? "json" : "text"); // --json stays an alias
   if (mode !== undefined && mode !== "local" && mode !== "published-verdict") {
     console.error(`invalid --mode '${mode}'; expected 'local' or 'published-verdict'`);
@@ -266,6 +270,15 @@ async function runCli() {
   // them lazily. review/behavioral merge an advisory block produced by an LLM layer (askit-reviewer /
   // askit-quality-grader) supplied via --advisory <file.json>; the renderer projects whatever it is given and
   // never lets the advisory move the gate verdict.
+  // A marketplace target only has a conformance (collection) report. The migration and release reports
+  // decorate a PLUGIN's conformance object with a plugin's own tier ladder and release-readiness state,
+  // and the advisory reports project an LLM block onto one plugin; none of those have a defined meaning
+  // over a catalogue. Refusing here with a clear message beats letting migrateReport() grade the
+  // catalogue root as an empty plugin and print a confident, meaningless answer.
+  if (report !== "conformance" && detectMarketplaceScope(target)) {
+    console.error(`--report=${report} is not defined for a marketplace target; a catalogue has only the collection (conformance) report. Point --report=${report} at a member plugin instead.`);
+    process.exit(2);
+  }
   let r;
   if (report === "migration") r = (await import("./lib/migrate-report.mjs")).migrateReport(target, { mode, targetTier, profile });
   else if (report === "release") r = (await import("./lib/release-report.mjs")).releaseReport(target, { mode, profile });
@@ -274,14 +287,25 @@ async function runCli() {
       console.error(`--report=${report} requires --advisory <file.json> carrying the advisory ${report} block (it comes from an LLM layer, not the deterministic gate)`);
       process.exit(2);
     }
-    r = applyAdvisory(evaluate(target, { mode, profile }), report, JSON.parse(readFileSync(advisory, "utf8")));
-  } else r = evaluate(target, { mode, profile });
+    r = applyAdvisory(evaluate(target, { mode, profile, searchRoots }), report, JSON.parse(readFileSync(advisory, "utf8")));
+  } else r = evaluate(target, { mode, profile, searchRoots });
   // Honor the same declared-tier ceiling as check.mjs, gating on the RESOLVED effective severity so the
   // two CLIs agree on pass/fail. Plugin scope reads the declared tier; component/unknown have no ceiling.
   // Computed before rendering so a designed report carries the same exit code the process returns.
+  //
+  // Marketplace scope is the one exception, and it is not a special case bolted on: a collection has no
+  // declared tier of its own to be a ceiling, and its verdict is defined by ADR 0039 as
+  // self-consistency worst-member over member verdicts the gate already computed. Running the
+  // tier-ceiling filter over collection findings would ask "what tier is a catalogue", a question the
+  // Standard deliberately does not answer.
   const declared = r.scope === "plugin" ? readJsonSafe(path.join(target, "library.json")).data?.tier : undefined;
-  const forGate = r.findings.filter((f) => !f.suppressed).map((f) => ({ ...f, severity: effSev(f) }));
-  const { exitCode } = gateExitFromFindings(forGate, declared);
+  let exitCode;
+  if (r.scope === "marketplace") {
+    exitCode = marketplaceExitCode(r);
+  } else {
+    const forGate = r.findings.filter((f) => !f.suppressed).map((f) => ({ ...f, severity: effSev(f) }));
+    ({ exitCode } = gateExitFromFindings(forGate, declared));
+  }
 
   let output;
   if (format === "json") {
@@ -289,10 +313,10 @@ async function runCli() {
   } else if (format === "md" || format === "html") {
     // Load the renderer only when a designed format is requested, keeping the hot json/terminal path light.
     const { renderMarkdown, renderHtml } = await import("./lib/report-render.mjs");
-    const opts = optsFromTarget(target, exitCode, report);
+    const opts = optsFromTarget(target, exitCode, r.scope === "marketplace" ? "marketplace" : report);
     output = format === "md" ? renderMarkdown(r, opts) : renderHtml(r, opts);
   } else {
-    output = formatReport(r);
+    output = r.scope === "marketplace" ? formatMarketplaceReport(r) : formatReport(r);
   }
 
   if (out) {

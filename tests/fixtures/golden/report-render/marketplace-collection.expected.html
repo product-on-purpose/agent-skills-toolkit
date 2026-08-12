@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>example-catalogue - Collection Evaluation</title>
+<style>
+  :root{
+    --bg:#eef1f6; --surface:#fff; --surface-2:#f6f8fb; --surface-3:#eef2f7;
+    --ink:#0f1726; --ink-soft:#3d4759; --ink-faint:#6b7688; --ink-ghost:#9aa3b2;
+    --line:#e1e6ee; --line-2:#d3dae5; --line-3:#c2cad8;
+    --brand:#5c7cfa; --brand-deep:#3f57c9; --brand-wash:#eef2ff;
+    --bronze:#a97142; --bronze-bg:#f7efe6; --bronze-line:#e6d3bd;
+    --silver:#6b7a84; --silver-bg:#eef1f4; --silver-line:#d4dde2;
+    --gold:#b8901f; --gold-bg:#fbf4dc; --gold-line:#ecdca2;
+    --pass:#18794e; --pass-bg:#e6f4ec; --pass-line:#bce0cb;
+    --fail:#b42318; --fail-bg:#fbeae7; --fail-line:#f1c6bd;
+    --warn:#8a5a00; --warn-bg:#fbf1d8; --warn-line:#ecd8a0;
+    --na:#6b7688; --na-bg:#eef0f4; --na-line:#d8dde6;
+    --sans:system-ui,-apple-system,"Segoe UI","Roboto","Helvetica Neue",Arial,sans-serif;
+    --mono:ui-monospace,"Cascadia Code","SF Mono",Menlo,Consolas,"Liberation Mono",monospace;
+    --maxw:1280px; --rail:264px; --ink-panel:#11182a;
+  }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);font-size:15.5px;line-height:1.6;font-weight:400;-webkit-font-smoothing:antialiased}
+  a{color:var(--brand-deep);text-underline-offset:2px}
+  h1,h2,h3,h4{font-family:var(--sans);font-weight:600;letter-spacing:0;text-wrap:balance}
+  p{text-wrap:pretty;margin:0 0 13px}
+  ul,ol{margin:0 0 14px;padding-left:20px} li{margin:4px 0}
+  code,.mono{font-family:var(--mono);font-size:.86em;background:var(--surface-3);padding:1px 5px;border-radius:4px;color:#28324a;overflow-wrap:anywhere}
+  .shell{display:grid;grid-template-columns:var(--rail) minmax(0,1fr)}
+  .rail{position:sticky;top:0;align-self:start;height:100vh;overflow-y:auto;background:var(--ink-panel);color:#c9d2e3;border-right:1px solid #0a0f1c;padding:24px 18px 30px}
+  .rail .mark{display:flex;align-items:center;gap:10px;margin-bottom:22px}
+  .rail .glyph{width:30px;height:30px;border-radius:8px;flex:none;background:linear-gradient(135deg,var(--brand),var(--brand-deep));display:grid;place-items:center;color:#fff;font-weight:700;font-size:15px}
+  .rail .mark .nm{font-size:13px;font-weight:650;color:#fff;line-height:1.15}
+  .rail .mark .nm small{display:block;font-family:var(--mono);font-size:10px;color:#7d88a0;font-weight:400;letter-spacing:.08em;margin-top:2px}
+  .rail .railhead{font-family:var(--mono);font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:#6b7693;margin:18px 6px 8px;font-weight:500}
+  .rail nav a{display:flex;gap:9px;align-items:baseline;text-decoration:none;color:#aab3c7;padding:6px 10px;border-radius:7px;font-size:13px;line-height:1.3;border-left:2px solid transparent}
+  .rail nav a .ix{font-family:var(--mono);font-size:10.5px;color:#6b7693;min-width:18px}
+  .rail nav a:hover{background:rgba(92,124,250,.16);color:#fff}
+  .rail nav a.active{background:rgba(92,124,250,.22);color:#fff;border-left-color:var(--brand)}
+  .rail .railnote{margin-top:22px;padding-top:16px;border-top:1px solid rgba(255,255,255,.09);font-size:11px;line-height:1.55;color:#7d88a0}
+  .content{min-width:0}
+  .wrap{max-width:var(--maxw);margin:0 auto;padding:0 40px}
+  section{padding:44px 0 6px}
+  .seclabel{display:flex;align-items:center;gap:12px;margin:0 0 14px}
+  .seclabel .num{font-family:var(--mono);font-size:12px;font-weight:600;color:var(--brand-deep);background:var(--brand-wash);border:1px solid #d6ddff;border-radius:6px;padding:3px 8px}
+  h2.sec{font-size:25px;margin:0;line-height:1.16;font-weight:650}
+  .lead{color:var(--ink-soft);font-size:16.5px;margin:4px 0 22px;max-width:76ch;font-weight:400;text-wrap:balance}
+  h3{font-size:16px;margin:26px 0 10px;font-weight:650}
+  .masthead{background:radial-gradient(90% 130% at 92% -20%,rgba(92,124,250,.30),transparent 60%),radial-gradient(70% 120% at 0% 120%,rgba(63,87,201,.22),transparent 55%),var(--ink-panel);color:#eef1f8;padding:38px 0 34px;border-bottom:1px solid #0a0f1c}
+  .mh-top{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:16px}
+  .chip{font-family:var(--mono);font-size:11px;letter-spacing:.04em;padding:4px 10px;border-radius:999px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.16);color:#c7cfe4;font-weight:500}
+  .chip.live{color:#bff0d2;border-color:rgba(120,220,160,.35);background:rgba(40,160,90,.16)}
+  .mh-grid{display:grid;grid-template-columns:1.35fr 1fr;gap:34px;align-items:stretch}
+  .mh-id h1{font-size:38px;line-height:1.06;margin:0 0 8px;color:#fff;font-weight:750;letter-spacing:-.01em}
+  .mh-id .vv{font-family:var(--mono);font-size:14px;color:#aeb9ff}
+  .mh-id .desc{color:#b9c2d8;font-size:15.5px;margin:12px 0 0;max-width:56ch}
+  .kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-top:26px}
+  .kpi{background:rgba(255,255,255,.055);border:1px solid rgba(255,255,255,.13);border-radius:12px;padding:14px 16px}
+  .kpi .k{font-family:var(--mono);font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:#8b96b3;font-weight:500}
+  .kpi .v{font-size:26px;font-weight:750;color:#fff;line-height:1.05;margin-top:6px;letter-spacing:-.01em;white-space:nowrap}
+  .kpi .v small{font-size:14px;font-weight:600;color:#9fa9c4}
+  .kpi .n{font-size:11.5px;color:#9aa4bd;margin-top:3px}
+  .kpi.accent-pass .v{color:#8ce6ad} .kpi.accent-fail .v{color:#ff9f93} .kpi.accent-warn .v{color:#f4cf7a}
+  .verdictcard{background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.14);border-radius:14px;padding:20px 22px;display:flex;flex-direction:column;gap:14px}
+  .lockup{display:flex;align-items:center;gap:16px}
+  .seal{width:74px;height:74px;border-radius:14px;flex:none;display:grid;place-items:center;text-align:center;background:linear-gradient(160deg,#8e9ba6,#5d6c77);color:#fff}
+  .seal.bronze{background:linear-gradient(160deg,#c79a6b,#9a6634)} .seal.silver{background:linear-gradient(160deg,#9aa6ad,#69767f)} .seal.gold{background:linear-gradient(160deg,#e0bb55,#b8901f)}
+  .seal .tier{font-size:19px;font-weight:760;line-height:1;letter-spacing:-.01em}
+  .seal .tlbl{font-family:var(--mono);font-size:8.5px;letter-spacing:.14em;text-transform:uppercase;margin-top:4px;opacity:.92;font-weight:600}
+  .lockup .vtext .ve{font-family:var(--mono);font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:#9fb0ff;font-weight:600}
+  .lockup .vtext .vg{font-size:22px;font-weight:700;color:#fff;line-height:1.12}
+  .lockup .vtext .vsub{font-size:13px;color:#b9c2d8;margin-top:2px}
+  .climb{font-size:13px;color:#cdd5e6;background:rgba(184,144,31,.16);border:1px solid rgba(184,144,31,.4);border-radius:9px;padding:10px 12px;line-height:1.45}
+  .climb b{color:#f4d77a}
+  .meters{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:14px;margin:4px 0 0}
+  .meter{background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.13);border-radius:12px;padding:14px 16px}
+  .meter .mtop{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:9px}
+  .meter .mname{font-size:13px;font-weight:600;display:inline-flex;align-items:center;gap:8px;color:#dfe5f1}
+  .meter .dotc{width:9px;height:9px;border-radius:50%}
+  .meter .dotc.bronze{background:var(--bronze)} .meter .dotc.silver{background:var(--silver)} .meter .dotc.gold{background:var(--gold)}
+  .meter .mfrac{font-family:var(--mono);font-size:12.5px;font-weight:650;white-space:nowrap;color:#dfe5f1}
+  .track{height:9px;border-radius:999px;background:rgba(255,255,255,.12);overflow:hidden}
+  .fill{height:100%;border-radius:999px}
+  .fill.bronze{background:var(--bronze)} .fill.silver{background:var(--silver)} .fill.gold{background:var(--gold)}
+  .matrixzone{background:var(--surface);border-bottom:1px solid var(--line);padding:26px 0 30px}
+  .matrixzone .barhead{display:flex;align-items:baseline;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:4px}
+  .matrixzone h2{font-size:17px;margin:0;font-weight:650}
+  .matrixzone .barhead .hint{font-size:12.5px;color:var(--ink-faint)}
+  .mx-legend{display:flex;flex-wrap:wrap;gap:8px 16px;margin:10px 0 18px;font-size:12px;color:var(--ink-soft)}
+  .mx-legend span{display:inline-flex;align-items:center;gap:6px}
+  .swatch{width:11px;height:11px;border-radius:3px;display:inline-block;border:1px solid rgba(0,0,0,.08)}
+  .sw-pass{background:var(--pass)} .sw-fail{background:var(--fail)} .sw-warn{background:var(--warn)} .sw-na{background:var(--na)}
+  .mx-tier{margin-top:16px}
+  .mx-tier .th{display:flex;align-items:center;gap:10px;margin:0 0 10px;flex-wrap:wrap}
+  .mx-tier .th .badge-tier{font-family:var(--mono);font-size:11px;font-weight:650;letter-spacing:.04em;padding:3px 9px;border-radius:6px;text-transform:uppercase}
+  .badge-tier.bronze{color:var(--bronze);background:var(--bronze-bg);border:1px solid var(--bronze-line)}
+  .badge-tier.silver{color:var(--silver);background:var(--silver-bg);border:1px solid var(--silver-line)}
+  .badge-tier.gold{color:var(--gold);background:var(--gold-bg);border:1px solid var(--gold-line)}
+  .mx-tier .th .tname{font-size:13.5px;font-weight:600} .mx-tier .th .tcount{font-family:var(--mono);font-size:12px;color:var(--ink-faint)}
+  .mx-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:8px}
+  .cell{border-radius:9px;padding:9px 12px 9px 14px;border:1px solid var(--line-2);background:var(--surface-2);display:flex;flex-direction:column;gap:3px;text-decoration:none;color:inherit;position:relative}
+  .cell::before{content:"";position:absolute;left:0;top:0;bottom:0;width:4px;border-radius:9px 0 0 9px}
+  .cell .cid{font-family:var(--mono);font-size:12px;font-weight:650;letter-spacing:.02em}
+  .cell .cnm{font-size:11.5px;color:var(--ink-faint);line-height:1.3;overflow-wrap:anywhere;hyphens:none}
+  .cell .cst{position:absolute;top:8px;right:9px;width:8px;height:8px;border-radius:50%}
+  .cell.s-pass{background:var(--pass-bg);border-color:var(--pass-line)} .cell.s-pass::before{background:var(--pass)} .cell.s-pass .cst{background:var(--pass)}
+  .cell.s-fail{background:var(--fail-bg);border-color:var(--fail-line)} .cell.s-fail::before{background:var(--fail)} .cell.s-fail .cst{background:var(--fail)}
+  .cell.s-warn{background:var(--warn-bg);border-color:var(--warn-line)} .cell.s-warn::before{background:var(--warn)} .cell.s-warn .cst{background:var(--warn)}
+  .cell.s-na{background:var(--na-bg);border-color:var(--na-line)} .cell.s-na::before{background:var(--na)} .cell.s-na .cst{background:var(--na)}
+  .idstrip{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin:0 0 22px}
+  .idstrip .ic{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:11px 14px}
+  .idstrip .ick{font-family:var(--mono);font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-faint);font-weight:500}
+  .idstrip .icv{font-size:14.5px;font-weight:600;margin-top:4px;overflow-wrap:anywhere}
+  .aside{background:var(--brand-wash);border:1px solid #d6ddff;border-left:4px solid var(--brand);border-radius:0 10px 10px 0;padding:14px 18px;margin:0 0 20px}
+  .aside h4{color:var(--brand-deep);margin:0 0 6px;font-size:13.5px} .aside p{margin:0;font-size:14px;color:var(--ink-soft)}
+  .guarantees{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px;margin:6px 0 4px}
+  .gtile{border:1px solid var(--line);border-radius:11px;padding:14px 16px;background:var(--surface)}
+  .gtile.bronze{border-top:3px solid var(--bronze)} .gtile.silver{border-top:3px solid var(--silver)} .gtile.gold{border-top:3px solid var(--gold)}
+  .gtile .gt{font-size:13.5px;font-weight:650} .gtile p{font-size:13px;color:var(--ink-soft);margin:8px 0 0}
+  .tablecard{border:1px solid var(--line);border-radius:12px;overflow:hidden;background:var(--surface)}
+  table{width:100%;border-collapse:collapse;font-size:14px}
+  thead th{text-align:left;padding:11px 14px;background:var(--surface-2);border-bottom:1px solid var(--line-2);font-family:var(--mono);font-size:10.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-faint);font-weight:600}
+  tbody td{padding:10px 14px;border-bottom:1px solid var(--line);vertical-align:top;overflow-wrap:anywhere}
+  tbody tr:last-child td{border-bottom:0} tbody tr:hover{background:var(--surface-2)}
+  td .cn{font-family:var(--mono);font-size:13px;font-weight:600}
+  .badge{display:inline-flex;align-items:center;gap:6px;font-family:var(--mono);font-size:10.5px;font-weight:650;letter-spacing:.04em;text-transform:uppercase;padding:3px 9px;border-radius:6px;border:1px solid transparent;white-space:nowrap}
+  .b-pass{color:var(--pass);background:var(--pass-bg);border-color:var(--pass-line)}
+  .b-fail{color:var(--fail);background:var(--fail-bg);border-color:var(--fail-line)}
+  .b-warn{color:var(--warn);background:var(--warn-bg);border-color:var(--warn-line)}
+  .b-na{color:var(--na);background:var(--na-bg);border-color:var(--na-line)}
+  .dot{width:7px;height:7px;border-radius:50%} .dot.pass{background:var(--pass)} .dot.fail{background:var(--fail)} .dot.warn{background:var(--warn)} .dot.na{background:var(--na)}
+  .tierbar{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin:26px 0 12px;padding:13px 16px;border-radius:11px;border:1px solid var(--line-2)}
+  .tierbar.bronze{background:var(--bronze-bg);border-color:var(--bronze-line)} .tierbar.silver{background:var(--silver-bg);border-color:var(--silver-line)} .tierbar.gold{background:var(--gold-bg);border-color:var(--gold-line)}
+  .tierbar .ts{font-size:16px;font-weight:700}
+  .tierbar.bronze .ts{color:var(--bronze)} .tierbar.silver .ts{color:var(--silver)} .tierbar.gold .ts{color:var(--gold)}
+  .tierbar .tv{font-size:14px;color:var(--ink-soft)} .tierbar .tfrac{margin-left:auto;font-family:var(--mono);font-size:13px;font-weight:650;color:var(--ink-soft);white-space:nowrap}
+  .ledger{border:1px solid var(--line);border-radius:12px;overflow:hidden;background:var(--surface);margin-bottom:10px}
+  .lrow{display:grid;grid-template-columns:200px 1fr;border-bottom:1px solid var(--line)} .lrow:last-child{border-bottom:0}
+  .lrow .lst{padding:13px 14px;border-right:1px solid var(--line);display:flex;flex-direction:column;gap:8px;align-items:flex-start;background:var(--surface-2)}
+  .lrow .lst .rid{font-family:var(--mono);font-size:11.5px;color:var(--ink-faint)}
+  .lrow .lst .rname{font-family:var(--mono);font-size:12.5px;font-weight:650;color:var(--ink);overflow-wrap:anywhere}
+  .lrow .lbody{padding:12px 16px;min-width:0} .lrow .ev{font-size:13.5px;color:var(--ink-soft);margin:0;line-height:1.55}
+  .lrow .ev .src{font-family:var(--mono);font-size:12px;color:var(--brand-deep);background:var(--brand-wash);padding:1px 5px;border-radius:4px;overflow-wrap:anywhere}
+  .lrow.is-fail .lst{background:var(--fail-bg)} .lrow.is-warn .lst{background:var(--warn-bg)} .lrow.is-na .lst{background:var(--na-bg)}
+  .why{margin-top:9px;font-size:13px;padding:9px 12px;border-left:3px solid var(--fail);background:var(--surface-2);border-radius:0 7px 7px 0;color:var(--ink-soft);line-height:1.55}
+  .why.warn{border-left-color:var(--warn)}
+  .why b{font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-faint);display:block;margin-bottom:2px;font-weight:600}
+  .worklist{counter-reset:wl;display:grid;gap:12px}
+  .wlitem{display:grid;grid-template-columns:40px 1fr auto;gap:14px;align-items:center;background:var(--surface);border:1px solid var(--line);border-radius:11px;padding:14px 16px}
+  .wlitem .ord{counter-increment:wl;font-family:var(--mono);font-weight:750;font-size:16px;color:var(--brand-deep);width:34px;height:34px;border-radius:8px;background:var(--brand-wash);display:grid;place-items:center}
+  .wlitem .ord::before{content:counter(wl)}
+  .wlitem .wmeta h4{margin:0 0 3px;font-size:14.5px} .wlitem .wmeta .wd{font-size:13px;color:var(--ink-soft);line-height:1.55}
+  .wlitem .wmeta .wid{font-family:var(--mono);font-size:11px;color:var(--fail);background:var(--fail-bg);border:1px solid var(--fail-line);padding:1px 6px;border-radius:5px;margin-right:6px}
+  .wlitem .eff{font-family:var(--mono);font-size:12px;color:var(--ink-soft);text-align:right;white-space:nowrap} .wlitem .eff small{display:block;font-size:10px;color:var(--ink-ghost);text-transform:uppercase;letter-spacing:.08em}
+  .imp{border:1px solid var(--line-2);border-radius:13px;padding:18px 20px;margin:0 0 16px;background:var(--surface)}
+  .imp .top{display:flex;align-items:center;gap:9px;flex-wrap:wrap;margin-bottom:9px}
+  .imp h4{font-size:15.5px;flex:1 1 auto;font-weight:650;margin:0}
+  .imp .rtag{font-family:var(--mono);font-size:11px;font-weight:650;padding:2px 7px;border-radius:5px}
+  .imp .rtag.gold{color:var(--gold);background:var(--gold-bg);border:1px solid var(--gold-line)} .imp .rtag.warn{color:var(--warn);background:var(--warn-bg);border:1px solid var(--warn-line)}
+  .pill{font-family:var(--mono);font-size:10px;letter-spacing:.03em;text-transform:uppercase;padding:2px 8px;border-radius:6px;border:1px solid var(--line-2);color:var(--ink-soft);background:var(--surface-2);white-space:nowrap}
+  .pill.p-high{color:var(--fail);border-color:var(--fail-line);background:var(--fail-bg)} .pill.p-med{color:var(--warn);border-color:var(--warn-line);background:var(--warn-bg)}
+  .imp .ifgrid{font-size:13.5px;color:var(--ink-soft);margin:2px 0 13px;line-height:1.6} .imp .ifgrid b{color:var(--ink);font-weight:650}
+  .prompt{position:relative;background:#0c1322;color:#e7ecf7;border:1px solid #1c2538;border-radius:10px;padding:30px 16px 15px;font-family:var(--mono);font-size:12.5px;line-height:1.62;white-space:pre-wrap;overflow-wrap:anywhere}
+  .prompt .lbl{position:absolute;top:9px;left:14px;font-size:9.5px;letter-spacing:.14em;text-transform:uppercase;color:#6f7da6;font-weight:600}
+  .copy{position:absolute;top:8px;right:9px;background:rgba(255,255,255,.07);color:#cdd6ec;border:1px solid rgba(255,255,255,.16);border-radius:6px;font-family:var(--mono);font-size:11px;padding:4px 10px;cursor:pointer;transition:.12s}
+  .copy:hover{background:var(--brand);border-color:var(--brand);color:#fff} .copy.ok{background:var(--pass);border-color:var(--pass);color:#fff}
+  .insight{display:grid;grid-template-columns:34px 1fr;gap:13px;padding:14px 16px;border:1px solid var(--line);border-left:3px solid var(--brand);border-radius:0 10px 10px 0;margin:0 0 12px;background:var(--surface)}
+  .insight .ic{font-family:var(--mono);font-size:12px;font-weight:700;color:var(--brand-deep);background:var(--brand-wash);border-radius:8px;width:32px;height:32px;display:grid;place-items:center}
+  .insight h4{margin:0 0 3px;font-size:14.5px} .insight p{margin:0;font-size:13.5px;color:var(--ink-soft)}
+  .refs{font-size:13.5px;list-style:none;padding:0;margin:0}
+  .refs li{display:grid;grid-template-columns:96px 1fr;gap:12px;padding:9px 0;border-bottom:1px solid var(--line)} .refs li:last-child{border-bottom:0}
+  .refs .tag{font-family:var(--mono);font-size:11px;color:var(--ink-faint)} .refs .ck{font-family:var(--mono);color:var(--brand-deep);overflow-wrap:anywhere}
+  .meta-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:0 32px;font-size:14px}
+  .meta-grid div{padding:9px 0;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;gap:14px}
+  .meta-grid .mk{color:var(--ink-faint)} .meta-grid .mv{font-weight:600;font-family:var(--mono);font-size:12.5px;text-align:right;overflow-wrap:anywhere}
+  .panel{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:18px 20px;margin-bottom:18px}
+  .legend{display:flex;flex-wrap:wrap;gap:9px 18px;margin:14px 0;font-size:13px;color:var(--ink-soft)} .legend span{display:inline-flex;align-items:center;gap:7px}
+  .toolbar{position:fixed;top:14px;right:18px;z-index:20;display:flex;gap:8px}
+  .toolbar button{font-family:var(--mono);font-size:12px;background:var(--surface);border:1px solid var(--line-3);border-radius:8px;padding:8px 13px;cursor:pointer;color:var(--ink-soft);box-shadow:0 2px 8px rgba(15,23,38,.12);font-weight:600}
+  .toolbar button:hover{border-color:var(--brand);color:var(--brand-deep)}
+  .footnote{color:var(--ink-faint);font-size:12.5px;padding:30px 0 60px;line-height:1.6}
+  @media (max-width:1080px){.mh-grid{grid-template-columns:1fr}}
+  @media (max-width:900px){.shell{grid-template-columns:1fr}.rail{position:static;height:auto;overflow:visible;border-right:0;border-bottom:1px solid #0a0f1c;padding:18px 20px}.rail nav{columns:2;column-gap:14px}.wrap{padding:0 22px}.lrow{grid-template-columns:1fr}.lrow .lst{border-right:0;border-bottom:1px solid var(--line);flex-direction:row;align-items:center;gap:12px;flex-wrap:wrap}.wlitem{grid-template-columns:36px 1fr}.toolbar{top:auto;bottom:14px;right:14px}.tablecard{overflow-x:auto;-webkit-overflow-scrolling:touch}.tablecard table{min-width:560px}}
+  @media (max-width:600px){.rail nav{columns:1}.wrap{padding:0 16px}.kpis,.meters,.idstrip,.guarantees,.meta-grid{grid-template-columns:1fr}section{padding:30px 0 4px}.glossary table{min-width:0}}
+  @media print{.rail,.toolbar,.copy{display:none!important}.shell{grid-template-columns:1fr}body{background:#fff;font-size:10.5pt}.wrap{max-width:none;padding:0 8mm}.masthead,.matrixzone{-webkit-print-color-adjust:exact;print-color-adjust:exact}.masthead{background:var(--ink-panel)!important}.prompt{background:#0c1322!important}section{break-inside:avoid}.imp,.lrow,.ledger,.wlitem,.cell,.kpi,.meter,.gtile{break-inside:avoid}a{color:var(--ink)}}
+</style>
+</head>
+<body>
+<div class="toolbar"><button onclick="window.print()" title="Print or save as PDF">Print / Save PDF</button></div>
+<div class="shell">
+  <aside class="rail">
+    <div class="mark"><div class="glyph">AS</div><div class="nm">agent-skills-toolkit<small>marketplace scope</small></div></div>
+    <div class="railhead">Report Sections</div>
+    <nav id="toc">
+    <a href="#s01"><span class="ix">01</span><span>Verdict</span></a>
+    <a href="#s02"><span class="ix">02</span><span>Member ledger</span></a>
+    <a href="#s03"><span class="ix">03</span><span>Not graded, and why</span></a>
+    <a href="#s04"><span class="ix">04</span><span>Collection findings</span></a>
+    <a href="#s05"><span class="ix">05</span><span>Advisory</span></a>
+    <a href="#s06"><span class="ix">06</span><span>Report metadata</span></a>
+  </nav>
+    <div class="railnote">A collection verdict aggregates per-member verdicts the gate already computed. It grades local checkouts, not the registry pins.</div>
+  </aside>
+  <main class="content">
+    <header class="masthead" id="s01"><div class="wrap">
+    <div class="mh-top"><span class="chip">Collection Evaluation</span>
+<span class="chip">Catalogue v3.4.0</span>
+<span class="chip">Evaluated 2026-01-01</span>
+<span class="chip ">Exit 1</span></div>
+    <div class="mh-grid">
+      <div class="mh-id"><h1>example-catalogue</h1><div class="vv">catalogue version 3.4.0 &nbsp;/&nbsp; Example Org</div>
+      <p class="desc">Marketplace-scope evaluation. Every member is graded at its own declared tier and its own Standard pin; the collection is red if any member fails its own claim, or if the catalogue itself is undeliverable.</p><div class="kpis">
+    <div class="kpi accent-fail"><div class="k">Collection verdict</div><div class="v">RED</div><div class="n">self-consistency worst-member</div></div>
+    <div class="kpi"><div class="k">Coverage</div><div class="v">3<small>/5</small></div><div class="n">members graded</div></div>
+    <div class="kpi accent-fail"><div class="k">Failing own claim</div><div class="v">1</div><div class="n">beta</div></div>
+    <div class="kpi accent-warn"><div class="k">Collection findings</div><div class="v">3</div><div class="n">2 error, 1 warn</div></div>
+    <div class="kpi"><div class="k">Unresolvable entries</div><div class="v">1</div><div class="n">broken catalogue entries</div></div>
+  </div></div>
+      <div class="verdictcard">
+    <div class="lockup"><div class="seal "><div><div class="tier" style="font-size:15px">RED</div><div class="tlbl">collection</div></div></div>
+    <div class="vtext"><div class="ve">Verdict</div><div class="vg">At least one member fails its own claim, or the catalogue is broken</div>
+    <div class="vsub">Graded 3 of 5 member(s); 1 not graded (absent locally or remote-only source); 1 unresolvable entry.</div></div></div></div>
+    </div></div></header>
+    <div class="wrap">
+      <section id="s01b"><div class="seclabel"><span class="num">--</span><h2 class="sec">What this run actually graded</h2></div><p class="lead">Stated in words, not left to the pin columns alone.</p><div class="aside"><h4>Scope of this verdict</h4><p>This run graded the LOCAL CHECKOUT of each member it could resolve, not the tree at the registry pin. Remote fetch-at-sha is deferred (ADR 0039, question 1). The pin, entry version and graded sha below are shown for every member, including the ones where they agree, so agreement is never inferred from silence.</p></div></section>
+      <section id="s02"><div class="seclabel"><span class="num">02</span><h2 class="sec">Member ledger</h2></div><p class="lead">One row per catalogue entry, with the pin columns shown unconditionally.</p><div class="tablecard"><table>
+    <thead><tr><th>Member</th><th>Status</th><th>Declares</th><th>Earns</th><th>Err</th><th>Warn</th><th>Debt</th><th>Entry ver</th><th>Pin</th><th>Graded</th><th>Divergence</th></tr></thead>
+    <tbody><tr>
+      <td><span class="cn">alpha</span></td>
+      <td><span class="badge b-pass">OK</span></td>
+      <td>Universal</td>
+      <td>Universal</td>
+      <td>0</td>
+      <td>2</td>
+      <td>0</td>
+      <td>1.2.0</td>
+      <td><code>1111111</code></td>
+      <td><code>1111111</code></td>
+      <td>in sync</td>
+    </tr><tr>
+      <td><span class="cn">beta</span></td>
+      <td><span class="badge b-fail">FAILS OWN CLAIM</span></td>
+      <td>Advanced</td>
+      <td>Convergent</td>
+      <td>1</td>
+      <td>128</td>
+      <td>121</td>
+      <td>0.9.0</td>
+      <td><code>2222222</code></td>
+      <td><code>3333333</code></td>
+      <td>DIVERGED</td>
+    </tr><tr>
+      <td><span class="cn">gamma</span></td>
+      <td><span class="badge b-pass">OK</span></td>
+      <td>Convergent</td>
+      <td>Convergent</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>2.0.0</td>
+      <td><code>-</code></td>
+      <td><code>-</code></td>
+      <td>not comparable</td>
+    </tr><tr>
+      <td><span class="cn">delta</span></td>
+      <td><span class="badge b-na">NOT GRADED</span></td>
+      <td>-</td>
+      <td>-</td>
+      <td>-</td>
+      <td>-</td>
+      <td>-</td>
+      <td>5.1.0</td>
+      <td><code>4444444</code></td>
+      <td><code>-</code></td>
+      <td>-</td>
+    </tr><tr>
+      <td><span class="cn">epsilon</span></td>
+      <td><span class="badge b-fail">UNRESOLVABLE</span></td>
+      <td>-</td>
+      <td>-</td>
+      <td>-</td>
+      <td>-</td>
+      <td>-</td>
+      <td>1.0.0</td>
+      <td><code>-</code></td>
+      <td><code>-</code></td>
+      <td>-</td>
+    </tr></tbody></table></div>
+    <div class="aside" style="margin-top:14px"><h4>What the columns mean</h4><p><b>Standard debt</b> counts findings that are warnings only because they postdate that member's own Standard pin: green-by-an-old-pin, made visible. <b>Pin</b> is what the catalogue advertises; <b>Graded</b> is the checkout this run actually read. They are shown for every member, including the ones where they agree.</p></div></section>
+      <section id="s03"><div class="seclabel"><span class="num">03</span><h2 class="sec">Not graded, and why</h2></div><p class="lead">The difference between a broken artifact and an incomplete workstation.</p><div class="aside"><h4>Two failures wear the word "unresolved", and only one is a red</h4><p>An <b>unresolvable</b> entry is a defect in the catalogue: an installer following it receives nothing, so it reds the collection. A member <b>not graded</b> is a gap in this machine rather than in the artifact, and never reds.</p></div>
+       <ul class="refs"><li><span class="tag">NOT GRADED</span><span><span class="ck">delta</span> - no local checkout found for this member (looked in: delta); the entry is well-formed, so this is a gap in this machine, not in the catalogue</span></li><li><span class="tag">UNRESOLVABLE</span><span><span class="ck">epsilon</span> - local source &quot;./members/epsilon&quot; does not exist under /repos/example-catalogue; an installer following this entry gets nothing</span></li></ul></section>
+      <section id="s04"><div class="seclabel"><span class="num">04</span><h2 class="sec">Collection findings</h2></div><p class="lead">Defects that exist only between members; no member&#39;s own gate reports these.</p><div class="tablecard"><table><thead><tr><th style="width:90px">Severity</th><th style="width:260px">Class</th><th>Finding</th></tr></thead><tbody><tr><td><span class="badge b-fail">error</span></td><td><span class="ck">marketplace-entry-resolvability</span></td><td>catalogue entry &quot;epsilon&quot; does not resolve to a member: local source &quot;./members/epsilon&quot; does not exist</td></tr><tr><td><span class="badge b-fail">error</span></td><td><span class="ck">marketplace-skill-collision</span></td><td>2 members ship the skill directory &quot;review&quot; (alpha, beta); on any agent that does not namespace components by plugin they occupy one name in a shared pool, and which one wins is undefined</td></tr><tr><td><span class="badge b-warn">warn</span></td><td><span class="ck">marketplace-agent-restricted-fields</span></td><td>beta: agent &quot;runner&quot; declares `hooks`, which Claude Code does not support on a plugin-shipped agent</td></tr></tbody></table></div></section>
+      <section id="s05"><div class="seclabel"><span class="num">05</span><h2 class="sec">Advisory</h2></div><p class="lead">Deterministic, and structurally unable to move the verdict.</p><div class="aside"><h4>Advisory, and structurally unable to change the verdict</h4><p>These analyses are deterministic - they are string comparisons, not judgments - but they are not conformance facts, so they are namespaced away from the findings the verdict reads.</p></div>
+    <ul class="refs">
+      <li><span class="tag">TRIGGER</span><span>Cross-member trigger-surface overlap: <span class="ck">alpha/review</span> / <span class="ck">beta/review</span> (0.812)</span></li>
+      <li><span class="tag">SHAPE</span><span>Command-versus-skill divergence: <span class="ck">beta: ship</span></span></li>
+      <li><span class="tag">LINEAGE</span><span>Content lineage between members: <span class="ck">alpha/review = beta/review</span></span></li>
+    </ul></section>
+      <section id="s06"><div class="seclabel"><span class="num">06</span><h2 class="sec">Report metadata</h2></div><p class="lead">Provenance for this evaluation.</p><div class="panel"><div class="meta-grid"><div><span class="mk">Catalogue</span><span class="mv">example-catalogue v3.4.0</span></div><div><span class="mk">Root</span><span class="mv">/repos/example-catalogue</span></div><div><span class="mk">Member search roots</span><span class="mv">/repos</span></div><div><span class="mk">Tier distribution</span><span class="mv">Universal: 1, Convergent: 2</span></div><div><span class="mk">Aggregation rule</span><span class="mv">self-consistency worst-member (ADR 0039)</span></div><div><span class="mk">Grading profile</span><span class="mv">(default)</span></div><div><span class="mk">Verdict mode</span><span class="mv">(default)</span></div><div><span class="mk">Evaluated</span><span class="mv">2026-01-01</span></div><div><span class="mk">Exit code</span><span class="mv">1</span></div></div></div>
+    <p class="footnote">Generated by the askit-evaluate collection renderer. Every number here is reproducible: re-run <code>node scripts/evaluate.mjs &lt;catalogue&gt;</code>. This renderer adds no judgment and does not change the verdict.</p></section>
+    </div>
+  </main>
+</div>
+<script>
+  (function(){
+    var links=Array.prototype.slice.call(document.querySelectorAll('#toc a'));
+    var map={};links.forEach(function(a){var id=a.getAttribute('href').slice(1);var el=document.getElementById(id);if(el)map[id]=a;});
+    var targets=Object.keys(map).map(function(id){return document.getElementById(id);});
+    function setActive(id){links.forEach(function(a){a.classList.remove('active');});if(map[id])map[id].classList.add('active');}
+    if('IntersectionObserver' in window){
+      var visible={};
+      var obs=new IntersectionObserver(function(entries){
+        entries.forEach(function(e){if(e.isIntersecting)visible[e.target.id]=e.boundingClientRect.top;else delete visible[e.target.id];});
+        var ids=Object.keys(visible);if(ids.length){ids.sort(function(a,b){return visible[a]-visible[b];});setActive(ids[0]);}
+      },{rootMargin:'-12% 0px -70% 0px',threshold:0});
+      targets.forEach(function(t){obs.observe(t);});
+    }else{
+      window.addEventListener('scroll',function(){var best=null,bestTop=-Infinity;targets.forEach(function(t){var top=t.getBoundingClientRect().top;if(top<120&&top>bestTop){bestTop=top;best=t.id;}});if(best)setActive(best);},{passive:true});
+    }
+  })();
+  (function(){
+    var buttons=document.querySelectorAll('.imp .copy');
+    Array.prototype.forEach.call(buttons,function(btn){
+      btn.addEventListener('click',function(){
+        var card=btn.closest('.prompt');var textEl=card?card.querySelector('.ptext'):null;var text=textEl?textEl.textContent:'';
+        function done(){var prev=btn.textContent;btn.textContent='Copied';btn.classList.add('ok');setTimeout(function(){btn.textContent=prev;btn.classList.remove('ok');},1600);}
+        if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(text).then(done,function(){fallback(text,done);});}else{fallback(text,done);}
+      });
+    });
+    function fallback(text,done){var ta=document.createElement('textarea');ta.value=text;ta.setAttribute('readonly','');ta.style.position='absolute';ta.style.left='-9999px';document.body.appendChild(ta);ta.select();try{document.execCommand('copy');done();}catch(e){}document.body.removeChild(ta);}
+  })();
+</script>
+</body>
+</html>

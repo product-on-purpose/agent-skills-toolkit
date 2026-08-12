@@ -178,6 +178,11 @@ function mdTable(headers, rows) {
 }
 
 function renderMarkdown(report, opts = {}) {
+  // The per-report-type dispatch. A collection report has no spine rows and no tier of its own, so it
+  // gets its own model and its own renderer (see the MARKETPLACE section at the bottom of this file)
+  // rather than being forced through the plugin model. Dispatching here rather than inside deriveModel
+  // is what leaves the plugin path byte-identical and the golden snapshots untouched.
+  if (report?.scope === "marketplace") return renderCollectionMarkdown(report, opts);
   const m = deriveModel(report, opts);
   const out = [];
   const gradeLine = m.isPlugin ? `earns ${m.tierEarnedName}` : "is a single component (graded by rule, no tier)";
@@ -831,6 +836,7 @@ function htmlMigrationPlanBody(m) {
 }
 
 function renderHtml(report, opts = {}) {
+  if (report?.scope === "marketplace") return renderCollectionHtml(report, opts); // see renderMarkdown's note
   const m = deriveModel(report, opts);
   const sealCls = m.isPlugin ? (TIER_CLASS[m.tierEarned] ?? "") : "";
   const chips = [
@@ -1014,4 +1020,266 @@ function renderHtml(report, opts = {}) {
 `;
 }
 
-export { renderMarkdown, renderHtml, deriveModel };
+// ============================ MARKETPLACE (the collection report, ADR 0039) ============================
+//
+// The sixth report type, and the one whose SUBJECT is not a plugin. It is factored as its own model and
+// its own two renderers rather than threaded through deriveModel, because the two share almost no
+// vocabulary: a collection has no spine rows, no tier ladder of its own, and no climb, and forcing it
+// through the plugin model would either invent those or fill them with nulls the plugin renderers then
+// have to guard. It DOES share the style block, the escaping, and the page shell, which is what keeps
+// the two looking like one product. This factoring is also why the five existing golden snapshots are
+// untouched by this release: the plugin path is not modified, only dispatched around.
+
+/** The one view-model both collection renderers project. Pure. */
+function deriveCollectionModel(report, opts = {}) {
+  const members = (report.members ?? []).map((m) => ({
+    ...m,
+    label: m.name ?? `plugins[${m.index}]`,
+    declaredName: m.declaredTier ? (TIER_SUB[m.declaredTier] ?? m.declaredTier) : "none declared",
+    earnedName: m.earnedTier ? (TIER_SUB[m.earnedTier] ?? m.earnedTier) : "-",
+    statusLabel: m.status === "resolved" ? (m.failsOwnClaim ? "FAILS OWN CLAIM" : "OK") : m.status === "not-graded" ? "NOT GRADED" : "UNRESOLVABLE",
+  }));
+  return {
+    scope: "marketplace",
+    subject: report.catalogue?.name ?? basename(report.target),
+    version: report.catalogue?.version ?? null,
+    owner: report.catalogue?.owner ?? null,
+    target: report.target,
+    verdict: report.verdict,
+    coverage: report.coverage ?? { graded: 0, total: 0, notGraded: 0, unresolvable: 0 },
+    members,
+    findings: report.findings ?? [],
+    summary: report.summary ?? { errors: 0, warns: 0, failingMembers: [], tierDistribution: {} },
+    advisory: report.advisory ?? { triggerSurface: [], commandSkillDivergence: [], contentLineage: [] },
+    searchRoots: report.searchRoots ?? [],
+    profile: report.profile ?? null,
+    mode: report.mode ?? null,
+    date: opts.date ?? "",
+    exitCode: opts.exitCode ?? (report.verdict === "red" ? 1 : 0),
+    reportType: "marketplace",
+  };
+}
+
+const shortSha = (s) => (typeof s === "string" && s.length >= 7 ? s.slice(0, 7) : "-");
+
+/**
+ * The disclosure sentence, printed on every collection report in every format, never conditionally.
+ * A run answers "what would the next re-pin grade", not "what do installers get", and a reader who
+ * skims the pin columns can still over-read a green unless the limit is stated in words.
+ */
+const COLLECTION_LIMIT_NOTE =
+  "This run graded the LOCAL CHECKOUT of each member it could resolve, not the tree at the registry pin. " +
+  "Remote fetch-at-sha is deferred (ADR 0039, question 1). The pin, entry version and graded sha below are " +
+  "shown for every member, including the ones where they agree, so agreement is never inferred from silence.";
+
+function renderCollectionMarkdown(report, opts = {}) {
+  const m = deriveCollectionModel(report, opts);
+  const out = [];
+  out.push(`# ${m.subject} - Collection Evaluation`);
+  out.push("");
+  out.push(`> Marketplace-scope evaluation of the ${m.coverage.total}-member catalogue${m.version ? ` (catalogue v${m.version})` : ""}. Each member is graded at ITS OWN declared tier and ITS OWN Standard pin; the collection is red if any member fails its own claim, or if the catalogue itself is broken.`);
+  out.push("");
+
+  out.push("## 01 Verdict");
+  out.push("");
+  out.push(`**Collection verdict: ${m.verdict.toUpperCase()}. Graded ${m.coverage.graded} of ${m.coverage.total} member(s)${m.coverage.notGraded ? `, ${m.coverage.notGraded} not graded` : ""}${m.coverage.unresolvable ? `, ${m.coverage.unresolvable} unresolvable` : ""}. ${m.summary.errors} collection error(s), ${m.summary.warns} collection warning(s). Exit code ${m.exitCode}.**`);
+  out.push("");
+  if (m.summary.failingMembers?.length) {
+    out.push(`Members failing their own declared claim: **${m.summary.failingMembers.map((n) => escapeMd(n)).join(", ")}**. A member fails its own claim when its own gate would fail; no collection-level tier expectation is invented for anybody.`);
+    out.push("");
+  }
+  out.push(`> ${COLLECTION_LIMIT_NOTE}`);
+  out.push("");
+
+  out.push("## 02 Member ledger");
+  out.push("");
+  out.push(mdTable(
+    ["Member", "Status", "Declares", "Earns", "Errors", "Warns", "Standard debt", "Entry version", "Pin", "Graded sha", "Divergence"],
+    m.members.map((x) => [
+      x.label, x.statusLabel,
+      x.status === "resolved" ? x.declaredName : "-",
+      x.status === "resolved" ? x.earnedName : "-",
+      x.status === "resolved" ? String(x.errors) : "-",
+      x.status === "resolved" ? String(x.warns) : "-",
+      x.status === "resolved" ? String(x.standardDebt) : "-",
+      x.entryVersion ?? "-",
+      shortSha(x.pinSha), shortSha(x.gradedSha),
+      x.status !== "resolved" ? "-" : x.diverged ? "DIVERGED" : x.pinSha && x.gradedSha ? "in sync" : "not comparable",
+    ])
+  ));
+  out.push("");
+  out.push("**Standard debt** counts the findings that are warnings only because they postdate that member's own Standard pin. It is what makes green-by-an-old-pin visible rather than flattering.");
+  out.push("");
+  const notResolved = m.members.filter((x) => x.status !== "resolved");
+  if (notResolved.length) {
+    out.push("### Members not graded, and why");
+    out.push("");
+    out.push("An **unresolvable** entry is a defect in the catalogue and reds the collection: an installer following it receives nothing. A member **not graded** is a gap in this machine, not in the artifact, and never reds.");
+    out.push("");
+    for (const x of notResolved) out.push(`- **${escapeMd(x.label)}** (${x.statusLabel}, source kind ${escapeMd(x.sourceKind ?? "unrecognized")}): ${escapeMd(x.reason ?? "")}`);
+    out.push("");
+  }
+
+  out.push("## 03 Collection findings");
+  out.push("");
+  if (m.findings.length === 0) {
+    out.push("No cross-member findings. The catalogue parses, every entry resolves or is honestly reported, no two members collide on a component name, and every entry version agrees with its member's own manifest.");
+  } else {
+    out.push("These are the defects that exist only BETWEEN members. No member's own gate reports any of them.");
+    out.push("");
+    out.push(mdTable(["Severity", "Class", "Finding"], m.findings.map((f) => [f.severity, f.check, f.message])));
+  }
+  out.push("");
+
+  out.push("## 04 Advisory (never affects the verdict)");
+  out.push("");
+  out.push("Deterministic, but not conformance facts. Nothing in this section can move the collection verdict or the exit code.");
+  out.push("");
+  out.push(`- **Cross-member trigger-surface overlap:** ${m.advisory.triggerSurface.length ? m.advisory.triggerSurface.map((r) => `${escapeMd(r.a)} / ${escapeMd(r.b)} (${r.similarity})`).join("; ") : "none above threshold"}`);
+  out.push(`- **Command-versus-skill divergence:** ${m.advisory.commandSkillDivergence.length ? m.advisory.commandSkillDivergence.map((r) => `${escapeMd(r.member)}: ${escapeMd(r.name)}`).join("; ") : "none"}`);
+  out.push(`- **Content lineage between members:** ${m.advisory.contentLineage.length ? m.advisory.contentLineage.map((r) => escapeMd(r.copies.join(" = "))).join("; ") : "none"}`);
+  out.push("");
+
+  out.push("## 05 Report metadata");
+  out.push("");
+  out.push(mdTable(["Field", "Value"], [
+    ["Catalogue", m.subject],
+    ["Catalogue version", m.version ?? "(unspecified)"],
+    ["Owner", m.owner ?? "(unspecified)"],
+    ["Root", m.target],
+    ["Member search roots", m.searchRoots.join(", ") || "(none)"],
+    ["Tier distribution (graded members)", Object.entries(m.summary.tierDistribution ?? {}).map(([k, v]) => `${TIER_SUB[k] ?? k}: ${v}`).join(", ") || "(none graded)"],
+    ["Grading profile", m.profile ?? "(default)"],
+    ["Verdict mode", m.mode ?? "(default)"],
+    ["Aggregation rule", "self-consistency worst-member (ADR 0039)"],
+    ["Evaluated", m.date],
+    ["Exit code", String(m.exitCode)],
+  ]));
+  out.push("");
+  return out.join("\n");
+}
+
+function renderCollectionHtml(report, opts = {}) {
+  const m = deriveCollectionModel(report, opts);
+  const red = m.verdict === "red";
+  const chips = [
+    `<span class="chip">Collection Evaluation</span>`,
+    m.version ? `<span class="chip">Catalogue v${escapeHtml(m.version)}</span>` : "",
+    m.date ? `<span class="chip">Evaluated ${escapeHtml(m.date)}</span>` : "",
+    `<span class="chip ${red ? "" : "live"}">Exit ${escapeHtml(String(m.exitCode))}</span>`,
+  ].filter(Boolean).join("\n");
+
+  const kpis = `<div class="kpis">
+    <div class="kpi ${red ? "accent-fail" : "accent-pass"}"><div class="k">Collection verdict</div><div class="v">${red ? "RED" : "GREEN"}</div><div class="n">self-consistency worst-member</div></div>
+    <div class="kpi"><div class="k">Coverage</div><div class="v">${m.coverage.graded}<small>/${m.coverage.total}</small></div><div class="n">members graded</div></div>
+    <div class="kpi accent-fail"><div class="k">Failing own claim</div><div class="v">${m.summary.failingMembers?.length ?? 0}</div><div class="n">${(m.summary.failingMembers ?? []).map((n) => escapeHtml(n)).join(", ") || "none"}</div></div>
+    <div class="kpi accent-warn"><div class="k">Collection findings</div><div class="v">${m.summary.errors + m.summary.warns}</div><div class="n">${m.summary.errors} error, ${m.summary.warns} warn</div></div>
+    <div class="kpi"><div class="k">Unresolvable entries</div><div class="v">${m.coverage.unresolvable}</div><div class="n">broken catalogue entries</div></div>
+  </div>`;
+
+  const verdictCard = `<div class="verdictcard">
+    <div class="lockup"><div class="seal ${red ? "" : "gold"}"><div><div class="tier" style="font-size:15px">${red ? "RED" : "GREEN"}</div><div class="tlbl">collection</div></div></div>
+    <div class="vtext"><div class="ve">Verdict</div><div class="vg">${red ? "At least one member fails its own claim, or the catalogue is broken" : "Every graded member satisfies its own claim"}</div>
+    <div class="vsub">Graded ${m.coverage.graded} of ${m.coverage.total} member(s)${m.coverage.notGraded ? `; ${m.coverage.notGraded} not graded (absent locally or remote-only source)` : ""}${m.coverage.unresolvable ? `; ${m.coverage.unresolvable} unresolvable entr${m.coverage.unresolvable === 1 ? "y" : "ies"}` : ""}.</div></div></div></div>`;
+
+  const masthead = `<header class="masthead" id="s01"><div class="wrap">
+    <div class="mh-top">${chips}</div>
+    <div class="mh-grid">
+      <div class="mh-id"><h1>${escapeHtml(m.subject)}</h1><div class="vv">${m.version ? "catalogue version " + escapeHtml(m.version) : "catalogue version unspecified"}${m.owner ? " &nbsp;/&nbsp; " + escapeHtml(m.owner) : ""}</div>
+      <p class="desc">Marketplace-scope evaluation. Every member is graded at its own declared tier and its own Standard pin; the collection is red if any member fails its own claim, or if the catalogue itself is undeliverable.</p>${kpis}</div>
+      ${verdictCard}
+    </div></div></header>`;
+
+  const ledger = `<div class="tablecard"><table>
+    <thead><tr><th>Member</th><th>Status</th><th>Declares</th><th>Earns</th><th>Err</th><th>Warn</th><th>Debt</th><th>Entry ver</th><th>Pin</th><th>Graded</th><th>Divergence</th></tr></thead>
+    <tbody>${m.members.map((x) => `<tr>
+      <td><span class="cn">${escapeHtml(x.label)}</span></td>
+      <td><span class="badge ${x.statusLabel === "OK" ? "b-pass" : x.statusLabel === "NOT GRADED" ? "b-na" : "b-fail"}">${escapeHtml(x.statusLabel)}</span></td>
+      <td>${escapeHtml(x.status === "resolved" ? x.declaredName : "-")}</td>
+      <td>${escapeHtml(x.status === "resolved" ? x.earnedName : "-")}</td>
+      <td>${escapeHtml(x.status === "resolved" ? String(x.errors) : "-")}</td>
+      <td>${escapeHtml(x.status === "resolved" ? String(x.warns) : "-")}</td>
+      <td>${escapeHtml(x.status === "resolved" ? String(x.standardDebt) : "-")}</td>
+      <td>${escapeHtml(x.entryVersion ?? "-")}</td>
+      <td><code>${escapeHtml(shortSha(x.pinSha))}</code></td>
+      <td><code>${escapeHtml(shortSha(x.gradedSha))}</code></td>
+      <td>${escapeHtml(x.status !== "resolved" ? "-" : x.diverged ? "DIVERGED" : x.pinSha && x.gradedSha ? "in sync" : "not comparable")}</td>
+    </tr>`).join("")}</tbody></table></div>
+    <div class="aside" style="margin-top:14px"><h4>What the columns mean</h4><p><b>Standard debt</b> counts findings that are warnings only because they postdate that member's own Standard pin: green-by-an-old-pin, made visible. <b>Pin</b> is what the catalogue advertises; <b>Graded</b> is the checkout this run actually read. They are shown for every member, including the ones where they agree.</p></div>`;
+
+  const notResolved = m.members.filter((x) => x.status !== "resolved");
+  const notResolvedBody = notResolved.length
+    ? `<div class="aside"><h4>Two failures wear the word "unresolved", and only one is a red</h4><p>An <b>unresolvable</b> entry is a defect in the catalogue: an installer following it receives nothing, so it reds the collection. A member <b>not graded</b> is a gap in this machine rather than in the artifact, and never reds.</p></div>
+       <ul class="refs">${notResolved.map((x) => `<li><span class="tag">${escapeHtml(x.statusLabel)}</span><span><span class="ck">${escapeHtml(x.label)}</span> - ${escapeHtml(x.reason ?? "")}</span></li>`).join("")}</ul>`
+    : `<p>Every catalogue entry resolved to a member on this machine.</p>`;
+
+  const findingsBody = m.findings.length
+    ? `<div class="tablecard"><table><thead><tr><th style="width:90px">Severity</th><th style="width:260px">Class</th><th>Finding</th></tr></thead><tbody>${m.findings.map((f) => `<tr><td><span class="badge ${f.severity === "error" ? "b-fail" : "b-warn"}">${escapeHtml(f.severity)}</span></td><td><span class="ck">${escapeHtml(f.check)}</span></td><td>${escapeHtml(f.message)}</td></tr>`).join("")}</tbody></table></div>`
+    : `<p>No cross-member findings. The catalogue parses, every entry resolves or is honestly reported, no two members collide on a component name, and every entry version agrees with its member's own manifest.</p>`;
+
+  const advisoryBody = `<div class="aside"><h4>Advisory, and structurally unable to change the verdict</h4><p>These analyses are deterministic - they are string comparisons, not judgments - but they are not conformance facts, so they are namespaced away from the findings the verdict reads.</p></div>
+    <ul class="refs">
+      <li><span class="tag">TRIGGER</span><span>Cross-member trigger-surface overlap: ${m.advisory.triggerSurface.length ? m.advisory.triggerSurface.map((r) => `<span class="ck">${escapeHtml(r.a)}</span> / <span class="ck">${escapeHtml(r.b)}</span> (${escapeHtml(String(r.similarity))})`).join("; ") : "none above threshold"}</span></li>
+      <li><span class="tag">SHAPE</span><span>Command-versus-skill divergence: ${m.advisory.commandSkillDivergence.length ? m.advisory.commandSkillDivergence.map((r) => `<span class="ck">${escapeHtml(r.member)}: ${escapeHtml(r.name)}</span>`).join("; ") : "none"}</span></li>
+      <li><span class="tag">LINEAGE</span><span>Content lineage between members: ${m.advisory.contentLineage.length ? m.advisory.contentLineage.map((r) => `<span class="ck">${escapeHtml(r.copies.join(" = "))}</span>`).join("; ") : "none"}</span></li>
+    </ul>`;
+
+  const metaItems = [
+    ["Catalogue", `${m.subject}${m.version ? " v" + m.version : ""}`],
+    ["Root", m.target],
+    ["Member search roots", m.searchRoots.join(", ") || "(none)"],
+    ["Tier distribution", Object.entries(m.summary.tierDistribution ?? {}).map(([k, v]) => `${TIER_SUB[k] ?? k}: ${v}`).join(", ") || "(none graded)"],
+    ["Aggregation rule", "self-consistency worst-member (ADR 0039)"],
+    ["Grading profile", m.profile ?? "(default)"],
+    ["Verdict mode", m.mode ?? "(default)"],
+    ["Evaluated", m.date],
+    ["Exit code", String(m.exitCode)],
+  ];
+  const metaBody = `<div class="panel"><div class="meta-grid">${metaItems.map(([k, v]) => `<div><span class="mk">${escapeHtml(k)}</span><span class="mv">${escapeHtml(v)}</span></div>`).join("")}</div></div>
+    <p class="footnote">Generated by the askit-evaluate collection renderer. Every number here is reproducible: re-run <code>node scripts/evaluate.mjs &lt;catalogue&gt;</code>. This renderer adds no judgment and does not change the verdict.</p>`;
+
+  const toc = `<nav id="toc">
+    <a href="#s01"><span class="ix">01</span><span>Verdict</span></a>
+    <a href="#s02"><span class="ix">02</span><span>Member ledger</span></a>
+    <a href="#s03"><span class="ix">03</span><span>Not graded, and why</span></a>
+    <a href="#s04"><span class="ix">04</span><span>Collection findings</span></a>
+    <a href="#s05"><span class="ix">05</span><span>Advisory</span></a>
+    <a href="#s06"><span class="ix">06</span><span>Report metadata</span></a>
+  </nav>`;
+
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>${escapeHtml(m.subject)} - Collection Evaluation</title>
+<style>${STYLE}</style>
+</head>
+<body>
+<div class="toolbar"><button onclick="window.print()" title="Print or save as PDF">Print / Save PDF</button></div>
+<div class="shell">
+  <aside class="rail">
+    <div class="mark"><div class="glyph">AS</div><div class="nm">agent-skills-toolkit<small>marketplace scope</small></div></div>
+    <div class="railhead">Report Sections</div>
+    ${toc}
+    <div class="railnote">A collection verdict aggregates per-member verdicts the gate already computed. It grades local checkouts, not the registry pins.</div>
+  </aside>
+  <main class="content">
+    ${masthead}
+    <div class="wrap">
+      ${htmlSection("s01b", "--", "What this run actually graded", "Stated in words, not left to the pin columns alone.", `<div class="aside"><h4>Scope of this verdict</h4><p>${escapeHtml(COLLECTION_LIMIT_NOTE)}</p></div>`)}
+      ${htmlSection("s02", "02", "Member ledger", "One row per catalogue entry, with the pin columns shown unconditionally.", ledger)}
+      ${htmlSection("s03", "03", "Not graded, and why", "The difference between a broken artifact and an incomplete workstation.", notResolvedBody)}
+      ${htmlSection("s04", "04", "Collection findings", "Defects that exist only between members; no member's own gate reports these.", findingsBody)}
+      ${htmlSection("s05", "05", "Advisory", "Deterministic, and structurally unable to move the verdict.", advisoryBody)}
+      ${htmlSection("s06", "06", "Report metadata", "Provenance for this evaluation.", metaBody)}
+    </div>
+  </main>
+</div>
+<script>${SCRIPT}</script>
+</body>
+</html>
+`;
+}
+
+export { renderMarkdown, renderHtml, deriveModel, deriveCollectionModel, renderCollectionMarkdown, renderCollectionHtml };

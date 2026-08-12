@@ -37,9 +37,11 @@ Reference material: one page per askit-* skill plus the per-tier conformance-che
 - `askit-template-manager.md` - the "askit template manager" page.
 - `builder-pattern.md` - the "builder pattern" page.
 - `evaluation-reports.md` - the "evaluation reports (--format, --report)" page.
+- `family-registry.md` - the "the family registry (a dated collection report)" page.
 - `frontmatter-taxonomy.md` - the "frontmatter taxonomy" page.
 - `gate-config.md` - the "gate configuration (askit.config.json)" page.
 - `gold-checks.md` - the "gold checks" page.
+- `marketplace-scope.md` - the "marketplace scope (grading a catalogue)" page.
 - `silver-checks.md` - the "silver checks" page.
 - `subagents.md` - the "subagent reference" page.
 - `token-usage-estimates.md` - the "token usage estimates (model and effort)" page.

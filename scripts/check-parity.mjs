@@ -6,7 +6,8 @@
 //               rewrites cannot pass as clean. Also pins and reports both validator identities (the
 //               installed claude CLI version, and the installed skills-ref PyPI release measured
 //               against the upstream-pin.json SOURCE blob it is a different identity from) and flags
-//               any skew between them. REPORT-ONLY in this release: always exits 0 - see PARITY_MODE.
+//               any skew between them. GATING since v1.12.0: an undocumented disagreement fails the
+//               job - see PARITY_MODE.
 // why:          STANDARD.md sec 6 claims the Universal tier tracks agentskills.io and the README claims
 //               a Bronze plugin is portable; until this script existed the only evidence for either was
 //               this repository's own gate. ADR 0040 found `agentskills validate` reporting "Valid
@@ -23,11 +24,21 @@ import { createHash } from "node:crypto";
 import { parseFrontmatter } from "./lib/frontmatter.mjs";
 import { listSkillDirs, normalizeArgPath, relPath } from "./lib/fs-utils.mjs";
 
-// PARITY_MODE: the one-line gating flip named in ADR 0042 ("Why report-only for one release"). Today
-// this is "report-only": disagreements are printed but never fail the job (decideExitCode below always
-// returns 0). Changing this single string to "gating" is the entire flip; the release that is expected
-// to make that change, and the evidence that must exist first, is recorded in ADR 0042.
-export const PARITY_MODE = "report-only";
+// PARITY_MODE: the gating flip named in ADR 0042 ("Why report-only for exactly one release"). FLIPPED
+// TO "gating" in v1.12.0. An undocumented disagreement, a metadata-parity mismatch, and the reference
+// parser being unable to run at all now each fail this job (see decideExitCode and anyDisagreement).
+//
+// The evidence ADR 0042 named as the condition for this flip, discharged: "the mechanism completing at
+// least one real release cycle in actual CI with no new undocumented disagreement left unresolved at
+// the point of the flip - not a fixed calendar date". Two cycles completed - v1.11.0 and v1.11.1 - with
+// the validator-parity job green on GitHub-hosted runners each time, and the only known disagreement
+// (templates/seed-plugin vs `claude plugin validate --strict`) carries its ADR 0043 exception entry
+// below. The v1.12.0 release packet records the captured run.
+//
+// The consequence taken on knowingly: under gating, metadataParityUnavailableResult() fails CLOSED, so
+// a run where `uvx` cannot be installed reds a required check rather than printing a line nobody reads.
+// That is the intended behavior for a harness built because silence hid a defect for two releases.
+export const PARITY_MODE = "gating";
 
 const ADR = "ADR 0042 (validator parity is report-only and checks parsed values)";
 
@@ -455,14 +466,18 @@ function main() {
   // "gating" behaves identically to the default, matching decideExitCode()'s own strict-equality check.
   const modeArg = argv.find((a) => a.startsWith("--mode="));
   const mode = modeArg ? modeArg.slice("--mode=".length) : PARITY_MODE;
+  // Whether this run's mode came from the flag rather than the shipped constant. Reported in the banner
+  // because "override" and "the shipped default" are different facts about the same word: since the
+  // v1.12.0 flip, gating is the DEFAULT, and a banner that still called it an override would misreport
+  // the harness's own configuration to every reader of a CI log.
+  const modeIsOverride = modeArg != null && mode !== PARITY_MODE;
 
   line("=".repeat(78));
   line(`check-parity: first-party validator parity harness (${ADR})`);
   if (mode === "gating") {
-    line(`>>> GATING (PARITY_MODE override = "gating"): an undocumented disagreement below WILL fail this run. <<<`);
+    line(`>>> GATING (PARITY_MODE${modeIsOverride ? " override" : ""} = "gating"): an undocumented disagreement below WILL fail this run. <<<`);
   } else {
-    line(`>>> REPORT-ONLY (PARITY_MODE = "${mode}"): findings below never fail this job. <<<`);
-    line(`>>> Flip to gating: change PARITY_MODE in scripts/check-parity.mjs to "gating" (one line). <<<`);
+    line(`>>> REPORT-ONLY (PARITY_MODE${modeIsOverride ? " override" : ""} = "${mode}"): findings below never fail this job. <<<`);
   }
   line("=".repeat(78));
   line("");
@@ -555,11 +570,12 @@ function main() {
   } else {
     // FAIL CLOSED (ADR 0042's dated correction): this is the harness's central, novel check - the one
     // an exit-code-only harness cannot do (ADR 0040) - so its own absence must not report a clean
-    // parity result. Pushed into `results` so anyDisagreement() counts it once PARITY_MODE is gating,
-    // unlike the "tool unavailable" case for vendor-validate results, which deliberately does not gate.
+    // parity result. Pushed into `results` so anyDisagreement() counts it (PARITY_MODE is "gating"
+    // since v1.12.0), unlike the "tool unavailable" case for vendor-validate results, which
+    // deliberately does not gate.
     results.push(metadataParityUnavailableResult());
     line("  NOT VERIFIED (same uvx dependency as skills-ref validate above).");
-    line("  FAIL-CLOSED: this is the harness's central check; its own absence counts as a disagreement once PARITY_MODE is gating (ADR 0042).");
+    line("  FAIL-CLOSED: this is the harness's central check; its own absence counts as a disagreement (ADR 0042).");
   }
   line("");
 
@@ -613,21 +629,27 @@ function main() {
   const { total, documented, undocumented } = summarizeDisagreements(results);
   const metadataParityFailures = results.filter((r) => r.kind === "metadata-parity" && r.pass !== true);
   const notRun = results.filter((r) => r.kind === "vendor-validate" && !r.ran);
+  // Tense follows the live mode. Before the v1.12.0 flip every one of these lines was written in the
+  // conditional future ("would block once gating starts"), which is now false: under gating they block
+  // this run. A summary that describes enforcement as pending while it is actually on is the same class
+  // of misreport as a report-only banner on a gating job.
+  const blocksNow = mode === "gating";
+  const blocks = (subject) => (blocksNow ? `${subject} BLOCKS this run` : `${subject} WOULD block once gating starts`);
   line("-- summary --");
   if (total === 0) {
     line("  vendor-validate disagreements: none found.");
   } else if (undocumented === 0) {
-    line(`  vendor-validate disagreements: ${total} found, ALL ${documented} documented as exception(s) (ADR-authorized - see the annotated lines above). Nothing here would block once gating starts.`);
+    line(`  vendor-validate disagreements: ${total} found, ALL ${documented} documented as exception(s) (ADR-authorized - see the annotated lines above). Nothing here ${blocksNow ? "blocks this run" : "would block once gating starts"}.`);
   } else {
-    line(`  vendor-validate disagreements: ${total} found - ${documented} documented, ${undocumented} UNDOCUMENTED. The undocumented ${undocumented === 1 ? "one" : "ones"} WOULD block once gating starts.`);
+    line(`  vendor-validate disagreements: ${total} found - ${documented} documented, ${undocumented} UNDOCUMENTED. ${blocks(`The undocumented ${undocumented === 1 ? "one" : "ones"}`)}.`);
   }
   if (integrityFindings.length) {
     line(`  exception-list integrity: ${integrityFindings.length} BROKEN reference(s) (see above) - counted as undocumented, since a citation nobody can check authorizes nothing.`);
   }
   // metadata-parity has NO documented-exception path (see anyDisagreement's docblock) and fails closed
-  // when the reference parser cannot even run, so every entry here would block once gating starts.
+  // when the reference parser cannot even run, so every entry here gates.
   if (metadataParityFailures.length) {
-    line(`  metadata-parity: ${metadataParityFailures.length} finding(s) (a real mismatch, or the section being unable to run at all) - WOULD block once gating starts; there is no exception path for this kind.`);
+    line(`  metadata-parity: ${metadataParityFailures.length} finding(s) (a real mismatch, or the section being unable to run at all) - ${blocksNow ? "BLOCKS this run" : "WOULD block once gating starts"}; there is no exception path for this kind.`);
   } else {
     line("  metadata-parity: clean.");
   }

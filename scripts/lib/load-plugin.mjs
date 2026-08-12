@@ -2,10 +2,27 @@
 // what-it-does: builds the check context (root, library, skills, subagents, commands, manifests) that every check reads
 // why:          loading once into a shared context keeps each check synchronous and free of its own I/O setup
 // used-by:      imported by scripts/check.mjs, tier-report.mjs, evaluate.mjs, and the unit tests
-import { readFileSync } from "node:fs";
+import { readFileSync, existsSync, statSync } from "node:fs";
 import path from "node:path";
 import { readJsonSafe, fileExists, listSkillDirs, listAgentFiles, listCommandFiles } from "./fs-utils.mjs";
 import { parseFrontmatter } from "./frontmatter.mjs";
+
+const isDir = (p) => existsSync(p) && statSync(p).isDirectory();
+
+/**
+ * The plugin SHAPE test: a directory looks like a plugin if it carries library.json, AGENTS.md, or a
+ * skills/ subdirectory. Lives here, in the loader, rather than privately inside evaluate.mjs, because
+ * marketplace scope (ADR 0039) has to ask the same question of every catalogue member and importing it
+ * back out of evaluate.mjs would be a cycle. One copy means a member and a directly-graded plugin can
+ * never be judged by two drifting definitions of "is this a plugin".
+ */
+export function looksLikePlugin(target) {
+  return (
+    existsSync(path.join(target, "library.json")) ||
+    existsSync(path.join(target, "AGENTS.md")) ||
+    isDir(path.join(target, "skills"))
+  );
+}
 
 /** Load one skill directory into a SkillInfo. Read failure becomes a parseError (fail-safe). */
 export function loadSkill(dir) {
