@@ -53,6 +53,26 @@ export function repoNameFromGithub(repo) {
  *
  * @returns {string|null} the 40-character sha, or null when this directory is not a git checkout
  */
+/**
+ * The nearest `.git` at or above `dir`, or null. Bounded to a few levels so this can never walk out to
+ * the filesystem root scanning directories.
+ *
+ * Needed because a `git-subdir` member's plugin directory is BELOW its repository root, so asking for
+ * `<member>/.git` finds nothing and identity would be unverifiable for exactly the source kind whose
+ * whole point is that the plugin is not at the root. The same applies to any plugin vendored inside a
+ * larger repository.
+ */
+export function findGitRoot(dir, maxDepth = 6) {
+  let current = path.resolve(dir);
+  for (let i = 0; i <= maxDepth; i++) {
+    if (existsSync(path.join(current, ".git"))) return current;
+    const parent = path.dirname(current);
+    if (parent === current) return null;
+    current = parent;
+  }
+  return null;
+}
+
 export function readGitHead(dir) {
   let gitPath = path.join(dir, ".git");
   if (!existsSync(gitPath)) return null;
@@ -183,21 +203,37 @@ export function readGitRemote(dir) {
  * `.git` suffix and a trailing slash, so `git@host:owner/name.git` and `https://host/owner/name` agree.
  * Only applied to discovered candidates: an explicit mapping is the operator saying "this one", and
  * second-guessing it would make the escape hatch unusable.
+ *
+ * The comparison is EXACT on host and repository path, not a suffix match. Two rounds of adversarial
+ * review pushed it here and both intermediate forms were wrong:
+ *   - `a.endsWith(b)` accepted `notgithub.com/owner/name` for `github.com/owner/name`.
+ *   - `a.endsWith("/" + b)` closed that but still accepted `evil.example/github.com/owner/name`,
+ *     because a hostile path prefix reproduces the declared path at a legitimate-looking boundary.
+ * There is no safe prefix allowance, so there is none. A genuine mirror under a path prefix is exactly
+ * what the `askit.marketplace.json` mapping is for: the operator asserting identity this code cannot.
+ *
+ * An explicit port is normalized away rather than compared, so `host:443/o/n` and `host/o/n` agree; a
+ * port is a transport detail, not a different repository.
  */
+export function normalizeRemote(u) {
+  let s = String(u ?? "").trim();
+  if (!s) return null;
+  s = s.split(/[?#]/)[0];
+  s = s.replace(/^[a-z][a-z0-9+.-]*:\/\//i, "");        // scheme
+  s = s.replace(/^[^@/]+@/, "");                        // credentials, or the scp-form user
+  s = s.replace(/^([^/:]+):(?!\d+(?:\/|$))/, "$1/");    // scp form host:path (but not host:port)
+  s = s.replace(/^([^/:]+):\d+/, "$1");                 // explicit port
+  s = s.replace(/\.git$/i, "").replace(/\/+$/, "").replace(/\/{2,}/g, "/");
+  return s.toLowerCase() || null;
+}
+
 export function remoteMatchesSource(candidateRemote, source) {
   const declared = source?.url ?? (source?.repo ? `https://github.com/${source.repo}` : null);
-  if (!declared || !candidateRemote) return true; // cannot disprove
-  const norm = (u) => String(u)
-    .split(/[?#]/)[0]
-    .replace(/\.git$/i, "")
-    .replace(/\/+$/, "")
-    .replace(/^[a-z+]+:\/\//i, "")
-    .replace(/^[^@/]+@/, "")
-    .replace(/:/g, "/")
-    .toLowerCase();
-  const a = norm(candidateRemote);
-  const b = norm(declared);
-  return a.endsWith(b) || b.endsWith(a);
+  if (!declared || !candidateRemote) return true; // cannot disprove; the caller decides what to do
+  const a = normalizeRemote(candidateRemote);
+  const b = normalizeRemote(declared);
+  if (!a || !b) return true; // nothing comparable survived normalization
+  return a === b;
 }
 
 /**
@@ -227,7 +263,7 @@ export function remoteMatchesSource(candidateRemote, source) {
  */
 export function resolveMembers(entries, { root, searchRoots, map = {} }) {
   return entries.map((entry) => {
-    const base = { entry, dir: null, gradedSha: null, tried: [] };
+    const base = { entry, dir: null, gradedSha: null, tried: [], identityConfirmed: null };
     if (entry.source.kind === null) {
       return { ...base, status: "unresolvable", reason: entry.source.reason };
     }
@@ -239,9 +275,16 @@ export function resolveMembers(entries, { root, searchRoots, map = {} }) {
     const explicit = mapped != null || entry.source.kind === "local-path";
     const tried = mapped ? [mapped] : candidateDirs(entry, { root, searchRoots });
 
-    // Exhaust every candidate before concluding anything. Records why each one was passed over, so a
-    // near-miss (right name, wrong remote) is diagnosable rather than reported as a bare "not found".
+    // Exhaust every candidate before concluding anything, and rank rather than first-wins. Records why
+    // each one was passed over, so a near-miss (right name, wrong remote) is diagnosable rather than
+    // reported as a bare "not found".
+    //
+    // A CONFIRMED candidate always beats an UNCONFIRMED one, whatever order they were tried in. Round 2
+    // of the adversarial review found the first-wins loop still false-greens: a same-named plugin with
+    // no readable git remote is unverifiable, was therefore accepted, and shadowed the correct checkout
+    // sitting in a later search root. Ranking removes the ordering dependence entirely.
     const passedOver = [];
+    let unconfirmed = null; // a plausible plugin whose identity could not be established either way
     for (const dir of tried) {
       if (!existsSync(dir) || !statSync(dir).isDirectory()) continue;
       if (!looksLikePlugin(dir)) {
@@ -254,11 +297,35 @@ export function resolveMembers(entries, { root, searchRoots, map = {} }) {
         passedOver.push(`${path.basename(dir)} (exists but is not a plugin)`);
         continue;
       }
-      if (!explicit && !remoteMatchesSource(readGitRemote(dir), entry.source)) {
-        passedOver.push(`${path.basename(dir)} (a plugin, but its git remote is not this member's source)`);
+      // An explicit location is the operator asserting identity; do not second-guess it.
+      if (explicit) {
+        return { ...base, tried, status: "resolved", dir, gradedSha: readGitHead(dir), identityConfirmed: null, reason: null };
+      }
+      // Read the remote from the repository ROOT, which for a git-subdir member (and any plugin
+      // vendored inside a larger repo) is above the plugin directory itself.
+      const gitRoot = findGitRoot(dir);
+      const remote = gitRoot ? readGitRemote(gitRoot) : null;
+      if (remote == null) {
+        if (!unconfirmed) unconfirmed = dir;
+        passedOver.push(`${path.basename(dir)} (a plugin, but no readable git remote to confirm it is this member)`);
         continue;
       }
-      return { ...base, tried, status: "resolved", dir, gradedSha: readGitHead(dir), reason: null };
+      if (!remoteMatchesSource(remote, entry.source)) {
+        passedOver.push(`${path.basename(dir)} (a plugin, but its git remote "${remote}" is not this member's source)`);
+        continue;
+      }
+      return { ...base, tried, status: "resolved", dir, gradedSha: readGitHead(dir), identityConfirmed: true, reason: null };
+    }
+
+    // No candidate's identity could be confirmed. Fall back to a plausible unconfirmed one rather than
+    // refusing to grade anything that is not a git clone - a vendored copy or an extracted tarball is a
+    // legitimate checkout. It is accepted, flagged `identityConfirmed: false`, and the orchestrator
+    // raises a collection WARNING, so a green can never rest silently on an unverified identity.
+    if (unconfirmed) {
+      return {
+        ...base, tried, status: "resolved", dir: unconfirmed, gradedSha: readGitHead(unconfirmed), identityConfirmed: false,
+        reason: `identity NOT confirmed: no readable git remote at or above ${path.basename(unconfirmed)} to check against this member's source`,
+      };
     }
 
     // Nothing matched. Which failure this is depends entirely on whether the entry ITSELF is at fault.

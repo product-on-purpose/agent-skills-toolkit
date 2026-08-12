@@ -2,6 +2,23 @@
 
 Curated, user-facing highlights. For the full technical history see [`CHANGELOG.md`](CHANGELOG.md).
 
+## 1.12.1 - 2026-08-12
+
+v1.12.0 was reviewed once. This patch exists because we then reviewed **the fixes that review produced**, which nobody had looked at - including one to the check that had just started blocking pull requests.
+
+That second pass found four more problems, all of them in code the first pass caused us to write.
+
+### What was wrong
+
+- **A deliberate exception was excusing more than it should.** One known, documented warning in our starter template is allowed to fail a vendor check. The way that permission was written, if the template ever picked up a *second, unrelated* problem, it would have been waved through too - hiding a defect in the very template every new plugin is created from. The permission is now tied to the specific warning it was granted for.
+- **The tool could grade the wrong folder.** Members are found by directory name, so it checks the folder's git remote to confirm it really is your plugin. Two earlier versions of that check could be fooled by a lookalike address, and a folder with no git information at all could quietly beat the correct one. Identity is now compared exactly, a confirmed match always wins over an unconfirmed one, and if identity cannot be established the report says so out loud instead of assuming.
+- **A plugin could be mistaken for a catalogue.** The test for "is this a plugin or a list of plugins" was checking too few things, so a plugin that happened to ship only certain component types could have been graded as a catalogue and skipped its own checks entirely.
+- **The documentation described the old behaviour.** The rules for what turns a run red were corrected in v1.12.0's code but not in its docs.
+
+### Upgrade
+
+**No action required.** No check was added, removed or tightened; the Standard and the check spine are untouched. If you are not grading a marketplace, nothing here affects you.
+
 ## 1.12.0 - 2026-08-12
 
 Until now, grading a marketplace meant running the gate once per plugin and reading six results. This release grades the **catalogue** - and the first thing it did was tell us ours is red.
@@ -31,7 +48,8 @@ We published the result rather than quietly fixing the rule, and there is now a 
 ### What the report is careful about
 
 - **It tells you which tree it read.** A run grades the checkouts on your machine, not the commits the catalogue pins. So every row shows the pinned commit, the listed version, and the commit actually graded - **even when they agree**. A report that only mentions the pin when something is wrong teaches you to assume nothing is wrong when it stays quiet.
-- **It separates "your catalogue is broken" from "your laptop is incomplete."** A dead entry is a defect and fails the run. A plugin you simply have not cloned is not, and the verdict line always says how many of the members it actually covered.
+- **It separates "your catalogue is broken" from "your laptop is incomplete."** A dead entry your catalogue points at by name is a defect and fails the run. A plugin you simply have not cloned is not, and the verdict line always says how many of the members it actually covered.
+- **It checks that the folder it found is really your plugin.** Members are located by directory name, which is not proof, so it compares the checkout's git remote against the source your catalogue declares. A folder that turns out to be a different repository is skipped rather than graded in your plugin's place. If a checkout has no git information at all, it is still graded, but the report says plainly that it could not confirm what it was looking at.
 - **It shows what an old pin is hiding.** Each member's "Standard debt" counts the findings that are only warnings because that plugin targets an older version of the Standard. They become failures the day it updates.
 
 ### Also in this release

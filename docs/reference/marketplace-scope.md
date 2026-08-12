@@ -61,12 +61,35 @@ applies to an undeclared plugin.
 
 | Case | What it means | Verdict |
 |---|---|---|
-| **Unresolvable entry** | the catalogue entry is broken: no source, a malformed source, a local path that does not exist, or a directory that is not a plugin | **red** - the catalogue is undeliverable |
-| **Absent locally** | the entry is well-formed and names a real member, but this machine has no checkout of it, or its source kind is remote-only | **not red** - reported `not-graded`, and the verdict line states coverage |
+| **Unresolvable entry** | the catalogue entry is broken: no source, a malformed source, or an **explicitly named** location (a local-path source, or a mapping you supplied) that does not exist or is not a plugin | **red** - the catalogue is undeliverable |
+| **Absent locally** | the entry is well-formed and names a real member, but no checkout of it could be found or confirmed on this machine, or its source kind is remote-only | **not red** - reported `not-graded`, and the verdict line states coverage |
 
 The distinction is the difference between a defect in the artifact and a gap in the environment reading
 it. A maintainer with three of five members cloned has a working catalogue and an incomplete
 workstation; reddening that run would teach them to ignore the red.
+
+**Explicitly named locations and guessed ones are treated differently, deliberately.** A local path in
+the catalogue, or a path you supplied in the mapping file, is a *claim*: if it does not resolve to a
+plugin, that is a defect and it reds. A directory this scope *guessed* from a repository basename is a
+*hypothesis*: if it turns out not to be a plugin, or to be a different repository, it is passed over and
+the search continues, and if nothing matches the member is `not-graded` rather than the catalogue being
+blamed. The report names every candidate it passed over and why.
+
+### How a discovered member's identity is checked
+
+Discovery matches on a directory name, which is not proof. So a discovered candidate's git remote is
+compared against the source the entry declares, read from the repository root (which for a `git-subdir`
+member is above the plugin directory). Three outcomes:
+
+| Outcome | What happens |
+|---|---|
+| Remote **matches** the declared source | graded, identity confirmed |
+| Remote is a **different** repository | passed over; the search continues |
+| **No readable remote** (a vendored copy, an extracted tarball) | graded, but the collection raises a **warning** saying identity could not be confirmed |
+
+A candidate whose identity is confirmed always wins over one that cannot be confirmed, whatever order
+they were found in. An explicit mapping skips this check entirely: that is you asserting identity, and
+it is the way to grade a mirror or a checkout with no git metadata without the warning.
 
 ### A collection with nothing to grade is UNKNOWN, not green
 

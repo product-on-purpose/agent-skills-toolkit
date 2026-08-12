@@ -32,18 +32,29 @@ import {
 const isDir = (p) => existsSync(p) && statSync(p).isDirectory();
 
 /**
- * True iff the target ships plugin components of its OWN, or carries the manifest that makes a
- * directory a plugin. Deliberately NOT `looksLikePlugin`, which also accepts a bare `AGENTS.md`: a
- * catalogue legitimately carries agent guidance for the people maintaining it, and the family
- * marketplace does exactly that. The question here is narrower and is the one Standard sec 12 asks -
- * does this directory ship components, or does it only list other things that do?
+ * Every surface that makes a directory a PLUGIN rather than a catalogue: the askit manifest, either
+ * native plugin manifest, or any component directory a plugin can ship. Round 2 of the adversarial
+ * review found the first version of this list far too short - it checked only `library.json`, `skills/`,
+ * `agents/` and `commands/`, so a plugin carrying `AGENTS.md`, a native `plugin.json` and only hook or
+ * MCP components would still have been re-scoped to a catalogue and skipped its own plugin checks.
+ *
+ * `AGENTS.md` is deliberately NOT on this list, and it is the one judgement call here. A catalogue
+ * legitimately carries agent guidance for the people maintaining it, and the family marketplace this
+ * scope was built for carries `AGENTS.md` and a `marketplace.json` and **nothing else** (verified on
+ * disk). Including it would make the scope undetectable on its own motivating case. The residual, stated
+ * plainly: a directory whose only plugin marker is `AGENTS.md`, with a marketplace-of-plugins manifest
+ * and no manifest and no components of any kind, is read as a catalogue. That shape is a catalogue by
+ * any reading of Standard sec 12.
  */
+const PLUGIN_SURFACES = Object.freeze({
+  files: ["library.json", ".claude-plugin/plugin.json", ".codex-plugin/plugin.json", ".mcp.json"],
+  dirs: ["skills", "agents", "commands", "hooks", "workflows", "output-styles", "themes", "monitors"],
+});
+
 function shipsOwnComponents(target) {
   return (
-    existsSync(path.join(target, "library.json")) ||
-    isDir(path.join(target, "skills")) ||
-    isDir(path.join(target, "agents")) ||
-    isDir(path.join(target, "commands"))
+    PLUGIN_SURFACES.files.some((f) => existsSync(path.join(target, ...f.split("/")))) ||
+    PLUGIN_SURFACES.dirs.some((d) => isDir(path.join(target, d)))
   );
 }
 
@@ -166,6 +177,10 @@ export function evaluateMarketplace(target, opts = {}) {
       entryVersion: r.entry.declaredVersion,
       gradedSha: r.gradedSha,
       renames: r.entry.renames,
+      // true = the checkout's git remote matches the source this entry declares; false = matched by
+      // directory name only, identity unverifiable; null = an explicit path or mapping, where the
+      // operator asserted identity and this code does not second-guess it.
+      identityConfirmed: r.identityConfirmed ?? null,
       entry: r.entry,
     };
     if (r.status !== "resolved") {
@@ -189,6 +204,17 @@ export function evaluateMarketplace(target, opts = {}) {
       findings.push(mkFinding(
         MARKETPLACE_CHECKS.RESOLVABILITY, SEVERITY.ERROR,
         `member "${m.name}" resolved to ${m.relDir} but could not be graded: ${m.gradingError}`,
+        MANIFEST_REL,
+      ));
+    }
+    // A member found by NAME whose identity could not be checked against its declared source is graded,
+    // but never silently: a green resting on "we assume this directory is the right one" is the
+    // false-green the identity check exists to prevent, and a warning is how it stays visible without
+    // refusing to grade legitimate non-git checkouts (a vendored copy, an extracted tarball).
+    if (m.status === "resolved" && m.identityConfirmed === false) {
+      findings.push(mkFinding(
+        MARKETPLACE_CHECKS.RESOLVABILITY, SEVERITY.WARN,
+        `member "${m.name}" was matched by directory name at ${m.relDir}, but its identity could not be confirmed against the source this entry declares (no readable git remote at or above it). It is graded, and the grade is only as trustworthy as that assumption - map it explicitly in ${MEMBER_MAP_FILENAME} to remove the doubt.`,
         MANIFEST_REL,
       ));
     }

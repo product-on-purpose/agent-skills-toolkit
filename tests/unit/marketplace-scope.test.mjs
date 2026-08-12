@@ -17,6 +17,8 @@ import {
   readGitHead,
   readGitRemote,
   remoteMatchesSource,
+  normalizeRemote,
+  findGitRoot,
   loadMemberMap,
   resolveMembers,
 } from "../../scripts/lib/marketplace/resolve.mjs";
@@ -544,8 +546,12 @@ test("aggregation: an UNRESOLVABLE entry reds the collection even when every res
     assert.equal(r.verdict, "red");
     assert.equal(r.coverage.unresolvable, 1);
     const resolvability = r.findings.filter((f) => f.check === MARKETPLACE_CHECKS.RESOLVABILITY);
-    assert.equal(resolvability.length, 1);
-    assert.equal(resolvability[0].severity, "error");
+    const errors = resolvability.filter((f) => f.severity === "error");
+    assert.equal(errors.length, 1, "exactly one entry is unresolvable");
+    assert.match(errors[0].message, /"dead"/);
+    // The temp-dir member is a copied tree with no .git, so its identity cannot be confirmed against
+    // the source. That is graded but WARNED about, never silent - see the identity test below.
+    assert.ok(resolvability.some((f) => f.severity === "warn" && /identity could not be confirmed/.test(f.message)));
   } finally {
     rmSync(root, { recursive: true, force: true });
     rmSync(siblings, { recursive: true, force: true });
@@ -660,11 +666,152 @@ test("remoteMatchesSource: disproves a wrong checkout, and accepts what it canno
   assert.equal(remoteMatchesSource("https://github.com/owner/name.git", url("https://github.com/owner/name")), true);
   assert.equal(remoteMatchesSource("git@github.com:owner/name.git", url("https://github.com/owner/name.git")), true);
   assert.equal(remoteMatchesSource("https://github.com/someone-else/name.git", url("https://github.com/owner/name.git")), false);
+  // The match is at a PATH BOUNDARY, not a bare suffix. `notgithub.com/owner/name` ends with
+  // `github.com/owner/name`, so a plain endsWith would accept a checkout pointing at an entirely
+  // different host - the false-green this function exists to prevent, reintroduced by the function.
+  assert.equal(remoteMatchesSource("https://notgithub.com/owner/name.git", url("https://github.com/owner/name.git")), false);
+  assert.equal(remoteMatchesSource("https://evil-github.com/owner/name", url("https://github.com/owner/name")), false);
+  // No prefix allowance survives, because a hostile path prefix reproduces the declared path at a
+  // boundary that looks legitimate. A genuine mirror is what the askit.marketplace.json mapping is for:
+  // the operator asserting an identity this code cannot establish.
+  assert.equal(remoteMatchesSource("https://evil.example/github.com/owner/name.git", url("https://github.com/owner/name")), false);
+  assert.equal(remoteMatchesSource("https://git.example.com/mirrors/github.com/owner/name.git", url("https://github.com/owner/name")), false);
+  // A port is a transport detail, not a different repository.
+  assert.equal(remoteMatchesSource("https://github.com:443/owner/name.git", url("https://github.com/owner/name")), true);
+  assert.equal(remoteMatchesSource("ssh://git@github.com:22/owner/name.git", url("git@github.com:owner/name.git")), true);
   // Cannot disprove: no remote readable, or a source kind carrying no URL. Accept rather than discard -
   // the check exists to catch a wrong match, not to require git metadata that may legitimately be absent.
   assert.equal(remoteMatchesSource(null, url("https://github.com/owner/name.git")), true);
   assert.equal(remoteMatchesSource("https://github.com/owner/name.git", { kind: "npm", package: "x" }), true);
   assert.equal(remoteMatchesSource("https://github.com/owner/name", { kind: "github", repo: "owner/name" }), true);
+});
+
+// --- Findings from the v1.12.0 pre-release adversarial review, ROUND 2 -------------------------
+
+/** Give `dir` a fake git checkout reporting `remote`, without running git. */
+function fakeGitCheckout(dir, remote, sha = "0123456789abcdef0123456789abcdef01234567") {
+  const git = path.join(dir, ".git");
+  mkdirSync(path.join(git, "refs", "heads"), { recursive: true });
+  writeFileSync(path.join(git, "HEAD"), "ref: refs/heads/main\n");
+  writeFileSync(path.join(git, "refs", "heads", "main"), `${sha}\n`);
+  writeFileSync(path.join(git, "config"), `[core]\n\tbare = false\n[remote "origin"]\n\turl = ${remote}\n\tfetch = +refs/heads/*:refs/remotes/origin/*\n`);
+  return dir;
+}
+
+test("resolution: a CONFIRMED candidate beats an unconfirmed one regardless of search order", () => {
+  // Round 2 finding: remoteMatchesSource accepts what it cannot disprove, so a same-named plugin with
+  // no git metadata was accepted on first sight and shadowed the correct checkout in a later search
+  // root. Ranking removes the ordering dependence: identity confirmed always wins.
+  const root = tmp();
+  const first = tmp();
+  const second = tmp();
+  try {
+    writeMember(path.join(first, "alpha"), { name: "alpha", version: "0.1.0" }); // no .git - unconfirmable
+    fakeGitCheckout(writeMember(path.join(second, "alpha"), { name: "alpha", version: "0.1.0" }), "https://github.com/owner/alpha.git");
+    writeCatalogue(root, [{ name: "alpha", version: "0.1.0", source: { source: "url", url: "https://github.com/owner/alpha.git", sha: "p" } }]);
+
+    const r = evaluateMarketplace(root, { searchRoots: [first, second] });
+    assert.equal(r.members[0].status, "resolved");
+    assert.equal(r.members[0].identityConfirmed, true);
+    assert.ok(r.members[0].dir.startsWith(second), "the confirmed checkout wins even though it was tried second");
+    assert.equal(r.summary.warns, 0, "a confirmed identity raises no doubt warning");
+  } finally {
+    for (const d of [root, first, second]) rmSync(d, { recursive: true, force: true });
+  }
+});
+
+test("resolution: a checkout whose remote is a DIFFERENT repository is rejected, not graded", () => {
+  const root = tmp();
+  const siblings = tmp();
+  try {
+    fakeGitCheckout(writeMember(path.join(siblings, "alpha"), { name: "alpha" }), "https://github.com/someone-else/alpha.git");
+    writeCatalogue(root, [{ name: "alpha", version: "0.1.0", source: { source: "url", url: "https://github.com/owner/alpha.git", sha: "p" } }]);
+    const r = evaluateMarketplace(root, { searchRoots: [siblings] });
+    assert.equal(r.members[0].status, "not-graded", "a wrong-remote checkout must never be graded in the member's place");
+    assert.match(r.members[0].reason, /is not this member's source/);
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+    rmSync(siblings, { recursive: true, force: true });
+  }
+});
+
+test("resolution: an UNCONFIRMED identity is graded but raises a collection warning, never silently", () => {
+  const root = tmp();
+  const siblings = tmp();
+  try {
+    writeMember(path.join(siblings, "alpha"), { name: "alpha", version: "0.1.0" }); // no .git at all
+    writeCatalogue(root, [{ name: "alpha", version: "0.1.0", source: { source: "url", url: "https://github.com/owner/alpha.git", sha: "p" } }]);
+    const r = evaluateMarketplace(root, { searchRoots: [siblings] });
+    assert.equal(r.members[0].status, "resolved", "a vendored copy or extracted tarball is still a legitimate checkout");
+    assert.equal(r.members[0].identityConfirmed, false);
+    assert.equal(r.verdict, "green", "an unconfirmed identity is a doubt, not a defect");
+    assert.equal(r.summary.warns, 1, "but the doubt is stated, so no green rests silently on an assumption");
+    assert.match(r.findings.find((f) => f.severity === "warn").message, /identity could not be confirmed/);
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+    rmSync(siblings, { recursive: true, force: true });
+  }
+});
+
+test("resolution: a git-subdir member reads its remote from the repository ROOT, above the plugin dir", () => {
+  // The one source kind whose whole point is that the plugin is NOT at the repository root would
+  // otherwise be permanently unverifiable, since <member>/.git does not exist.
+  const root = tmp();
+  const siblings = tmp();
+  try {
+    const repo = path.join(siblings, "monorepo");
+    mkdirSync(repo, { recursive: true });
+    fakeGitCheckout(repo, "https://github.com/owner/monorepo.git");
+    writeMember(path.join(repo, "packages", "alpha"), { name: "alpha", version: "0.1.0" });
+    writeCatalogue(root, [{ name: "alpha", version: "0.1.0", source: { source: "git-subdir", url: "https://github.com/owner/monorepo.git", path: "packages/alpha" } }]);
+
+    const r = evaluateMarketplace(root, { searchRoots: [siblings] });
+    assert.equal(r.members[0].status, "resolved");
+    assert.equal(r.members[0].identityConfirmed, true, "identity comes from the repo root, not the subdirectory");
+    assert.equal(r.summary.warns, 0);
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+    rmSync(siblings, { recursive: true, force: true });
+  }
+});
+
+test("detectMarketplaceScope: EVERY plugin component surface keeps plugin scope, not just the first four", () => {
+  // Round 2 finding: the guard checked only library.json, skills/, agents/ and commands/, so a plugin
+  // carrying AGENTS.md, a native plugin.json and only hook or MCP components was still re-scoped to a
+  // catalogue and skipped its own plugin checks entirely.
+  const surfaces = {
+    files: ["library.json", ".claude-plugin/plugin.json", ".codex-plugin/plugin.json", ".mcp.json"],
+    dirs: ["skills", "agents", "commands", "hooks", "workflows", "output-styles", "themes", "monitors"],
+  };
+  for (const f of surfaces.files) {
+    const dir = tmp();
+    try {
+      writeCatalogue(dir, [{ name: "x", source: { source: "url", url: "https://x/x.git", sha: "s" } }]);
+      writeFileSync(path.join(dir, "AGENTS.md"), "# guidance\n");
+      assert.equal(detectMarketplaceScope(dir), true, "AGENTS.md alone is still a catalogue");
+      const target = path.join(dir, ...f.split("/"));
+      mkdirSync(path.dirname(target), { recursive: true });
+      writeFileSync(target, "{}\n");
+      assert.equal(detectMarketplaceScope(dir), false, `${f} must keep plugin scope`);
+    } finally { rmSync(dir, { recursive: true, force: true }); }
+  }
+  for (const d of surfaces.dirs) {
+    const dir = tmp();
+    try {
+      writeCatalogue(dir, [{ name: "x", source: { source: "url", url: "https://x/x.git", sha: "s" } }]);
+      mkdirSync(path.join(dir, d), { recursive: true });
+      assert.equal(detectMarketplaceScope(dir), false, `${d}/ must keep plugin scope`);
+    } finally { rmSync(dir, { recursive: true, force: true }); }
+  }
+});
+
+test("normalizeRemote: reduces every equivalent spelling to one host and path", () => {
+  assert.equal(normalizeRemote("https://github.com/Owner/Name.git"), "github.com/owner/name");
+  assert.equal(normalizeRemote("git@github.com:owner/name.git"), "github.com/owner/name");
+  assert.equal(normalizeRemote("ssh://git@github.com:22/owner/name"), "github.com/owner/name");
+  assert.equal(normalizeRemote("https://user:token@github.com/owner/name/"), "github.com/owner/name");
+  assert.equal(normalizeRemote(""), null);
+  assert.equal(normalizeRemote(null), null);
 });
 
 test("aggregation: the three seeded cross-member defects produce exactly those three findings", () => {

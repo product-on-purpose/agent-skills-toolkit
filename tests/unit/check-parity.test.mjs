@@ -21,6 +21,8 @@ import {
   formatResultLine,
   metadataParityUnavailableResult,
   PARITY_MODE,
+  extractDiagnostics,
+  allDiagnosticsMatch,
 } from "../../scripts/check-parity.mjs";
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
@@ -551,6 +553,50 @@ test("findException: an exception authorizes a specific DIAGNOSTIC, not a target
   assert.equal(findException(exceptions, { ...base, detail: "Validation failed: unreadable manifest" }), null);
   // A different target is still never matched.
   assert.equal(findException(exceptions, { ...base, target: "." , detail: "author: missing" }), null);
+});
+
+test("findException: a COMPOUND failure is not excused just because one of its diagnostics is authorized", () => {
+  // Self-found while writing the round-2 review prompt, and grounded in the real measured output shape:
+  // `claude plugin validate --strict` reports each problem on a `❯`-prefixed line. The fingerprint's
+  // first implementation tested the whole blob, so a seed-plugin that acquired a SECOND, unrelated
+  // defect would still contain the word "author" and stay excused - hiding a new defect in the scaffold
+  // template every newly created plugin is generated from.
+  const exceptions = [{ target: "templates/seed-plugin", tool: "claude", adr: "0043", matches: /author/i, reason: "r" }];
+  const base = { kind: "vendor-validate", target: "templates/seed-plugin", tool: "claude", ran: true, pass: false };
+
+  const authorizedOnly = [
+    "Validating plugin manifest: /x/templates/seed-plugin/.claude-plugin/plugin.json",
+    "",
+    "⚠ Found 1 warning:",
+    "",
+    "  ❯ author: No author information provided. Consider adding author details for plugin attribution",
+    "",
+    "✘ Validation failed (--strict treats warnings as errors)",
+  ].join("\n");
+  assert.ok(findException(exceptions, { ...base, detail: authorizedOnly }), "the one authorized diagnostic is still excused");
+
+  const compound = authorizedOnly.replace(
+    "✘ Validation failed",
+    "  ❯ name: must be a non-empty string\n\n✘ Validation failed"
+  );
+  assert.equal(findException(exceptions, { ...base, detail: compound }), null, "an unrelated second diagnostic must gate");
+});
+
+test("extractDiagnostics: splits on the measured marker, and degrades to one diagnostic when absent", () => {
+  const two = "  ❯ author: missing\n  ❯ name: bad\n✘ Validation failed";
+  assert.deepEqual(extractDiagnostics(two), ["author: missing", "name: bad"]);
+  // skills-ref, the reduced-fidelity fallback, or a future format change: whole detail as one
+  // diagnostic, i.e. exactly the pre-fingerprint behavior rather than a spurious red.
+  assert.deepEqual(extractDiagnostics("Invalid YAML in frontmatter"), ["Invalid YAML in frontmatter"]);
+  assert.deepEqual(extractDiagnostics(""), [""]);
+});
+
+test("allDiagnosticsMatch: a global-flagged fingerprint does not alternate across diagnostics", () => {
+  // RegExp.test on a /g/ pattern advances lastIndex between calls, so testing once per diagnostic would
+  // match, then spuriously fail. The flag is stripped before the repeated test.
+  const three = "  ❯ author: a\n  ❯ author: b\n  ❯ author: c";
+  assert.equal(allDiagnosticsMatch(three, /author/g), true);
+  assert.equal(allDiagnosticsMatch(three, /author/), true);
 });
 
 test("findException: an entry with no RegExp fingerprint never applies (fail closed)", () => {
