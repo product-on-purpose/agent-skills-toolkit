@@ -9,6 +9,18 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Changed
+
+- **`publish-npm.yml` now publishes via npm trusted publishing (OIDC), with no stored credential of any kind.** v1.12.0's live publish attempt failed `ENEEDAUTH` because the `npm-publish` environment holds no secrets, and the fix is not to add one. npm is actively restricting 2FA-bypassing tokens for direct publishing (the deprecation notice appears in that very run's log), so a token is a path to a closing door; OIDC has the runner mint a short-lived identity token that npm verifies against a publisher registered once on npmjs.com.
+
+  **The `NODE_AUTH_TOKEN` fallback is removed rather than kept as a safety net.** A fallback that silently succeeds by a different mechanism is how a release gets published without the provenance everyone assumes it has - the same silent-substitution failure this repository has corrected twice elsewhere. With no fallback, an unregistered publisher fails loudly with an auth error, which is a diagnosis rather than a mystery.
+
+  **`--provenance` is no longer passed, and its absence is not an omission:** npm generates provenance attestations automatically for a public package published from a public repository via trusted publishing. Passing the flag would imply the flag is what produces it.
+
+  **The version floors OIDC requires are now asserted instead of inherited.** Trusted publishing needs npm >= 11.5.1 and Node >= 22.14.0. `.nvmrc` pins Node 24, comfortably over its floor, but the runner's npm was whatever that Node happened to bundle, and early 24.x releases shipped npm 11.3/11.4. The floor is installed explicitly and both versions are checked, so a runner image change becomes a named failure at that step rather than an authentication error three steps later that reads like the publisher was never registered.
+
+  Two stale header comments describing the retired token design were corrected in the same change, and the standing requirement about scoping `NPM_TOKEN` to an environment secret was **deleted rather than restated**, because there is no longer a token path to misconfigure.
+
 ## [1.12.1] - 2026-08-12
 
 v1.12.0 shipped after **one** adversarial review round. This patch exists because a second round was run afterwards, on the observation that **the code written in response to round 1 had never itself been reviewed** - four fixes, one of them to the parity harness that had just started gating every pull request. Round 2 returned four findings, three high, plus two defects found by hand while writing its prompt. Every one is in code round 1 caused to exist. No check was added, removed or tightened; spine 30, Standard 0.12, and no plugin-scope or component-scope verdict moves.

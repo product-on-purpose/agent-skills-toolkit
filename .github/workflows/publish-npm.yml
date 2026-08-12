@@ -13,7 +13,7 @@
 #     `prepare` job below. The literal string "npm publish" does not appear anywhere in this mode's
 #     execution path, so a typo'd flag can never turn a preview into a real publish - and this mode
 #     never runs in a job holding `id-token: write` (see the SECURITY note below).
-#   - dry_run: false -> a SEPARATE `publish` job runs "npm publish --provenance" for real, gated on
+#   - dry_run: false -> a SEPARATE `publish` job runs "npm publish" for real via trusted publishing
 #     `needs: prepare` succeeding. Requires typing "false" into the dispatch form; there is no way to
 #     reach this job by accident.
 #
@@ -48,8 +48,8 @@
 # replaces both scripts with stubs that always report success, supply manifests that agree with the
 # tag, and the ancestry gate would run its own stub against itself and pass. That commit would then
 # reach the privileged `publish` job, which runs candidate-controlled `npm ci` and `npm publish` with
-# `id-token: write` and any configured `NPM_TOKEN`. A control that lives inside the thing it controls
-# is not a control.
+# `id-token: write` - the permission that mints the OIDC token npm trusts. A control that lives inside
+# the thing it controls is not a control.
 #
 # The fix: protected `main` is the trust root, and its tree - never the candidate's - runs every
 # check that decides whether the candidate is trustworthy at all.
@@ -277,15 +277,18 @@ jobs:
     # load-bearing rather than advisory: satisfy them and a hostile copy runs and fails empty-handed;
     # violate either one and the branch policy protects nothing at all.
     #
-    # TWO STANDING REQUIREMENTS for whoever configures publishing, because this file cannot enforce
-    # either and both are load-bearing:
-    #   1. `NPM_TOKEN`, if used at all, MUST be an ENVIRONMENT secret on `npm-publish` - never a
-    #      repository secret. A repository secret is readable by any workflow on any branch, which
-    #      re-opens exactly the hole the environment policy just closed.
-    #   2. If npm trusted publishing is used instead, bind it to this exact environment.
-    # Verified 2026-08-11: this repository currently has NO repository-level Actions secrets and no
-    # npm credential of any kind, so the path is not exploitable today. It becomes exploitable the
-    # moment a credential is added in the wrong place, which is precisely when nobody is looking.
+    # ONE STANDING REQUIREMENT for whoever configures publishing, because this file cannot enforce it
+    # and it is load-bearing: the npm trusted publisher MUST be bound to this exact environment
+    # (`npm-publish`) as well as to this repository and workflow filename. Binding only the repository
+    # would let any workflow in it publish, which re-opens the hole the environment policy closes.
+    #
+    # The previous second requirement - that an `NPM_TOKEN`, if used, be an ENVIRONMENT secret rather
+    # than a repository secret - is retired because there is no longer any token path to misconfigure:
+    # the publish step below carries no `NODE_AUTH_TOKEN` at all. That is strictly safer than a rule
+    # someone has to remember, and it is why the rule could be deleted rather than restated.
+    #
+    # Verified 2026-08-12: this repository has NO repository-level Actions secrets, no environment
+    # secrets on `npm-publish`, and no npm credential of any kind. Authentication is OIDC only.
     environment:
       name: npm-publish
     # id-token: write lives ONLY here - not on `prepare`, not at the workflow level. It is npm
@@ -311,18 +314,60 @@ jobs:
           cache-dependency-path: package-lock.json
           registry-url: https://registry.npmjs.org
 
+      # Trusted publishing has HARD floors - npm >= 11.5.1 and Node >= 22.14.0 - and the runner's npm
+      # is whatever the pinned Node happens to bundle, which is an implicit dependency that would fail
+      # confusingly rather than clearly. `.nvmrc` pins Node 24, comfortably over its floor, but early
+      # 24.x releases shipped npm 11.3/11.4. So the npm floor is installed explicitly and BOTH floors
+      # are asserted: a runner image change becomes a named failure at this step instead of an
+      # authentication error three steps later that looks like the publisher was never registered.
+      - name: Ensure a runtime that can use trusted publishing (OIDC)
+        run: |
+          npm install -g npm@^11.5.1
+          NPM_V="$(npm --version)"
+          NODE_V="$(node --version)"
+          echo "npm $NPM_V, node $NODE_V"
+          node -e '
+            const atLeast = (got, min) => {
+              const g = got.replace(/^v/, "").split(".").map(Number);
+              for (let i = 0; i < min.length; i++) {
+                if (g[i] > min[i]) return true;
+                if (g[i] < min[i]) return false;
+              }
+              return true;
+            };
+            const [npmV, nodeV] = process.argv.slice(1);
+            if (!atLeast(npmV, [11, 5, 1])) { console.error(`npm ${npmV} is below the 11.5.1 floor trusted publishing requires`); process.exit(1); }
+            if (!atLeast(nodeV, [22, 14, 0])) { console.error(`node ${nodeV} is below the 22.14.0 floor trusted publishing requires`); process.exit(1); }
+          ' "$NPM_V" "$NODE_V"
+
       - name: Install dependencies
         run: npm ci
 
-      # npm provenance requires GitHub Actions' OIDC id-token permission (granted above) plus a
-      # trusted-publisher relationship configured once on npmjs.com for this package, pointing at
-      # this repo and this workflow file. Without that one-time setup, npm falls back to whatever
-      # registry credential is configured (NODE_AUTH_TOKEN, wired here to an optional NPM_TOKEN
-      # secret) and fails closed with a clear auth error rather than publishing unsigned - it never
-      # silently drops provenance.
+      # PUBLISHES VIA TRUSTED PUBLISHING (OIDC), with no stored credential of any kind. The
+      # `id-token: write` permission granted on this job lets the runner mint a short-lived OIDC
+      # token, which npm verifies against a trusted publisher registered ONCE on npmjs.com for this
+      # package, pointing at this repository, this workflow filename, and the `npm-publish`
+      # environment above. Nothing here reads a secret.
+      #
+      # There is deliberately NO `NODE_AUTH_TOKEN` fallback. It used to be wired to an optional
+      # `NPM_TOKEN` secret, and that is removed on purpose, for two reasons. npm is actively
+      # restricting 2FA-bypassing tokens for direct publishing (the deprecation notice appears in this
+      # job's own log), so the fallback is a path to a closing door. And a fallback that silently
+      # succeeds by a different mechanism is how you end up publishing WITHOUT provenance while
+      # believing you have it - the same silent-substitution failure this repository has fixed twice
+      # elsewhere. With no fallback, an unregistered publisher fails loudly with an auth error, which
+      # is a diagnosis rather than a mystery.
+      #
+      # `--provenance` is NOT passed, and its absence is not an omission: npm generates provenance
+      # attestations automatically for a public package published from a public repository via trusted
+      # publishing. Passing the flag would only re-request something already guaranteed, and would
+      # imply the flag is what produces it.
       - name: "Publish to npm (LIVE - irreversible)"
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: |
-          npm publish --provenance --access public
-          echo "### Published agent-skills-toolkit@$(node -p "require('./package.json').version") to npm" >> "$GITHUB_STEP_SUMMARY"
+          npm publish --access public
+          VERSION="$(node -p "require('./package.json').version")"
+          {
+            echo "### Published agent-skills-toolkit@${VERSION} to npm"
+            echo ""
+            echo "Published via trusted publishing (OIDC) with no stored credential; provenance attestations are generated automatically."
+          } >> "$GITHUB_STEP_SUMMARY"
