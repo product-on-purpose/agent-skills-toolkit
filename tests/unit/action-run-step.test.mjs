@@ -6,6 +6,7 @@ import { readFileSync, writeFileSync, mkdtempSync, mkdirSync, cpSync, rmSync, ex
 import { tmpdir } from "node:os";
 import { execFileSync } from "node:child_process";
 import { parse as parseYaml } from "yaml";
+import { resolveBash } from "./_resolve-bash.mjs";
 
 // Executes action.yml's own "Run the gate" composite step - the ONE shell step with any logic
 // (sequencing plus exit-code forwarding, per its own header comment; Standard sec 4.1/4.4) - against a
@@ -26,6 +27,34 @@ const PASSING_FIXTURE = path.join(ROOT, "tests/fixtures/golden/minimal-skill").r
 // comparison between the JSON gate report and the SARIF document (gha-sarif-guard.mjs deliberately does
 // not compare counts - see that module's header - this proves the production pipeline agrees).
 const COUNT_MISMATCH_FIXTURE = path.join(ROOT, "tests/fixtures/golden/silver-fixture").replace(/\\/g, "/");
+
+// Resolves an explicit, filesystem-verified bash instead of trusting "bash" through PATH - see
+// _resolve-bash.mjs's header for the full defect this replaces (WSL bash resolved from PowerShell
+// drops RUNNER_TEMP crossing the boundary; found by a real user because `npm test` runs from
+// `prepublishOnly`, so `npm publish` was impossible from the default Windows shell). Resolved once, at
+// module load, so every test below shares one already-verified bash, and a resolution failure is
+// reported as this file failing to load - loudly, not as a silent skip. Git for Windows is already a
+// de facto prerequisite for developing this repo on Windows (git clone requires it), and this file
+// specifically exists to catch a Windows-bash defect, so failing loudly here - rather than skipping
+// quietly - is the choice that cannot itself repeat the original mistake of going green while testing
+// nothing.
+const BASH_RESOLUTION = resolveBash();
+if (!BASH_RESOLUTION.bash) {
+  throw new Error(
+    "action-run-step.test.mjs: no bash that shares the Windows filesystem could be found, so these " +
+      "tests cannot run without silently re-triggering the exact defect they exist to catch. Install " +
+      "Git for Windows (https://git-scm.com/download/win), or set GIT_INSTALL_ROOT. " +
+      BASH_RESOLUTION.reasonForFailure
+  );
+}
+const BASH = BASH_RESOLUTION.bash;
+
+function indent(text) {
+  return String(text)
+    .split("\n")
+    .map((line) => `    ${line}`)
+    .join("\n");
+}
 
 function loadGateStepScript() {
   const action = parseYaml(readFileSync(path.join(ROOT, "action.yml"), "utf8"));
@@ -72,7 +101,7 @@ function runGateStep({ failOnError, sarif, annotations = "false", fixture = FAIL
   let stdout = "";
   let stderr = "";
   try {
-    stdout = execFileSync("bash", ["-c", script], { env, encoding: "utf8" });
+    stdout = execFileSync(BASH, ["-c", script], { env, encoding: "utf8" });
   } catch (e) {
     status = e.status ?? 1;
     stdout = String(e.stdout ?? "");
@@ -80,6 +109,26 @@ function runGateStep({ failOnError, sarif, annotations = "false", fixture = FAIL
   }
 
   const outputs = parseGithubOutput(readFileSync(githubOutput, "utf8"));
+
+  // action.yml's gate step writes tier/errors/warnings to GITHUB_OUTPUT unconditionally, before any
+  // conditional branch (see the "Run the gate" step, the `gha-action-outputs.mjs` line runs before any
+  // `if`) - so outputs.tier is ALWAYS set once the shell script itself ran to completion, whether the
+  // gate passed or genuinely failed. If it is undefined here, the script died before reaching that
+  // line: a shell/environment problem, not a grading disagreement, and the plain `expected 'none', got
+  // undefined` an assertion would otherwise produce sends a reader chasing the wrong bug entirely (this
+  // is exactly how the original defect was first misdiagnosed). Fail here instead, with the evidence.
+  if (outputs.tier === undefined) {
+    cleanup({ workDir, runnerTemp });
+    throw new Error(
+      "gate step produced no parseable GITHUB_OUTPUT (outputs.tier is undefined): the shell script " +
+        "itself failed before it could reach node, not a grading disagreement.\n" +
+        `  bash used: ${BASH}\n` +
+        `  exit status: ${status}\n` +
+        `  stderr:\n${indent(stderr) || "    (empty)"}\n` +
+        `  stdout:\n${indent(stdout) || "    (empty)"}`
+    );
+  }
+
   return { status, stdout, stderr, outputs, workDir, runnerTemp };
 }
 

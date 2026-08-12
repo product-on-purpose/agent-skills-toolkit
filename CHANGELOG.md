@@ -9,6 +9,23 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [1.11.1] - 2026-08-11
+
+One fix, found by a maintainer running v1.11.0's own published publish instructions and hitting a wall CI cannot reach. **939 tests, 0 failures**, gate Advanced 0/0. No behavior change to the gate, no Standard movement, nothing a plugin is graded by moves.
+
+### Fixed
+
+- **`npm publish` was impossible from the default Windows shell, and the failure message pointed at the wrong thing.** `tests/unit/action-run-step.test.mjs` executes the Action's real `run:` script by shelling out with `execFileSync("bash", ...)`, resolving `bash` **through PATH**. On Windows that resolution depends on the invoking shell: from Git Bash it finds Git's bash, which shares the Windows filesystem, and all seven tests pass; from PowerShell it finds `C:\Windows\System32\bash.exe`, which is the **WSL launcher**. WSL does not inherit Windows environment variables unless `WSLENV` says so, so the `RUNNER_TEMP` the test carefully sets **vanishes crossing the boundary**, `"$RUNNER_TEMP/askit-gate.json"` collapses to `/askit-gate.json` at the WSL root, and the script dies with `Permission denied` before producing any output.
+  Because `prepublishOnly` runs `npm test`, that made **publishing impossible from PowerShell on any machine with WSL installed**, which is the default shell on Windows and an extremely common configuration. The gate refused to publish a package that was itself fine.
+- **The misleading failure is fixed too, and it cost more than the defect.** The seven failures reported `expected 'none', got undefined`, which reads as a grading disagreement and sent the investigation through Node versions, `npm ci` timing and test flakiness before the buried `Permission denied` line identified the shell. Since the outputs bridge writes `tier` unconditionally before any branch in the step, an undefined `tier` can only mean the script died early: that case now throws immediately, naming the bash binary used, the exit status, and the captured stderr.
+- **The fix resolves an explicit bash rather than trusting PATH, and actively refuses the WSL launcher.** On POSIX, plain `bash` is unchanged. On Windows, `tests/unit/_resolve-bash.mjs` checks known Git for Windows locations first, and only then falls back to PATH, rejecting any candidate under `System32`, `Sysnative` or `SysWOW64` with a recorded reason rather than using it. Falling back silently would have reproduced the defect on exactly the machines that have both shells installed.
+- **It fails loudly rather than skipping.** If no suitable bash exists, the file throws at import naming what was searched. A test that quietly no-ops when it cannot find its own shell reports green while testing nothing, which is precisely how this survived: **CI can never catch it**, because every ubuntu runner has a real `/bin/bash`. It took a maintainer on Windows running the documented command.
+- **Surveyed rather than spot-fixed:** all 23 files under `tests/` that spawn a subprocess were checked. Every other one invokes `process.execPath` or `git`, both unambiguous. This was the only file trusting a bare `bash` through PATH.
+
+### Note on numbering
+
+A test-harness portability fix. No source file outside `tests/` changed, so this is a PATCH.
+
 ## [1.11.0] - 2026-08-11
 
 Reach. The project had finished building a grade worth trusting and the grade was consumed nowhere outside this repository. Everything here makes it reachable: installable, `npx`-runnable, emitted in the formats CI systems read, wrapped in an Action, and reported on a badge computed at a known sha. Spine stays **30 checks**, Standard stays **v0.12**, and **no plugin's tier or exit code moves**. **939 tests, 0 failures**, gate Advanced 0/0. Release packet: `docs/internal/release-plans/plan_v1.11.0/`.

@@ -19,7 +19,7 @@ Most skill collections are a flat, single-agent, ungoverned pile. This is the St
 <p>
   <img src="https://img.shields.io/badge/status-active-success?style=flat-square" alt="Status: Active">
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-Apache--2.0-blue?style=flat-square" alt="License: Apache-2.0"></a>
-  <img src="https://img.shields.io/badge/version-1.11.0-blue?style=flat-square" alt="Version 1.11.0">
+  <img src="https://img.shields.io/badge/version-1.11.1-blue?style=flat-square" alt="Version 1.11.1">
   <a href="https://product-on-purpose.github.io/agent-skills-toolkit/badges/tier.json"><img src="https://img.shields.io/endpoint?url=https%3A%2F%2Fproduct-on-purpose.github.io%2Fagent-skills-toolkit%2Fbadges%2Ftier.json&style=flat-square" alt="Tier badge, generated in CI at the graded commit sha - click through for the raw JSON (tier, sha, Standard pin, date)"></a>
   <a href="#the-catalog"><img src="https://img.shields.io/badge/skills-24-brightgreen?style=flat-square" alt="Skills: 24"></a>
   <img src="https://img.shields.io/badge/checks-30-brightgreen?style=flat-square" alt="Validation checks: 30">
@@ -388,9 +388,9 @@ The Claude slash commands that give the core flows an explicit `/command` entry 
 
 ## Status
 
-**`v1.11.0`, Gold grade, installable.** The repository declares `tier: advanced` and self-validates at Advanced in CI: the full gate is green and `tier-report` prints `advanced` with an empty burndown, so the toolkit is a self-proving example of the Standard it defines. Gold check `G1` (hooks) now grades the toolkit's own demonstrative no-dash `PreToolUse` hook; `G6` (deprecation) is still satisfied without exercise, since the toolkit ships no deprecated components yet. The toolkit installs from the `product-on-purpose` marketplace (see [Install](#install)).
+**`v1.11.1`, Gold grade, installable.** The repository declares `tier: advanced` and self-validates at Advanced in CI: the full gate is green and `tier-report` prints `advanced` with an empty burndown, so the toolkit is a self-proving example of the Standard it defines. Gold check `G1` (hooks) now grades the toolkit's own demonstrative no-dash `PreToolUse` hook; `G6` (deprecation) is still satisfied without exercise, since the toolkit ships no deprecated components yet. The toolkit installs from the `product-on-purpose` marketplace (see [Install](#install)).
 
-- **Version** - `1.11.0` (Standard `v0.12`).
+- **Version** - `1.11.1` (Standard `v0.12`).
 - **Tier** - Advanced (Gold), self-validated.
 - **Install** - `product-on-purpose` marketplace (`agent-plugins`).
 - **Components** - 24 skills, 7 subagents, 2 commands.

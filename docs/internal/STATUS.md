@@ -12,7 +12,7 @@
 
 | Fact | Value |
 |---|---|
-| Version | 1.11.0 (being cut now; v1.10.1 was cut 2026-08-11) |
+| Version | 1.11.1 (being cut now; v1.11.0 was cut 2026-08-11) |
 | Declared tier | Advanced (Gold) - `library.json` `tier: advanced` |
 | Standard pin | 0.12 |
 | Spine | 30 checks |
