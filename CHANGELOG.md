@@ -11,7 +11,7 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [1.12.0] - 2026-08-12
 
-The gate learned a third scope. It could grade one plugin or one skill; it can now grade a **catalogue**, which is where a whole class of defect lives that no per-plugin run can see. **993 tests, 0 failures**, gate Advanced 0/0. Spine unchanged at 30 checks, Standard unchanged at 0.12, and no existing plugin's verdict moves.
+The gate learned a third scope. It could grade one plugin or one skill; it can now grade a **catalogue**, which is where a whole class of defect lives that no per-plugin run can see. **1004 tests, 0 failures**, gate Advanced 0/0. Spine unchanged at 30 checks, Standard unchanged at 0.12, and no existing plugin's verdict moves.
 
 ### Added
 
@@ -41,11 +41,13 @@ The gate learned a third scope. It could grade one plugin or one skill; it can n
 
 - **`docs/internal/RELEASE.md` gained the npm publish step.** The gate has been a published package since v1.11.0 and the release checklist did not mention it, so a release could be tagged, GitHub-released and marketplace re-pinned while npm consumers silently stayed behind. The entry records the two constraints that are not negotiable: 2FA is enforced on the account, so a local publish needs a human at the prompt, and `--provenance` cannot be produced from a laptop.
 
+### Found, and deliberately NOT fixed here
+
+- **A generated `INDEX.md` tells consumers to run a command they do not have (backlog E35).** `gen-index` emits `Self-validating: node scripts/check.mjs` unconditionally, into every plugin it generates an index for. For a plugin that consumes this toolkit rather than vendoring it, that path resolves to nothing - and unlike a wrong instruction in our own documentation, this one ships **inside the consumer's own repository, over their signature**. Same defect class as the `G4` remediation failure recorded on 2026-08-10, one layer deeper, and found the same way: `npm i -D agent-skills-toolkit` into a clean directory against the live registry, then regenerating a scaffolded plugin's index from the consumer's position rather than from inside the tree where it happens to work.
+
+  **The one-line fix was written, tested, and reverted inside this cut, and the reason is worth more than the fix.** The justification for shipping it was that "the only plugins whose output changes are the ones the line was wrong for, and every one of them is already in `G4` drift from the v1.10.0 generator fix, so one regeneration closes both." That reasoning is false, and one measurement falsified it: `product-lifecycle-templates` graded **Advanced, 0 errors, 0 warnings** before the change and took a `G4` index-drift error immediately after, because it has no `scripts/check.mjs` and the expected index moved underneath its committed one. This release's governing invariant is that no existing verdict moves, and that moved one from green to red on a live marketplace member. A migration-bearing generator change belongs in a release that schedules a migration; **E35** carries it to the Standard 0.13 cut with an `### Upgrade` section, the way v1.10.1 handled the previous wave. A test asserts the current, known-wrong behavior on purpose so it cannot be silently re-fixed without meeting that entry.
+
 ### Fixed
-
-- **A generated `INDEX.md` was telling consumers to run a command they do not have.** `gen-index` emitted `Self-validating: node scripts/check.mjs` unconditionally, into every plugin it generates an index for. For a plugin that consumes this toolkit rather than vendoring it, that path resolves to nothing - and the line ships **inside the consumer's own repository, over their signature**. This is the same defect class as the `G4` remediation failure recorded on 2026-08-10, one layer deeper, and it was found the same way: by running `npm i -D agent-skills-toolkit` into a clean directory and regenerating a scaffolded plugin's index from the consumer's position, rather than from inside the tree where it happens to work.
-
-  The line is now conditional on the target actually having a `scripts/check.mjs`; a plugin without one is told `npx agent-skills-toolkit .` instead. **The condition is stated at exactly its real strength:** it is a path test, not a claim about which validator that file is, so a plugin with its own differently-purposed `scripts/check.mjs` keeps the original line, which is correct for it. This repository's own `INDEX.md` is byte-identical under the change, and the only plugins whose output moves are the ones the line was wrong for - every one of which is already in `G4` drift from the v1.10.0 generator fix, so one regeneration closes both.
 
 - **`docs/internal/RELEASE-HISTORY.md` was two releases stale.** v1.11.0 and v1.11.1 shipped without an entry, so the narrative record stopped at v1.10.1 while the repository was at v1.11.1. Both are backfilled, and the "Where we are now" line now names the drift it is itself prone to.
 

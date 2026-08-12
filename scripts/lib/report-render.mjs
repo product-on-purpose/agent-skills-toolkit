@@ -1084,6 +1084,10 @@ function renderCollectionMarkdown(report, opts = {}) {
   out.push("");
   out.push(`**Collection verdict: ${m.verdict.toUpperCase()}. Graded ${m.coverage.graded} of ${m.coverage.total} member(s)${m.coverage.notGraded ? `, ${m.coverage.notGraded} not graded` : ""}${m.coverage.unresolvable ? `, ${m.coverage.unresolvable} unresolvable` : ""}. ${m.summary.errors} collection error(s), ${m.summary.warns} collection warning(s). Exit code ${m.exitCode}.**`);
   out.push("");
+  if (m.verdict === "unknown") {
+    out.push("> **UNKNOWN is not a pass.** This catalogue lists members but none of them could be graded, so this run has no evidence to pass or fail on. Clone the members, pass `--members <dir>`, or map them explicitly in `askit.marketplace.json` at the catalogue root. If every entry is genuinely unreachable, the catalogue is undeliverable and that is the finding.");
+    out.push("");
+  }
   if (m.summary.failingMembers?.length) {
     out.push(`Members failing their own declared claim: **${m.summary.failingMembers.map((n) => escapeMd(n)).join(", ")}**. A member fails its own claim when its own gate would fail; no collection-level tier expectation is invented for anybody.`);
     out.push("");
@@ -1161,7 +1165,10 @@ function renderCollectionMarkdown(report, opts = {}) {
 
 function renderCollectionHtml(report, opts = {}) {
   const m = deriveCollectionModel(report, opts);
-  const red = m.verdict === "red";
+  // Anything that is not an outright green is styled as a non-pass. "unknown" (no member could be
+  // graded) must never render in the same visual register as a pass; a reader scanning colour is
+  // exactly who the zero-coverage green would have misled.
+  const red = m.verdict !== "green";
   const chips = [
     `<span class="chip">Collection Evaluation</span>`,
     m.version ? `<span class="chip">Catalogue v${escapeHtml(m.version)}</span>` : "",
@@ -1170,7 +1177,7 @@ function renderCollectionHtml(report, opts = {}) {
   ].filter(Boolean).join("\n");
 
   const kpis = `<div class="kpis">
-    <div class="kpi ${red ? "accent-fail" : "accent-pass"}"><div class="k">Collection verdict</div><div class="v">${red ? "RED" : "GREEN"}</div><div class="n">self-consistency worst-member</div></div>
+    <div class="kpi ${red ? "accent-fail" : "accent-pass"}"><div class="k">Collection verdict</div><div class="v">${escapeHtml(m.verdict.toUpperCase())}</div><div class="n">${m.verdict === "unknown" ? "no member could be graded" : "self-consistency worst-member"}</div></div>
     <div class="kpi"><div class="k">Coverage</div><div class="v">${m.coverage.graded}<small>/${m.coverage.total}</small></div><div class="n">members graded</div></div>
     <div class="kpi accent-fail"><div class="k">Failing own claim</div><div class="v">${m.summary.failingMembers?.length ?? 0}</div><div class="n">${(m.summary.failingMembers ?? []).map((n) => escapeHtml(n)).join(", ") || "none"}</div></div>
     <div class="kpi accent-warn"><div class="k">Collection findings</div><div class="v">${m.summary.errors + m.summary.warns}</div><div class="n">${m.summary.errors} error, ${m.summary.warns} warn</div></div>
@@ -1178,8 +1185,8 @@ function renderCollectionHtml(report, opts = {}) {
   </div>`;
 
   const verdictCard = `<div class="verdictcard">
-    <div class="lockup"><div class="seal ${red ? "" : "gold"}"><div><div class="tier" style="font-size:15px">${red ? "RED" : "GREEN"}</div><div class="tlbl">collection</div></div></div>
-    <div class="vtext"><div class="ve">Verdict</div><div class="vg">${red ? "At least one member fails its own claim, or the catalogue is broken" : "Every graded member satisfies its own claim"}</div>
+    <div class="lockup"><div class="seal ${red ? "" : "gold"}"><div><div class="tier" style="font-size:15px">${escapeHtml(m.verdict.toUpperCase())}</div><div class="tlbl">collection</div></div></div>
+    <div class="vtext"><div class="ve">Verdict</div><div class="vg">${m.verdict === "unknown" ? "No member could be graded, so this run has no evidence to pass or fail on. This is not a green." : m.verdict === "red" ? "At least one member fails its own claim, or the catalogue is broken" : "Every graded member satisfies its own claim"}</div>
     <div class="vsub">Graded ${m.coverage.graded} of ${m.coverage.total} member(s)${m.coverage.notGraded ? `; ${m.coverage.notGraded} not graded (absent locally or remote-only source)` : ""}${m.coverage.unresolvable ? `; ${m.coverage.unresolvable} unresolvable entr${m.coverage.unresolvable === 1 ? "y" : "ies"}` : ""}.</div></div></div></div>`;
 
   const masthead = `<header class="masthead" id="s01"><div class="wrap">

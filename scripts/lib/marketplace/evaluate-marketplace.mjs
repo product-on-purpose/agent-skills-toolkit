@@ -8,13 +8,14 @@
 //               step already loaded - no new per-member semantics, no model, no network
 // used-by:      scripts/evaluate.mjs (the marketplace branch); scripts/lib/report-render.mjs renders it
 import path from "node:path";
+import { existsSync, statSync } from "node:fs";
 import { loadPlugin } from "../load-plugin.mjs";
 import { listCommandFiles } from "../fs-utils.mjs";
 import { runGate } from "../../check.mjs";
 import { computeTierReport } from "../../tier-report.mjs";
 import { finding, SEVERITY } from "../findings.mjs";
 import { readMarketplaceManifest, looksLikeMarketplaceOfSkills, MANIFEST_REL } from "./manifest.mjs";
-import { resolveMembers, loadMemberMap } from "./resolve.mjs";
+import { resolveMembers, loadMemberMap, MEMBER_MAP_FILENAME } from "./resolve.mjs";
 import {
   MARKETPLACE_CHECKS,
   duplicateCatalogueNames,
@@ -28,21 +29,51 @@ import {
   contentLineage,
 } from "./analyze.mjs";
 
+const isDir = (p) => existsSync(p) && statSync(p).isDirectory();
+
 /**
- * True iff `target` is the marketplace-OF-PLUGINS shape this scope grades: it carries a parseable
- * catalogue with a `plugins` array, and NO entry's source resolves under `skills/`.
+ * True iff the target ships plugin components of its OWN, or carries the manifest that makes a
+ * directory a plugin. Deliberately NOT `looksLikePlugin`, which also accepts a bare `AGENTS.md`: a
+ * catalogue legitimately carries agent guidance for the people maintaining it, and the family
+ * marketplace does exactly that. The question here is narrower and is the one Standard sec 12 asks -
+ * does this directory ship components, or does it only list other things that do?
+ */
+function shipsOwnComponents(target) {
+  return (
+    existsSync(path.join(target, "library.json")) ||
+    isDir(path.join(target, "skills")) ||
+    isDir(path.join(target, "agents")) ||
+    isDir(path.join(target, "commands"))
+  );
+}
+
+/**
+ * True iff `target` is the marketplace-OF-PLUGINS shape this scope grades. Three conditions, and the
+ * third exists because a real family member broke the first two.
  *
- * The second clause is what keeps this scope and `U13` disjoint. `resolveRegistrationSource` claims a
- * marketplace.json exactly when at least one source resolves under `skills/`; this declines in exactly
- * that case. One rule, expressed once (see looksLikeMarketplaceOfSkills), so the two can never both
- * claim one manifest. A malformed or absent manifest is not this scope's target either - a directory
- * with unreadable JSON is graded as whatever it otherwise is, and the JSON problem surfaces there.
+ * 1. It carries a parseable catalogue with a `plugins` array.
+ * 2. NO entry's source resolves under `skills/`. This is what keeps this scope and `U13` disjoint:
+ *    `resolveRegistrationSource` claims a marketplace.json exactly when at least one source resolves
+ *    under `skills/`, and this declines in exactly that case. One rule, expressed once (see
+ *    looksLikeMarketplaceOfSkills), so the two can never both claim one manifest.
+ * 3. **The target does not ship components of its own.** Standard sec 12 states the separation rule -
+ *    a marketplace catalogues plugins and is not itself a plugin - and names the embedded marketplace
+ *    as an anti-pattern. `pm-skills` is a live instance: it ships `skills/`, `agents/` and `commands/`
+ *    AND carries a `.claude-plugin/marketplace.json` whose single entry is a url pointing back at
+ *    itself. Without this condition, `evaluate()` would route that plugin to marketplace scope and
+ *    grade it as a one-member catalogue of itself, silently MOVING an existing plugin's verdict - the
+ *    one thing this release's governing invariant forbids. A plugin committing the anti-pattern keeps
+ *    plugin scope, which is correct: the plugin gate is what should tell it so.
+ *
+ * A malformed or absent manifest is not this scope's target either - a directory with unreadable JSON
+ * is graded as whatever it otherwise is, and the JSON problem surfaces there.
  */
 export function detectMarketplaceScope(target) {
   const m = readMarketplaceManifest(target);
   if (!m.present || m.data == null) return false;
   if (!Array.isArray(m.data.plugins)) return false;
-  return !looksLikeMarketplaceOfSkills(m.data);
+  if (looksLikeMarketplaceOfSkills(m.data)) return false;
+  return !shipsOwnComponents(target);
 }
 
 /** The default place to look for member checkouts: the directory the catalogue itself sits in. */
@@ -181,7 +212,23 @@ export function evaluateMarketplace(target, opts = {}) {
 
   // Self-consistency worst-member: red if any collection-level error exists OR any graded member fails
   // its OWN claim. Deliberately not a threshold and deliberately not a uniform tier demand.
-  const verdict = collectionErrors > 0 || failingMembers.length > 0 ? "red" : "green";
+  //
+  // THIRD state, added after pre-release adversarial review: a catalogue with entries but ZERO graded
+  // members is "unknown", never green. ADR 0039 settled that a member absent from this machine does not
+  // red - a maintainer with three of five cloned has a working catalogue and an incomplete workstation.
+  // That reasoning is about PARTIAL coverage and does not extend to none: a catalogue whose every entry
+  // points at a repository that no longer exists would otherwise report GREEN at coverage 0 of N, which
+  // is a pass asserted from no evidence at all. This is not a reversal of question 2 (an absent member
+  // still does not red); it is the observation that a verdict computed over an empty set is not a
+  // verdict. Recorded here as a derived decision, in the same spirit as ADR 0039's own derived split
+  // between an unresolvable entry and an absent member.
+  // Precedence: RED outranks UNKNOWN. "Unknown" means the absence of evidence, and a collection error
+  // (a broken entry, a malformed manifest, a name collision) IS evidence - a catalogue with a dead entry
+  // and no local checkouts is definitely broken, not merely unmeasured, and saying "unknown" there would
+  // withhold a diagnosis the run actually made. Both exit 1, so this is about telling the truth in the
+  // label rather than about the gate.
+  const noEvidence = manifest.entries.length > 0 && graded.length === 0;
+  const verdict = collectionErrors > 0 || failingMembers.length > 0 ? "red" : noEvidence ? "unknown" : "green";
 
   const tierDistribution = {};
   for (const m of graded) {
@@ -229,9 +276,15 @@ export function evaluateMarketplace(target, opts = {}) {
   };
 }
 
-/** The collection exit code follows the collection verdict (ADR 0039, question 2). */
+/**
+ * The collection exit code follows the collection verdict (ADR 0039, question 2). Only "green" exits 0:
+ * "unknown" (a catalogue with entries and zero graded members) is not a pass, because a run that saw no
+ * evidence has not established anything. Failing there is the conservative direction - the cost is an
+ * operator being told to clone something or supply a mapping, against the alternative of a dead
+ * catalogue exiting 0 in someone's CI.
+ */
 export function marketplaceExitCode(report) {
-  return report.verdict === "red" ? 1 : 0;
+  return report.verdict === "green" ? 0 : 1;
 }
 
 /** Terminal rendering. The designed Markdown/HTML forms live in scripts/lib/report-render.mjs. */
@@ -258,6 +311,11 @@ export function formatMarketplaceReport(r) {
     for (const f of r.findings) lines.push(`    [${f.severity}] ${f.check}: ${f.message}`);
   }
   lines.push("");
+  if (r.verdict === "unknown") {
+    lines.push("Collection verdict: UNKNOWN - this catalogue lists members but NONE of them could be graded, so there is no");
+    lines.push("evidence to pass or fail on. This is not a green. Clone the members, pass --members <dir>, or map them in");
+    lines.push(`${MEMBER_MAP_FILENAME} at the catalogue root. If every entry is genuinely unreachable, the catalogue is undeliverable.`);
+  }
   lines.push(`Collection verdict: ${r.verdict.toUpperCase()} - graded ${r.coverage.graded} of ${r.coverage.total} member(s)` +
     `${r.coverage.notGraded ? `, ${r.coverage.notGraded} not graded (absent locally or remote-only source)` : ""}` +
     `${r.coverage.unresolvable ? `, ${r.coverage.unresolvable} unresolvable entr${r.coverage.unresolvable === 1 ? "y" : "ies"}` : ""}.`);

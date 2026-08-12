@@ -9,7 +9,7 @@
 | Check | Result |
 |---|---|
 | `node scripts/check.mjs .` | **Tier: Advanced, 0 errors, 0 warnings** |
-| `npm test` | **993 tests, 992 pass, 0 fail, 1 skipped**, exit 0 |
+| `npm test` | **1004 tests, 1003 pass, 0 fail, 1 skipped**, exit 0 |
 | `npm run release-counts` | green |
 | `node scripts/check-parity.mjs .` (now **gating**) | exit 0; 1 documented exception (ADR 0043), metadata-parity clean |
 | `node scripts/generators/gen-index.mjs .` | byte-identical to the committed `INDEX.md` |
@@ -86,21 +86,81 @@ question 1 makes for unconditional pin columns.
 malformed - which is exactly the case ADR 0039's consequences section warned would be misread, so the
 report states the source of the red on its own front page.
 
-## The defect this release found in itself
+## The defect this release found in itself, and then did not ship
 
-`gen-index` emitted `Self-validating: node scripts/check.mjs` into **every** plugin it generates an
-index for, including plugins that consume this toolkit and have no such path. The line ships inside the
-consumer's own repository, over their signature.
+`gen-index` emits `Self-validating: node scripts/check.mjs` into **every** plugin it generates an index
+for, including plugins that consume this toolkit and have no such path. Unlike a wrong instruction in
+our own documentation, this one ships inside the consumer's own repository, over their signature.
 
 It was found by running this repository's own published instruction from a consumer's position:
 `npm i -D agent-skills-toolkit` into a clean temporary directory outside this checkout, against the
 **live registry** (1.11.1), then regenerating a scaffolded plugin's index. The instruction worked; its
-output was wrong.
+output was wrong. Same class as the `G4` remediation failure recorded on 2026-08-10, one layer deeper.
 
-Same class as the `G4` remediation failure recorded on 2026-08-10, one layer deeper. Fixed, with the
-condition stated at exactly its real strength: it tests whether the target *has* a `scripts/check.mjs`,
-not whether that file is this toolkit's gate, so a plugin with its own differently-purposed check script
-keeps the original line. This repository's own `INDEX.md` is byte-identical under the change.
+**The one-line fix was written, tested, and reverted in this same cut. That sequence is the finding.**
+
+The argument for shipping it was recorded in the code comment at the time: *"the only plugins whose
+output changes are exactly the ones with no `scripts/check.mjs`, and every one of them is already in
+`G4` drift from the v1.10.0 generator fix, so one regeneration closes both."* It is a plausible
+argument. It is also false, and one command falsified it:
+
+| Member | Before the fix | After the fix |
+|---|---|---|
+| `product-lifecycle-templates` | Advanced, **0 errors, 0 warnings** | Convergent, **1 error** (`G4`) |
+
+It has no `scripts/check.mjs`, its committed `INDEX.md` carries the old line, and the expected output
+moved underneath it. This release's governing invariant is that **no existing verdict moves**, and that
+moved one from green to red on a live marketplace member.
+
+Reverted, filed as **E35**, and carried to a release that schedules a migration - the Standard 0.13 cut
+already carries `U13`'s graduation and ADR 0041's cap, so it can ship the `### Upgrade` section this
+needs, the way v1.10.1 did for the previous `G4` wave. A test now asserts the **current, known-wrong**
+behavior on purpose, so it cannot be silently re-fixed without meeting E35 first.
+
+**The generalizable part:** the release plan's own verification protocol says to measure rather than
+reason. The reasoning here was careful, written down, and wrong; the measurement took one command. Every
+claim about who a generator change affects should be produced by running it against the members, not by
+arguing about them.
+
+## Pre-release adversarial review: six findings, four fixed, one filed, one already fixed
+
+Run against the pushed branch before merge. Verdict `needs-attention`. Two of its six findings had
+already been found and fixed independently during the cut, which is corroboration rather than
+duplication. Recorded per finding, including the two that were not fixed as recommended.
+
+| # | Finding | Disposition |
+|---|---|---|
+| 1 | Zero-coverage collections report GREEN | **Fixed.** New third verdict `unknown` (exit 1) |
+| 2 | Basename discovery shadows valid candidates and accepts wrong ones | **Fixed.** Candidates exhausted; explicit-vs-guessed split; git-remote identity check |
+| 3 | Marketplace routing changes existing plugin verdicts | **Already fixed** during the cut (the `pm-skills` guard) |
+| 4 | Malformed and mixed manifests are owned by nobody | **Filed as E36.** Fixing it moves verdicts and needs a prior decision |
+| 5 | A parity exception suppresses every failure for its target | **Fixed.** Exceptions now fingerprint their authorized diagnostic |
+| 6 | The index conditional moves existing Gold verdicts | **Already fixed** during the cut (reverted, filed as E35) |
+
+**Finding 5 was the most valuable, because the flip I had just shipped depended on it.** `findException`
+matched on target and tool only, so ANY failure of `templates/seed-plugin` under `claude plugin validate
+--strict` was annotated as the known missing-author exception and excluded from gating. Report-only made
+that survivable; gating did not. An unrelated schema regression would have exited 0 on a required check.
+Exceptions now carry a `matches` RegExp fingerprinting the one diagnostic they authorize, an entry
+without one can never apply and is reported as broken (fail closed), and the shipped list is asserted
+well-formed.
+
+**Finding 1 needed care not to overturn a ratified decision.** ADR 0039 settled that an absent member
+does not red the collection. The reviewer's scenario was different in kind: a catalogue where *no*
+member resolves reported GREEN at coverage 0 of N. The fix does not touch the ratified rule - a
+partially covered run still passes on what it saw - it adds a third state for the case the ADR's
+reasoning does not reach, on the ground that a verdict computed over an empty set is not a verdict. RED
+outranks UNKNOWN, because a collection error is evidence.
+
+**Finding 2's fix is an asymmetry worth naming.** A location the catalogue or the operator *named* is a
+claim, and its failure is a catalogue defect. A location this code *guessed* from a repository basename
+is a hypothesis, and a failed hypothesis is absence, not evidence of a defect. The original single rule
+was wrong in both directions at once.
+
+**Finding 4 was not fixed, and the reason is the release's own invariant.** Both halves change which
+scope claims a directory, which changes what an existing target is graded by. The mixed-manifest half
+also needs a decision nobody has made: whether a catalogue mixing skill entries and plugin entries is
+legal at all. E36 carries it with that question first.
 
 ## Records brought current
 

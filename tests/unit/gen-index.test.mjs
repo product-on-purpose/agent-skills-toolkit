@@ -40,27 +40,24 @@ test("manifest and doc rows render only for artifacts the plugin actually ships"
   }
 });
 
-test("the self-validation line names a command the TARGET can actually run, not one only this repo has", () => {
-  // Found the way this repository's findings are always found: by running a published instruction from
-  // the consumer's position. `npm i -D agent-skills-toolkit` into a clean directory, regenerate a
-  // scaffolded plugin's INDEX, and the generated file told its owner to run `node scripts/check.mjs` -
-  // a path nothing installs into a consuming plugin. Same defect class as the two boilerplate sections
-  // above (and as the G4 remediation recorded 2026-08-10), except emitted INTO the consumer's own
-  // repository over their signature rather than published in ours.
+test("the self-validation line is still emitted unconditionally (E35, a KNOWN defect held for a migration release)", () => {
+  // This test asserts the CURRENT, KNOWN-WRONG behavior on purpose, so the defect cannot be
+  // accidentally re-fixed without meeting the reason it was held back.
+  //
+  // The line names `node scripts/check.mjs` even for a plugin that has no such path - a command
+  // nothing installs for a consumer, emitted into their own repository over their signature. The
+  // one-line conditional fix was written and tested inside the v1.12.0 cut and then reverted:
+  // measuring it showed it moves a live verdict (product-lifecycle-templates, green at Advanced 0/0,
+  // took a G4 error the moment the expected INDEX changed), and v1.12.0's governing invariant is that
+  // no existing verdict moves. E35 carries the fix to a release that schedules a migration.
+  //
+  // When E35 lands, invert this test rather than deleting it.
   const dir = mkdtempSync(path.join(tmpdir(), "genidx-selfvalidate-"));
   try {
     writeFileSync(path.join(dir, "library.json"), '{ "name": "consumer", "version": "0.1.0", "tier": "universal" }\n');
     const consumer = renderIndex(loadPlugin(dir));
-    assert.match(consumer, /Self-validating: `npx agent-skills-toolkit \.`/, "a plugin without the gate is told how to run the published one");
-    assert.ok(!consumer.includes("node scripts/check.mjs"), "must not hand a consumer a path nothing installs for them");
-
-    // A plugin that HAS a scripts/check.mjs keeps the original line - the condition is a path test, not
-    // a claim about which validator that file is. This is why this repository's own INDEX.md does not
-    // move in the release that makes the line conditional.
-    mkdirSync(path.join(dir, "scripts"), { recursive: true });
-    writeFileSync(path.join(dir, "scripts", "check.mjs"), "// a check script in the target's own tree\n");
-    const vendored = renderIndex(loadPlugin(dir));
-    assert.match(vendored, /Self-validating: `node scripts\/check\.mjs`/);
+    assert.match(consumer, /Self-validating: `node scripts\/check\.mjs`/, "unconditional today; see E35");
+    assert.ok(!consumer.includes("npx agent-skills-toolkit"), "the conditional fix is deliberately NOT in this release");
   } finally {
     rmSync(dir, { recursive: true, force: true });
   }

@@ -54,6 +54,13 @@ Two members fail their own declared claim.
 
 Tier distribution across graded members: Advanced 2, Convergent 2, Universal 1, none 1.
 
+> **If you reproduce this right now, one row will differ, and that is the report working.** This
+> snapshot was taken with the `agent-skills-toolkit` member at `f57aa3f`, which is v1.11.1 - the commit
+> the catalogue pins. Cutting v1.12.0 moves that checkout to a version the catalogue has not been
+> re-pinned to yet, so a run from a v1.12.0 tree reports a `marketplace-version-agreement` error against
+> the toolkit's own entry until the re-pin lands. That is precisely the class of drift this scope exists
+> to surface, and it surfaces here first against its own author.
+
 ## Why the collection is red, said plainly
 
 **It is red on purpose, and the two reasons are different.**

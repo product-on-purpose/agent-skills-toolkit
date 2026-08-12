@@ -253,6 +253,13 @@ export const PARITY_EXCEPTIONS = [
     target: "templates/seed-plugin",
     tool: "claude",
     adr: "0043",
+    // `matches` FINGERPRINTS the one authorized diagnostic, and is REQUIRED on every entry. Without it,
+    // an exception keyed on target+tool alone excuses ANY failure of that target under that tool, which
+    // pre-release adversarial review found is a real hole now that PARITY_MODE gates: an unrelated
+    // schema regression, a new vendor rejection, or the validator failing to execute at all would be
+    // annotated as "the known missing-author exception" and the required job would exit 0. An exception
+    // authorizes a specific known disagreement, not a target.
+    matches: /author/i,
     reason:
       'The raw scaffold genuinely has no author to declare. ADR 0043 considered a placeholder ' +
       '(e.g. {"name": "REPLACE - your name"}) and rejected it: U5 (description-score, ADR 0033) already ' +
@@ -264,15 +271,29 @@ export const PARITY_EXCEPTIONS = [
 ];
 
 /**
- * Find the documented exception (if any) authorizing a vendor-validate result's disagreement. Match is
- * EXACT on target and tool - no glob or prefix matching - so an exception can never silently widen to
- * cover a target nobody reviewed for it. "claude-fallback" (the vendored local-only stand-in engaged
- * when the real CLI is not on PATH) matches a "claude" exception: it is still the same vendor rule,
- * just checked through the reduced-fidelity path.
+ * Find the documented exception (if any) authorizing a vendor-validate result's disagreement.
+ *
+ * THREE conditions, all required. Target and tool match EXACTLY - no glob or prefix matching - so an
+ * exception can never silently widen to cover a target nobody reviewed for it. "claude-fallback" (the
+ * vendored local-only stand-in engaged when the real CLI is not on PATH) matches a "claude" exception:
+ * it is still the same vendor rule, just checked through the reduced-fidelity path.
+ *
+ * The third condition is the DIAGNOSTIC FINGERPRINT (`matches`), added when pre-release adversarial
+ * review found that target+tool alone excuses every failure of that target. An exception says "this
+ * specific disagreement was decided", not "stop looking at this directory". A failing result whose
+ * detail does not match the fingerprint is UNDOCUMENTED and gates, even though an exception entry
+ * exists for its target - which is the whole point.
+ *
+ * An entry with no `matches` never applies at all, and `validateExceptions` reports it as broken. Fail
+ * closed: a malformed authorization is not an authorization, and the alternative (treating a missing
+ * fingerprint as "match everything") reintroduces the exact hole this parameter closes.
  */
 export function findException(exceptions, result) {
   const tool = result.tool === "claude-fallback" ? "claude" : result.tool;
-  return exceptions.find((e) => e.target === result.target && e.tool === tool) ?? null;
+  const detail = typeof result.detail === "string" ? result.detail : "";
+  return exceptions.find((e) =>
+    e.target === result.target && e.tool === tool && e.matches instanceof RegExp && e.matches.test(detail)
+  ) ?? null;
 }
 
 /**
@@ -305,11 +326,18 @@ export function resolveAdrFile(root, adrNumber) {
 }
 
 /**
- * Integrity check on the exception list ITSELF: every entry's `adr` must resolve to a real file under
- * docs/internal/decisions/, via resolveAdrFile(). An exception justified by a decision record that does
- * not exist is worse than no exception at all - it reads as authorized when nobody can actually check
- * it - so an unresolved reference is reported as its own finding (`kind: "exception-integrity"`) rather
- * than trusted at face value. Returns [] when every exception's ADR is real.
+ * Integrity check on the exception list ITSELF. TWO ways an entry can be broken, and both are reported
+ * as findings (`kind: "exception-integrity"`) rather than trusted at face value:
+ *
+ * 1. Its `adr` does not resolve to a real file under docs/internal/decisions/. An exception justified
+ *    by a decision record that does not exist is worse than no exception at all - it reads as
+ *    authorized when nobody can actually check it.
+ * 2. It carries no `matches` fingerprint (or a non-RegExp one). Such an entry can never apply, by
+ *    construction (see findException), so it would silently stop excusing the disagreement it was
+ *    written for and the job would start failing with no explanation of why. Reporting it is what turns
+ *    "this exception quietly does nothing" into "this exception is malformed, here is the entry".
+ *
+ * Returns [] when every entry is well-formed.
  */
 export function validateExceptions(exceptions, root) {
   const findings = [];
@@ -321,6 +349,15 @@ export function validateExceptions(exceptions, root) {
         ran: true,
         pass: false,
         detail: `documented exception for "${e.target}" (tool: ${e.tool}) cites ADR ${e.adr}, which does not resolve to a file under docs/internal/decisions/. A broken citation authorizes nothing - fix the ADR number or remove the exception.`,
+      });
+    }
+    if (!(e.matches instanceof RegExp)) {
+      findings.push({
+        kind: "exception-integrity",
+        target: e.target,
+        ran: true,
+        pass: false,
+        detail: `documented exception for "${e.target}" (tool: ${e.tool}) has no \`matches\` RegExp fingerprinting the authorized diagnostic, so it can never apply and every failure of that target now gates. An exception authorizes a specific known disagreement, not a target - add a \`matches\` pattern or remove the entry.`,
       });
     }
   }
@@ -618,7 +655,7 @@ function main() {
   results.push(...integrityFindings);
   line("-- documented-exception list integrity --");
   if (integrityFindings.length === 0) {
-    line(`  OK: all ${PARITY_EXCEPTIONS.length} documented exception(s) cite a real ADR under docs/internal/decisions/.`);
+    line(`  OK: all ${PARITY_EXCEPTIONS.length} documented exception(s) cite a real ADR under docs/internal/decisions/ and fingerprint the one diagnostic they authorize.`);
   } else {
     for (const f of integrityFindings) line(`  [BROKEN] ${f.detail}`);
   }

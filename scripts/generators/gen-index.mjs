@@ -103,27 +103,23 @@ export function renderIndex(ctx) {
   if (label) tierBits.push(`**Tier:** ${label} (${tier}).`);
   if (data.standard) tierBits.push(`Standard ${data.standard}.`);
   if (data.version) tierBits.push(`Version ${data.version}.`);
-  // The self-validation line is CONDITIONAL on the target actually having the gate in its own tree.
-  // This is the same defect class v1.10.0 fixed for the two boilerplate sections below, found the same
-  // way: by running a published instruction from a consumer's position instead of from inside the tree
-  // where it happens to work. A plugin that has no `scripts/check.mjs` was being handed an INDEX telling
-  // it to run one, which is the G4 remediation failure recorded on 2026-08-10 reproduced one layer up -
-  // this time emitted INTO the consumer's own repository, over their signature.
+  // KNOWN DEFECT, deliberately not fixed here - see backlog E35.
   //
-  // Stated exactly, because the test is narrower than it looks: this checks that the target HAS a
-  // `scripts/check.mjs`, not that the file is THIS toolkit's gate. A plugin with its own differently-
-  // named-but-same-path validator (thinking-framework-skills is a real example) keeps the original
-  // line, which is correct for it - `node scripts/check.mjs` does run something in its tree. What the
-  // condition rules out is the case that was actually wrong: emitting that command into a plugin where
-  // the path resolves to nothing at all.
+  // This line is emitted unconditionally, including into plugins that have no `scripts/check.mjs`, so
+  // for them it names a command nothing installs. That is the same defect class v1.10.0 fixed for the
+  // two boilerplate sections below, one layer deeper: it ships inside the CONSUMER's own repository,
+  // over their signature. It was found by running this repository's own published instruction from a
+  // consumer's position (`npm i -D agent-skills-toolkit` into a clean directory, then regenerate).
   //
-  // Migration cost is close to zero: the only plugins whose output changes are exactly the ones with no
-  // `scripts/check.mjs`, and every one of them is already in G4 drift from the v1.10.0 generator fix, so
-  // one regeneration closes both.
-  const hasLocalCheckScript = Boolean(ctx.root) && existsSync(path.join(ctx.root, "scripts", "check.mjs"));
-  tierBits.push(hasLocalCheckScript
-    ? "Self-validating: `node scripts/check.mjs`."
-    : "Self-validating: `npx agent-skills-toolkit .`.");
+  // The one-line conditional fix was written, tested, and REVERTED inside the v1.12.0 cut, because
+  // measuring it rather than reasoning about it showed it moves a live verdict: it changes the expected
+  // INDEX for every plugin without a `scripts/check.mjs`, and `product-lifecycle-templates` - green at
+  // Advanced 0/0 before the change - went to a G4 error immediately. The reasoning that had justified
+  // shipping it ("every affected plugin is already in G4 drift from the v1.10.0 fix, so one
+  // regeneration closes both") was simply false, and one measurement falsified it. A migration-bearing
+  // generator change belongs in a release that schedules a migration; v1.12.0's governing invariant is
+  // that no existing verdict moves. E35 carries it to the Standard 0.13 cut.
+  tierBits.push("Self-validating: `node scripts/check.mjs`.");
   lines.push(tierBits.join(" "));
   lines.push("");
 

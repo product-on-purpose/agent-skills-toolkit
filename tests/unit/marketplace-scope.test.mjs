@@ -15,6 +15,8 @@ import {
   repoNameFromUrl,
   repoNameFromGithub,
   readGitHead,
+  readGitRemote,
+  remoteMatchesSource,
   loadMemberMap,
   resolveMembers,
 } from "../../scripts/lib/marketplace/resolve.mjs";
@@ -187,6 +189,41 @@ test("marketplace scope and U13 are DISJOINT: exactly one of them ever claims a 
 test("detectMarketplaceScope: a plain plugin (this repository) is never a marketplace", () => {
   assert.equal(detectMarketplaceScope(REPO_ROOT), false);
   assert.equal(detectMarketplaceScope(SEED), false);
+});
+
+test("detectMarketplaceScope: a PLUGIN with an embedded marketplace keeps plugin scope (the anti-pattern must not move a verdict)", () => {
+  // A live family member, pm-skills, ships skills/, agents/ and commands/ AND carries a
+  // .claude-plugin/marketplace.json whose single entry is a url pointing back at itself. Standard sec 12
+  // names that the embedded-marketplace anti-pattern. Without this guard, evaluate() routes that plugin
+  // to marketplace scope and grades it as a one-member catalogue of itself - silently moving an existing
+  // plugin's verdict, which is the one thing this release's governing invariant forbids. The plugin gate
+  // is what should tell a plugin it has committed the anti-pattern.
+  const dir = tmp();
+  try {
+    writeCatalogue(dir, [{ name: "itself", source: { source: "url", url: "https://x/itself.git", sha: "s" } }]);
+    assert.equal(detectMarketplaceScope(dir), true, "a bare catalogue is claimed");
+
+    // Any one of these makes it a plugin that ships components, not a catalogue.
+    for (const marker of ["skills", "agents", "commands"]) {
+      mkdirSync(path.join(dir, marker), { recursive: true });
+      assert.equal(detectMarketplaceScope(dir), false, `shipping ${marker}/ must keep plugin scope`);
+      rmSync(path.join(dir, marker), { recursive: true, force: true });
+    }
+    writeFileSync(path.join(dir, "library.json"), '{ "name": "embedded", "version": "0.1.0" }\n');
+    assert.equal(detectMarketplaceScope(dir), false, "carrying library.json must keep plugin scope");
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
+test("detectMarketplaceScope: a catalogue carrying AGENTS.md is still a catalogue", () => {
+  // The guard above is deliberately NOT looksLikePlugin, which accepts a bare AGENTS.md. A catalogue
+  // legitimately carries agent guidance for the people maintaining it, and the family marketplace does
+  // exactly that - using looksLikePlugin here would decline the scope's primary real-world target.
+  const dir = tmp();
+  try {
+    writeCatalogue(dir, [{ name: "member", source: "./members/member" }]);
+    writeFileSync(path.join(dir, "AGENTS.md"), "# agent guidance for maintaining this catalogue\n");
+    assert.equal(detectMarketplaceScope(dir), true);
+  } finally { rmSync(dir, { recursive: true, force: true }); }
 });
 
 test("detectMarketplaceScope: a catalogue with unparseable JSON is not claimed by this scope", () => {
@@ -533,6 +570,101 @@ test("aggregation: a member ABSENT from this machine does NOT red - it is an env
     rmSync(root, { recursive: true, force: true });
     rmSync(siblings, { recursive: true, force: true });
   }
+});
+
+// --- Findings from the v1.12.0 pre-release adversarial review ---------------------------------
+
+test("aggregation: a catalogue where NOTHING could be graded is UNKNOWN, never green", () => {
+  // Review finding: with every entry not-graded, the collection had zero errors and zero failing
+  // members, so it reported GREEN at coverage 0 of N - a pass asserted from no evidence, on a catalogue
+  // that may be entirely undeliverable. ADR 0039's "an absent member does not red" is about PARTIAL
+  // coverage (three of five cloned is a working catalogue and an incomplete workstation); it does not
+  // extend to none.
+  const root = tmp();
+  const siblings = tmp();
+  try {
+    writeCatalogue(root, [
+      { name: "gone-a", version: "1.0.0", source: { source: "url", url: "https://x/gone-a.git", sha: "p" } },
+      { name: "gone-b", version: "1.0.0", source: { source: "url", url: "https://x/gone-b.git", sha: "p" } },
+    ]);
+    const r = evaluateMarketplace(root, { searchRoots: [siblings] });
+    assert.equal(r.verdict, "unknown");
+    assert.equal(marketplaceExitCode(r), 1, "unknown must not exit 0; only green does");
+    assert.deepEqual(r.coverage, { graded: 0, total: 2, notGraded: 2, unresolvable: 0 });
+    assert.match(formatMarketplaceReport(r), /UNKNOWN - this catalogue lists members but NONE of them could be graded/);
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+    rmSync(siblings, { recursive: true, force: true });
+  }
+});
+
+test("aggregation: an EMPTY catalogue is green - nothing listed is not the same as nothing gradeable", () => {
+  const root = tmp();
+  try {
+    writeCatalogue(root, []);
+    const r = evaluateMarketplace(root, { searchRoots: [] });
+    assert.equal(r.verdict, "green");
+    assert.equal(marketplaceExitCode(r), 0);
+  } finally { rmSync(root, { recursive: true, force: true }); }
+});
+
+test("resolution: a guessed candidate that is not a plugin is passed over, not reported as a broken entry", () => {
+  // Review finding, both halves: the FIRST existing non-plugin directory short-circuited the search and
+  // reported `unresolvable`, so (a) an unrelated same-named directory false-red a catalogue that is
+  // fine, and (b) it hid a valid candidate further down the list. A location the catalogue NAMED is a
+  // claim whose failure is a defect; a location this code GUESSED is a hypothesis, and a failed
+  // hypothesis is absence.
+  const root = tmp();
+  const first = tmp();
+  const second = tmp();
+  try {
+    mkdirSync(path.join(first, "alpha"), { recursive: true }); // same name, not a plugin
+    writeMember(path.join(second, "alpha"), { name: "alpha", version: "0.1.0" });
+    writeCatalogue(root, [{ name: "alpha", version: "0.1.0", source: { source: "url", url: "https://x/alpha.git", sha: "p" } }]);
+
+    const r = evaluateMarketplace(root, { searchRoots: [first, second] });
+    assert.equal(r.members[0].status, "resolved", "the shadowing directory must not stop the search");
+    assert.equal(r.verdict, "green");
+
+    // With ONLY the shadowing directory, it is absence, not a catalogue defect.
+    const shadowOnly = evaluateMarketplace(root, { searchRoots: [first] });
+    assert.equal(shadowOnly.members[0].status, "not-graded");
+    assert.match(shadowOnly.members[0].reason, /exists but is not a plugin/, "the near-miss is named, so it is diagnosable");
+  } finally {
+    for (const d of [root, first, second]) rmSync(d, { recursive: true, force: true });
+  }
+});
+
+test("resolution: an EXPLICIT location that is not a plugin IS a broken entry", () => {
+  // The other side of the asymmetry: a local-path source and an operator-supplied mapping are claims,
+  // not guesses, so their failure stays a catalogue defect and still reds.
+  const root = tmp();
+  try {
+    mkdirSync(path.join(root, "members", "hollow"), { recursive: true });
+    writeCatalogue(root, [{ name: "hollow", source: "./members/hollow" }]);
+    const byPath = evaluateMarketplace(root, { searchRoots: [] });
+    assert.equal(byPath.members[0].status, "unresolvable");
+    assert.equal(byPath.verdict, "red");
+
+    writeFileSync(path.join(root, "askit.marketplace.json"), JSON.stringify({ members: { mapped: "./members/hollow" } }));
+    writeCatalogue(root, [{ name: "mapped", source: { source: "npm", package: "mapped" } }]);
+    const byMap = evaluateMarketplace(root, { searchRoots: [] });
+    assert.equal(byMap.members[0].status, "unresolvable", "an operator-supplied mapping is a claim, so its failure is a defect");
+    assert.match(byMap.members[0].reason, /exists but is not a plugin/);
+    assert.match(byMap.members[0].reason, /hollow/, "the reason names the mapped location, so the operator can see what was tried");
+  } finally { rmSync(root, { recursive: true, force: true }); }
+});
+
+test("remoteMatchesSource: disproves a wrong checkout, and accepts what it cannot disprove", () => {
+  const url = (u) => ({ kind: "url", url: u });
+  assert.equal(remoteMatchesSource("https://github.com/owner/name.git", url("https://github.com/owner/name")), true);
+  assert.equal(remoteMatchesSource("git@github.com:owner/name.git", url("https://github.com/owner/name.git")), true);
+  assert.equal(remoteMatchesSource("https://github.com/someone-else/name.git", url("https://github.com/owner/name.git")), false);
+  // Cannot disprove: no remote readable, or a source kind carrying no URL. Accept rather than discard -
+  // the check exists to catch a wrong match, not to require git metadata that may legitimately be absent.
+  assert.equal(remoteMatchesSource(null, url("https://github.com/owner/name.git")), true);
+  assert.equal(remoteMatchesSource("https://github.com/owner/name.git", { kind: "npm", package: "x" }), true);
+  assert.equal(remoteMatchesSource("https://github.com/owner/name", { kind: "github", repo: "owner/name" }), true);
 });
 
 test("aggregation: the three seeded cross-member defects produce exactly those three findings", () => {

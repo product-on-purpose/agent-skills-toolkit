@@ -38,7 +38,13 @@ We published the result rather than quietly fixing the rule, and there is now a 
 
 - Marketplaces can now list plugins from npm packages, from verified archives, and from subdirectories of a repository, and can record the names a plugin previously shipped under so people following an old name can be redirected.
 - Plugins that ship subagents get a warning when one declares a setting Claude Code refuses to honor for security reasons, so you find out from a report rather than from the feature silently not working.
-- A generated `INDEX.md` no longer tells the plugins that consume this toolkit to run a command only *this* repository has. Found by installing our own published package into an empty folder and following our own instructions.
+### One thing we found and did not ship
+
+Installing our own published package into an empty folder and following our own instructions showed that a generated `INDEX.md` tells plugins which consume this toolkit to run a command only *this* repository has - written into their repository, over their signature.
+
+The one-line fix took minutes. We reverted it, because measuring it showed it would have turned a currently-passing plugin in our own marketplace red, by changing what its index is expected to say. That is a fix worth making in a release that tells everyone to regenerate, and this release promises the opposite: that nothing you are graded by moves. It is queued for the next release, which carries a Standard update and a migration step anyway.
+
+We are recording it here rather than quietly holding it, because the reasoning that nearly shipped it was wrong in a specific and instructive way: we assumed every affected plugin was already failing that check for an older reason. One measurement showed otherwise.
 
 ### Upgrade
 

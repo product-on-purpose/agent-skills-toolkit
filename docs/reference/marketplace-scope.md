@@ -68,6 +68,25 @@ The distinction is the difference between a defect in the artifact and a gap in 
 it. A maintainer with three of five members cloned has a working catalogue and an incomplete
 workstation; reddening that run would teach them to ignore the red.
 
+### A collection with nothing to grade is UNKNOWN, not green
+
+If a catalogue lists members and **none** of them could be graded, the verdict is `unknown` and the run
+exits non-zero. A green there would be a pass asserted from no evidence, on a catalogue that may be
+entirely undeliverable. This is not a reversal of the absent-member rule above - a partially covered run
+still passes on the members it saw - it is the observation that a verdict computed over an empty set is
+not a verdict.
+
+An **empty** catalogue (no entries at all) is green. Listing nothing is not the same as listing things
+that cannot be found.
+
+### Known limitation: malformed and mixed manifests
+
+The scope and `U13` partition the well-formed cases cleanly, and say nothing about the rest. A
+`marketplace.json` that does not parse is declined by this scope and ignored by `U13`, so nothing
+reports it. A manifest that **mixes** skill entries and plugin entries goes entirely to `U13`, so its
+plugin entries are never collection-graded. Both are tracked as backlog **E36**; closing either changes
+which scope claims a directory, which is a compatibility decision rather than a patch.
+
 ### What a run does not tell you
 
 A run grades local checkouts, **not** the trees at the registry pins. It answers "what would the next

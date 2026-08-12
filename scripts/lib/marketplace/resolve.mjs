@@ -142,17 +142,86 @@ export function candidateDirs(entry, { root, searchRoots }) {
 }
 
 /**
+ * The git remote URL a checkout reports, from `.git/config` alone, or null. Pure fs, no subprocess,
+ * for the same reason readGitHead is (see its docblock). Only the first `url = ` under any `[remote ...]`
+ * section is read, which is `origin` in every ordinary layout.
+ */
+export function readGitRemote(dir) {
+  let gitPath = path.join(dir, ".git");
+  if (!existsSync(gitPath)) return null;
+  try {
+    if (statSync(gitPath).isFile()) {
+      const match = /^gitdir:\s*(.+)$/.exec(readFileSync(gitPath, "utf8").trim());
+      if (!match) return null;
+      gitPath = path.isAbsolute(match[1]) ? match[1] : path.resolve(dir, match[1]);
+    }
+    const configPath = path.join(gitPath, "config");
+    if (!existsSync(configPath)) return null;
+    let inRemote = false;
+    for (const raw of readFileSync(configPath, "utf8").split(/\r?\n/)) {
+      const line = raw.trim();
+      if (line.startsWith("[")) { inRemote = /^\[remote\s/.test(line); continue; }
+      if (!inRemote) continue;
+      const m = /^url\s*=\s*(.+)$/.exec(line);
+      if (m) return m[1].trim();
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Whether a DISCOVERED candidate is plausibly the member the entry names, judged by comparing its git
+ * remote against the source URL. Returns true when they agree, and ALSO when identity cannot be
+ * established at all (no `.git`, no remote, or a source kind with no URL) - the check can disprove a
+ * match, never prove one, so an unverifiable candidate is accepted rather than discarded.
+ *
+ * This exists because discovery matches on a directory BASENAME. Pre-release adversarial review noted
+ * that an unrelated plugin sharing a member's name would otherwise be graded in its place and could
+ * false-green the collection. Comparison is on the repository path, ignoring scheme, credentials, the
+ * `.git` suffix and a trailing slash, so `git@host:owner/name.git` and `https://host/owner/name` agree.
+ * Only applied to discovered candidates: an explicit mapping is the operator saying "this one", and
+ * second-guessing it would make the escape hatch unusable.
+ */
+export function remoteMatchesSource(candidateRemote, source) {
+  const declared = source?.url ?? (source?.repo ? `https://github.com/${source.repo}` : null);
+  if (!declared || !candidateRemote) return true; // cannot disprove
+  const norm = (u) => String(u)
+    .split(/[?#]/)[0]
+    .replace(/\.git$/i, "")
+    .replace(/\/+$/, "")
+    .replace(/^[a-z+]+:\/\//i, "")
+    .replace(/^[^@/]+@/, "")
+    .replace(/:/g, "/")
+    .toLowerCase();
+  const a = norm(candidateRemote);
+  const b = norm(declared);
+  return a.endsWith(b) || b.endsWith(a);
+}
+
+/**
  * Resolve every entry to one of three states. The distinction between the two failure states is the
  * whole point of this function, so it is stated once here rather than inferred at each call site:
  *
  * - `resolved`      - a directory exists, looks like a plugin, and will be graded.
- * - `unresolvable`  - the CATALOGUE ENTRY is broken: no source, a malformed source, a local path naming
- *                     a directory that does not exist, or a directory that exists but is not a plugin.
- *                     An installer following this entry receives nothing, so it REDS the collection.
+ * - `unresolvable`  - the CATALOGUE ENTRY is broken: no source, a malformed source, or an EXPLICITLY
+ *                     named location (a local-path source, or an operator-supplied mapping) that does
+ *                     not exist or is not a plugin. An installer following this entry receives nothing,
+ *                     so it REDS the collection.
  * - `not-graded`    - the entry is well-formed and names a real member, but this machine has no checkout
  *                     of it, or its source kind is remote-only and this release does not fetch. An
  *                     environment gap, NOT a conformance fact: it never reds, and the collection verdict
  *                     carries a coverage count so the gap is stated rather than inferred.
+ *
+ * **Explicit locations and guessed ones are treated differently, and that asymmetry is deliberate.**
+ * Pre-release adversarial review found the original single rule wrong in both directions: an unrelated
+ * directory happening to share a member's name would be reported as a broken catalogue entry (a false
+ * red on a catalogue that is fine), and the FIRST such directory short-circuited the search, hiding a
+ * valid candidate further down the list. A location the catalogue or the operator NAMED is their claim
+ * and its failure is a defect; a location this code GUESSED from a repository basename is a hypothesis,
+ * and a failed hypothesis is absence, not evidence of a defect. So every candidate is now exhausted
+ * before any conclusion is drawn.
  *
  * @returns {Array<{entry: object, status: string, dir: string|null, gradedSha: string|null, reason: string|null, tried: string[]}>}
  */
@@ -167,29 +236,46 @@ export function resolveMembers(entries, { root, searchRoots, map = {} }) {
     const mapped = entry.name != null && Object.prototype.hasOwnProperty.call(map, entry.name)
       ? path.resolve(root, normalizeArgPath(map[entry.name]))
       : null;
+    const explicit = mapped != null || entry.source.kind === "local-path";
     const tried = mapped ? [mapped] : candidateDirs(entry, { root, searchRoots });
+
+    // Exhaust every candidate before concluding anything. Records why each one was passed over, so a
+    // near-miss (right name, wrong remote) is diagnosable rather than reported as a bare "not found".
+    const passedOver = [];
     for (const dir of tried) {
       if (!existsSync(dir) || !statSync(dir).isDirectory()) continue;
       if (!looksLikePlugin(dir)) {
-        return {
-          ...base, tried, status: "unresolvable", dir,
-          reason: `resolves to ${dir}, which exists but is not a plugin (no library.json, AGENTS.md, or skills/ directory)`,
-        };
+        if (explicit) {
+          return {
+            ...base, tried, status: "unresolvable", dir,
+            reason: `resolves to ${dir}, which exists but is not a plugin (no library.json, AGENTS.md, or skills/ directory)`,
+          };
+        }
+        passedOver.push(`${path.basename(dir)} (exists but is not a plugin)`);
+        continue;
+      }
+      if (!explicit && !remoteMatchesSource(readGitRemote(dir), entry.source)) {
+        passedOver.push(`${path.basename(dir)} (a plugin, but its git remote is not this member's source)`);
+        continue;
       }
       return { ...base, tried, status: "resolved", dir, gradedSha: readGitHead(dir), reason: null };
     }
-    // Nothing on disk. Which failure this is depends entirely on whether the entry ITSELF is at fault.
-    if (entry.source.kind === "local-path") {
+
+    // Nothing matched. Which failure this is depends entirely on whether the entry ITSELF is at fault.
+    if (explicit) {
       return {
         ...base, tried, status: "unresolvable",
-        reason: `local source "${entry.source.path}" does not exist under ${root}; an installer following this entry gets nothing`,
+        reason: mapped
+          ? `${MEMBER_MAP_FILENAME} maps this member to ${mapped}, which does not exist or is not a plugin`
+          : `local source "${entry.source.path}" does not exist under ${root}; an installer following this entry gets nothing`,
       };
     }
     const kind = SOURCE_KINDS[entry.source.kind];
+    const nearMiss = passedOver.length ? ` Passed over: ${passedOver.join("; ")}.` : "";
     return {
       ...base, tried, status: "not-graded",
       reason: kind?.locallyDiscoverable
-        ? `no local checkout found for this member (looked in: ${tried.map((d) => path.basename(d)).join(", ") || "nowhere"}); the entry is well-formed, so this is a gap in this machine, not in the catalogue`
+        ? `no local checkout found for this member (looked in: ${tried.map((d) => path.basename(d)).join(", ") || "nowhere"}); the entry is well-formed, so this is a gap in this machine, not in the catalogue.${nearMiss}`
         : `source kind "${entry.source.kind}" is not locally resolvable and remote fetch is deferred (ADR 0039 question 1); supply a path in ${MEMBER_MAP_FILENAME} to grade it`,
     };
   });
