@@ -30,13 +30,18 @@
   **E33** (A6 restricted fields are detected in marketplace scope but not in plugin scope) and
   **E34** (whether any cross-member finding should become a numbered spine check at all). Both are
   ADR-gated on the Standard 0.13 cut.
-- **npm is BEHIND: the registry serves 1.11.1, not 1.12.0.** v1.12.0 is tagged, GitHub-released and
-  marketplace re-pinned, but `publish-npm.yml`'s live run failed with `ENEEDAUTH` - the `npm-publish`
-  environment exists and carries its branch policy but holds **zero secrets**, so
-  `secrets.NPM_TOKEN` resolves to empty. Nothing partial happened and there is nothing to clean up.
-  Needs the maintainer's npm account: either an `NPM_TOKEN` **environment** secret on `npm-publish`,
-  or (better) npm Trusted Publishing via OIDC, which needs no stored token and is the only path that
-  produces `--provenance`. Full diagnosis in the v1.12.0 release packet.
+- **npm is BEHIND: the registry serves 1.11.1, while v1.12.0 and v1.12.1 are both tagged, released
+  and marketplace re-pinned.** The live `publish-npm.yml` run failed with `ENEEDAUTH`; the
+  `npm-publish` environment exists and carries its branch policy but holds zero secrets.
+  **The workflow has since been converted to npm trusted publishing (OIDC) and needs no credential
+  at all** - no token to store, rotate or leak, and provenance is automatic. It also asserts the
+  npm >= 11.5.1 and Node >= 22.14.0 floors OIDC requires, rather than inheriting whatever npm the
+  pinned Node bundles.
+  **The one remaining step is on the maintainer's npm account and cannot be automated:** register a
+  trusted publisher at npmjs.com (package Settings, Trusted Publisher, GitHub Actions) bound to
+  `product-on-purpose` / `agent-skills-toolkit` / `publish-npm.yml` / environment `npm-publish`.
+  After that, dispatching the workflow publishes with no further setup. Full diagnosis in the
+  v1.12.0 release packet; the mechanism is documented in `RELEASE.md`.
 - **The validator-parity harness is GATING** as of v1.12.0, discharging ADR 0042's scheduled flip.
   Its stated condition was met by v1.11.0 and v1.11.1 completing real CI cycles green. One
   consequence was accepted knowingly: under gating, a run where `uvx` cannot be installed reds a
