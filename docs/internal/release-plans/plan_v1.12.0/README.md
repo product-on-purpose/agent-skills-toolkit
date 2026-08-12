@@ -162,6 +162,52 @@ scope claims a directory, which changes what an existing target is graded by. Th
 also needs a decision nobody has made: whether a catalogue mixing skill entries and plugin entries is
 legal at all. E36 carries it with that question first.
 
+## npm: NOT published, and the blocker is precisely diagnosed
+
+**`agent-skills-toolkit` on npm is still `1.11.1`. v1.12.0 is tagged, GitHub-released and marketplace
+re-pinned, but npm consumers do not have it.** Recorded here rather than left to be discovered, because
+a release record that goes quiet about a step it did not complete is the drift class this release
+closed in `RELEASE.md`.
+
+`publish-npm.yml` was dispatched twice against `v1.12.0`:
+
+| Run | Mode | Result |
+|---|---|---|
+| [31581072247](https://github.com/product-on-purpose/agent-skills-toolkit/actions/runs/31581072247) | `dry_run: true` | **success** |
+| [31581281133](https://github.com/product-on-purpose/agent-skills-toolkit/actions/runs/31581281133) | `dry_run: false` | **failure**, at the publish step only |
+
+Everything before the final step worked, and this is the **first time the whole chain has ever executed
+live** - the previous release's record listed it as NOT verified because that publish was done by hand.
+Tag verification, main-ancestry proof, the trust-root checkout, install, suite, gate and pack all
+passed; `npm pack` produced `agent-skills-toolkit-1.12.0.tgz`, 65 files, 160.9 kB, including the new
+`scripts/lib/marketplace/` module. It failed on authentication and nothing else:
+
+```
+npm error code ENEEDAUTH
+npm error need auth This command requires you to be logged in to https://registry.npmjs.org/
+```
+
+**Cause, verified rather than inferred.** The `npm-publish` GitHub environment exists and carries the
+branch policy v1.11.0 gave it, but holds **zero secrets** (`gh api .../environments/npm-publish/secrets`
+returns none), and there are no repository-level secrets either. The workflow wires
+`NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}`, which therefore resolves to empty.
+
+**Nothing partial happened.** The registry still serves `1.11.1`, no version was created, and there is
+nothing to unpublish or clean up. The workflow failed closed, which is what it was built to do.
+
+**Two ways to finish it, and the second is the better one.** Both need the maintainer's npm account:
+
+1. Create a granular npm access token with publish rights on this package and add it as an
+   **environment** secret named `NPM_TOKEN` on `npm-publish` - the workflow's own comment requires
+   environment scope rather than repository scope, deliberately.
+2. Configure **npm Trusted Publishing** (OIDC) on npmjs.com against this repository and
+   `publish-npm.yml`. No token to store or rotate, and `--provenance` works, which a laptop publish
+   cannot produce. The run's own log carries npm's deprecation notice for tokens that bypass 2FA, so
+   this is the forward-compatible path.
+
+Until one of those lands, re-dispatching the workflow will fail the same way, and a local
+`npm publish` remains possible but needs a human at the 2FA prompt and yields no provenance.
+
 ## Records brought current
 
 - `docs/internal/RELEASE-HISTORY.md` was **two releases stale**: v1.11.0 and v1.11.1 shipped with no

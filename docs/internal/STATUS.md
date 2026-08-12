@@ -30,6 +30,13 @@
   **E33** (A6 restricted fields are detected in marketplace scope but not in plugin scope) and
   **E34** (whether any cross-member finding should become a numbered spine check at all). Both are
   ADR-gated on the Standard 0.13 cut.
+- **npm is BEHIND: the registry serves 1.11.1, not 1.12.0.** v1.12.0 is tagged, GitHub-released and
+  marketplace re-pinned, but `publish-npm.yml`'s live run failed with `ENEEDAUTH` - the `npm-publish`
+  environment exists and carries its branch policy but holds **zero secrets**, so
+  `secrets.NPM_TOKEN` resolves to empty. Nothing partial happened and there is nothing to clean up.
+  Needs the maintainer's npm account: either an `NPM_TOKEN` **environment** secret on `npm-publish`,
+  or (better) npm Trusted Publishing via OIDC, which needs no stored token and is the only path that
+  produces `--provenance`. Full diagnosis in the v1.12.0 release packet.
 - **The validator-parity harness is GATING** as of v1.12.0, discharging ADR 0042's scheduled flip.
   Its stated condition was met by v1.11.0 and v1.11.1 completing real CI cycles green. One
   consequence was accepted knowingly: under gating, a run where `uvx` cannot be installed reds a
