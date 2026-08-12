@@ -292,8 +292,57 @@ export function findException(exceptions, result) {
   const tool = result.tool === "claude-fallback" ? "claude" : result.tool;
   const detail = typeof result.detail === "string" ? result.detail : "";
   return exceptions.find((e) =>
-    e.target === result.target && e.tool === tool && e.matches instanceof RegExp && e.matches.test(detail)
+    e.target === result.target && e.tool === tool && e.matches instanceof RegExp && allDiagnosticsMatch(detail, e.matches)
   ) ?? null;
+}
+
+/**
+ * Split a validator's output into its individual diagnostics, so an exception can be required to
+ * authorize EVERY one of them rather than merely appear somewhere in the blob.
+ *
+ * The line shape is MEASURED, not assumed. `claude plugin validate templates/seed-plugin --strict`
+ * emits, verbatim today:
+ *
+ *   Validating plugin manifest: <path>
+ *
+ *   ⚠ Found 1 warning:
+ *
+ *     ❯ author: No author information provided. Consider adding author details for plugin attribution
+ *
+ *   ✘ Validation failed (--strict treats warnings as errors)
+ *
+ * so the diagnostics are the `❯`-prefixed lines and everything else is framing. When no line carries
+ * that marker - the skills-ref validator, the reduced-fidelity fallback, or a future format change -
+ * the whole detail is treated as ONE diagnostic, which is exactly the previous behavior. That fallback
+ * is deliberately not fail-closed: going red on a purely cosmetic vendor output change would be the
+ * alarm-fatigue failure ADR 0042 names as its own hazard, and the compound case below is the specific
+ * risk worth spending strictness on.
+ */
+export function extractDiagnostics(detail) {
+  const lines = String(detail ?? "").split(/\r?\n/);
+  const marked = lines.map((l) => /^\s*❯\s*(.+)$/.exec(l)).filter(Boolean).map((m) => m[1].trim());
+  return marked.length ? marked : [String(detail ?? "")];
+}
+
+/**
+ * True iff EVERY diagnostic in the output matches the exception's fingerprint.
+ *
+ * The "every" is the point, and it closes a hole in the fingerprint's own first implementation (which
+ * tested the fingerprint against the whole detail). `templates/seed-plugin` has exactly one authorized
+ * diagnostic, the missing `author`. If it ever acquired a SECOND, unrelated defect, the combined output
+ * would still contain the word "author", so a whole-blob test would keep excusing the result and the
+ * new defect would never gate - in the scaffold template every newly created plugin is generated from,
+ * which is the worst place in the repository to hide one.
+ */
+export function allDiagnosticsMatch(detail, matches) {
+  const diagnostics = extractDiagnostics(detail);
+  // Strip `g`/`y` before testing repeatedly. RegExp.test on a sticky or global pattern advances
+  // lastIndex between calls, so the same regex applied across several diagnostics would match, then
+  // spuriously fail, then match again - and this function's whole job is to call it once per
+  // diagnostic. A latent alternating result inside a gating predicate is not worth leaving to whoever
+  // adds the second exception entry.
+  const re = new RegExp(matches.source, matches.flags.replace(/[gy]/g, ""));
+  return diagnostics.length > 0 && diagnostics.every((d) => re.test(d));
 }
 
 /**
