@@ -102,17 +102,45 @@
 //               of what the candidate does; an orphaned background process is a real, acknowledged,
 //               undocumented-away residual, not a hang.
 //
-//               THE HONEST GUARANTEE, stated plainly because three rounds now show how easy it is to
+//               Round 4 found the SAME shape one level down, in the helper THIS file spawns to do the
+//               killing: `killProcessTree` called the real `taskkill` via `execFile`, which returns a
+//               REFERENCED `ChildProcess` that was discarded, never captured, never unref'd. Confirmed
+//               directly against this exact code path (not just inferred): forcing `ChildProcess.kill()`
+//               to fail (so `execFile`'s own internal timeout-driven termination of a stalled helper
+//               cannot do anything either) reproduced an unbounded hang - the process waited for the
+//               helper's full, uncontrolled lifetime, ending only when an external, outside-Node kill
+//               intervened. A `taskkill` that starts and stalls could become exactly the same kind of
+//               event-loop anchor already fixed for the candidate, just one call deeper. Fixed the same
+//               way, at the source this time rather than after the fact: the helper is now `spawn`'d
+//               directly (not via `execFile`) with `stdio: "ignore"` - its output was never used for
+//               anything but an occasional diagnostic, which this trades away for the fix - and unref'd
+//               IMMEDIATELY, before this process has any idea whether the helper will ever exit. Unref
+//               does not stop this process from hearing the helper's outcome (its `exit`/`error` events
+//               still fire and still update `killConfirmed`), only from waiting on it.
+//
+//               Round 4 also found `killConfirmed` being read as more certain than it is: it stays `null`
+//               when the async kill attempt is still in flight at the hard-stop (a timing this file's own
+//               comments already say was observed - the async attempt regularly finishing AFTER the
+//               hard-stop under real load), and the message-building code treated only an explicit `false`
+//               as "not confirmed," so a still-pending `null` printed the same message as a confirmed
+//               kill. Fixed by treating anything other than `true` as unconfirmed, with wording that
+//               distinguishes an attempt that actively failed from one whose outcome was simply never
+//               heard back in time - both are honestly "not confirmed," but they are not the same fact.
+//
+//               THE HONEST GUARANTEE, stated plainly because four rounds now show how easy it is to
 //               overstate this kind of check: a candidate is accepted only if, within a bounded timeout,
 //               it exits with code 0 after correctly echoing back a randomly-named env var this process
 //               set AND correctly writing a randomly-named token to a path this process gave it, with
-//               WSLENV stripped from its environment. On rejection, THIS PROCESS reliably stops waiting
-//               on the candidate and exits within a bounded time - verified directly, repeatedly, and
-//               deliberately under adversarial conditions (taskkill forced to fail, a genuinely
-//               never-ending candidate) - so a rejected candidate cannot hang `npm test` or the `npm
-//               publish` it gates. What this does NOT guarantee: that the candidate's own OS process is
-//               actually terminated by the time this process moves on. An unconfirmed tree-kill may leave
-//               a descendant running that the direct kill cannot reach; and even a kill this process
+//               WSLENV stripped from its environment. On rejection, THIS PROCESS reliably stops waiting on
+//               the candidate - and on any helper this file spawned to try to kill it - and exits within a
+//               bounded time, verified directly and repeatedly under adversarial conditions (taskkill
+//               forced to fail, taskkill itself replaced with a helper that starts and stays alive, a
+//               genuinely never-ending candidate), so a rejected candidate cannot hang `npm test` or the
+//               `npm publish` it gates. What this does NOT guarantee: that the candidate's own OS process
+//               is actually terminated by the time this process moves on, or that "killConfirmed: true"
+//               (or any value other than an explicit `true`) means more than this process's own best
+//               information at the moment it stopped waiting. An unconfirmed tree-kill may leave a
+//               descendant running that the direct kill cannot reach; and even a kill this process
 //               believes succeeded (Node itself reports a clean SIGKILL exit) can, occasionally, leave the
 //               process running regardless - observed directly, tied to how Git-Bash/MSYS represents its
 //               process tree on Windows. Either way this process does not wait for it or hold it open, and
@@ -123,7 +151,7 @@
 import { existsSync, mkdtempSync, readFileSync, readlinkSync, realpathSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
-import { execFile, execFileSync, spawn } from "node:child_process";
+import { execFileSync, spawn } from "node:child_process";
 
 // Known WSL launcher directories - always true when they match, but (see file header) NOT exhaustive:
 // the WindowsApps App Execution Alias resolves to a path under Program Files\WindowsApps\...\wsl.exe,
@@ -167,19 +195,29 @@ const KILL_GRACE_MS = 2000;
 const RELEASE_DELAY_MS = 750;
 
 /**
- * Attempts to terminate `pid` and everything it spawned, WITHOUT blocking the event loop: uses async
- * `execFile`, never `execFileSync`, so a timer scheduled after this call (the hard-stop) can still fire
- * on time even while this is in flight (round 3's first finding - a synchronous kill inside the timer
- * callback blocked every other timer, including the one meant to bound this exact wait).
+ * Attempts to terminate `pid` and everything it spawned, WITHOUT blocking the event loop AND WITHOUT
+ * ever becoming a new reason this process stays alive.
  *
- * Resolves `true` only when the kill command itself reported success; resolves `false` on any failure
- * (`taskkill` missing, blocked by policy, PID not found, POSIX group-kill failure, ...) or when
- * `forceFailure` is set (test-only: deterministically simulates the failure case without depending on
- * whether `taskkill` actually happens to be available on the machine running the test). A `false` result
+ * `taskkill` is spawned directly (not via `execFile`) so its `ChildProcess` handle is unref'd
+ * IMMEDIATELY, before this process knows whether the helper itself will ever exit (round 4 finding: a
+ * helper spawned via `execFile` keeps a REFERENCED handle by default; if `taskkill` itself starts and
+ * then stalls - or its own termination is refused, confirmed directly by forcing `ChildProcess.kill()`
+ * to fail and observing this exact code shape hang for as long as the helper kept running - nothing
+ * ever unrefs that handle, and it becomes exactly the same kind of event-loop anchor already fixed for
+ * the candidate, one level down). Unref does not stop this function from hearing the helper's outcome -
+ * only from waiting on it - so `killConfirmed` is still reported accurately whenever the helper does
+ * finish; it just never costs this process a wait to find out.
+ *
+ * Resolves `true` only when the helper itself exits with code 0. Resolves `false` on any failure
+ * (spawn error, nonzero exit) or when `forceFailure` is set (test-only: deterministically simulates the
+ * candidate-kill failure case without depending on whether `taskkill` actually happens to be available
+ * on the machine running the test). `stuckHelper` (test-only) substitutes a genuinely long-running,
+ * self-terminating stand-in for `taskkill` so a regression can prove this process does not wait for the
+ * helper to finish. A `false` result, or a promise that never settles because the helper never exits,
  * does not mean nothing was attempted - it means the caller cannot trust that the tree is actually gone,
  * and must decide what to do next (see `runUnderSupervisor`).
  */
-function killProcessTree(pid, { forceFailure = false } = {}) {
+function killProcessTree(pid, { forceFailure = false, stuckHelper = false } = {}) {
   return new Promise((resolve) => {
     if (!pid || forceFailure) {
       resolve(false);
@@ -187,9 +225,33 @@ function killProcessTree(pid, { forceFailure = false } = {}) {
     }
     if (process.platform === "win32") {
       // /T walks and kills the whole process tree rooted at pid (not just the immediate child - a WSL
-      // launcher's own descendants die with it); /F forces termination.
-      execFile("taskkill", ["/PID", String(pid), "/T", "/F"], { timeout: 3000 }, (err) => {
-        resolve(!err);
+      // launcher's own descendants die with it); /F forces termination. The stuck-helper stand-in is a
+      // genuinely long-running (but self-terminating, so it does not litter the machine) process,
+      // standing in for a taskkill that starts and never comes back.
+      const [command, args] = stuckHelper
+        ? [process.execPath, ["-e", "setTimeout(() => {}, 5000)"]]
+        : ["taskkill", ["/PID", String(pid), "/T", "/F"]];
+
+      let helper;
+      try {
+        helper = spawn(command, args, { stdio: "ignore", windowsHide: true });
+      } catch {
+        resolve(false);
+        return;
+      }
+      // The fix itself: unref BEFORE knowing the outcome, not after - see the doc comment above.
+      helper.unref();
+
+      let settled = false;
+      helper.on("error", () => {
+        if (settled) return;
+        settled = true;
+        resolve(false);
+      });
+      helper.on("exit", (code) => {
+        if (settled) return;
+        settled = true;
+        resolve(code === 0);
       });
     } else {
       try {
@@ -404,13 +466,24 @@ function evaluateProbeResult(result, vars, probeFile) {
   // about the exit code (a candidate can produce correct output and then hang or fail) - so `pass`
   // below ALSO requires cleanExit.
   const cleanExit = !result.error && !result.timedOut && result.code === 0;
+  // killConfirmed is `true` only when the tree-kill helper itself reported success. Everything else -
+  // `false` (it actively failed) AND `null` (its outcome was still unknown when this process stopped
+  // waiting, a timing this file's own header documents observing under real load) - is UNCONFIRMED, not
+  // just an explicit `false`: treating `null` as anything but unconfirmed is exactly the round-4 finding
+  // (a still-pending kill printed the same message as a confirmed one, contradicting the guarantee this
+  // file states). The two unconfirmed cases still get different wording, because they are different
+  // facts: one is "it tried and failed," the other is "this process never found out."
   const spawnError = result.error
     ? result.error.code || result.error.message
     : result.timedOut
-      ? result.killConfirmed === false
-        ? "timed out; the process tree kill could not be confirmed (a descendant process may still be " +
-          "running) - the immediate child was signalled directly and this process stopped waiting on it"
-        : "timed out and was forcibly terminated (process tree killed)"
+      ? result.killConfirmed === true
+        ? "timed out and was forcibly terminated (process tree killed)"
+        : result.killConfirmed === false
+          ? "timed out; the process tree kill attempt failed (a descendant process may still be running) " +
+            "- the immediate child was signalled directly and this process stopped waiting on it"
+          : "timed out; the process tree kill's outcome was still unknown when this process stopped " +
+            "waiting for it (a descendant process may still be running) - the immediate child was " +
+            "signalled directly and this process stopped waiting on it"
       : result.code !== 0
         ? `exited with code ${result.code}${result.signal ? ` (signal ${result.signal})` : ""}`
         : null;
@@ -437,16 +510,18 @@ function evaluateProbeResult(result, vars, probeFile) {
  *
  * `options.timeoutMs` overrides the default bound (used by tests to keep a deliberately-hanging
  * candidate fast to verify). `options._testVars` / `options._testTailCommand` / `options
- * ._testForceKillFailure` let tests substitute known variables, a misbehaving tail command, or a
- * deterministically-failing tree-kill (simulating `taskkill` being absent or blocked, without depending
- * on whether it actually is on the machine running the test) while exercising this exact function,
- * including its `finally`-guaranteed directory cleanup - none of these are part of the public contract.
+ * ._testForceKillFailure` / `options._testStuckHelper` let tests substitute known variables, a
+ * misbehaving tail command, a deterministically-failing tree-kill (simulating `taskkill` being absent or
+ * blocked, without depending on whether it actually is on the machine running the test), or a
+ * `taskkill` stand-in that starts and stays alive (round 4: proving this process does not wait for the
+ * KILL HELPER either, not just the candidate) while exercising this exact function, including its
+ * `finally`-guaranteed directory cleanup - none of these are part of the public contract.
  *
  * Never throws. The probe directory is always removed, on every path - success, failure, spawn error,
  * or forced kill - via `finally`.
  */
 export async function probeCandidate(candidatePath, options = {}) {
-  const { timeoutMs = DEFAULT_PROBE_TIMEOUT_MS, _testVars, _testTailCommand, _testForceKillFailure } = options;
+  const { timeoutMs = DEFAULT_PROBE_TIMEOUT_MS, _testVars, _testTailCommand, _testForceKillFailure, _testStuckHelper } = options;
   const probeDir = mkdtempSync(path.join(tmpdir(), "askit-bash-probe-"));
   try {
     const probeFile = path.join(probeDir, "probe.txt").replace(/\\/g, "/");
@@ -461,6 +536,7 @@ export async function probeCandidate(candidatePath, options = {}) {
 
     const result = await runUnderSupervisor(candidatePath, ["-c", script], env, timeoutMs, {
       forceFailure: Boolean(_testForceKillFailure),
+      stuckHelper: Boolean(_testStuckHelper),
     });
     return evaluateProbeResult(result, vars, probeFile);
   } finally {

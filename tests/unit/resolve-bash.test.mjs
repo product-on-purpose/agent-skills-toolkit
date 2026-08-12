@@ -275,53 +275,39 @@ test("WSLENV forwarding the probe's own variable names does not let a WSL candid
   }
 });
 
-// --- round 3: a rejection must not hang the process it runs in ---
+// --- round 3 / round 4: a rejection must not hang the process it runs in ---
 //
-// The finding was specifically about PROCESS EXIT, not about probeCandidate()'s return value - a
-// hung child can only be observed by watching whether a process that spawned it can still exit on its
-// own. That can't be tested by calling probeCandidate() directly from within this test's own process
-// (this process is going to keep running other tests regardless of what one probe leaks). So this
-// spawns a disposable, single-purpose Node process whose ENTIRE job is to await one probeCandidate()
-// call against a hung, unkillable-by-taskkill candidate and then fall off the end of its script -
-// deliberately never calling process.exit() itself, since that would force the process down regardless
-// of any leaked handle and defeat the entire point of the test. Node's own natural "drain the event
-// loop, then exit" behavior is exactly what a leaked, still-referenced ChildProcess handle would block -
-// this is the same reproduction shape the reviewer used (an outer bound around an inner process,
-// checking whether it exits on its own rather than trusting a resolved promise).
-test("taskkill unavailable/failing does not hang the process: a hung candidate that outlives the hard-stop still lets the process exit on its own", async (t) => {
-  if (NOT_WIN32) {
-    t.skip(NOT_WIN32);
-    return;
-  }
-  const bash = await findRealBashOrSkip(t);
-  if (!bash) return;
-
+// The finding, both times, was specifically about PROCESS EXIT, not about probeCandidate()'s return
+// value - a hung handle can only be observed by watching whether a process that created it can still
+// exit on its own. That can't be tested by calling probeCandidate() directly from within this test's
+// own process (this process is going to keep running other tests regardless of what one probe leaks).
+// So this spawns a disposable, single-purpose Node process whose ENTIRE job is to await one
+// probeCandidate() call and then fall off the end of its script - deliberately never calling
+// process.exit() itself, since that would force the process down regardless of any leaked handle and
+// defeat the entire point of the test. Node's own natural "drain the event loop, then exit" behavior is
+// exactly what a leaked, still-referenced handle would block - the same reproduction shape the reviewer
+// used both rounds (an outer bound around an inner process, checking whether it exits on its own rather
+// than trusting a resolved promise).
+async function runDisposableProbeScript(bash, optionsSource) {
   const resolveBashModuleUrl = pathToFileURL(path.join(HERE, "_resolve-bash.mjs")).href;
   const dir = mkdtempSync(path.join(tmpdir(), "askit-supervisor-exit-"));
   const scriptPath = path.join(dir, "probe-child.mjs");
 
-  // _testForceKillFailure simulates taskkill being absent or blocked deterministically - see
-  // _resolve-bash.mjs's probeCandidate() doc comment - so this reproduces the finding without depending
-  // on taskkill's real availability on whatever machine runs this test.
   const innerScript =
     `import { probeCandidate } from ${JSON.stringify(resolveBashModuleUrl)};\n` +
-    `const probe = await probeCandidate(${JSON.stringify(bash)}, {\n` +
-    `  timeoutMs: 500,\n` +
-    `  _testTailCommand: "while true; do sleep 1; done",\n` +
-    `  _testForceKillFailure: true,\n` +
-    `});\n` +
+    `const probe = await probeCandidate(${JSON.stringify(bash)}, ${optionsSource});\n` +
     `console.log("SUPERVISOR_TEST_RESULT=" + JSON.stringify(probe));\n` +
     `console.log("SUPERVISOR_TEST_DONE");\n`;
-  // No process.exit() anywhere in the inner script, on purpose - see the comment block above this test.
+  // No process.exit() anywhere in the inner script, on purpose - see the comment block above.
   writeFileSync(scriptPath, innerScript, "utf8");
 
   try {
     const started = Date.now();
-    const outcome = await new Promise((resolve) => {
+    return await new Promise((resolve) => {
       const child = spawn(process.execPath, [scriptPath], { windowsHide: true });
       let stdout = "";
       let settled = false;
-      // A generous OUTER bound, independent of the inner script's own 500ms probe timeout: this is not
+      // A generous OUTER bound, independent of the inner script's own short probe timeout: this is not
       // a tight timing assertion, it exists only so this test itself cannot hang forever if the fix
       // regresses. If this fires, the inner process is force-killed from here and the test fails loudly
       // rather than hanging the suite the way the original defect would have hung `npm publish`.
@@ -345,16 +331,68 @@ test("taskkill unavailable/failing does not hang the process: a hung candidate t
         resolve({ hungPastOuterGuard: false, stdout, elapsedMs: Date.now() - started, code });
       });
     });
-
-    // The actual proof: the inner Node process exited ON ITS OWN (nothing in the inner script calls
-    // process.exit(), and this test only kills it if the outer guard fires) - meaning nothing leaked in
-    // probeCandidate() kept its event loop open, which is exactly what the pre-fix code did (hard-stop
-    // resolves the promise; the process itself stays alive waiting on the still-referenced child).
-    assert.equal(outcome.hungPastOuterGuard, false, `the child Node process must exit on its own well within the outer guard; it did not (stdout so far: ${JSON.stringify(outcome.stdout)})`);
-    assert.match(outcome.stdout, /SUPERVISOR_TEST_DONE/, "the inner script must have actually completed the awaited probeCandidate() call, not exited early for some unrelated reason");
-    assert.match(outcome.stdout, /"pass":false/, "sanity: the hung, unkillable-by-taskkill candidate must still be rejected, not accepted");
-    assert.match(outcome.stdout, /could not be confirmed/, "the rejection reason must honestly report that the tree-kill was not confirmed, not stay silent about it");
   } finally {
     rmSync(dir, { recursive: true, force: true });
   }
+}
+
+test("taskkill unavailable/failing does not hang the process: a hung candidate that outlives the hard-stop still lets the process exit on its own", async (t) => {
+  if (NOT_WIN32) {
+    t.skip(NOT_WIN32);
+    return;
+  }
+  const bash = await findRealBashOrSkip(t);
+  if (!bash) return;
+
+  // _testForceKillFailure simulates taskkill being absent or blocked deterministically - see
+  // _resolve-bash.mjs's probeCandidate() doc comment - so this reproduces the finding without depending
+  // on taskkill's real availability on whatever machine runs this test.
+  const outcome = await runDisposableProbeScript(
+    bash,
+    '{\n  timeoutMs: 500,\n  _testTailCommand: "while true; do sleep 1; done",\n  _testForceKillFailure: true,\n}'
+  );
+
+  // The actual proof: the inner Node process exited ON ITS OWN (nothing in the inner script calls
+  // process.exit(), and this test only kills it if the outer guard fires) - meaning nothing leaked in
+  // probeCandidate() kept its event loop open, which is exactly what the pre-fix code did (hard-stop
+  // resolves the promise; the process itself stays alive waiting on the still-referenced child).
+  assert.equal(outcome.hungPastOuterGuard, false, `the child Node process must exit on its own well within the outer guard; it did not (stdout so far: ${JSON.stringify(outcome.stdout)})`);
+  assert.match(outcome.stdout, /SUPERVISOR_TEST_DONE/, "the inner script must have actually completed the awaited probeCandidate() call, not exited early for some unrelated reason");
+  assert.match(outcome.stdout, /"pass":false/, "sanity: the hung, unkillable-by-taskkill candidate must still be rejected, not accepted");
+  assert.match(outcome.stdout, /process tree kill attempt failed/, "the rejection reason must honestly report that the tree-kill attempt failed, not stay silent about it");
+});
+
+// --- round 4, high finding: the KILL HELPER itself must not become the new event-loop anchor ---
+//
+// killProcessTree spawns "taskkill" to try to kill the candidate. If that helper starts and then stays
+// alive - its own termination refused or simply never arriving - and nothing ever unrefs its handle, the
+// helper becomes exactly the same kind of anchor already fixed for the candidate, one call deeper.
+// _testStuckHelper substitutes a genuinely long-running (but self-terminating, so it does not litter the
+// machine after the test) stand-in for taskkill, so this reproduces the finding deterministically without
+// depending on real taskkill actually hanging on whatever machine runs this test.
+test("a taskkill helper that starts and stays alive does not hang the process either: the outer Node process exits on its own regardless of the helper's own fate", async (t) => {
+  if (NOT_WIN32) {
+    t.skip(NOT_WIN32);
+    return;
+  }
+  const bash = await findRealBashOrSkip(t);
+  if (!bash) return;
+
+  const outcome = await runDisposableProbeScript(
+    bash,
+    '{\n  timeoutMs: 500,\n  _testTailCommand: "while true; do sleep 1; done",\n  _testStuckHelper: true,\n}'
+  );
+
+  // Same proof as the round-3 test above, this time with a REAL (if substituted) helper process left
+  // running rather than a forced-failure short-circuit - the inner process must still exit on its own
+  // well before the stuck helper's own 5-second natural lifetime elapses, proving this process never
+  // waited for the helper either.
+  assert.equal(outcome.hungPastOuterGuard, false, `the child Node process must exit on its own well within the outer guard, regardless of the stuck helper still running; it did not (stdout so far: ${JSON.stringify(outcome.stdout)})`);
+  assert.ok(outcome.elapsedMs < 5000, `the process must exit well before the stuck helper's own 5000ms natural lifetime, proving it did not wait for the helper; took ${outcome.elapsedMs}ms`);
+  assert.match(outcome.stdout, /SUPERVISOR_TEST_DONE/, "the inner script must have actually completed the awaited probeCandidate() call, not exited early for some unrelated reason");
+  assert.match(outcome.stdout, /"pass":false/, "sanity: the hung candidate must still be rejected, not accepted");
+  // The stuck helper's own outcome can never arrive in time (it does not exit on its own for 5 seconds),
+  // so killConfirmed stays null the whole time this process is running - the round-4 "unconfirmed, not
+  // silently claimed confirmed" wording, not the "process tree killed" wording a confirmed kill gets.
+  assert.match(outcome.stdout, /outcome was still unknown/, "an unconfirmed kill (the helper never reported back in time) must not be reported as a confirmed one");
 });

@@ -55,19 +55,35 @@ stderr.
   instead, uniformly across explicit locations and `PATH` fallbacks; the lexical match survives only as
   a cheap pre-filter that can reject early and never grant acceptance.
 
-  The guarantee, quoted from the implementation rather than paraphrased:
+  **Acceptance**, quoted from the implementation rather than paraphrased:
 
   > A candidate is accepted only if, within a bounded timeout, it exits with code 0 after correctly
   > echoing back a randomly-named environment variable this process set **and** correctly writing a
   > randomly-named token to a file path this process gave it, with `WSLENV` stripped from the
-  > environment it runs in. That closes every concrete bypass found across both review rounds, but it
+  > environment it runs in. That closes every concrete bypass found across the review rounds, but it
   > is an empirical, bounded-time behavioral test, not a formal proof of isolation.
 
-  **Two drafts of that sentence were wrong before this one.** The first said the probe was "immune to
-  launcher paths nobody has invented yet"; round 2 showed that false while the variable **names** were
-  fixed, because `WSLENV` forwards named variables across the boundary. Quoting the implementer is a
-  deliberate structural fix: this is the fourth consecutive release in which a control's scope was
-  described more strongly than the code enforced, and prose discipline has demonstrably not corrected it.
+  **Rejection**, likewise quoted:
+
+  > On rejection, this process reliably stops waiting - on the candidate and on any helper this file
+  > spawned to try to kill it - and exits within a bounded time, verified directly under adversarial
+  > conditions including a kill helper that itself starts and never reports back. It does not guarantee
+  > the candidate's own OS process is actually terminated, or that anything short of an explicit
+  > confirmed success means more than "this process stopped waiting and moved on."
+
+  **Four drafts of those sentences were wrong before these.** The first claimed immunity to "launcher
+  paths nobody has invented yet", falsified in round 2 while the variable **names** were still fixed,
+  because `WSLENV` forwards named variables across the boundary. The second claimed the supervisor
+  "returns even if the kill does not land", falsified in round 3: the *function* returned, the
+  *process* did not exit. The third omitted that the `taskkill` helper itself could become the
+  event-loop anchor, falsified in round 4. And this file carried the round-2 wording while calling
+  itself a verbatim quote until round 4 caught the drift, which is the same fix-one-place-miss-the-
+  sibling pattern filed as E31.
+
+  Quoting the implementer is a deliberate structural fix, and it has now caught three of these where
+  careful writing caught none. This is the fourth consecutive release in which a control's scope was
+  described more strongly than the code enforced it, and prose discipline has demonstrably not
+  corrected that.
 - **A second defect surfaced while proving the first:** `existsSync` returns **false** for that App
   Execution Alias even though `execFileSync` spawns it. The existence gate that supposedly protected
   explicit candidates would have called a working WSL launcher absent. Wrong in both directions at once.
