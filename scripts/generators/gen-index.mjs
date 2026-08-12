@@ -103,6 +103,22 @@ export function renderIndex(ctx) {
   if (label) tierBits.push(`**Tier:** ${label} (${tier}).`);
   if (data.standard) tierBits.push(`Standard ${data.standard}.`);
   if (data.version) tierBits.push(`Version ${data.version}.`);
+  // KNOWN DEFECT, deliberately not fixed here - see backlog E35.
+  //
+  // This line is emitted unconditionally, including into plugins that have no `scripts/check.mjs`, so
+  // for them it names a command nothing installs. That is the same defect class v1.10.0 fixed for the
+  // two boilerplate sections below, one layer deeper: it ships inside the CONSUMER's own repository,
+  // over their signature. It was found by running this repository's own published instruction from a
+  // consumer's position (`npm i -D agent-skills-toolkit` into a clean directory, then regenerate).
+  //
+  // The one-line conditional fix was written, tested, and REVERTED inside the v1.12.0 cut, because
+  // measuring it rather than reasoning about it showed it moves a live verdict: it changes the expected
+  // INDEX for every plugin without a `scripts/check.mjs`, and `product-lifecycle-templates` - green at
+  // Advanced 0/0 before the change - went to a G4 error immediately. The reasoning that had justified
+  // shipping it ("every affected plugin is already in G4 drift from the v1.10.0 fix, so one
+  // regeneration closes both") was simply false, and one measurement falsified it. A migration-bearing
+  // generator change belongs in a release that schedules a migration; v1.12.0's governing invariant is
+  // that no existing verdict moves. E35 carries it to the Standard 0.13 cut.
   tierBits.push("Self-validating: `node scripts/check.mjs`.");
   lines.push(tierBits.join(" "));
   lines.push("");

@@ -20,6 +20,7 @@ import {
   summarizeDisagreements,
   formatResultLine,
   metadataParityUnavailableResult,
+  PARITY_MODE,
 } from "../../scripts/check-parity.mjs";
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
@@ -278,34 +279,36 @@ test("PARITY_EXCEPTIONS: carries the one real, currently-live exception (templat
 });
 
 test("findException: matches on exact target + tool", () => {
-  const exceptions = [{ target: "templates/seed-plugin", tool: "claude", adr: "0043", reason: "r" }];
-  const found = findException(exceptions, { target: "templates/seed-plugin", tool: "claude" });
+  const exceptions = [{ target: "templates/seed-plugin", tool: "claude", adr: "0043", matches: /author/i, reason: "r" }];
+  const found = findException(exceptions, { target: "templates/seed-plugin", tool: "claude", detail: "author: No author information provided" });
   assert.equal(found.adr, "0043");
 });
 
 test("findException: the vendored claude fallback (\"claude-fallback\") matches a \"claude\" exception - same vendor rule, reduced-fidelity path", () => {
-  const exceptions = [{ target: "templates/seed-plugin", tool: "claude", adr: "0043", reason: "r" }];
-  const found = findException(exceptions, { target: "templates/seed-plugin", tool: "claude-fallback" });
+  const exceptions = [{ target: "templates/seed-plugin", tool: "claude", adr: "0043", matches: /author/i, reason: "r" }];
+  const found = findException(exceptions, { target: "templates/seed-plugin", tool: "claude-fallback", detail: "author: No author information provided" });
   assert.equal(found.adr, "0043");
 });
 
 test("findException: no match returns null - a different target or tool is never silently covered", () => {
-  const exceptions = [{ target: "templates/seed-plugin", tool: "claude", adr: "0043", reason: "r" }];
-  assert.equal(findException(exceptions, { target: "skills/askit-decision", tool: "claude" }), null);
-  assert.equal(findException(exceptions, { target: "templates/seed-plugin", tool: "skills-ref" }), null);
+  const exceptions = [{ target: "templates/seed-plugin", tool: "claude", adr: "0043", matches: /author/i, reason: "r" }];
+  assert.equal(findException(exceptions, { target: "skills/askit-decision", tool: "claude", detail: "author: No author information provided" }), null);
+  assert.equal(findException(exceptions, { target: "templates/seed-plugin", tool: "skills-ref", detail: "author: No author information provided" }), null);
 });
 
 test("applyExceptions: attaches the exception to a matching FAILING result, without changing pass/ran/detail", () => {
-  const exceptions = [{ target: "templates/seed-plugin", tool: "claude", adr: "0043", reason: "on purpose" }];
-  const results = [{ kind: "vendor-validate", tool: "claude", target: "templates/seed-plugin", ran: true, pass: false, detail: "raw output" }];
+  const exceptions = [{ target: "templates/seed-plugin", tool: "claude", adr: "0043", matches: /author/i, reason: "on purpose" }];
+  // The detail must contain the authorized diagnostic, or the exception does not apply at all - that is
+  // the fingerprint added in v1.12.0, and it is why this fixture is no longer opaque "raw output".
+  const results = [{ kind: "vendor-validate", tool: "claude", target: "templates/seed-plugin", ran: true, pass: false, detail: "author: No author information provided" }];
   const out = applyExceptions(results, exceptions);
   assert.equal(out[0].pass, false, "an annotated result is still reported as a failure, never hidden");
-  assert.equal(out[0].detail, "raw output");
+  assert.equal(out[0].detail, "author: No author information provided");
   assert.equal(out[0].exception.adr, "0043");
 });
 
 test("applyExceptions: a PASSING result is left alone even if an exception entry exists for it (nothing to explain)", () => {
-  const exceptions = [{ target: "templates/seed-plugin", tool: "claude", adr: "0043", reason: "r" }];
+  const exceptions = [{ target: "templates/seed-plugin", tool: "claude", adr: "0043", matches: /author/i, reason: "r" }];
   const results = [{ kind: "vendor-validate", tool: "claude", target: "templates/seed-plugin", ran: true, pass: true }];
   const out = applyExceptions(results, exceptions);
   assert.equal(out[0].exception, undefined);
@@ -369,7 +372,7 @@ test("validateExceptions: an exception whose ADR resolves to a real file produce
   try {
     mkdirSync(path.join(dir, "docs", "internal", "decisions"), { recursive: true });
     writeFileSync(path.join(dir, "docs", "internal", "decisions", "0043-bronze-scaffold-defaults-a-minimal-native-manifest.md"), "# 0043");
-    const exceptions = [{ target: "templates/seed-plugin", tool: "claude", adr: "0043", reason: "r" }];
+    const exceptions = [{ target: "templates/seed-plugin", tool: "claude", adr: "0043", matches: /author/i, reason: "r" }];
     assert.deepEqual(validateExceptions(exceptions, dir), []);
   } finally {
     rmSync(dir, { recursive: true, force: true });
@@ -380,7 +383,7 @@ test("validateExceptions: an exception whose ADR does NOT resolve is itself repo
   const dir = tmp();
   try {
     mkdirSync(path.join(dir, "docs", "internal", "decisions"), { recursive: true });
-    const exceptions = [{ target: "templates/seed-plugin", tool: "claude", adr: "9999", reason: "r" }];
+    const exceptions = [{ target: "templates/seed-plugin", tool: "claude", adr: "9999", matches: /author/i, reason: "r" }];
     const findings = validateExceptions(exceptions, dir);
     assert.equal(findings.length, 1);
     assert.equal(findings[0].kind, "exception-integrity");
@@ -426,12 +429,16 @@ const HAS_CLAUDE = commandAvailable("claude");
 const HAS_UVX = commandAvailable("uvx");
 
 test(
-  "CLI: `node scripts/check-parity.mjs .` exits 0 and prints the report-only banner and every section",
+  "CLI: `node scripts/check-parity.mjs .` exits 0 and prints the gating banner and every section",
   { skip: !(HAS_CLAUDE && HAS_UVX) && "claude and/or uvx not on PATH in this environment" },
   () => {
     const r = spawnSync(process.execPath, [SCRIPT, "."], { cwd: REPO_ROOT, encoding: "utf8" });
-    assert.equal(r.status, 0, `expected exit 0 (report-only); stderr: ${r.stderr}`);
-    assert.match(r.stdout, /REPORT-ONLY/);
+    assert.equal(r.status, 0, `expected exit 0 (clean tree, one documented exception); stderr: ${r.stderr}`);
+    // Since the v1.12.0 flip the SHIPPED default is gating, and the banner must say so without the word
+    // "override" - the override wording is reserved for a run that actually passed --mode=, so a CI log
+    // never misreports the harness's own configuration.
+    assert.match(r.stdout, /GATING \(PARITY_MODE = "gating"\)/);
+    assert.doesNotMatch(r.stdout, /REPORT-ONLY/);
     assert.match(r.stdout, /ADR 0042/);
     assert.match(r.stdout, /claude plugin validate/);
     assert.match(r.stdout, /skills-ref/);
@@ -444,10 +451,10 @@ test(
 );
 
 // --- The gating flip, proven end-to-end (pre-release adversarial review finding, corrected): a real
-// seeded metadata-parity mismatch must exit 0 in report-only (the shipped default) and 1 once gating.
-// Driven by the `--mode=gating` CLI override (see main() in scripts/check-parity.mjs) rather than by
-// editing the PARITY_MODE constant, so this test exercises the gating branch without leaving the
-// shipped default flipped for every other test and every real invocation. ---
+// seeded metadata-parity mismatch must exit 1 under the SHIPPED default, which since v1.12.0 is
+// "gating". Both directions are still exercised: the default (no flag) proves what a real invocation
+// does, and `--mode=report-only` proves the mode switch still works the other way, so a future flip
+// back would not have to rediscover the branch. Before v1.12.0 these assertions were reversed. ---
 
 /**
  * An ISOLATED copy of just the subtrees scripts/check-parity.mjs reads from its `root` argument
@@ -469,7 +476,7 @@ function buildIsolatedParityCopy() {
 }
 
 test(
-  "CLI: a real seeded metadata-parity mismatch exits 0 in report-only and 1 under the --mode=gating override (this is the exact class the pre-release review found was NOT gating)",
+  "CLI: a real seeded metadata-parity mismatch exits 1 under the shipped default (gating) and 0 under --mode=report-only (this is the exact class the pre-release review found was NOT gating)",
   { skip: !(HAS_CLAUDE && HAS_UVX) && "claude and/or uvx not on PATH in this environment" },
   () => {
     const copyRoot = buildIsolatedParityCopy();
@@ -487,19 +494,23 @@ test(
       );
       writeFileSync(skillMd, mutated);
 
-      const reportOnly = spawnSync(process.execPath, [SCRIPT, copyRoot], { encoding: "utf8" });
-      assert.equal(reportOnly.status, 0, `report-only must still exit 0 even with a real seeded mismatch; stderr: ${reportOnly.stderr}`);
+      // No flag: this is exactly what CI and a contributor's own machine run, so it is the assertion
+      // that actually protects the flip.
+      const shipped = spawnSync(process.execPath, [SCRIPT, copyRoot], { encoding: "utf8" });
+      assert.equal(
+        shipped.status,
+        1,
+        `the shipped default (gating since v1.12.0) must exit 1 on a real metadata-parity mismatch - this is the exact defect the pre-release review found; stdout:\n${shipped.stdout}\nstderr: ${shipped.stderr}`
+      );
+      assert.match(shipped.stdout, /GATING/);
+      assert.match(shipped.stdout, /\[MISMATCH\] skills\/askit-decision/);
+      assert.match(shipped.stdout, /metadata-parity: \d+ finding\(s\).*BLOCKS this run/);
+
+      const reportOnly = spawnSync(process.execPath, [SCRIPT, copyRoot, "--mode=report-only"], { encoding: "utf8" });
+      assert.equal(reportOnly.status, 0, `--mode=report-only must exit 0 even with a real seeded mismatch; stderr: ${reportOnly.stderr}`);
+      assert.match(reportOnly.stdout, /REPORT-ONLY \(PARITY_MODE override = "report-only"\)/);
       assert.match(reportOnly.stdout, /\[MISMATCH\] skills\/askit-decision/);
       assert.match(reportOnly.stdout, /metadata-parity: \d+ finding/);
-
-      const gating = spawnSync(process.execPath, [SCRIPT, copyRoot, "--mode=gating"], { encoding: "utf8" });
-      assert.equal(
-        gating.status,
-        1,
-        `gating mode must exit 1 on a real metadata-parity mismatch - this is the exact defect the pre-release review found; stdout:\n${gating.stdout}\nstderr: ${gating.stderr}`
-      );
-      assert.match(gating.stdout, /GATING/);
-      assert.match(gating.stdout, /\[MISMATCH\] skills\/askit-decision/);
     } finally {
       rmSync(copyRoot, { recursive: true, force: true });
     }
@@ -512,11 +523,61 @@ test(
   () => {
     // Run against the real, unmodified repository: its only known vendor-validate disagreement
     // (templates/seed-plugin vs --strict) is documented (ADR 0043) and every skill's metadata.*
-    // currently round-trips clean, so this proves the gating override does not fail merely by being
-    // engaged - only an actual undocumented disagreement (proven by the test above) does.
+    // currently round-trips clean, so this proves gating does not fail merely by being engaged - only
+    // an actual undocumented disagreement (proven by the test above) does. Kept explicit rather than
+    // relying on the shipped default, so it still asserts the same thing if PARITY_MODE ever moves.
     const r = spawnSync(process.execPath, [SCRIPT, ".", "--mode=gating"], { cwd: REPO_ROOT, encoding: "utf8" });
     // The live repo's one documented exception (ADR 0043) is expected and must not gate even here.
     assert.equal(r.status, 0, `expected exit 0 (documented exception only, no undocumented disagreement); stdout:\n${r.stdout}\nstderr: ${r.stderr}`);
     assert.match(r.stdout, /GATING/);
+    // The documented-exception summary line must now read in the present tense, since enforcement is on.
+    assert.match(r.stdout, /Nothing here blocks this run/);
   }
 );
+
+// --- The exception fingerprint (pre-release adversarial review, v1.12.0). Before this, an exception
+// keyed on target+tool alone excused EVERY failure of that target under that tool - which was survivable
+// while the harness was report-only and is a real hole now that it gates: an unrelated regression on
+// templates/seed-plugin would be annotated as the known missing-author exception and exit 0. ---
+
+test("findException: an exception authorizes a specific DIAGNOSTIC, not a target", () => {
+  const exceptions = [{ target: "templates/seed-plugin", tool: "claude", adr: "0043", matches: /author/i, reason: "r" }];
+  const base = { kind: "vendor-validate", target: "templates/seed-plugin", tool: "claude", ran: true, pass: false };
+
+  // The authorized diagnostic still matches.
+  assert.ok(findException(exceptions, { ...base, detail: "author: No author information provided" }));
+  // An UNRELATED failure of the same target under the same tool does NOT.
+  assert.equal(findException(exceptions, { ...base, detail: "name: must be a non-empty string" }), null);
+  assert.equal(findException(exceptions, { ...base, detail: "Validation failed: unreadable manifest" }), null);
+  // A different target is still never matched.
+  assert.equal(findException(exceptions, { ...base, target: "." , detail: "author: missing" }), null);
+});
+
+test("findException: an entry with no RegExp fingerprint never applies (fail closed)", () => {
+  const noMatches = [{ target: "t", tool: "claude", adr: "0043", reason: "r" }];
+  const badMatches = [{ target: "t", tool: "claude", adr: "0043", matches: "author", reason: "r" }];
+  const result = { kind: "vendor-validate", target: "t", tool: "claude", ran: true, pass: false, detail: "author: missing" };
+  assert.equal(findException(noMatches, result), null, "no fingerprint must not mean 'match everything'");
+  assert.equal(findException(badMatches, result), null, "a string is not a RegExp; do not stringly-match");
+});
+
+test("validateExceptions: a fingerprint-less entry is reported as broken, not silently inert", () => {
+  const findings = validateExceptions([{ target: "t", tool: "claude", adr: "0043", reason: "r" }], REPO_ROOT);
+  assert.equal(findings.length, 1);
+  assert.equal(findings[0].kind, "exception-integrity");
+  assert.match(findings[0].detail, /no `matches` RegExp/);
+});
+
+test("PARITY_EXCEPTIONS: every shipped entry carries a RegExp fingerprint", () => {
+  for (const e of PARITY_EXCEPTIONS) {
+    assert.ok(e.matches instanceof RegExp, `exception for ${e.target} must fingerprint its authorized diagnostic`);
+  }
+  assert.deepEqual(validateExceptions(PARITY_EXCEPTIONS, REPO_ROOT), [], "the shipped list is well-formed");
+});
+
+// The shipped constant itself, asserted directly. The banner and exit-code tests above all skip when
+// the vendor CLIs are absent, so without this the v1.12.0 flip could be silently reverted and every
+// remaining test would still pass on a machine (or a CI leg) without `claude`/`uvx` installed.
+test("PARITY_MODE ships as 'gating' (the v1.12.0 flip, ADR 0042's scheduled discharge)", () => {
+  assert.equal(PARITY_MODE, "gating");
+});

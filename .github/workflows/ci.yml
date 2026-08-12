@@ -141,11 +141,12 @@ jobs:
   # reports where they disagree with what this repository claims, plus a parsed-values round-trip of
   # every skill's metadata.* through the reference PARSER (the ADR 0040 metadata.chain incident is why
   # that half exists - a harness that only checked exit codes reported this repo clean while a value
-  # was being silently mangled). Report-only for v1.11.0: this job always runs to completion and its
-  # exit code is whatever scripts/check-parity.mjs's PARITY_MODE decides (today: always 0). A separate
+  # was being silently mangled). GATING since v1.12.0: this job runs to completion and its exit code is
+  # whatever scripts/check-parity.mjs's PARITY_MODE decides, which is now "gating" - an undocumented
+  # disagreement, a metadata-parity mismatch, or the reference parser failing to install all fail this
+  # job. ADR 0042 named the evidence that released the flip; the v1.12.0 packet records it. A separate
   # job, not a step folded into `validate`, because it installs two extra vendor CLIs the plain
-  # validate jobs deliberately do not carry, and because a report-only job must never occupy a
-  # required-status-check slot a gating job depends on.
+  # validate jobs deliberately do not carry.
   validator-parity:
     runs-on: ubuntu-latest
     steps:
@@ -182,5 +183,5 @@ jobs:
       - name: Install uv (provides uvx)
         run: pip install uv
 
-      - name: Validator parity (report-only - see ADR 0042 and PARITY_MODE in scripts/check-parity.mjs)
+      - name: Validator parity (gating since v1.12.0 - see ADR 0042 and PARITY_MODE in scripts/check-parity.mjs)
         run: node scripts/check-parity.mjs .

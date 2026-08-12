@@ -2,7 +2,7 @@
 name: askit-build-subagent
 description: Creates and improves Claude subagents (agents/<name>.md) to the Advanced Skill Library Standard. Use when you need to author a new subagent, scaffold an agents/ delegate, declare its tools and chain, or raise an existing subagent's conformance.
 metadata:
-  version: 0.1.0
+  version: 0.2.0
   tier: universal
   audience: intermediate
 ---
@@ -19,9 +19,10 @@ When the user asks to create, scaffold, write, or improve a subagent (an `agents
 1. Brief interview: ask for the subagent name (kebab-case), the bounded job it owns, the narrowest tools it needs, and which components (if any) it may invoke. Skip the interview if these inputs are already in context.
 2. Copy `templates/agent.md` into `agents/<name>.md`.
 3. Fill the frontmatter: `name` equal to the file basename; a `description` that states what AND when (Standard sec 8.1); `tools` as the narrowest set (sec 9); optional `model`; `metadata.chain` naming the components it may invoke as a comma-separated string (the recommended shape - a YAML list is silently coerced to a string repr by the reference implementation, see `authoring-chain-contracts.md`; omit `chain` if there is none); `metadata.version`, `metadata.tier`, `metadata.status`, and `metadata.agent-targets: [claude]` (sec 3.3 - subagents are Claude-only for plugin distribution).
-4. Register the subagent in `library.json` `components.subagents` as `{ name, path, version, tier, status }`.
-5. If the subagent declares a `chain`, add the entry to `agents/_chain-permitted.yaml` (`<name>: [<invoked>, ...]`) so S4 has no orphan.
-6. Assess with `node scripts/evaluate.mjs . --json` and iterate until 0 errors (S3 components index + S4 chain contract must be clean).
+4. Do **not** write `hooks`, `mcpServers`, or `permissionMode`. Claude Code states plainly that "for security reasons, `hooks`, `mcpServers`, and `permissionMode` are not supported for plugin-shipped agents" ([plugins reference](https://code.claude.com/docs/en/plugins-reference), read 2026-08-12). Writing one does not configure anything; the runtime refuses it, and the author is left believing otherwise. The supported set is `name`, `description`, `model`, `effort`, `maxTurns`, `tools`, `disallowedTools`, `skills`, `memory`, `background`, and `isolation` (whose only valid value is `worktree`). Marketplace scope reports this across every member of a catalogue.
+5. Register the subagent in `library.json` `components.subagents` as `{ name, path, version, tier, status }`.
+6. If the subagent declares a `chain`, add the entry to `agents/_chain-permitted.yaml` (`<name>: [<invoked>, ...]`) so S4 has no orphan.
+7. Assess with `node scripts/evaluate.mjs . --json` and iterate until 0 errors (S3 components index + S4 chain contract must be clean).
 
 ## improve mode
 1. Run `node scripts/evaluate.mjs . --json` and read the report.

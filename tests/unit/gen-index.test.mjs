@@ -40,6 +40,29 @@ test("manifest and doc rows render only for artifacts the plugin actually ships"
   }
 });
 
+test("the self-validation line is still emitted unconditionally (E35, a KNOWN defect held for a migration release)", () => {
+  // This test asserts the CURRENT, KNOWN-WRONG behavior on purpose, so the defect cannot be
+  // accidentally re-fixed without meeting the reason it was held back.
+  //
+  // The line names `node scripts/check.mjs` even for a plugin that has no such path - a command
+  // nothing installs for a consumer, emitted into their own repository over their signature. The
+  // one-line conditional fix was written and tested inside the v1.12.0 cut and then reverted:
+  // measuring it showed it moves a live verdict (product-lifecycle-templates, green at Advanced 0/0,
+  // took a G4 error the moment the expected INDEX changed), and v1.12.0's governing invariant is that
+  // no existing verdict moves. E35 carries the fix to a release that schedules a migration.
+  //
+  // When E35 lands, invert this test rather than deleting it.
+  const dir = mkdtempSync(path.join(tmpdir(), "genidx-selfvalidate-"));
+  try {
+    writeFileSync(path.join(dir, "library.json"), '{ "name": "consumer", "version": "0.1.0", "tier": "universal" }\n');
+    const consumer = renderIndex(loadPlugin(dir));
+    assert.match(consumer, /Self-validating: `node scripts\/check\.mjs`/, "unconditional today; see E35");
+    assert.ok(!consumer.includes("npx agent-skills-toolkit"), "the conditional fix is deliberately NOT in this release");
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
 test("a composite row renders only its surviving fragments, still ending in one period", () => {
   const dir = mkdtempSync(path.join(tmpdir(), "genidx-composite-"));
   try {

@@ -69,9 +69,11 @@
 /reference/askit-template-manager/index.html
 /reference/builder-pattern/index.html
 /reference/evaluation-reports/index.html
+/reference/family-registry/index.html
 /reference/frontmatter-taxonomy/index.html
 /reference/gate-config/index.html
 /reference/gold-checks/index.html
+/reference/marketplace-scope/index.html
 /reference/silver-checks/index.html
 /reference/subagents/index.html
 /reference/token-usage-estimates/index.html

@@ -6,7 +6,8 @@
 //               rewrites cannot pass as clean. Also pins and reports both validator identities (the
 //               installed claude CLI version, and the installed skills-ref PyPI release measured
 //               against the upstream-pin.json SOURCE blob it is a different identity from) and flags
-//               any skew between them. REPORT-ONLY in this release: always exits 0 - see PARITY_MODE.
+//               any skew between them. GATING since v1.12.0: an undocumented disagreement fails the
+//               job - see PARITY_MODE.
 // why:          STANDARD.md sec 6 claims the Universal tier tracks agentskills.io and the README claims
 //               a Bronze plugin is portable; until this script existed the only evidence for either was
 //               this repository's own gate. ADR 0040 found `agentskills validate` reporting "Valid
@@ -23,11 +24,21 @@ import { createHash } from "node:crypto";
 import { parseFrontmatter } from "./lib/frontmatter.mjs";
 import { listSkillDirs, normalizeArgPath, relPath } from "./lib/fs-utils.mjs";
 
-// PARITY_MODE: the one-line gating flip named in ADR 0042 ("Why report-only for one release"). Today
-// this is "report-only": disagreements are printed but never fail the job (decideExitCode below always
-// returns 0). Changing this single string to "gating" is the entire flip; the release that is expected
-// to make that change, and the evidence that must exist first, is recorded in ADR 0042.
-export const PARITY_MODE = "report-only";
+// PARITY_MODE: the gating flip named in ADR 0042 ("Why report-only for exactly one release"). FLIPPED
+// TO "gating" in v1.12.0. An undocumented disagreement, a metadata-parity mismatch, and the reference
+// parser being unable to run at all now each fail this job (see decideExitCode and anyDisagreement).
+//
+// The evidence ADR 0042 named as the condition for this flip, discharged: "the mechanism completing at
+// least one real release cycle in actual CI with no new undocumented disagreement left unresolved at
+// the point of the flip - not a fixed calendar date". Two cycles completed - v1.11.0 and v1.11.1 - with
+// the validator-parity job green on GitHub-hosted runners each time, and the only known disagreement
+// (templates/seed-plugin vs `claude plugin validate --strict`) carries its ADR 0043 exception entry
+// below. The v1.12.0 release packet records the captured run.
+//
+// The consequence taken on knowingly: under gating, metadataParityUnavailableResult() fails CLOSED, so
+// a run where `uvx` cannot be installed reds a required check rather than printing a line nobody reads.
+// That is the intended behavior for a harness built because silence hid a defect for two releases.
+export const PARITY_MODE = "gating";
 
 const ADR = "ADR 0042 (validator parity is report-only and checks parsed values)";
 
@@ -242,6 +253,13 @@ export const PARITY_EXCEPTIONS = [
     target: "templates/seed-plugin",
     tool: "claude",
     adr: "0043",
+    // `matches` FINGERPRINTS the one authorized diagnostic, and is REQUIRED on every entry. Without it,
+    // an exception keyed on target+tool alone excuses ANY failure of that target under that tool, which
+    // pre-release adversarial review found is a real hole now that PARITY_MODE gates: an unrelated
+    // schema regression, a new vendor rejection, or the validator failing to execute at all would be
+    // annotated as "the known missing-author exception" and the required job would exit 0. An exception
+    // authorizes a specific known disagreement, not a target.
+    matches: /author/i,
     reason:
       'The raw scaffold genuinely has no author to declare. ADR 0043 considered a placeholder ' +
       '(e.g. {"name": "REPLACE - your name"}) and rejected it: U5 (description-score, ADR 0033) already ' +
@@ -253,15 +271,29 @@ export const PARITY_EXCEPTIONS = [
 ];
 
 /**
- * Find the documented exception (if any) authorizing a vendor-validate result's disagreement. Match is
- * EXACT on target and tool - no glob or prefix matching - so an exception can never silently widen to
- * cover a target nobody reviewed for it. "claude-fallback" (the vendored local-only stand-in engaged
- * when the real CLI is not on PATH) matches a "claude" exception: it is still the same vendor rule,
- * just checked through the reduced-fidelity path.
+ * Find the documented exception (if any) authorizing a vendor-validate result's disagreement.
+ *
+ * THREE conditions, all required. Target and tool match EXACTLY - no glob or prefix matching - so an
+ * exception can never silently widen to cover a target nobody reviewed for it. "claude-fallback" (the
+ * vendored local-only stand-in engaged when the real CLI is not on PATH) matches a "claude" exception:
+ * it is still the same vendor rule, just checked through the reduced-fidelity path.
+ *
+ * The third condition is the DIAGNOSTIC FINGERPRINT (`matches`), added when pre-release adversarial
+ * review found that target+tool alone excuses every failure of that target. An exception says "this
+ * specific disagreement was decided", not "stop looking at this directory". A failing result whose
+ * detail does not match the fingerprint is UNDOCUMENTED and gates, even though an exception entry
+ * exists for its target - which is the whole point.
+ *
+ * An entry with no `matches` never applies at all, and `validateExceptions` reports it as broken. Fail
+ * closed: a malformed authorization is not an authorization, and the alternative (treating a missing
+ * fingerprint as "match everything") reintroduces the exact hole this parameter closes.
  */
 export function findException(exceptions, result) {
   const tool = result.tool === "claude-fallback" ? "claude" : result.tool;
-  return exceptions.find((e) => e.target === result.target && e.tool === tool) ?? null;
+  const detail = typeof result.detail === "string" ? result.detail : "";
+  return exceptions.find((e) =>
+    e.target === result.target && e.tool === tool && e.matches instanceof RegExp && e.matches.test(detail)
+  ) ?? null;
 }
 
 /**
@@ -294,11 +326,18 @@ export function resolveAdrFile(root, adrNumber) {
 }
 
 /**
- * Integrity check on the exception list ITSELF: every entry's `adr` must resolve to a real file under
- * docs/internal/decisions/, via resolveAdrFile(). An exception justified by a decision record that does
- * not exist is worse than no exception at all - it reads as authorized when nobody can actually check
- * it - so an unresolved reference is reported as its own finding (`kind: "exception-integrity"`) rather
- * than trusted at face value. Returns [] when every exception's ADR is real.
+ * Integrity check on the exception list ITSELF. TWO ways an entry can be broken, and both are reported
+ * as findings (`kind: "exception-integrity"`) rather than trusted at face value:
+ *
+ * 1. Its `adr` does not resolve to a real file under docs/internal/decisions/. An exception justified
+ *    by a decision record that does not exist is worse than no exception at all - it reads as
+ *    authorized when nobody can actually check it.
+ * 2. It carries no `matches` fingerprint (or a non-RegExp one). Such an entry can never apply, by
+ *    construction (see findException), so it would silently stop excusing the disagreement it was
+ *    written for and the job would start failing with no explanation of why. Reporting it is what turns
+ *    "this exception quietly does nothing" into "this exception is malformed, here is the entry".
+ *
+ * Returns [] when every entry is well-formed.
  */
 export function validateExceptions(exceptions, root) {
   const findings = [];
@@ -310,6 +349,15 @@ export function validateExceptions(exceptions, root) {
         ran: true,
         pass: false,
         detail: `documented exception for "${e.target}" (tool: ${e.tool}) cites ADR ${e.adr}, which does not resolve to a file under docs/internal/decisions/. A broken citation authorizes nothing - fix the ADR number or remove the exception.`,
+      });
+    }
+    if (!(e.matches instanceof RegExp)) {
+      findings.push({
+        kind: "exception-integrity",
+        target: e.target,
+        ran: true,
+        pass: false,
+        detail: `documented exception for "${e.target}" (tool: ${e.tool}) has no \`matches\` RegExp fingerprinting the authorized diagnostic, so it can never apply and every failure of that target now gates. An exception authorizes a specific known disagreement, not a target - add a \`matches\` pattern or remove the entry.`,
       });
     }
   }
@@ -455,14 +503,18 @@ function main() {
   // "gating" behaves identically to the default, matching decideExitCode()'s own strict-equality check.
   const modeArg = argv.find((a) => a.startsWith("--mode="));
   const mode = modeArg ? modeArg.slice("--mode=".length) : PARITY_MODE;
+  // Whether this run's mode came from the flag rather than the shipped constant. Reported in the banner
+  // because "override" and "the shipped default" are different facts about the same word: since the
+  // v1.12.0 flip, gating is the DEFAULT, and a banner that still called it an override would misreport
+  // the harness's own configuration to every reader of a CI log.
+  const modeIsOverride = modeArg != null && mode !== PARITY_MODE;
 
   line("=".repeat(78));
   line(`check-parity: first-party validator parity harness (${ADR})`);
   if (mode === "gating") {
-    line(`>>> GATING (PARITY_MODE override = "gating"): an undocumented disagreement below WILL fail this run. <<<`);
+    line(`>>> GATING (PARITY_MODE${modeIsOverride ? " override" : ""} = "gating"): an undocumented disagreement below WILL fail this run. <<<`);
   } else {
-    line(`>>> REPORT-ONLY (PARITY_MODE = "${mode}"): findings below never fail this job. <<<`);
-    line(`>>> Flip to gating: change PARITY_MODE in scripts/check-parity.mjs to "gating" (one line). <<<`);
+    line(`>>> REPORT-ONLY (PARITY_MODE${modeIsOverride ? " override" : ""} = "${mode}"): findings below never fail this job. <<<`);
   }
   line("=".repeat(78));
   line("");
@@ -555,11 +607,12 @@ function main() {
   } else {
     // FAIL CLOSED (ADR 0042's dated correction): this is the harness's central, novel check - the one
     // an exit-code-only harness cannot do (ADR 0040) - so its own absence must not report a clean
-    // parity result. Pushed into `results` so anyDisagreement() counts it once PARITY_MODE is gating,
-    // unlike the "tool unavailable" case for vendor-validate results, which deliberately does not gate.
+    // parity result. Pushed into `results` so anyDisagreement() counts it (PARITY_MODE is "gating"
+    // since v1.12.0), unlike the "tool unavailable" case for vendor-validate results, which
+    // deliberately does not gate.
     results.push(metadataParityUnavailableResult());
     line("  NOT VERIFIED (same uvx dependency as skills-ref validate above).");
-    line("  FAIL-CLOSED: this is the harness's central check; its own absence counts as a disagreement once PARITY_MODE is gating (ADR 0042).");
+    line("  FAIL-CLOSED: this is the harness's central check; its own absence counts as a disagreement (ADR 0042).");
   }
   line("");
 
@@ -602,7 +655,7 @@ function main() {
   results.push(...integrityFindings);
   line("-- documented-exception list integrity --");
   if (integrityFindings.length === 0) {
-    line(`  OK: all ${PARITY_EXCEPTIONS.length} documented exception(s) cite a real ADR under docs/internal/decisions/.`);
+    line(`  OK: all ${PARITY_EXCEPTIONS.length} documented exception(s) cite a real ADR under docs/internal/decisions/ and fingerprint the one diagnostic they authorize.`);
   } else {
     for (const f of integrityFindings) line(`  [BROKEN] ${f.detail}`);
   }
@@ -613,21 +666,27 @@ function main() {
   const { total, documented, undocumented } = summarizeDisagreements(results);
   const metadataParityFailures = results.filter((r) => r.kind === "metadata-parity" && r.pass !== true);
   const notRun = results.filter((r) => r.kind === "vendor-validate" && !r.ran);
+  // Tense follows the live mode. Before the v1.12.0 flip every one of these lines was written in the
+  // conditional future ("would block once gating starts"), which is now false: under gating they block
+  // this run. A summary that describes enforcement as pending while it is actually on is the same class
+  // of misreport as a report-only banner on a gating job.
+  const blocksNow = mode === "gating";
+  const blocks = (subject) => (blocksNow ? `${subject} BLOCKS this run` : `${subject} WOULD block once gating starts`);
   line("-- summary --");
   if (total === 0) {
     line("  vendor-validate disagreements: none found.");
   } else if (undocumented === 0) {
-    line(`  vendor-validate disagreements: ${total} found, ALL ${documented} documented as exception(s) (ADR-authorized - see the annotated lines above). Nothing here would block once gating starts.`);
+    line(`  vendor-validate disagreements: ${total} found, ALL ${documented} documented as exception(s) (ADR-authorized - see the annotated lines above). Nothing here ${blocksNow ? "blocks this run" : "would block once gating starts"}.`);
   } else {
-    line(`  vendor-validate disagreements: ${total} found - ${documented} documented, ${undocumented} UNDOCUMENTED. The undocumented ${undocumented === 1 ? "one" : "ones"} WOULD block once gating starts.`);
+    line(`  vendor-validate disagreements: ${total} found - ${documented} documented, ${undocumented} UNDOCUMENTED. ${blocks(`The undocumented ${undocumented === 1 ? "one" : "ones"}`)}.`);
   }
   if (integrityFindings.length) {
     line(`  exception-list integrity: ${integrityFindings.length} BROKEN reference(s) (see above) - counted as undocumented, since a citation nobody can check authorizes nothing.`);
   }
   // metadata-parity has NO documented-exception path (see anyDisagreement's docblock) and fails closed
-  // when the reference parser cannot even run, so every entry here would block once gating starts.
+  // when the reference parser cannot even run, so every entry here gates.
   if (metadataParityFailures.length) {
-    line(`  metadata-parity: ${metadataParityFailures.length} finding(s) (a real mismatch, or the section being unable to run at all) - WOULD block once gating starts; there is no exception path for this kind.`);
+    line(`  metadata-parity: ${metadataParityFailures.length} finding(s) (a real mismatch, or the section being unable to run at all) - ${blocksNow ? "BLOCKS this run" : "WOULD block once gating starts"}; there is no exception path for this kind.`);
   } else {
     line("  metadata-parity: clean.");
   }
