@@ -46,11 +46,20 @@ stderr.
 
 ## The fix
 
-- Resolve an **explicit** bash rather than trusting PATH. POSIX is unchanged (plain `bash`); Windows
-  checks known Git for Windows locations first.
-- **Actively refuse the WSL launcher.** Any candidate under `System32`, `Sysnative` or `SysWOW64` is
-  rejected with a recorded reason rather than used. Preferring Git Bash and silently falling back to
-  PATH would reproduce the defect on exactly the machines that have both.
+- **Ask each candidate to prove itself, rather than judging it by its path.** The first attempt did
+  the latter, matching against `System32`, `Sysnative` and `SysWOW64`, and the pre-release review broke
+  it in one round: `%LOCALAPPDATA%\Microsoft\WindowsApps\bash.exe` is a **symlink to `wsl.exe`**, sits
+  on `PATH` on this machine, and contains none of those names. Explicit Git for Windows candidates were
+  separately accepted on `existsSync` alone and never reached the check.
+  **The path string was a proxy for the property that matters.** The resolver now tests the property:
+  it sets a unique variable and hands the candidate a Windows temp path, then requires the variable
+  echoed back and a token written where Node can read it. Both round-trip or the candidate is rejected.
+  Immune to symlinks, junctions, reparse points and launchers nobody has invented yet, because it never
+  reasons about the path. Applied uniformly to explicit locations and `PATH` fallbacks; the lexical
+  match survives only as a cheap pre-filter that can reject early and never grant acceptance.
+- **A second defect surfaced while proving the first:** `existsSync` returns **false** for that App
+  Execution Alias even though `execFileSync` spawns it. The existence gate that supposedly protected
+  explicit candidates would have called a working WSL launcher absent. Wrong in both directions at once.
 - **Fail loudly, do not skip.** If no suitable bash exists the file throws at import, naming what was
   searched. A test that quietly no-ops when it cannot find its own shell reports green while testing
   nothing, which is how this survived in the first place.
