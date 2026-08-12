@@ -38,7 +38,7 @@ const COUNT_MISMATCH_FIXTURE = path.join(ROOT, "tests/fixtures/golden/silver-fix
 // specifically exists to catch a Windows-bash defect, so failing loudly here - rather than skipping
 // quietly - is the choice that cannot itself repeat the original mistake of going green while testing
 // nothing.
-const BASH_RESOLUTION = resolveBash();
+const BASH_RESOLUTION = await resolveBash();
 if (!BASH_RESOLUTION.bash) {
   throw new Error(
     "action-run-step.test.mjs: no bash that shares the Windows filesystem could be found, so these " +

@@ -51,12 +51,23 @@ stderr.
   it in one round: `%LOCALAPPDATA%\Microsoft\WindowsApps\bash.exe` is a **symlink to `wsl.exe`**, sits
   on `PATH` on this machine, and contains none of those names. Explicit Git for Windows candidates were
   separately accepted on `existsSync` alone and never reached the check.
-  **The path string was a proxy for the property that matters.** The resolver now tests the property:
-  it sets a unique variable and hands the candidate a Windows temp path, then requires the variable
-  echoed back and a token written where Node can read it. Both round-trip or the candidate is rejected.
-  Immune to symlinks, junctions, reparse points and launchers nobody has invented yet, because it never
-  reasons about the path. Applied uniformly to explicit locations and `PATH` fallbacks; the lexical
-  match survives only as a cheap pre-filter that can reject early and never grant acceptance.
+  **The path string was a proxy for the property that matters.** The resolver tests the property
+  instead, uniformly across explicit locations and `PATH` fallbacks; the lexical match survives only as
+  a cheap pre-filter that can reject early and never grant acceptance.
+
+  The guarantee, quoted from the implementation rather than paraphrased:
+
+  > A candidate is accepted only if, within a bounded timeout, it exits with code 0 after correctly
+  > echoing back a randomly-named environment variable this process set **and** correctly writing a
+  > randomly-named token to a file path this process gave it, with `WSLENV` stripped from the
+  > environment it runs in. That closes every concrete bypass found across both review rounds, but it
+  > is an empirical, bounded-time behavioral test, not a formal proof of isolation.
+
+  **Two drafts of that sentence were wrong before this one.** The first said the probe was "immune to
+  launcher paths nobody has invented yet"; round 2 showed that false while the variable **names** were
+  fixed, because `WSLENV` forwards named variables across the boundary. Quoting the implementer is a
+  deliberate structural fix: this is the fourth consecutive release in which a control's scope was
+  described more strongly than the code enforced, and prose discipline has demonstrably not corrected it.
 - **A second defect surfaced while proving the first:** `existsSync` returns **false** for that App
   Execution Alias even though `execFileSync` spawns it. The existence gate that supposedly protected
   explicit candidates would have called a working WSL launcher absent. Wrong in both directions at once.
