@@ -2,6 +2,38 @@
 
 Curated, user-facing highlights. For the full technical history see [`CHANGELOG.md`](CHANGELOG.md).
 
+## 1.11.1 - 2026-08-11
+
+A one-line story: v1.11.0 shipped a test that could not run in the shell most Windows users are sitting in, and because that test runs before publishing, it made publishing impossible.
+
+### What was wrong
+
+The test suite includes one test that runs the GitHub Action's real shell script, to prove the Action does what its documentation claims. It launched that script by asking the operating system for "bash".
+
+On Windows, what you get back depends on where you asked from. From Git Bash you get Git's bash, which sees the same files Windows does. From PowerShell you get the Windows Subsystem for Linux, which is a different operating system with a different filesystem, and which deliberately does not receive the environment variables the test had just set. The script therefore tried to write to a path that resolved to the root of a Linux install, was refused, and died before producing output.
+
+Seven tests then failed with a message about a missing tier value, which looks like a grading bug and is not one. That misdirection cost more time than the defect itself, so it is fixed too: if the script dies early, the test now says so, and shows the shell it used and what that shell printed.
+
+### Why it matters more than a broken test
+
+The publish step runs the test suite first, on purpose, so a broken build cannot reach the registry. That guard worked exactly as designed. It just fired on a defective test rather than a defective package, and the effect was that **the project could not be published from the default Windows shell at all**.
+
+### The part worth keeping
+
+**No amount of CI would have caught this.** Every Linux build machine has a real `bash`, so the test passes there forever. It surfaced because a person on Windows ran the published instructions in their own terminal and pasted what happened.
+
+That is the same lesson this project keeps relearning in different clothes: an instruction is not verified until somebody runs it from where the reader will be standing.
+
+### What changed
+
+The test now looks for a specific, known-good bash rather than asking the system for whatever is first on the path, and it explicitly refuses the Windows Subsystem for Linux launcher instead of quietly using it. If it cannot find a suitable shell at all it fails loudly, because a test that silently skips when it cannot run is worse than one that fails: it reports success while checking nothing.
+
+Every other test that starts a subprocess was checked. This was the only one making that assumption.
+
+### Upgrade
+
+**No action required.** Nothing that grades your plugin changed, no check moved, and the Standard is untouched. This affects only people running this project's own test suite on Windows.
+
 ## 1.11.0 - 2026-08-11
 
 Until now this toolkit graded plugins and the grade stayed here. You could clone the repository and run it; that was the whole distribution story. This release is about making the grade something you can actually reach, use in CI, and point at.
