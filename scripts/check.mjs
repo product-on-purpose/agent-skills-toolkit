@@ -13,7 +13,7 @@
 import { loadPlugin } from "./lib/load-plugin.mjs";
 import { runAllChecks, provenanceByReq } from "./lib/registry.mjs";
 import { applyStandardDowngrade } from "./lib/standard-gate.mjs";
-import { loadConfig } from "./lib/config.mjs";
+import { loadConfig, publicConfig, withGraderOptions } from "./lib/config.mjs";
 import { PROFILES } from "./lib/profiles.mjs";
 import { resolveFindings, gatingFindings } from "./lib/resolve-config.mjs";
 import { computeTierReport, humanLine } from "./tier-report.mjs";
@@ -43,13 +43,17 @@ export function runGate(root, ctx = loadPlugin(root), { strict = false, mode, pr
   // published-verdict clamp). With no config this is a no-op: effectiveSeverity === severity, nothing
   // suppressed, configFindings empty, so the gate exit equals the pre-F3 behavior (test G-BC).
   const { config, findings: configFindings } = loadConfig(root);
-  const effectiveConfig = { ...config, ...(mode ? { mode } : {}), ...(profile ? { profile } : {}) }; // CLI --mode / --profile override the file
+  // CLI --mode / --profile override the file AND are stamped grader-owned (ADR 0044). The marketplace
+  // scope reaches this same path through gradeMember(), so a catalogue's caller options are grader-owned
+  // for every member without that scope needing a merge of its own.
+  const effectiveConfig = withGraderOptions(config, { mode, profile });
   const resolved = resolveFindings([...configFindings, ...downgraded], effectiveConfig, provenanceByReq());
   // Project effectiveSeverity onto .severity so gateExitFromFindings (the tier ceiling) is UNCHANGED.
   const forGate = gatingFindings(resolved).map((f) => ({ ...f, severity: f.effectiveSeverity }));
   const { errorCount, exitCode } = gateExitFromFindings(forGate, ctx?.library?.data?.tier);
   const warnCount = resolved.filter((f) => f.effectiveSeverity === "warn" && !f.suppressed).length;
-  return { findings: resolved, errorCount, warnCount, exitCode, config: effectiveConfig };
+  // `config` is published origin-free: provenance is a resolution input, not a new external contract.
+  return { findings: resolved, errorCount, warnCount, exitCode, config: publicConfig(effectiveConfig) };
 }
 
 /**

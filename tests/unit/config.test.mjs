@@ -4,7 +4,7 @@ import { mkdtempSync, cpSync, writeFileSync, readFileSync, rmSync } from "node:f
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { loadConfig, DEFAULT_CONFIG, CONFIG_FILENAME } from "../../scripts/lib/config.mjs";
+import { loadConfig, configFrom, DEFAULT_CONFIG, CONFIG_FILENAME } from "../../scripts/lib/config.mjs";
 import { resolveFindings, gatingFindings } from "../../scripts/lib/resolve-config.mjs";
 import { globToRegExp, matchSuppression } from "../../scripts/lib/suppressions.mjs";
 import { runGate } from "../../scripts/check.mjs";
@@ -21,7 +21,7 @@ const REPO_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..
 const FIXTURES = path.join(REPO_ROOT, "tests/fixtures");
 const PROV = provenanceByReq();
 const f = (severity, reqId, extra = {}) => ({ check: reqId ?? "x", severity, message: "m", file: null, reqId, ...extra });
-const cfg = (over = {}) => ({ mode: "local", profile: "askit-library", rules: {}, suppressions: [], ...over });
+const cfg = (over = {}) => configFrom({ mode: "local", profile: "askit-library", rules: {}, suppressions: [], ...over });
 
 // Build a minimal valid plugin (clone of golden/minimal-skill) in a temp dir; run fn(dir); always clean up.
 function withPlugin(setup, fn) {
@@ -160,7 +160,11 @@ test("H: a malformed or unknown-key config is surfaced as findings and never cra
   });
   withPlugin((dir) => writeConfig(dir, { profile: "nope", rules: { U99: "warn", U6: "loud" }, suppressions: [{ file: "x" }] }), (dir) => {
     const { config, findings } = loadConfig(dir);
-    assert.equal(config.profile, "askit-library", "unknown profile falls back");
+    assert.equal(config.profile.value, "askit-library", "unknown profile falls back");
+    // ADR 0044: a REJECTED value keeps the default's origin. The subject wrote something, but it is not
+    // the value in force, and stamping it `subject` would let a malformed config claim ownership of a
+    // setting it never successfully chose - which the published-verdict trust step would then act on.
+    assert.equal(config.profile.origin, "default", "a rejected profile is not subject-owned");
     assert.ok(findings.some((x) => /unknown profile/.test(x.message)));
     assert.ok(findings.some((x) => /unknown rule id 'U99'/.test(x.message)));
     assert.ok(findings.some((x) => /'loud' is not error\/warn\/off/.test(x.message)));

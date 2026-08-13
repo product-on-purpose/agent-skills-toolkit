@@ -8,7 +8,7 @@ import { loadPlugin, loadSkill, looksLikePlugin } from "./lib/load-plugin.mjs";
 import { detectMarketplaceScope, evaluateMarketplace, formatMarketplaceReport, marketplaceExitCode } from "./lib/marketplace/evaluate-marketplace.mjs";
 import { runAllChecks, provenanceByReq, CHECKS } from "./lib/registry.mjs";
 import { applyStandardDowngrade } from "./lib/standard-gate.mjs";
-import { loadConfig } from "./lib/config.mjs";
+import { loadConfig, withGraderOptions } from "./lib/config.mjs";
 import { PROFILES } from "./lib/profiles.mjs";
 import { resolveFindings } from "./lib/resolve-config.mjs";
 import { computeTierReport } from "./tier-report.mjs";
@@ -69,9 +69,9 @@ function evaluateComponent(target, opts = {}) {
   // are honored instead of silently dropped (a third-party single skill graded under plain-plugin
   // must not be held to the house checks). Same precedence: file config, then CLI overrides.
   const { config, findings: configFindings } = loadConfig(target);
-  const cfg = { ...config, ...(opts.mode ? { mode: opts.mode } : {}), ...(opts.profile ? { profile: opts.profile } : {}) };
+  const cfg = withGraderOptions(config, opts);
   const resolved = resolveFindings([...configFindings, ...checkAgentskills(ctx)], cfg, provenanceByReq());
-  return { ...baseReport("component", target, resolved), profile: cfg.profile, mode: cfg.mode };
+  return { ...baseReport("component", target, resolved), profile: cfg.profile.value, mode: cfg.mode.value };
 }
 
 export function evaluate(target, opts = {}) {
@@ -99,13 +99,13 @@ export function evaluate(target, opts = {}) {
     const { config, findings: configFindings } = loadConfig(target);
     // CLI --mode / --profile override the file (so a third-party plugin can be graded under a chosen
     // profile without writing askit.config.json into its tree); an explicit per-rule override still wins.
-    const cfg = { ...config, ...(opts.mode ? { mode: opts.mode } : {}), ...(opts.profile ? { profile: opts.profile } : {}) };
+    const cfg = withGraderOptions(config, opts);
     const resolved = resolveFindings([...configFindings, ...downgraded], cfg, provenanceByReq());
     const t = computeTierReport(target, ctx, resolved);
     return {
       ...baseReport("plugin", target, resolved),
       tier: t.tier, satisfies: t.satisfies, blocked: t.blocked,
-      profile: cfg.profile, mode: cfg.mode,
+      profile: cfg.profile.value, mode: cfg.mode.value,
       dispositions: dispositions(resolved),
     };
   }

@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import { provenanceByReq } from "../../scripts/lib/registry.mjs";
 import { PROFILES } from "../../scripts/lib/profiles.mjs";
 import { resolveFindings } from "../../scripts/lib/resolve-config.mjs";
+import { configFrom } from "../../scripts/lib/config.mjs";
 
 // ADR 0029: reclassify U2 (AGENTS.md anatomy) and U5 (description-score heuristic) from portable
 // (objective / vendor-cited) to house provenance. The eval-target corpus run showed both fire on
@@ -12,7 +13,7 @@ import { resolveFindings } from "../../scripts/lib/resolve-config.mjs";
 // clamped). The default askit-library grade is UNCHANGED: both still fire under the full ladder.
 const PROV = provenanceByReq();
 const f = (severity, reqId) => ({ reqId, check: reqId, severity, message: `${reqId} fired` });
-const cfg = (over = {}) => ({ mode: "local", profile: "askit-library", rules: {}, suppressions: [], ...over });
+const cfg = (over = {}) => configFrom({ mode: "local", profile: "askit-library", rules: {}, suppressions: [], ...over });
 
 test("U2 (AGENTS.md anatomy) is house provenance, not a portable defect", () => {
   assert.equal(PROV.get("U2"), "house");

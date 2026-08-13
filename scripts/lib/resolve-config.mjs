@@ -42,12 +42,15 @@ const SEVERITY_RANK = { off: 0, warn: 1, error: 2 };
  * @returns {Array<object>} resolved findings, each + { provenance, effectiveSeverity, downgradedFrom, suppressed, suppressionReason, clampNotice, migrationNotice }
  */
 export function resolveFindings(findings, config, provenanceByReq) {
-  const profileRules = (PROFILES[config.profile] ?? PROFILES["askit-library"]).rules;
-  const published = config.mode === "published-verdict";
+  // The config is ORIGIN-BEARING (ADR 0044): every setting is `{ value, origin }` so the published-verdict
+  // trust step can tell a rubric the grader chose from one the subject wrote about itself. W1a threads
+  // that through; nothing here consults `origin` yet, which is why W1a moves no verdict.
+  const profileRules = (PROFILES[config.profile.value] ?? PROFILES["askit-library"]).rules;
+  const published = config.mode.value === "published-verdict";
   return findings.map((f) => {
     const declared = f.severity;
     const provenance = provenanceByReq.get(f.reqId) ?? "objective";
-    const overridden = config.rules[f.reqId];          // already normalized to a bare severity by loadConfig
+    const overridden = config.rules[f.reqId]?.value;   // already normalized to a bare severity by loadConfig
     const profiled = profileRules[f.reqId];
     let effectiveSeverity = overridden ?? profiled ?? declared;
     let sup = matchSuppression(f, config.suppressions);
