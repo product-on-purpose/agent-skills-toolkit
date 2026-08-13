@@ -18,7 +18,7 @@
 | Spine | 30 checks |
 | Scopes | 3 (plugin, component, marketplace) |
 | Skills | 24 |
-| Tests | 1013, 0 failures (total from a local suite run 2026-08-12; 0 failures per `validate-windows` green at `8b55840`. `npm run release-counts` cannot confirm both halves on this workstation while E37 (the shell-probe timing budget) fails - see "What is open") |
+| Tests | 1013, 0 failures (local suite run 2026-08-13, both halves confirmed by `npm run release-counts` exiting 0 on this workstation now that E37 (the shell-probe timing budget) is fixed) |
 | Self-proving | `node scripts/check.mjs .` exits 0 at Advanced, 0 errors, 0 warnings |
 
 ## What is open
@@ -55,18 +55,19 @@
   Its stated condition was met by v1.11.0 and v1.11.1 completing real CI cycles green. One
   consequence was accepted knowingly: under gating, a run where `uvx` cannot be installed reds a
   required check rather than printing a line nobody reads.
-- **E37 (the shell-probe timing budget) blocks the release-time counts gate on this workstation**, which
-  is an escalation from how it was filed. `scripts/check-release-counts.mjs` compares both halves of a
-  stated count (total AND failures), so while E37's two wall-clock cases fail locally,
-  `npm run release-counts` reports drift against any truthful "N tests, 0 failures" claim and exits
-  non-zero - and `RELEASE.md` names that command as non-negotiable. Measured at `8b55840`: 1013 tests /
-  1 failure locally, the same two cases 2-of-9 failing in isolation (load-dependent), `validate-windows`
-  green on CI for the same commit. Scheduled as **W6 of v1.13.0**, and it needs **two different fixes,
-  not one**: the taskkill-helper case has a finite helper lifetime, so the bar must stay below it and
-  the helper's lifetime is what widens; the write-then-hang case has a candidate that hangs forever, so
-  any finite bound still proves the supervisor enforced its own timeout and the arbitrary 3000 ms margin
-  is what widens. The backlog entry originally prescribed one fix for both, which would have left the
-  second case failing and the counts gate still red. Full entry in
+- **E37 (the shell-probe timing budget) is FIXED, and the release-time counts gate now passes on this
+  workstation.** It had been an escalation from how it was filed: `scripts/check-release-counts.mjs`
+  compares both halves of a stated count (total AND failures), so while E37's two wall-clock cases failed
+  locally, `npm run release-counts` reported drift against any truthful "N tests, 0 failures" claim and
+  exited non-zero - and `RELEASE.md` names that command as non-negotiable. Landed 2026-08-13 as **W6 of
+  v1.13.0** with the **two different fixes** the corrected entry called for, one per case. Now measured
+  locally: 1013 tests / 0 failures, `release-counts` exit 0, both cases 5-of-5 under spawn-heavy load,
+  and a full suite run leaving **zero** stray processes where it previously left about five.
+  **Three things measurement corrected in the plan** and they are worth reading before writing a similar
+  one: the accumulating orphan was the probe candidate, not the helper the plan named (the helper cannot
+  outlive its parent on Windows); "30 s or more" was not enough on its own, since a bar derived from a
+  30 s lifetime still failed 1 run in 5 under load; and asserting that the cleanup must succeed put the
+  flakiness straight back, because the forced kill itself fails under load. Full entry in
   [`backlog/enhancements.md`](backlog/enhancements.md).
 - **E13 (defect-rich model triple) is DONE.** Run 2026-08-04, recorded as batch 2026-08-04 runs
   12-14 in [`eval-runs.md`](eval-runs/eval-runs.md). Three real dispatches (Haiku 4.5, Sonnet 5,

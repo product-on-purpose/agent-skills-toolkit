@@ -188,11 +188,32 @@ const DEFAULT_PROBE_TIMEOUT_MS = 5000;
 // stdio to close. This is what makes the bound REAL: execFileSync's own `timeout` option cannot bound
 // this (it signals, then still blocks waiting for full process closure - see the file header), so this
 // function guarantees its own return within timeoutMs + KILL_GRACE_MS no matter what the candidate does.
-const KILL_GRACE_MS = 2000;
+//
+// EXPORTED as a timing contract, not merely as a number (E37): a test asserting a wall-clock bound on
+// this function has to state that bound as `timeoutMs + KILL_GRACE_MS + margin`, and a test that instead
+// copies the literal silently stops describing this function the moment the constant moves. The value
+// belongs to the supervisor; the margin on top of it belongs to the test.
+export const KILL_GRACE_MS = 2000;
 // Short, fixed window releaseHandles() waits before unref-ing an already-kill()'d child, so the OS has a
 // fair chance to actually finish the termination this process just requested (see releaseHandles' own
 // comment for the empirical reason this exists - it does not delay this function's own return).
 const RELEASE_DELAY_MS = 750;
+// How long the test-only stuck-helper stand-in stays alive. This is the GAP the round-4 regression
+// measures across, so it is a test-visible contract rather than an inline literal (E37).
+//
+// It must stay far above `timeoutMs + KILL_GRACE_MS + RELEASE_DELAY_MS`, which is when a CORRECT
+// supervisor releases and lets its process exit. At the original 5000 ms it was not: a correct
+// supervisor measured 3329 to 3814 ms idle and 5331 ms on a loaded workstation, against an assertion
+// bar of exactly 5000 ms, so the same number stood for both "did not wait for the helper" and "waited
+// for the helper, which then died". Raising the BAR cannot fix that, because it is the helper's death
+// that a waiting supervisor is released by; only raising the helper's LIFETIME separates the two.
+//
+// 60s rather than something tighter for two measured reasons. Under spawn-heavy load a CORRECT run took
+// over 10s, so any bar picked to look "comfortable" on an idle machine is still a guess about the
+// machine - at 30s with a bar of a third of it, one run in five failed. And the regression no longer
+// pays for the length: the harness reaps this stand-in by marker as soon as it has read what it needed,
+// so its residency is bounded by the test, not by this number.
+export const STUCK_HELPER_LIFETIME_MS = 60000;
 
 /**
  * Attempts to terminate `pid` and everything it spawned, WITHOUT blocking the event loop AND WITHOUT
@@ -226,10 +247,19 @@ function killProcessTree(pid, { forceFailure = false, stuckHelper = false } = {}
     if (process.platform === "win32") {
       // /T walks and kills the whole process tree rooted at pid (not just the immediate child - a WSL
       // launcher's own descendants die with it); /F forces termination. The stuck-helper stand-in is a
-      // genuinely long-running (but self-terminating, so it does not litter the machine) process,
-      // standing in for a taskkill that starts and never comes back.
+      // genuinely long-running process standing in for a taskkill that starts and never comes back.
+      //
+      // It self-terminates, so it cannot accumulate without bound, but at STUCK_HELPER_LIFETIME_MS that
+      // is no longer the whole cleanup story: substituting this stand-in means the REAL tree-kill never
+      // runs, so the candidate itself is left orphaned (measured: exactly one per invocation, and the
+      // candidate never exits on its own). Reaping that orphan is the caller's job - see the round-4
+      // regression in resolve-bash.test.mjs, which reaps by probe nonce and asserts none survive.
+      // The stand-in carries this process's pid in its own command line so the outer harness can find and
+      // reap it by run, never by "any node process that looks like a timer". At a 30s lifetime it has to
+      // be reapable: the acceptance protocol runs this case repeatedly, each run takes a few seconds, and
+      // helpers whose residency exceeds the gap between runs would otherwise overlap and accumulate.
       const [command, args] = stuckHelper
-        ? [process.execPath, ["-e", "setTimeout(() => {}, 5000)"]]
+        ? [process.execPath, ["-e", `/* askit-stuck-helper ${process.pid} */ setTimeout(() => {}, ${STUCK_HELPER_LIFETIME_MS})`]]
         : ["taskkill", ["/PID", String(pid), "/T", "/F"]];
 
       let helper;

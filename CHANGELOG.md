@@ -9,6 +9,16 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Fixed
+
+- **The shell-probe timing tests no longer fail because the machine is busy, and no longer leave stray processes behind (E37).** In plain terms: two tests were timing how long a piece of cleanup code took, using stopwatch limits that a loaded computer could exceed even when the code was working perfectly. On the maintainer's workstation that produced a permanent "1 test failing", which in turn blocked `npm run release-counts` - the check that a release's stated test numbers are true - so **a release could not complete its own verification protocol on that machine.** Both tests now measure against limits derived from the code's own declared timing contract instead of copied numbers, and both clean up the processes they deliberately strand.
+
+  **The numbers, because a timing fix is only as good as its margin.** A correct run of the stuck-helper case takes 3.3 to 3.8 seconds idle and was recorded at 5331 ms on a loaded workstation, against an assertion bar of exactly 5000 ms - which was also the stand-in helper's own lifetime, so one number meant both "did not wait for the helper" and "waited, and the helper died". The helper's lifetime moved to 60 seconds and the guard derives from it, so the two outcomes are now 30 seconds apart. `KILL_GRACE_MS` is exported from the test module as a timing contract rather than duplicated as a literal, and the hanging-candidate case asserts `timeoutMs + KILL_GRACE_MS + slack` instead of three copied numbers that could drift from the values they track.
+
+  **Both cases were proven able to still fail.** A timing test that cannot fail is worse than one that flakes, so each was re-run with its own defect deliberately reintroduced: removing the `unref` that keeps a stuck kill-helper from anchoring the event loop fails the first case, and making the supervisor overshoot its declared bound fails the second - with a control run confirming the second fails for that reason and not for the scaffolding around it.
+
+  **Process hygiene, measured rather than assumed (E32).** The cases that substitute or sabotage the kill helper were each stranding one shell process per invocation, about five per run of the file, which is where this workstation's accumulated orphans were coming from. They now reap what they strand, addressed by a marker scoped to the owning process so a parallel test file's work is never touched, and a full suite run leaves **zero**. The underlying supervisor defect (E32) remains deliberately deferred: a surviving candidate is reported as residue rather than failing the run, because failing on a known-deferred defect would put the flakiness straight back.
+
 ### Changed
 
 - **`publish-npm.yml` now publishes via npm trusted publishing (OIDC), with no stored credential of any kind.** v1.12.0's live publish attempt failed `ENEEDAUTH` because the `npm-publish` environment holds no secrets, and the fix is not to add one. npm is actively restricting 2FA-bypassing tokens for direct publishing (the deprecation notice appears in that very run's log), so a token is a path to a closing door; OIDC has the runner mint a short-lived identity token that npm verifies against a publisher registered once on npmjs.com.
