@@ -98,6 +98,16 @@ function buildResults(findings) {
     if (f.suppressed) {
       result.suppressions = [{ kind: "external", status: "accepted", justification: f.suppressionReason ?? "suppressed by askit.config.json" }];
     }
+    // A published-verdict TRUST ACTION is the mirror image of the suppression above, and belongs here for
+    // the same stated reason: this artifact stays honest about what was silenced rather than quietly
+    // omitting it. A suppression the subject WROTE appears as an accepted suppression; a suppression the
+    // trust step OVERRULED left no trace at all, so the Security tab showed the finding with no hint that
+    // the subject had tried to waive it - in the one mode built to publish a verdict ABOUT that subject.
+    // A property rather than the message text: the message is the check's own words, and a consumer
+    // diffing SARIF across runs should not see them change because a config did.
+    if (f.trustNotice) {
+      result.properties = { ...(result.properties ?? {}), "askit/trustNotice": f.trustNotice };
+    }
     out.push(result);
   }
   return out;

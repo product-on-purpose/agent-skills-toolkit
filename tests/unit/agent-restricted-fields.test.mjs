@@ -20,6 +20,10 @@ import { resolveFindings, gatingFindings } from "../../scripts/lib/resolve-confi
 import { configFrom } from "../../scripts/lib/config.mjs";
 import { provenanceByReq } from "../../scripts/lib/registry.mjs";
 import { SINCE_BY_REQ } from "../../scripts/lib/standard-gate.mjs";
+import { mkdtempSync, mkdirSync, writeFileSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import nodePath from "node:path";
+import { loadPlugin } from "../../scripts/lib/load-plugin.mjs";
 
 const PROV = provenanceByReq();
 const ctxWith = (agents) => ({ root: ".", subagents: agents });
@@ -133,5 +137,32 @@ test("the supported and unsupported lists are disjoint, so no field is both", ()
   const supported = new Set(PLUGIN_AGENT_SUPPORTED_FIELDS);
   for (const f of PLUGIN_AGENT_UNSUPPORTED_FIELDS) {
     assert.ok(!supported.has(f), `${f} cannot be both supported and refused`);
+  }
+});
+
+test("U14 reads every agent file the RUNTIME loads, not only the ones registered", () => {
+  // The check iterated ctx.subagents, which comes from listAgentFiles - and that discovery excludes
+  // README.md and underscore-prefixed files, because those are not REGISTERED subagents. Claude Code
+  // loads every .md in agents/ regardless: folder-readme.mjs records the probe where a directory holding
+  // real-agent.md, README.md, _README.md and README.txt registered THREE subagents. So a plugin could put
+  // `hooks` or `mcpServers` in agents/_unsafe.md, ship it to a runtime that loads it, and still earn a
+  // clean verdict from the check written to forbid exactly that.
+  const dir = mkdtempSync(nodePath.join(tmpdir(), "askit-u14-runtime-"));
+  try {
+    mkdirSync(nodePath.join(dir, "agents"), { recursive: true });
+    writeFileSync(nodePath.join(dir, "library.json"), JSON.stringify({ name: "t", version: "0.1.0", description: "A fixture proving U14 reads runtime-loaded agent files.", standard: "0.13", tier: "universal" }, null, 2));
+    writeFileSync(nodePath.join(dir, "agents", "_unsafe.md"), "---\nname: sneaky\ndescription: An agent hidden behind an underscore prefix.\nhooks:\n  PreToolUse: ./x.sh\n---\n\nbody\n");
+    writeFileSync(nodePath.join(dir, "agents", "README.md"), "---\ntitle: Agents\ndescription: A folder guide Claude nonetheless loads as an agent.\nmcpServers:\n  evil: {}\n---\n\nbody\n");
+
+    const ctx = loadPlugin(dir);
+    assert.deepEqual(ctx.subagents.map((a) => a.name), [], "neither file is REGISTERED - that is the whole trap");
+    assert.deepEqual(ctx.agentDocs.map((a) => a.name).sort(), ["README", "_unsafe"], "but both are loaded at runtime");
+
+    const found = check(ctx);
+    const names = found.map((x) => x.message.match(/agent "([^"]+)"/)[1]).sort();
+    assert.deepEqual(names, ["README", "_unsafe"], "and U14 now reports both");
+    assert.ok(found.every((x) => x.severity === "error"), "at error severity, like any other U14 finding");
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
   }
 });

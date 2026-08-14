@@ -1,10 +1,10 @@
 // what-it-is:   the plugin loader
-// what-it-does: builds the check context (root, library, skills, subagents, commands, manifests) that every check reads
+// what-it-does: builds the check context (root, library, skills, subagents, agentDocs, commands, manifests) that every check reads
 // why:          loading once into a shared context keeps each check synchronous and free of its own I/O setup
 // used-by:      imported by scripts/check.mjs, tier-report.mjs, evaluate.mjs, and the unit tests
 import { readFileSync, existsSync, statSync } from "node:fs";
 import path from "node:path";
-import { readJsonSafe, fileExists, listSkillDirs, listAgentFiles, listCommandFiles } from "./fs-utils.mjs";
+import { readJsonSafe, fileExists, listSkillDirs, listAgentFiles, listRuntimeAgentDocs, listCommandFiles } from "./fs-utils.mjs";
 import { parseFrontmatter } from "./frontmatter.mjs";
 
 const isDir = (p) => existsSync(p) && statSync(p).isDirectory();
@@ -71,6 +71,10 @@ export function loadPlugin(root) {
 
   const skills = listSkillDirs(root).map((dir) => loadSkill(dir));
   const subagents = listAgentFiles(root).map((f) => loadSubagent(f));
+  // Everything the RUNTIME loads from agents/, a superset of what the plugin registers: README.md and
+  // underscore-prefixed files are excluded from registration and loaded anyway. A check about what a
+  // plugin SHIPS must read this list, not `subagents`.
+  const agentDocs = listRuntimeAgentDocs(root).map((f) => loadSubagent(f));
   const commands = listCommandFiles(root).map((f) => loadCommand(f));
 
   const claude = readJsonSafe(path.join(root, ".claude-plugin", "plugin.json"));
@@ -87,5 +91,5 @@ export function loadPlugin(root) {
   // Present + valid JSON but no usable mcpServers object => malformed (mcp-valid fails closed).
   const mcpMalformed = mcpPresent && !mcp.parseError && mcpMap === null;
 
-  return { root, library, agentsMdPath, skills, subagents, commands, claudeManifest: claude.data, codexManifest: codex.data, mcpServers, mcpPath, mcpParseError, mcpMalformed };
+  return { root, library, agentsMdPath, skills, subagents, agentDocs, commands, claudeManifest: claude.data, codexManifest: codex.data, mcpServers, mcpPath, mcpParseError, mcpMalformed };
 }

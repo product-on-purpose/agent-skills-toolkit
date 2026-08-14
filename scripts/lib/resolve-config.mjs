@@ -19,57 +19,92 @@ import { BASELINE } from "./standard-version.mjs";
  * length. In `published-verdict` mode the subject is explicitly untrusted, so its `askit.config.json`
  * strings must not be able to shape the structure of a report written about it.
  */
-// Constructed rather than written literally: a source file that CONTAINS the invisible characters it
-// strips is unreadable in review and unsearchable in a diff.
-// Anything OUTSIDE these categories survives sanitizeSubjectText's strip. Used to ask whether material
-// discarded by the raw bound actually mattered.
-const SURVIVES_STRIP = /[^\s\p{Cc}\p{Cf}\p{Cs}]/gu;
-const DEFAULT_IGNORABLE = /\p{Default_Ignorable_Code_Point}/u;
-const ZWNJ = String.fromCharCode(0x200c);  // zero-width non-joiner
-const ZWJ = String.fromCharCode(0x200d);   // zero-width joiner
+// ONE definition of "a reader cannot see this", asked by all three consumers: the strip, the
+// empty-reason test, and the discarded-suffix scan. They used to disagree, and every disagreement was a
+// defect. The strip removed every Cf - but U+06DD (ARABIC END OF AYAH) is Cf and VISIBLE, so deleting it
+// silently edited the subject's words. Meanwhile the suffix scan counted U+034F as worth keeping while
+// the empty-reason test called that same character invisible, so a notice could report the truncation of
+// nothing. One property, asked three times, cannot contradict itself.
+const INVISIBLE_G = /\p{Default_Ignorable_Code_Point}/gu;
+
+/** Inclusive code-point range, for building the keep-set without writing invisible characters here. */
+function range(lo, hi) {
+  const out = [];
+  for (let c = lo; c <= hi; c++) out.push(c);
+  return out;
+}
+
+// Invisible, and yet NOT removable: these shape the character beside them rather than standing alone.
+// The joiners carry meaning in Persian and Indic scripts and bind emoji sequences; a variation selector
+// chooses a character's presentation, and dropping one turns a legitimate emoji into a different glyph.
+// Built from code points, because a source file containing the invisible characters it discusses cannot
+// be reviewed or searched.
+const KEEP_INVISIBLE = new Set([0x200c, 0x200d, ...range(0xfe00, 0xfe0f), ...range(0xe0100, 0xe01ef)]);
+
+// A character a reader would actually notice. The subtraction lists EVERY category the strip above
+// disposes of - whitespace, invisibles, controls and lone surrogates - because this predicate answers
+// "would the reader have seen it", and a control character that becomes a space is not something they
+// saw. Omitting Cc made a tail of 7,000 BEL characters count as discarded content and marked a
+// truncation of nothing. Set SUBTRACTION rather than
+// an enumerated class, so it stays correct as Unicode grows. The `g` copy exists because the suffix scan
+// searches from an offset, and assigning lastIndex avoids slicing an enormous reason in half to ask a
+// yes/no question.
+const HAS_VISIBLE = /[\P{White_Space}--\p{Default_Ignorable_Code_Point}--\p{Cc}--\p{Cs}]/v;
+const HAS_VISIBLE_G = /[\P{White_Space}--\p{Default_Ignorable_Code_Point}--\p{Cc}--\p{Cs}]/gv;
+
 // Built ONCE, on first use, and tolerant of a Node compiled WITHOUT internationalization. Constructing
 // it at module load made this module unimportable on such a build, and check, evaluate and tier-report
 // all import it - so an exotic Node turned the whole gate into a TypeError before any grading ran. The
-// fallback is code-point segmentation, which is exactly what this did before the cluster fix: less
-// precise at one boundary of one quoted sentence, still well-formed UTF-16, and a degraded notice is a
-// far better failure than an unusable tool.
-let segmenter;
+// fallback is code-point segmentation: less precise at one boundary of one quoted sentence, still
+// well-formed UTF-16, and a degraded notice is a far better failure than an unusable tool.
+let segmenterInstance;
 let segmenterResolved = false;
-function graphemes(text) {
+function segmenter() {
   if (!segmenterResolved) {
     segmenterResolved = true;
     try {
-      segmenter = new Intl.Segmenter("en", { granularity: "grapheme" });
+      segmenterInstance = new Intl.Segmenter("en", { granularity: "grapheme" });
     } catch {
-      segmenter = null;   // no ICU, or no Intl at all
+      segmenterInstance = null;   // no ICU, or no Intl at all
     }
   }
-  return segmenter ? [...segmenter.segment(text)].map((seg) => seg.segment) : Array.from(text);
+  return segmenterInstance;
+}
+
+function graphemes(text) {
+  const seg = segmenter();
+  return seg ? [...seg.segment(text)].map((x) => x.segment) : Array.from(text);
 }
 
 /**
- * True when the value has no character a reader could actually see.
+ * Whether the raw bound severed a grapheme, decided from BOTH SIDES of the cut.
  *
- * Decided by the Unicode DEFAULT_IGNORABLE property, not by a hand-listed pair. The list version knew
- * only whitespace, ZWNJ and ZWJ - so U+FE0F (variation selector), U+034F (combining grapheme joiner) and
- * the astral U+E0100 all sailed through as "visible" and still published an empty waiver clause. They
- * are category Mn, not Cf, so the strip above deliberately keeps them; the question here is not what
- * SURVIVES sanitization but what a reader can SEE, and those are different questions.
+ * Inferring it from the last RETAINED code unit dropped legitimate text: "a" followed by U+0301 ENDS a
+ * complete cluster, but the retained unit is a combining mark, so the test concluded the cluster was
+ * split and a whole accented character was removed from the quotation. Continuity is not a property of
+ * one side. A boundary EXISTS at the cut exactly when a segment starts there, so a small window spanning
+ * the cut answers it directly.
  *
- * Iterated by code point (for...of), never by UTF-16 unit. A `.split("")` walk compares surrogate halves,
- * neither of which can ever equal an astral ignorable, so the astral case was guaranteed to be missed.
+ * Without Intl this returns false: unable to tell, it declines to drop a complete cluster rather than
+ * guessing, which is the conservative direction for a quotation.
  */
-function isInvisible(text) {
-  for (const ch of text.replace(/\s+/gu, "")) {
-    if (!DEFAULT_IGNORABLE.test(ch)) return false;
+function severedAtCut(raw, source, from) {
+  const seg = segmenter();
+  if (!seg) return false;
+  const before = raw.slice(-64);
+  const window = before + source.slice(from, from + 64);
+  const cutAt = before.length;
+  for (const part of seg.segment(window)) {
+    if (part.index === cutAt) return false;
+    if (part.index > cutAt) break;
   }
   return true;
 }
 
 function sanitizeSubjectText(s, max = 200) {
   // Bound the RAW input before any full-string pass, so an extreme reason cannot amplify allocation
-  // before it is capped. Whether that bound actually CUT anything is remembered, because the cut can
-  // land inside a cluster and the cluster-aware cap below cannot see that it happened.
+  // before it is capped. Whether that bound discarded anything is a SEPARATE question, asked below,
+  // because the answer is not visible from the flattened result.
   const source = String(s ?? "");
   const preBounded = source.length > max * 32;
   const raw = preBounded ? source.slice(0, max * 32) : source;
@@ -78,55 +113,31 @@ function sanitizeSubjectText(s, max = 200) {
     // surfaces, where a notice is printed with no escaping at all and an ESC sequence could forge gate
     // output about the subject's own plugin.
     .replace(/\p{Cc}/gu, " ")
-    // Cf (format) is stripped BY CATEGORY, minus two carve-outs. Category rather than an enumerated
-    // range because ranges leaked U+061C; the carve-outs because the category is too broad to apply
-    // whole. ZWNJ and ZWJ are not decoration: in Persian they change spelling and meaning, in Indic
-    // scripts they control conjunct forms, and in emoji they bind a sequence - stripping them turns a
-    // subject's own words into a misquotation, in a report published about that subject. They are also
-    // the two Cf characters that cannot reorder or hide text, which is what the rest of the strip is
-    // defending against. Cs (LONE SURROGATES) is unconditional: malformed is never meaningful.
-    .replace(/\p{Cf}/gu, (c) => (c === ZWNJ || c === ZWJ ? c : ""))
+    // Lone surrogates, unconditionally: malformed is never meaningful.
     .replace(/\p{Cs}/gu, "")
+    // Everything a reader cannot see, minus the shaping characters. Deliberately NOT "all of Cf": that
+    // removed visible Cf characters and kept invisible non-Cf ones, in the same pass.
+    .replace(INVISIBLE_G, (c) => (KEEP_INVISIBLE.has(c.codePointAt(0)) ? c : ""))
     .replace(/\s+/g, " ")   // \s covers U+2028 and U+2029
     .trim();
-  // The carve-out has a cost, and this is where it is paid. Joiners are zero-width, so a reason made
-  // ENTIRELY of them survives the trim and publishes a notice that reads "waiver reason: " followed by
-  // nothing - defeating the auditability the notice exists for. A reason with nothing visible in it is
-  // treated as no reason at all rather than quoted as blank.
-  if (isInvisible(flat)) return "";
-  // Truncate on a GRAPHEME CLUSTER boundary. A code-point boundary was the previous fix and it is still
-  // wrong for anything a reader would call one character: it severs a combining mark from its base, one
-  // regional indicator from its pair (turning a flag into a stray letter), and any emoji ZWJ sequence
-  // mid-join.
+  // A reason with nothing visible in it is no reason at all, rather than a quotation of blankness. The
+  // clause that prints it is decided on THIS value, never on the raw field, which is non-empty for a
+  // string of zero-width characters.
+  if (!HAS_VISIBLE.test(flat)) return "";
+  // Truncate on a GRAPHEME CLUSTER boundary. A code-point boundary severs a combining mark from its
+  // base, one regional indicator from its pair, and any emoji ZWJ sequence mid-join.
   const clusters = graphemes(flat);
-  // The ellipsis is counted INSIDE the cap, so the returned string never exceeds max clusters. Guarded
-  // for a small max, where max - 3 would otherwise go negative and slice from the end.
+  // The ellipsis is counted INSIDE the cap, so the result never exceeds max clusters. Guarded for a
+  // small max, where max - 3 would otherwise go negative and slice from the end.
   if (clusters.length > max) return `${clusters.slice(0, Math.max(0, max - 3)).join("")}...`;
-  // Under the cluster cap, but the RAW bound cut the input. Two separate questions have to be answered
-  // here, and answering only one of them has now been wrong twice in opposite directions.
-  //
-  //   WAS ANYTHING WORTH KEEPING DISCARDED?  Decided by scanning the OMITTED SUFFIX, because the
-  //   boundary character cannot answer it. "hello", then 6,395 spaces, then "VISIBLE" puts whitespace at
-  //   the cut, so a boundary-only test concluded nothing was lost and published "hello" - silently
-  //   dropping the subject's actual words from a notice about the subject. The scan uses lastIndex
-  //   rather than slicing, so an enormous reason is not copied to ask a yes/no question.
-  //
-  //   WAS THE FINAL CLUSTER SEVERED?  Decided by the boundary character, which is exactly what it can
-  //   answer. Only then is that cluster dropped. Dropping it whenever anything was lost is what turned
-  //   "hello" into "hell..." in the first version of this fix.
+  if (!preBounded) return flat;
+  // The bound cut the input. Two independent questions, and answering only one has been wrong in both
+  // directions: marking on any cut turned "hello" plus 7,000 control characters into "hell...", and
+  // marking on none hid a "VISIBLE" suffix sitting past 6,395 spaces.
   const from = max * 32;
-  let lostSomething = false;
-  if (preBounded) {
-    SURVIVES_STRIP.lastIndex = from;
-    lostSomething = SURVIVES_STRIP.test(source)
-      || source.indexOf(ZWNJ, from) !== -1
-      || source.indexOf(ZWJ, from) !== -1;
-  }
-  if (!lostSomething) return flat;
-  const lastUnit = raw[raw.length - 1];
-  const severedFinalCluster = !(/[\s\p{Cc}]/u.test(lastUnit)
-    || (/\p{Cf}/u.test(lastUnit) && lastUnit !== ZWNJ && lastUnit !== ZWJ));
-  return `${(severedFinalCluster ? clusters.slice(0, -1) : clusters).join("")}...`;
+  HAS_VISIBLE_G.lastIndex = from;
+  if (!HAS_VISIBLE_G.test(source)) return flat;   // nothing a reader would have noticed was discarded
+  return `${(severedAtCut(raw, source, from) ? clusters.slice(0, -1) : clusters).join("")}...`;
 }
 
 /**

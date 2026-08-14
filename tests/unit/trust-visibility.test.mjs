@@ -27,6 +27,8 @@ import { check as indexDrift } from "../../scripts/checks/index-drift.mjs";
 import { loadPlugin } from "../../scripts/lib/load-plugin.mjs";
 import { renderIndex, renderLegacyIndex } from "../../scripts/generators/gen-index.mjs";
 import { mdCodeSpan } from "../../scripts/lib/md-escape.mjs";
+import { renderSarif } from "../../scripts/lib/sarif-render.mjs";
+import { formatGithubAnnotations } from "../../scripts/check.mjs";
 
 const REPO = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
 const PROV = provenanceByReq();
@@ -755,4 +757,62 @@ test("the omitted-suffix scan holds no state between findings or between runs", 
   assert.deepEqual(run(), expected, "every finding in one call is sanitized independently");
   assert.deepEqual(run(), expected, "and a second call is identical, so no lastIndex survived the first");
   assert.deepEqual(run(), expected, "and a third");
+});
+
+// --- round 7: one visibility model, and the machine surfaces ------------------------------------
+
+test("a VISIBLE Cf character survives, because Cf and invisible are not the same set", () => {
+  // The strip removed every Cf. U+06DD (ARABIC END OF AYAH) is Cf and VISIBLE, so the sanitizer was
+  // silently editing the subject's words - deleting a character from a quotation published about them.
+  // Three consumers asked about visibility three different ways and disagreed; they now share one
+  // property, and this is the case that decides which property is the right one.
+  const AYAH = CP(0x6dd);
+  const quoted = (r) => published(f("error", "U6", { file: "a.md" }), { suppressions: [{ reqId: "U6", reason: r }] }).trustNotice;
+  assert.ok(quoted(`kept ${AYAH} 12`).includes(`kept ${AYAH} 12`), "a visible Cf character is quoted back intact");
+  assert.ok(/waiver reason:/.test(quoted(AYAH)), "and a reason made only of it is a real reason, not an empty one");
+  // The mirror case: invisible but NOT Cf must still count as invisible.
+  assert.ok(!/waiver reason:/.test(quoted(CP(0x34f).repeat(3))), "U+034F is Mn, invisible, and still produces no clause");
+});
+
+test("a discarded suffix of only invisibles is not reported as a truncation", () => {
+  // The suffix scan and the empty-reason test disagreed: the scan counted U+034F as worth keeping while
+  // the same character was classified invisible three lines away, so the notice could announce the
+  // truncation of nothing a reader would ever have seen.
+  const quoted = (r) => {
+    const n = published(f("error", "U6", { file: "a.md" }), { suppressions: [{ reqId: "U6", reason: r }] }).trustNotice;
+    return n.match(/waiver reason: (.*)\)\./s)[1];
+  };
+  assert.equal(quoted(`hello${" ".repeat(6393)}xx${CP(0x34f)}`), "hello xx", "an ignorable-only tail is not a loss");
+});
+
+test("a COMPLETE grapheme at the cut is kept, because severance is not a property of one side", () => {
+  // severedFinalCluster was inferred from the last RETAINED unit. "a" followed by U+0301 ENDS a complete
+  // cluster, but the retained unit is a combining mark - so the test concluded the cluster was split and
+  // dropped a whole accented character from the quotation. A boundary exists at the cut exactly when a
+  // segment starts there, and that needs both sides.
+  const n = published(f("error", "U6", { file: "a.md" }), { suppressions: [{ reqId: "U6", reason: `hello${" ".repeat(6393)}a${CP(0x301)} VISIBLE` }] }).trustNotice;
+  const quoted = n.match(/waiver reason: (.*)\)\./s)[1];
+  assert.ok(quoted.includes(`a${CP(0x301)}`), "the complete accented character is retained");
+  assert.ok(quoted.endsWith("..."), "and the text past the cut is still reported as lost");
+});
+
+test("a trust action reaches SARIF and the GitHub annotations, not just the human reports", () => {
+  // Both machine surfaces carried the finding and no explanation. sarif-render's own docblock says it
+  // renders a suppression the subject WROTE so the artifact stays honest about what was silenced - but a
+  // suppression the trust step OVERRULED left no trace at all, so the Security tab and the PR diff showed
+  // the finding with no hint that the subject had tried to waive it, in the one mode built to publish a
+  // verdict ABOUT that subject.
+  const resolved = [published(f("error", "U6", { file: "a.md" }), { suppressions: [{ reqId: "U6", reason: "we accept this" }] })];
+  assert.ok(resolved[0].trustNotice, "the fixture must actually produce a trust action");
+
+  const ctx = { library: { data: { standard: "0.13", tier: "universal" } }, root: "." };
+  const doc = renderSarif(ctx, { findings: resolved });
+  const result = doc.runs[0].results.find((x) => x.ruleId === "U6");
+  assert.ok(result, "the finding is in the SARIF");
+  assert.ok(result.properties?.["askit/trustNotice"], "and carries the trust notice as a property");
+  assert.match(result.properties["askit/trustNotice"], /published-verdict/, "naming the mechanism");
+  assert.equal(result.message.text, resolved[0].message, "while the message text stays the CHECK's own words");
+
+  const gha = formatGithubAnnotations(resolved, "universal");
+  assert.match(gha, /published-verdict/, "the annotation a reviewer reads on the diff says so too");
 });

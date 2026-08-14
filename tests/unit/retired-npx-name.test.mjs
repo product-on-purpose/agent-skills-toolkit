@@ -38,16 +38,28 @@ function trackedFiles() {
 }
 
 /**
- * Read a file as BYTES and decode latin1, which maps each byte to one character losslessly.
+ * Every decoding of a file's bytes that could hide the pattern, as strings to search.
  *
- * There is deliberately no binary-extension list and no text/binary classification. The previous version
- * had one, and it excluded `.svg` - which is text, and can carry an instruction a reader will follow.
- * Any such list is a place for the next exempt extension to hide. Decoding latin1 means an ASCII pattern
- * is found exactly in a UTF-8 file, in a UTF-16 file, and in something that is genuinely binary, at the
- * cost of nothing: a false positive here would be a real occurrence of the string.
+ * There is deliberately no binary-extension list and no text/binary classification. An earlier version
+ * had one and it excluded `.svg`, which is text and can carry an instruction a reader will follow; any
+ * such list is a place for the next exempt extension to hide.
+ *
+ * latin1 alone was not enough either. It maps each BYTE to one character, so it finds an ASCII pattern in
+ * a UTF-8 file exactly - but UTF-16 interleaves NUL bytes between ASCII characters, so in that decoding
+ * the pattern is simply not there. A tracked UTF-16 document could carry the forbidden instruction while
+ * this guard reported success. Both endiannesses are decoded too, and the byte swap is done here rather
+ * than trusting a BOM, because a file without a BOM is exactly the one an evasion would use.
  */
-function readBytesAsText(abs) {
-  return fs.readFileSync(abs).toString("latin1");
+function decodings(abs) {
+  const buf = fs.readFileSync(abs);
+  const out = [buf.toString("latin1")];
+  if (buf.length >= 2 && buf.length % 2 === 0) {
+    out.push(buf.toString("utf16le"));
+    const swapped = Buffer.from(buf);
+    swapped.swap16();
+    out.push(swapped.toString("utf16le"));   // the same bytes read as UTF-16BE
+  }
+  return out;
 }
 
 test("no tracked file names an npm package this project does not own", () => {
@@ -66,18 +78,20 @@ test("no tracked file names an npm package this project does not own", () => {
   for (const rel of trackedFiles()) {
     const abs = path.join(REPO_ROOT, rel);
     if (abs === SELF) continue; // this file must name the pattern in order to forbid it
-    let text;
+    let texts;
     try {
-      text = readBytesAsText(abs);
+      texts = decodings(abs);
     } catch (e) {
       unreadable.push(`${rel}: ${e.code ?? e.message}`);
       continue;
     }
-    text.split(/\r?\n/).forEach((line, i) => {
-      if (RETIRED.test(line)) {
-        offenders.push(`${rel}:${i + 1}: ${line.trim().slice(0, 120)}`);
-      }
-    });
+    for (const text of texts) {
+      text.split(/\r?\n/).forEach((line, i) => {
+        if (RETIRED.test(line)) {
+          offenders.push(`${rel}:${i + 1}: ${line.trim().slice(0, 120)}`);
+        }
+      });
+    }
   }
   assert.deepEqual(
     unreadable,
@@ -107,7 +121,16 @@ test("the guard scans what it claims to, and can actually fail", () => {
   // No extension is exempt any more. SVG is text and can carry an instruction; it was on the old
   // binary list, which is exactly the kind of hole a classification invites.
   assert.ok(scanned.some((f) => f.endsWith(".svg")), "text formats like SVG are scanned, not classified away as binary");
-  assert.equal(readBytesAsText(path.join(REPO_ROOT, "package.json")).includes("\"name\""), true, "files are read as bytes and decoded losslessly");
+  assert.ok(decodings(path.join(REPO_ROOT, "package.json"))[0].includes('"name"'), "files are read as bytes");
+  // UTF-16 is decoded too, both endiannesses. latin1 cannot see a pattern whose characters are
+  // separated by NUL bytes, so a tracked UTF-16 file was a hole the old self-check could not expose.
+  const le = Buffer.from("npx agent-skills-toolkit-gen-index", "utf16le");
+  assert.ok(!RETIRED.test(le.toString("latin1")), "latin1 alone genuinely misses UTF-16 - that is why this matters");
+  assert.ok(RETIRED.test(le.toString("utf16le")), "the LE decoding finds it");
+  const be = Buffer.from(le); be.swap16();
+  assert.ok(!RETIRED.test(be.toString("utf16le")), "BE bytes are not readable as LE");
+  const unswapped = Buffer.from(be); unswapped.swap16();
+  assert.ok(RETIRED.test(unswapped.toString("utf16le")), "and the swap this guard performs recovers it");
 
   // A near-miss spelling is caught too, so "fix the exact string" cannot become the next escape route.
   assert.ok(RETIRED.test("agent-skills-toolkit-genindex"), "a near-miss spelling is still a package we do not own");

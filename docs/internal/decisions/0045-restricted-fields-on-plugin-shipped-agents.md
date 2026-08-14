@@ -65,6 +65,29 @@ A finding names every offending field on that agent, quotes the vendor sentence,
 - **A plugin pinned below 0.13 sees a warning, not a gate failure**, via ADR 0044's ceiling. A plugin that already pinned 0.13 or above gates immediately on upgrade; that is outside the v1.13.0 invariant's scope by design, because such a plugin declared the newest contract before it existed.
 - **`A6` stops being the only place this is detected**, and the duplicated field list that would otherwise have appeared in two modules never exists.
 
+## Correction, 2026-08-14: discovery is a RUNTIME question, not a registration one
+
+The first implementation iterated `ctx.subagents`, the collection the loader builds from
+`listAgentFiles`. That discovery deliberately excludes `agents/README.md` and every underscore-prefixed
+file, because those are not REGISTERED subagents. Claude Code loads them anyway - `folder-readme.mjs`
+carries the probe that proved it, where a directory holding `real-agent.md`, `README.md`, `_README.md`
+and `README.txt` registered three subagents, `real-agent`, `README` and `_README`. The underscore prefix
+protects nothing; only the non-`.md` extension was skipped.
+
+So a plugin could put `hooks` or `mcpServers` in `agents/_unsafe.md`, ship it to a runtime that loads it,
+and earn a clean Universal or Gold verdict from the check written to forbid exactly that.
+
+The normative text was never wrong: `STANDARD.md` already said "an agent under the plugin's `agents/`
+directory" and "applies to every agent the plugin ships". The IMPLEMENTATION was narrower than the
+requirement, which is the harder defect to see - the code passed its own tests, and the tests were
+written against the same narrow reading.
+
+The loader now exposes `agentDocs` (every `.md` under `agents/`, via `listRuntimeAgentDocs`) beside
+`subagents` (what the plugin registers), and `U14` reads the former. The two collections answer different
+questions and are deliberately both available: a check about REGISTRATION should keep using `subagents`.
+
+Found by round 7 of the v1.13.0 adversarial review. Zero family verdicts moved.
+
 ## Implementation sites
 - `scripts/lib/vendor-agent-fields.mjs` - **new shared module**: `PLUGIN_AGENT_UNSUPPORTED_FIELDS`, `PLUGIN_AGENT_SUPPORTED_FIELDS`, `AGENT_FIELDS_DOC`, `unsupportedFieldsOn`, and the verbatim vendor quote with its read date.
 - `scripts/checks/agent-restricted-fields.mjs` - **new check**: `meta` (`reqId: "U14"`, `tier: "universal"`, `provenance: "vendor-cited"`, `since: "0.13"`) and `check`.

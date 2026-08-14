@@ -47,7 +47,7 @@ import { execFileSync } from "node:child_process";
 import path from "node:path";
 import { CHECKS } from "./lib/registry.mjs";
 import { TIER_NAME, TIER_SUB, TIER_ORDER } from "./lib/tier.mjs";
-import { extractLabeledCounts } from "./lib/stated-counts.mjs";
+import { extractLabeledCounts, INT_TOKEN_SRC, normalizeCount } from "./lib/stated-counts.mjs";
 
 const dir = process.argv[2] ? path.resolve(process.argv[2]) : process.cwd();
 const libPath = path.join(dir, "library.json");
@@ -233,16 +233,23 @@ const HISTORICAL = [
 // The four canonical shapes a present-tense spine claim is written in. Scoped this tightly on purpose:
 // a bare "N checks" also matches legitimate TIER-SUBSET counts ("Universal is 13 checks"), and a guard
 // that fails on those would be turned off within a week.
+// The number token comes from the SHARED parser, never a local copy. A hand-rolled `(\d+)` matched
+// "031" inside "1,031-check spine" and accepted it as 31 - the identical substring-versus-token defect
+// a previous release already found in the skill and spine counts, rediscovered here because these
+// patterns were written by hand instead of reusing that lesson. A test asserts this file grows no
+// local redefinition, and it caught exactly that.
+const NUM = INT_TOKEN_SRC;
+
+// The four PROSE shapes, plus the two BADGE shapes. The badge is the first number a stranger reads and
+// was stale on main while every prose claim was correct - the guard scanned README.md and simply did not
+// recognise a shields.io slug or its alt text as a spine claim.
 const SPINE_CLAIM = [
-  // Any "N-check <noun>", not just "N-check spine". Two live pages said "30-check list" and
-  // "30-check backbone" and sailed past a spine-only pattern while the floor was satisfied by five
-  // other files - a guard shaped around the phrasings I had already seen, for the third time in this
-  // release. In this repository the hyphenated compound always names the spine; tier-subset counts are
-  // written "13 checks", never "13-check something", so this cannot fire on one.
-  /(\d+)-check \w+/g,
-  /(\d+) spine checks/g,
-  /spine is \*{0,2}(\d+) checks/g,
-  /\|\s*Spine\s*\|\s*(\d+) checks/g,
+  new RegExp(String.raw`${NUM}-check \w+`, "g"),
+  new RegExp(String.raw`${NUM} spine checks`, "g"),
+  new RegExp(String.raw`spine is \*{0,2}${NUM} checks`, "g"),
+  new RegExp(String.raw`\|\s*Spine\s*\|\s*${NUM} checks`, "g"),
+  new RegExp(String.raw`badge/checks-${NUM}-`, "g"),
+  new RegExp(String.raw`Validation checks: ${NUM}`, "g"),
 ];
 
 // Tracked files only. Git already draws the exact authored-versus-generated line this needs: the site's
@@ -297,7 +304,7 @@ for (const rel of tracked) {
   for (const re of SPINE_CLAIM) {
     for (const m of text.matchAll(re)) {
       sawClaim = true;
-      if (Number(m[1]) !== spineSize) {
+      if (normalizeCount(m[1]) !== spineSize) {
         failures.push(`${rel}  claims "${m[0]}"; the registry has ${spineSize}`);
       }
     }

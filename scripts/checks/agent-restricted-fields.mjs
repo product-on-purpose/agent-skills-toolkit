@@ -33,7 +33,12 @@ export const meta = {
 
 export function check(ctx) {
   const out = [];
-  for (const agent of ctx.subagents ?? []) {
+  // agentDocs, NOT subagents. `subagents` is what the plugin REGISTERS, and its discovery excludes
+  // README.md and underscore-prefixed files. Claude Code loads every .md in agents/ regardless -
+  // folder-readme.mjs records the probe that proved it - so reading the registration list let a
+  // plugin ship agents/_unsafe.md with `hooks` or `mcpServers` and still earn a clean verdict. This
+  // check is about what reaches a RUNTIME, so it must ask the runtime's question.
+  for (const agent of ctx.agentDocs ?? ctx.subagents ?? []) {
     // A frontmatter that failed to parse is another check's finding, not this one's: reporting a field
     // list from an unparseable document would be inventing evidence.
     if (agent.parseError) continue;

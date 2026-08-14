@@ -225,7 +225,12 @@ export function formatGithubAnnotations(findings, declaredTier) {
       if (f.line != null) params.push(`line=${ghaEscapeProperty(String(f.line))}`);
       const paramStr = params.length ? " " + params.join(",") : "";
       const label = f.reqId ? `${f.check} (${f.reqId}): ` : `${f.check}: `;
-      return `::${cmd}${paramStr}::${ghaEscapeData(label + f.message)}`;
+      // The trust notice is APPENDED to the annotation a reviewer reads on the diff. Without it, a
+      // finding the subject had tried to waive looks identical to one nobody touched, which is the
+      // opposite of what published-verdict mode exists to show. Already sanitized where the notice is
+      // built; ghaEscapeData then handles the workflow-command encoding.
+      const notice = f.trustNotice ? ` [${f.trustNotice}]` : "";
+      return `::${cmd}${paramStr}::${ghaEscapeData(label + f.message + notice)}`;
     })
     .join("\n");
 }

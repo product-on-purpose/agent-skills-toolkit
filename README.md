@@ -22,7 +22,7 @@ Most skill collections are a flat, single-agent, ungoverned pile. This is the St
   <img src="https://img.shields.io/badge/version-1.13.0-blue?style=flat-square" alt="Version 1.13.0">
   <a href="https://product-on-purpose.github.io/agent-skills-toolkit/badges/tier.json"><img src="https://img.shields.io/endpoint?url=https%3A%2F%2Fproduct-on-purpose.github.io%2Fagent-skills-toolkit%2Fbadges%2Ftier.json&style=flat-square" alt="Tier badge, generated in CI at the graded commit sha - click through for the raw JSON (tier, sha, Standard pin, date)"></a>
   <a href="#the-catalog"><img src="https://img.shields.io/badge/skills-24-brightgreen?style=flat-square" alt="Skills: 24"></a>
-  <img src="https://img.shields.io/badge/checks-30-brightgreen?style=flat-square" alt="Validation checks: 30">
+  <img src="https://img.shields.io/badge/checks-31-brightgreen?style=flat-square" alt="Validation checks: 31">
   <a href="https://agentskills.io/specification"><img src="https://img.shields.io/badge/spec-agentskills.io-orange?style=flat-square" alt="Agent Skills Spec"></a>
 </p>
 
