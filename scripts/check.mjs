@@ -12,7 +12,7 @@
 // used-by:      invoked by contributors and by .github/workflows/ci.yml; the self-hosting (G2) target
 import { loadPlugin } from "./lib/load-plugin.mjs";
 import { runAllChecks, provenanceByReq } from "./lib/registry.mjs";
-import { applyStandardDowngrade } from "./lib/standard-gate.mjs";
+import { SINCE_BY_REQ } from "./lib/standard-gate.mjs";
 import { loadConfig, publicConfig, withGraderOptions } from "./lib/config.mjs";
 import { PROFILES } from "./lib/profiles.mjs";
 import { resolveFindings, gatingFindings } from "./lib/resolve-config.mjs";
@@ -36,9 +36,11 @@ export function gateExitFromFindings(findings, declaredTier) {
 
 export function runGate(root, ctx = loadPlugin(root), { strict = false, mode, profile } = {}) {
   const raw = runAllChecks(ctx);
-  // F1 (ADR 0027): honor the plugin's pinned Standard by downgrading post-pin errors to warn, unless
-  // --strict (which grades against the full live spine, for authors validating the Standard itself).
-  const downgraded = strict ? raw : applyStandardDowngrade(raw, ctx?.library?.data?.standard);
+  // F1 (ADR 0027), now ADR 0044: the pin is honoured by a CEILING applied last inside resolveFindings,
+  // not by a pre-pass. As a pre-pass it ran before configuration resolved, so a consumer's
+  // `rules.X = "error"` beat it (E26). Under --strict the pin is passed as undefined, which makes every
+  // version constraint go inert together - there is no second strict flag to keep in sync.
+  const pinned = strict ? undefined : ctx?.library?.data?.standard;
   // F3: load askit.config.json and resolve severities (profile + per-rule override + suppressions +
   // published-verdict clamp). With no config this is a no-op: effectiveSeverity === severity, nothing
   // suppressed, configFindings empty, so the gate exit equals the pre-F3 behavior (test G-BC).
@@ -47,7 +49,7 @@ export function runGate(root, ctx = loadPlugin(root), { strict = false, mode, pr
   // scope reaches this same path through gradeMember(), so a catalogue's caller options are grader-owned
   // for every member without that scope needing a merge of its own.
   const effectiveConfig = withGraderOptions(config, { mode, profile });
-  const resolved = resolveFindings([...configFindings, ...downgraded], effectiveConfig, provenanceByReq());
+  const resolved = resolveFindings([...configFindings, ...raw], effectiveConfig, provenanceByReq(), { pinned, sinceByReq: SINCE_BY_REQ });
   // Project effectiveSeverity onto .severity so gateExitFromFindings (the tier ceiling) is UNCHANGED.
   const forGate = gatingFindings(resolved).map((f) => ({ ...f, severity: f.effectiveSeverity }));
   const { errorCount, exitCode } = gateExitFromFindings(forGate, ctx?.library?.data?.tier);
@@ -96,11 +98,30 @@ export function sectionFindings(findings, declaredTier) {
  * Exported for unit testing.
  */
 export function standardDebtLine(findings) {
-  const held = findings.filter((f) => f.downgraded && !f.suppressed);
+  // Reads `ceiling`, not the legacy `since`. Debt is now findings held below their severity by a binding
+  // INTRODUCTION or TIGHTENING ceiling, and a tightening has no `since` at all - selecting on the legacy
+  // field would print an undefined version for every `until`-only hold, which is most of them.
+  const held = findings.filter((f) => f.ceiling && !f.suppressed);
   if (held.length === 0) return "";
-  const dueAt = held.reduce((hi, f) => (compareStandard(f.since, hi) > 0 ? f.since : hi), held[0].since);
-  return `Standard debt: ${held.length} finding(s) held back by your pinned Standard ${held[0].pinned}; ` +
+  const dueAt = held.reduce((hi, f) => (compareStandard(f.ceiling.due, hi) > 0 ? f.ceiling.due : hi), held[0].ceiling.due);
+  return `Standard debt: ${held.length} finding(s) held back by your pinned Standard ${held[0].ceiling.pinned}; ` +
     `all of them become gate-failing errors at Standard ${dueAt} or later.`;
+}
+
+/**
+ * The per-finding ceiling annotation, branched on CAUSE.
+ *
+ * The old text was `since`-shaped ("introduced in Standard X, after pinned Y") and is simply wrong for a
+ * tightening: it would report a `U13` cap as due at 0.12 when it is due at 0.13. Both causes can be
+ * active at once, so all three shapes are spelled out rather than inferred from whichever constraint
+ * happened to come first.
+ */
+function ceilingAnnotation(c) {
+  const since = c.constraints.find((x) => x.cause === "since");
+  const until = c.constraints.find((x) => x.cause === "until");
+  if (since && until) return `held at ${c.to}: introduced in Standard ${since.due} and capped until Standard ${until.due}, after pinned ${c.pinned}`;
+  if (until) return `held at ${c.to}: capped until Standard ${until.due}, after pinned ${c.pinned}`;
+  return `downgraded: introduced in Standard ${since.due}, after pinned ${c.pinned}`;
 }
 
 function findingLine(f) {
@@ -112,7 +133,7 @@ function findingLine(f) {
   // resolve-config.mjs's own default for a finding whose reqId provenance is not on record.
   const prov = f.provenance ?? "objective";
   return `  [${sev}/${prov}] ${f.check}${f.reqId ? " (" + f.reqId + ")" : ""}: ${f.message}` +
-    `${f.downgraded ? ` [downgraded: introduced in Standard ${f.since}, after pinned ${f.pinned}]` : ""}` +
+    `${f.ceiling ? ` [${ceilingAnnotation(f.ceiling)}]` : ""}` +
     `${f.clampNotice ? ` [clamped to warn: published-verdict, ${f.provenance}]` : ""}` +
     `${f.migrationNotice ? ` [${f.migrationNotice}]` : ""}` +
     `${f.file ? "  -> " + f.file : ""}`;

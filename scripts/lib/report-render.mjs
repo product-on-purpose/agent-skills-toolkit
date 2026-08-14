@@ -1112,7 +1112,7 @@ function renderCollectionMarkdown(report, opts = {}) {
     ])
   ));
   out.push("");
-  out.push("**Standard debt** counts the findings that are warnings only because they postdate that member's own Standard pin. It is what makes green-by-an-old-pin visible rather than flattering.");
+  out.push("**Standard debt** counts the findings held below their severity by that member's own Standard pin - either because the check did not exist at that pin, or because a tightening has not reached it yet. It is what makes green-by-an-old-pin visible rather than flattering.");
   out.push("");
   const notResolved = m.members.filter((x) => x.status !== "resolved");
   if (notResolved.length) {
@@ -1212,7 +1212,7 @@ function renderCollectionHtml(report, opts = {}) {
       <td><code>${escapeHtml(shortSha(x.gradedSha))}</code></td>
       <td>${escapeHtml(x.status !== "resolved" ? "-" : x.diverged ? "DIVERGED" : x.pinSha && x.gradedSha ? "in sync" : "not comparable")}</td>
     </tr>`).join("")}</tbody></table></div>
-    <div class="aside" style="margin-top:14px"><h4>What the columns mean</h4><p><b>Standard debt</b> counts findings that are warnings only because they postdate that member's own Standard pin: green-by-an-old-pin, made visible. <b>Pin</b> is what the catalogue advertises; <b>Graded</b> is the checkout this run actually read. They are shown for every member, including the ones where they agree.</p></div>`;
+    <div class="aside" style="margin-top:14px"><h4>What the columns mean</h4><p><b>Standard debt</b> counts findings held below their severity by that member's own Standard pin, whether the check postdates the pin or a tightening has not reached it yet: green-by-an-old-pin, made visible. <b>Pin</b> is what the catalogue advertises; <b>Graded</b> is the checkout this run actually read. They are shown for every member, including the ones where they agree.</p></div>`;
 
   const notResolved = m.members.filter((x) => x.status !== "resolved");
   const notResolvedBody = notResolved.length

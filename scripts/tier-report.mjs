@@ -4,7 +4,7 @@
 // used-by:      run by contributors, askit-capability-advisor, and the docs that show the tier ladder
 import { loadPlugin } from "./lib/load-plugin.mjs";
 import { runAllChecks, provenanceByReq } from "./lib/registry.mjs";
-import { applyStandardDowngrade } from "./lib/standard-gate.mjs";
+import { SINCE_BY_REQ } from "./lib/standard-gate.mjs";
 import { loadConfig } from "./lib/config.mjs";
 import { resolveFindings } from "./lib/resolve-config.mjs";
 import { TIER_ORDER, tierForReq } from "./lib/tier.mjs";
@@ -14,9 +14,11 @@ import { normalizeArgPath } from "./lib/fs-utils.mjs";
 // then config/profile/suppression resolution), so the burndown agrees with the gate. check.mjs and
 // evaluate.mjs pass their already-resolved findings in.
 function defaultResolved(root, ctx) {
-  const downgraded = applyStandardDowngrade(runAllChecks(ctx), ctx.library?.data?.standard);
   const { config, findings: configFindings } = loadConfig(root);
-  return resolveFindings([...configFindings, ...downgraded], config, provenanceByReq());
+  return resolveFindings([...configFindings, ...runAllChecks(ctx)], config, provenanceByReq(), {
+    pinned: ctx.library?.data?.standard,
+    sinceByReq: SINCE_BY_REQ,
+  });
 }
 
 export function computeTierReport(root, ctx = loadPlugin(root), findings = defaultResolved(root, ctx)) {

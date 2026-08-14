@@ -8,12 +8,8 @@
 // used-by:      scripts/check.mjs, scripts/evaluate.mjs, scripts/tier-report.mjs
 import { PROFILES } from "./profiles.mjs";
 import { matchSuppression } from "./suppressions.mjs";
-
-// Severity rank for the migration cap's ceiling comparison: off < warn < error. Ranking "off" below
-// "warn" is what makes the cap a pure ceiling with no special-casing needed - min(current, capAt) by
-// rank can only ever lower a severity, so an off'd (or suppressed, which is orthogonal to this rank
-// entirely - see below) finding is never lifted back up to warn by a cap that only ever caps at warn.
-const SEVERITY_RANK = { off: 0, warn: 1, error: 2 };
+import { activeConstraints, latestDue, lowerSeverity, SEVERITY_RANK } from "./standard-ceiling.mjs";
+import { BASELINE } from "./standard-version.mjs";
 
 /**
  * Resolve raw findings against the loaded config. Precedence per finding: per-rule override > profile >
@@ -41,30 +37,57 @@ const SEVERITY_RANK = { off: 0, warn: 1, error: 2 };
  * @param {Map<string,string>} provenanceByReq reqId -> provenance
  * @returns {Array<object>} resolved findings, each + { provenance, effectiveSeverity, downgradedFrom, suppressed, suppressionReason, clampNotice, migrationNotice }
  */
-export function resolveFindings(findings, config, provenanceByReq) {
+export function resolveFindings(findings, config, provenanceByReq, { pinned, sinceByReq = {} } = {}) {
   // The config is ORIGIN-BEARING (ADR 0044): every setting is `{ value, origin }` so the published-verdict
-  // trust step can tell a rubric the grader chose from one the subject wrote about itself. W1a threads
-  // that through; nothing here consults `origin` yet, which is why W1a moves no verdict.
+  // trust step can tell a rubric the grader chose from one the subject wrote about itself.
   const profileRules = (PROFILES[config.profile.value] ?? PROFILES["askit-library"]).rules;
   const published = config.mode.value === "published-verdict";
   return findings.map((f) => {
     const declared = f.severity;
+    // Provenance and `since` are LOOKED UP, never read off the finding: a finding carries
+    // { check, severity, message, file, reqId, migration, line } and neither `provenance` nor `meta`.
     const provenance = provenanceByReq.get(f.reqId) ?? "objective";
+    const since = sinceByReq[f.reqId] ?? BASELINE;
+
+    // STEPS 1-2: profile, then per-rule override, then suppression matching.
     const overridden = config.rules[f.reqId]?.value;   // already normalized to a bare severity by loadConfig
     const profiled = profileRules[f.reqId];
     let effectiveSeverity = overridden ?? profiled ?? declared;
     let sup = matchSuppression(f, config.suppressions);
+
+    // STEP 3: the published-verdict trust step. W1c replaces this clamp entirely; until then it is the
+    // behaviour it has always been.
     let clampNotice = null;
     if (published && provenance !== "house" && (effectiveSeverity === "off" || sup)) {
       clampNotice = `clamped to warn in published-verdict mode (provenance ${provenance}): a published verdict cannot disable an objective or vendor-cited check`;
       effectiveSeverity = "warn";
       sup = null; // surfaced, not suppressed
     }
-    let migrationNotice = null;
-    if (f.migration && SEVERITY_RANK[effectiveSeverity] > SEVERITY_RANK[f.migration.capAt]) {
-      migrationNotice = `capped at ${f.migration.capAt} until Standard ${f.migration.until} (${f.migration.reason}); your configured severity would otherwise be "${effectiveSeverity}"`;
-      effectiveSeverity = f.migration.capAt;
-    }
+
+    // The severity after steps 1-3 and BEFORE any ceiling. Both the ceiling's `from` and the binding test
+    // measure against this, not against `declared`: reporting the ceiling as lowering from what the module
+    // emitted would overstate what the pin is holding back when config had already moved it.
+    const postTrust = effectiveSeverity;
+    // A CONFIG-caused reduction that survived the trust step. This is the only way to tell a
+    // config-lowered finding from a ceiling-lowered one, and the two belong in different dispositions.
+    const configReduced = SEVERITY_RANK[postTrust] < SEVERITY_RANK[declared];
+
+    // STEP 4: the Standard ceiling, always last, never raises.
+    const constraints = activeConstraints(pinned, since, f.migration);
+    for (const c of constraints) effectiveSeverity = lowerSeverity(effectiveSeverity, c.ceiling);
+
+    // Did the ceiling ACTUALLY lower anything? A version condition that changes no outcome is not debt:
+    // where config has already lowered a finding, the constraint is still version-active but binds
+    // nothing, and reporting it would tell every debt consumer the pin is holding back a finding the
+    // unchanged config keeps a warning either way.
+    const binding = SEVERITY_RANK[effectiveSeverity] < SEVERITY_RANK[postTrust];
+    // Per-constraint, deliberately NOT derived from the aggregate `binding`: at pin 0.11 both a `since`
+    // ceiling (warn) and an `until` ceiling (capAt) can be active and EQUAL, and an aggregate test cannot
+    // say which one did the work. Equal ceilings mean both bind, and the notice is emitted.
+    const untilConstraint = constraints.find((c) => c.cause === "until");
+    const bindingUntil = untilConstraint && SEVERITY_RANK[f.migration.capAt] < SEVERITY_RANK[postTrust] ? untilConstraint : null;
+    const sinceConstraint = constraints.find((c) => c.cause === "since");
+
     return {
       ...f,
       provenance,
@@ -73,7 +96,35 @@ export function resolveFindings(findings, config, provenanceByReq) {
       suppressed: !!sup,
       suppressionReason: sup ? sup.reason ?? null : null,
       clampNotice,
-      migrationNotice,
+      configReduced,
+      // The cap's public explanation survives the move. The old branch both applied the cap and wrote
+      // this notice; replacing it without re-specifying the notice would silently delete an explanation
+      // that check.mjs, evaluate.mjs, --json and both renderers consume.
+      migrationNotice: bindingUntil
+        ? `capped at ${f.migration.capAt} until Standard ${f.migration.until} (${f.migration.reason}); severity before the cap was ${postTrust}`
+        : null,
+      // ALWAYS PRESENT, null when nothing BINDS - never omitted, never an empty object or array, so
+      // `if (f.ceiling)` is the whole check a consumer needs.
+      ceiling: binding
+        ? {
+            pinned,
+            from: postTrust,
+            to: effectiveSeverity,
+            due: latestDue(constraints),
+            constraints: constraints.map((c) => ({ cause: c.cause, due: c.due })),
+          }
+        : null,
+      // LEGACY --json COMPATIBILITY, deprecated for one minor. Each field is specified independently,
+      // because treating them as an atomic triple is self-contradictory for an `until`-only ceiling.
+      // `downgraded` has always meant "an applied downgrade", so it follows `binding` rather than mere
+      // version-activity; `since` is emitted only when an INTRODUCTION participates, because a tightening
+      // does not change when a check was introduced and deriving it from max(due) would tell a reader the
+      // check appeared in a version it did not.
+      // Spread rather than assigned, so a non-binding finding carries no key at all - exactly the shape
+      // the pre-pass produced. Assigning `undefined` would leave the key present for `in` and deepEqual.
+      ...(binding
+        ? { downgraded: true, pinned, ...(sinceConstraint ? { since: sinceConstraint.due } : {}) }
+        : {}),
     };
   });
 }

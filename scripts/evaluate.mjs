@@ -7,7 +7,7 @@ import { existsSync, statSync, writeFileSync, readFileSync, readdirSync } from "
 import { loadPlugin, loadSkill, looksLikePlugin } from "./lib/load-plugin.mjs";
 import { detectMarketplaceScope, evaluateMarketplace, formatMarketplaceReport, marketplaceExitCode } from "./lib/marketplace/evaluate-marketplace.mjs";
 import { runAllChecks, provenanceByReq, CHECKS } from "./lib/registry.mjs";
-import { applyStandardDowngrade } from "./lib/standard-gate.mjs";
+import { SINCE_BY_REQ } from "./lib/standard-gate.mjs";
 import { loadConfig, withGraderOptions } from "./lib/config.mjs";
 import { PROFILES } from "./lib/profiles.mjs";
 import { resolveFindings } from "./lib/resolve-config.mjs";
@@ -51,7 +51,10 @@ function dispositions(resolved) {
   for (const f of live) byProvenance[f.provenance] = (byProvenance[f.provenance] ?? 0) + 1;
   return {
     realIssues: live.filter((f) => f.effectiveSeverity === "error" && f.provenance !== "house").length,
-    profileConformance: live.filter((f) => f.clampNotice == null && ((f.effectiveSeverity === "error" && f.provenance === "house") || f.downgradedFrom != null)).length,
+    // Counts CONFIG-caused reductions, not every change. `downgradedFrom != null` also catches a
+    // ceiling-lowered finding, which files pin-driven Standard debt under "profile conformance" - which
+    // it is not, and which is already reported by standardDebtLine and the `ceiling` field.
+    profileConformance: live.filter((f) => f.clampNotice == null && ((f.effectiveSeverity === "error" && f.provenance === "house") || f.configReduced)).length,
     suppressed: resolved.filter((f) => f.suppressed).length,
     clamped: live.filter((f) => f.clampNotice != null).length,
     warns: live.filter((f) => f.effectiveSeverity === "warn").length,
@@ -70,7 +73,9 @@ function evaluateComponent(target, opts = {}) {
   // must not be held to the house checks). Same precedence: file config, then CLI overrides.
   const { config, findings: configFindings } = loadConfig(target);
   const cfg = withGraderOptions(config, opts);
-  const resolved = resolveFindings([...configFindings, ...checkAgentskills(ctx)], cfg, provenanceByReq());
+  // Component scope has no library.json and therefore no pin: `pinned` stays undefined, so every version
+  // constraint is inert and a single skill grades at full strength, exactly as it does today.
+  const resolved = resolveFindings([...configFindings, ...checkAgentskills(ctx)], cfg, provenanceByReq(), { sinceByReq: SINCE_BY_REQ });
   return { ...baseReport("component", target, resolved), profile: cfg.profile.value, mode: cfg.mode.value };
 }
 
@@ -92,15 +97,16 @@ export function evaluate(target, opts = {}) {
   }
   if (looksLikePlugin(target)) {
     const ctx = loadPlugin(target);
-    // F1 (ADR 0027): downgrade post-pin errors to warn so the report reflects the pinned Standard.
-    const downgraded = applyStandardDowngrade(runAllChecks(ctx), ctx.library?.data?.standard);
+    // F1 (ADR 0027), now ADR 0044: the pin is honoured by a ceiling applied last inside resolveFindings,
+    // so a consumer's own `rules` override can no longer beat it (E26).
+    const raw = runAllChecks(ctx);
     // F3: resolve config (profile + per-rule override + suppressions + published-verdict clamp), so the
     // report object, summary, dispositions split, and --json all reflect the consumer's grading config.
     const { config, findings: configFindings } = loadConfig(target);
     // CLI --mode / --profile override the file (so a third-party plugin can be graded under a chosen
     // profile without writing askit.config.json into its tree); an explicit per-rule override still wins.
     const cfg = withGraderOptions(config, opts);
-    const resolved = resolveFindings([...configFindings, ...downgraded], cfg, provenanceByReq());
+    const resolved = resolveFindings([...configFindings, ...raw], cfg, provenanceByReq(), { pinned: ctx.library?.data?.standard, sinceByReq: SINCE_BY_REQ });
     const t = computeTierReport(target, ctx, resolved);
     return {
       ...baseReport("plugin", target, resolved),

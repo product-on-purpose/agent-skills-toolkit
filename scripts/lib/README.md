@@ -25,10 +25,11 @@ The shared library the checks, generators, and gate import: findings, frontmatte
 - `report-meta.mjs` - the per-reqId explanation table (why-it-matters, fix prompt, effort) the evaluation report renderer joins at render time.
 - `md-escape.mjs` - escapeMdCell(): the one Markdown table-cell escape, backslashes before pipes.
 - `report-render.mjs` - renderMarkdown() and renderHtml(): the pure designed-report renderer over the evaluate() report object.
-- `resolve-config.mjs` - resolveFindings(): profile + per-rule override + suppressions + published-verdict clamp.
+- `resolve-config.mjs` - resolveFindings(): profile + per-rule override + suppressions + published-verdict clamp, then the Standard ceiling last (ADR 0044).
 - `sarif-render.mjs` - renderSarif(): a pure SARIF 2.1.0 serialization of runGate()'s findings, one reportingDescriptor per check (carrying its provenance) and one result per non-off finding.
 - `suppressions.mjs` - the baseline matcher (reqId + file glob + message substring).
-- `standard-gate.mjs` - the ADR 0027 standard-aware downgrade: SINCE_BY_REQ and applyStandardDowngrade().
+- `standard-ceiling.mjs` - the ADR 0044 post-resolution ceiling: activeConstraints() over `since` and `until`, by severity rank.
+- `standard-gate.mjs` - SINCE_BY_REQ, the reqId -> introduction-version map the ceiling resolves against (ADR 0027).
 - `standards-watch.mjs` - the deterministic upstream watch (STANDARD.md sec 6): pin reading, structural surface extraction, material/review/cosmetic classification, and the report, ADR-skeleton, and re-pin renderers. Write-incapable by construction.
 - `standard-version.mjs` - Standard-version arithmetic (parseStandard, compareStandard, isAfter).
 - `stated-counts.mjs` - the one "stated count" parser: a boundary-aware integer token, thousands-separator normalization, and matchAll-backed extractors (extractLabeledCounts, extractTestCountClaims).
