@@ -26,6 +26,7 @@ import { renderMarkdown, renderHtml } from "../../scripts/lib/report-render.mjs"
 import { check as indexDrift } from "../../scripts/checks/index-drift.mjs";
 import { loadPlugin } from "../../scripts/lib/load-plugin.mjs";
 import { renderIndex, renderLegacyIndex } from "../../scripts/generators/gen-index.mjs";
+import { escapeMdInline } from "../../scripts/lib/md-escape.mjs";
 
 const REPO = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
 const PROV = provenanceByReq();
@@ -99,7 +100,9 @@ test("a hostile suppression reason cannot forge structure in the published Markd
   assert.ok(!out.trustNotice.includes("\n"), "no newline survives into the notice");
   assert.ok(!out.trustNotice.includes("\r"), "no carriage return either");
   assert.ok(!/[\u0000-\u001f\u007f]/.test(out.trustNotice), "and no control character of any kind");
-  assert.ok(out.trustNotice.length < 600, "and it cannot be arbitrarily long");
+  // NOT a loose bound. The previous assertion was `< 600` against a fixture SHORTER than the cap, so
+  // it passed whether or not truncation existed at all. The cap is asserted exactly, on input that
+  // actually exceeds it, in the bounded-length case below.
 });
 
 test("the Markdown and HTML reports render the trust action, escaped", () => {
@@ -274,6 +277,71 @@ test("a hostile reason cannot force malformed UTF-16 or invisible reordering int
     assert.ok(!lone.test(n), `${label}: a lone surrogate reached the notice`);
     assert.ok(!invisible.test(n), `${label}: an invisible or reordering character reached the notice`);
     assert.ok(!/[\u0000-\u001f\u007f\u2028\u2029]/.test(n), `${label}: a structural character reached the notice`);
-    assert.equal(JSON.parse(JSON.stringify(n)), n, `${label}: the notice does not survive a JSON round trip`);
+    // isWellFormed, NOT a JSON round trip. JSON.stringify escapes a lone surrogate and JSON.parse
+    // restores it, so round-trip equality is TRUE for malformed input - the assertion that replaced
+    // it could never have caught the very defect this case exists for.
+    assert.ok(n.isWellFormed(), `${label}: the notice is not well-formed UTF-16`);
   }
+});
+
+test("the length cap is EXACT, and applies to input that actually exceeds it", () => {
+  // The cap is the one behavior the earlier assertions could not see: every fixture was shorter than
+  // it, so removing truncation entirely would have passed them.
+  const long = "x".repeat(5000);
+  const out = published(f("error", "U6", { file: "a.md" }), { suppressions: [{ reqId: "U6", reason: long }] });
+  const quoted = out.trustNotice.match(/waiver reason: (.*)\)\./s);
+  assert.ok(quoted, "the reason is quoted back");
+  const reason = quoted[1];
+  assert.equal(Array.from(reason).length, 200, "exactly the cap, measured in CODE POINTS");
+  assert.ok(reason.endsWith("..."), "and truncation is marked rather than silent");
+});
+
+test("a lone surrogate present in the INPUT is removed, not merely never created", () => {
+  // The first fix only stopped TRUNCATION from splitting a pair. A reason that already contains a lone
+  // surrogate - trivially expressible in JSON as a \uD800 escape - walked straight through.
+  for (const [label, reason] of Object.entries({ "lone high": "a\uD800b", "lone low": "a\uDC00b", "high at end": "ab\uD800" })) {
+    const n = published(f("error", "U6", { file: "a.md" }), { suppressions: [{ reqId: "U6", reason }] }).trustNotice;
+    assert.ok(n.isWellFormed(), `${label}: a lone surrogate reached the notice`);
+  }
+  // A well-formed astral character must SURVIVE - the strip is by category, not a blanket ban.
+  const kept = published(f("error", "U6", { file: "a.md" }), { suppressions: [{ reqId: "U6", reason: "ok \uD83D\uDE00 ok" }] }).trustNotice;
+  assert.ok(kept.includes("\uD83D\uDE00"), "a valid emoji is not collateral damage");
+});
+
+test("a subject reason cannot render as an active link or image in the Markdown report", () => {
+  // escapeMdCell keeps a value inside its cell; it does not stop the value being MARKUP. A reason of
+  // "![Official status](https://attacker.example/pixel)" survived it unchanged and rendered as a live
+  // image in a report published about the party who wrote it - a tracking pixel, or a trusted-looking
+  // link, over our signature.
+  const BSLASH = String.fromCharCode(92);
+  const META = "[]()!*_`~<>#";
+  // Character scan rather than a regex: expressing "an unescaped bracket" in a regex literal is a
+  // backslash-counting exercise, and getting THAT wrong is how a safety assertion quietly passes.
+  const firstUnescaped = (s) => {
+    for (let i = 0; i < s.length; i++) {
+      if (META.includes(s[i]) && (i === 0 || s[i - 1] !== BSLASH)) return `${s[i]} at ${i}`;
+    }
+    return null;
+  };
+  const attack = "![Official status](https://attacker.example/pixel) [click](http://x) *em*";
+  assert.ok(firstUnescaped(attack), "sanity: the raw attack really does contain active markup");
+  assert.equal(firstUnescaped(escapeMdInline(attack)), null, "every inline metacharacter is escaped");
+
+  // And the escape has to reach the actual report, not just the helper.
+  const notice = published(f("error", "U6", { file: "a.md" }), { suppressions: [{ reqId: "U6", reason: attack }] }).trustNotice;
+  assert.equal(firstUnescaped(escapeMdInline(notice)), null, "including when it arrives inside a trust notice");
+});
+
+test("the evaluator SUMMARY does not report one trust action as both clamped and restored", () => {
+  // The per-finding label was suppressed in the first pass, but formatReport still printed
+  // "Clamped: 1" beside "Trust actions: 1 severity restored" for that same single finding - which
+  // describes one event twice and makes the retired mechanism look current. A mutation check caught
+  // that the existing case did not cover this surface at all: it asserted only the gate terminal.
+  const resolved = resolveFindings([f("warn", "U6")], configFrom({ mode: "published-verdict", rules: { U6: "off" } }), PROV);
+  const rep = { scope: "plugin", target: ".", findings: resolved, byRule: { U6: resolved }, summary: { errors: 0, warns: 1 }, dispositions: dispositions(resolved), tier: null, blocked: [] };
+  const out = formatReport(rep);
+  assert.match(out, /Trust actions/, "the current mechanism is reported");
+  assert.ok(!/Clamped \(/.test(out), "and the deprecated one is not reported for the same finding");
+  // The machine data is deliberately UNCHANGED, because external readers depend on it.
+  assert.equal(rep.dispositions.clamped, 1, "dispositions.clamped still counts it for compatibility");
 });

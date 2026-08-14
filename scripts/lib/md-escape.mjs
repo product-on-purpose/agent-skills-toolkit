@@ -29,3 +29,21 @@ export function escapeMdCell(s) {
     .split("|").join(BS + "|")
     .replace(/[\r\n]+/g, " ");
 }
+
+/**
+ * Escape a value that will be rendered as Markdown PROSE, not as a table cell.
+ *
+ * escapeMdCell keeps a value inside its cell. It does NOT stop the value from being active MARKUP,
+ * and for prose that is the bigger exposure: a suppression reason of
+ * "![Official status](https://attacker.example/pixel)" survives the cell escape unchanged and renders
+ * as a live image in a report published ABOUT the party who wrote it - a tracking pixel, or a
+ * trusted-looking link, over our signature.
+ *
+ * So every inline metacharacter that can OPEN a construct is escaped: link and image brackets, the
+ * parentheses that carry their destination, emphasis, code spans, autolink angles, and the bang that
+ * turns a link into an image. Backslash-escaping ASCII punctuation is defined by CommonMark, so each
+ * one renders as the literal character.
+ */
+export function escapeMdInline(s) {
+  return escapeMdCell(s).replace(/[\[\]()!*_`~<>#]/g, (c) => BS + c);
+}

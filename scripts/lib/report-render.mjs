@@ -3,7 +3,7 @@
 // why:          MD (PR review / agents), HTML (non-engineers), JSON, and terminal all derive from one object so they never diverge (E1)
 // used-by:      scripts/evaluate.mjs (--format), the askit-evaluate skill
 import { metaFor } from "./report-meta.mjs";
-import { escapeMdCell } from "./md-escape.mjs";
+import { escapeMdCell, escapeMdInline } from "./md-escape.mjs";
 import { TIER_NAME, TIER_SUB, TIER_ORDER } from "./tier.mjs";
 
 // --- tier display vocabulary (universal/convergent/advanced -> Bronze/Silver/Gold) ---
@@ -368,7 +368,11 @@ function renderMarkdown(report, opts = {}) {
         // is published ABOUT that subject. The text is already flattened where the notice is built
         // (sanitizeSubjectText), so this is the second of two independent guards rather than the only one.
         for (const notice of r.trustNotices) {
-          out.push(`> Published-verdict trust action for ${r.reqId}: ${escapeMd(notice)}`);
+          // escapeMdInline, not escapeMd. The cell escape keeps a value inside its cell; it does not stop
+          // the value being active MARKUP. A reason of "![Official status](https://attacker.example/px)"
+          // survived it unchanged and rendered as a live image in a report published ABOUT the party who
+          // wrote it - a tracking pixel, or a trusted-looking link, over our signature.
+          out.push(`> Published-verdict trust action for ${r.reqId}: ${escapeMdInline(notice)}`);
           out.push("");
         }
         out.push(`> Why ${r.reqId} matters: ${r.why}`);

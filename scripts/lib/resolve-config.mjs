@@ -20,14 +20,21 @@ import { BASELINE } from "./standard-version.mjs";
  * strings must not be able to shape the structure of a report written about it.
  */
 function sanitizeSubjectText(s, max = 200) {
-  const flat = String(s ?? "")
-    .replace(/[\u0000-\u001f\u007f]+/g, " ")                          // control characters
-    .replace(/[\u200b-\u200f\u202a-\u202e\u2060-\u206f\ufeff]/g, "")  // invisible and bidi-reordering
-    .replace(/\s+/g, " ")                                             // \s covers U+2028 and U+2029
+  // Bound the RAW input before any full-string pass, so an extreme reason cannot amplify allocation
+  // before it is capped. Slicing UTF-16 units here can split a pair; the Cs strip below removes
+  // whatever that leaves, which is precisely why the strip is by category rather than by range.
+  const raw = String(s ?? "").slice(0, max * 8);
+  const flat = raw
+    // Cc (control) becomes a separator - it stood between words. Cf (format: bidi overrides,
+    // zero-width joiners, U+061C, the BOM) and Cs (LONE SURROGATES) are removed outright: they are
+    // invisible or malformed and have no place in a machine-generated sentence. Enumerated ranges
+    // were tried first and leaked both U+061C and any lone surrogate present in the INPUT - the cap
+    // fix only stopped truncation from CREATING one.
+    .replace(/\p{Cc}/gu, " ")
+    .replace(/[\p{Cf}\p{Cs}]/gu, "")
+    .replace(/\s+/g, " ")   // \s covers U+2028 and U+2029
     .trim();
-  // Truncate on a CODE POINT boundary. Slicing UTF-16 units can cut a surrogate pair in half and
-  // leave a LONE SURROGATE - invalid UTF-16 that strict serializers reject, forced into a published
-  // report by an untrusted input. Measured: a 300-emoji reason produced exactly that.
+  // Truncate on a CODE POINT boundary: slicing UTF-16 units can cut a surrogate pair in half.
   const cps = Array.from(flat);
   return cps.length > max ? `${cps.slice(0, max - 3).join("")}...` : flat;
 }

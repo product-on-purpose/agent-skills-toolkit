@@ -156,7 +156,12 @@ export function formatReport(r) {
     const d = r.dispositions;
     lines.push(`Real issues (objective + vendor-cited errors): ${d.realIssues}`);
     lines.push(`Profile conformance (house conventions, profile downgrades): ${d.profileConformance}   suppressed: ${d.suppressed}`);
-    if (d.clamped > 0) lines.push(`Clamped (objective/vendor checks this config tried to disable, surfaced at warn): ${d.clamped}`);
+    // Only the findings the DEPRECATED mechanism is the sole explanation for. A finding carrying both
+    // clampNotice and trustNotice is ONE event, and printing "Clamped: 1" beside "Trust actions: 1
+    // severity restored" describes it twice and makes the retired mechanism look current.
+    // `dispositions.clamped` is unchanged in the machine data, where compatibility requires it.
+    const clampedOnly = r.findings.filter((x) => x.clampNotice != null && !x.trustNotice && !x.suppressed).length;
+    if (clampedOnly > 0) lines.push(`Clamped (objective/vendor checks this config tried to disable, surfaced at warn): ${clampedOnly}`);
     // The aggregate a per-finding notice cannot replace. Without it, a published verdict that failed
     // BECAUSE the subject's own configuration was overruled looks identical to one that failed on an
     // ordinary finding, and automation watching for an attempted disabling reads nothing at all.

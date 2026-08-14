@@ -62,8 +62,10 @@ Usage:
 passed through unchanged to the underlying script - see STANDARD.md and the "Install and run via npm"
 how-to page on the published docs site for --strict, --mode, --profile, --format, and --report.
 
-Exit code is always the gate's: 0 means no gate-failing error at the plugin's declared tier, 1 means
-at least one. A subcommand name always wins over a directory of the same name, so if your plugin
+Exit code, PER SUBCOMMAND. For the default, check, evaluate and tier-report it is the gate's: 0 means
+no gate-failing error at the plugin's declared tier, 1 means at least one. **gen-index NEVER GRADES**;
+it exits 0 when generation succeeded, so a CI step that runs gen-index and trusts the exit code has
+checked nothing about conformance. Run the gate separately. A subcommand name always wins over a directory of the same name, so if your plugin
 directory is literally named ${Object.keys(SUBCOMMANDS).map((s) => JSON.stringify(s)).join(", ")},
 disambiguate it as a PATH by writing "./<name>" (e.g. "agent-skills-toolkit ./gen-index") or by passing
 an explicit subcommand first (e.g. "agent-skills-toolkit check ./gen-index"). This list is generated
