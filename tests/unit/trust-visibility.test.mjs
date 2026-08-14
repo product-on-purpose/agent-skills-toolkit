@@ -15,7 +15,7 @@ import assert from "node:assert/strict";
 import path from "node:path";
 import { mkdtempSync, mkdirSync, writeFileSync, rmSync, readFileSync, existsSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 import { spawnSync } from "node:child_process";
 import { resolveFindings } from "../../scripts/lib/resolve-config.mjs";
 import { configFrom } from "../../scripts/lib/config.mjs";
@@ -545,4 +545,104 @@ test("the help's exit-code contract is checked against what the subcommands actu
       assert.equal(gate.status, 1, "check returns the gate exit on a plugin that fails its declared tier");
     }
   );
+});
+
+// --- round 5: the boundary's own edge cases ------------------------------------------------------
+
+test("the gate still loads AND sanitizes on a Node built without internationalization", () => {
+  // The Segmenter was constructed at MODULE LOAD. Every CLI imports this resolver, so on a Node built
+  // without Intl the whole tool became a TypeError before any grading ran - and a grading tool that
+  // cannot start is a far worse failure than one that truncates a quoted sentence less precisely.
+  //
+  // Written to a FILE rather than passed as --eval. Three earlier versions of this probe failed for
+  // quoting reasons alone: a Windows drive letter read as a URL scheme, then a regex whose backslashes
+  // were eaten by the shell, then a hand-built config that was not origin-bearing so trustNotice came
+  // back null and the probe asserted on nothing. A file has one level of quoting instead of three.
+  //
+  // It also exercises SANITIZATION, not just import. An earlier version passed no suppression reason, so
+  // the segmentation path never ran - and a mutation that removed the guard while keeping construction
+  // lazy passed unnoticed. The import alone was never the interesting half.
+  const dir = mkdtempSync(path.join(tmpdir(), "askit-nointl-"));
+  try {
+    const probe = path.join(dir, "probe.mjs");
+    writeFileSync(probe, [
+      "delete globalThis.Intl;",
+      "const rc = await import(process.argv[2]);",
+      "const cfg = await import(process.argv[3]);",
+      "const out = rc.resolveFindings(",
+      "  [{ check: 'U6', reqId: 'U6', severity: 'error', message: 'm', file: 'a.md', migration: null, line: null }],",
+      "  cfg.configFrom({ mode: 'published-verdict', suppressions: [{ reqId: 'U6', reason: 'x'.repeat(500) }] }),",
+      "  new Map([['U6', 'objective']])",
+      ");",
+      "console.log(out.length === 1 ? 'RESOLVED' : 'EMPTY');",
+      "console.log(out[0].trustNotice ? 'NOTICE' : 'NO-NOTICE');",
+      "console.log(out[0].trustNotice && out[0].trustNotice.includes('...).') ? 'TRUNCATED' : 'NOT-TRUNCATED');",
+    ].join("\n"));
+
+    const url = (rel) => pathToFileURL(path.join(REPO, ...rel)).href;
+    const r = spawnSync(
+      process.execPath,
+      [probe, url(["scripts", "lib", "resolve-config.mjs"]), url(["scripts", "lib", "config.mjs"])],
+      { encoding: "utf8" },
+    );
+    assert.equal(r.status, 0, `the resolver failed without Intl: ${r.stderr.slice(0, 600)}`);
+
+    // Exact LINES, never substrings: /TRUNCATED/ also matches "NOT-TRUNCATED", because the word boundary
+    // sits happily after the hyphen, and an assertion that passes either way is the shape this whole file
+    // exists to eliminate.
+    const emitted = r.stdout.split("\n").map((l) => l.trim());
+    assert.ok(emitted.includes("RESOLVED"), `findings still resolve; got ${JSON.stringify(r.stdout)}`);
+    assert.ok(emitted.includes("NOTICE"), "the trust step still produced a notice, so the fixture is not vacuous");
+    assert.ok(emitted.includes("TRUNCATED"), "and the SEGMENTATION path ran, which is where Intl is actually touched");
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test("a waiver reason with nothing visible in it is treated as no reason, not quoted as blank", () => {
+  // The price of keeping the joiners: they are zero-width, so a reason made entirely of them survives
+  // the trim. Testing the RAW field for truthiness then emitted "(waiver reason: )" with nothing
+  // between the parentheses - which reads as a reporting bug rather than as the absence it is.
+  const ZWJ_C2 = CP(0x200d);
+  const ZWNJ_C2 = CP(0x200c);
+  const noticeFor = (reason) => published(f("error", "U6", { file: "a.md" }), { suppressions: [{ reqId: "U6", reason }] }).trustNotice;
+  for (const [label, reason] of [["joiners only", ZWJ_C2.repeat(5)], ["joiners and spaces", `${ZWNJ_C2} ${ZWJ_C2}`], ["empty", ""]]) {
+    const n = noticeFor(reason);
+    assert.ok(!/waiver reason:/.test(n), `${label}: an invisible reason must not produce a waiver clause`);
+    assert.match(n, /suppression was cleared/, `${label}: the trust action itself is still reported`);
+  }
+  // A reason that merely CONTAINS a joiner is real text and is still quoted.
+  const persian = `mi${ZWNJ_C2}ravad`;
+  assert.ok(noticeFor(persian).includes(persian), "a joiner inside real words is not treated as invisible");
+});
+
+test("a single cluster larger than the raw bound is truncated visibly, not silently", () => {
+  // The raw code-unit bound runs BEFORE segmentation. One "a" plus thousands of combining marks is a
+  // single cluster: the bound cut it, then the segmenter saw one whole-looking cluster, decided nothing
+  // exceeded the 200-cluster cap, and returned a severed prefix with no truncation marker at all.
+  const huge = `a${CP(0x301).repeat(7000)}`;
+  const n = published(f("error", "U6", { file: "a.md" }), { suppressions: [{ reqId: "U6", reason: huge }] }).trustNotice;
+  const quoted = n.match(/waiver reason: (.*)\)\./s);
+  assert.ok(quoted, "the reason is quoted back");
+  assert.ok(quoted[1].endsWith("..."), "truncation is stated rather than silent");
+  assert.ok(quoted[1].length < huge.length, "and the value really was shortened");
+});
+
+test("mdCodeSpan round-trips exactly, including the inputs where padding would lie", () => {
+  // CommonMark removes one padding space from each end ONLY when the content is not entirely spaces.
+  // Padding unconditionally therefore round-trips ordinary text and silently ADDS two spaces to an
+  // all-space value - the single input where this helper's byte-for-byte claim was false.
+  assert.equal(mdCodeSpan(""), "", "nothing to quote is not a quotation of nothing");
+  const BT2 = String.fromCharCode(96);
+  for (const content of [" ", "   "]) {
+    const out = mdCodeSpan(content);
+    const inner = out.slice(out.indexOf(BT2 + " ") === 0 ? 0 : 0);
+    const m2 = new RegExp(`^(${BT2}+)(.*)\\1$`).exec(out);
+    assert.ok(m2, `all-space content still forms a span: ${JSON.stringify(out)}`);
+    assert.equal(m2[2], content, "and its spaces are neither added to nor eaten");
+    assert.ok(inner !== undefined);
+  }
+  // Ordinary text keeps the padding, because there the spec DOES strip it back off.
+  const ord = mdCodeSpan("hello");
+  assert.equal(ord, `${BT2} hello ${BT2}`, "ordinary content is padded so the renderer strips it back to exact");
 });

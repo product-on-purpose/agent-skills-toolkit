@@ -23,15 +23,38 @@ import { BASELINE } from "./standard-version.mjs";
 // strips is unreadable in review and unsearchable in a diff.
 const ZWNJ = String.fromCharCode(0x200c);  // zero-width non-joiner
 const ZWJ = String.fromCharCode(0x200d);   // zero-width joiner
-// Constructed once at module load: building a Segmenter per finding is a real cost on a large report.
-const SEGMENTER = new Intl.Segmenter("en", { granularity: "grapheme" });
+// Built ONCE, on first use, and tolerant of a Node compiled WITHOUT internationalization. Constructing
+// it at module load made this module unimportable on such a build, and check, evaluate and tier-report
+// all import it - so an exotic Node turned the whole gate into a TypeError before any grading ran. The
+// fallback is code-point segmentation, which is exactly what this did before the cluster fix: less
+// precise at one boundary of one quoted sentence, still well-formed UTF-16, and a degraded notice is a
+// far better failure than an unusable tool.
+let segmenter;
+let segmenterResolved = false;
+function graphemes(text) {
+  if (!segmenterResolved) {
+    segmenterResolved = true;
+    try {
+      segmenter = new Intl.Segmenter("en", { granularity: "grapheme" });
+    } catch {
+      segmenter = null;   // no ICU, or no Intl at all
+    }
+  }
+  return segmenter ? [...segmenter.segment(text)].map((seg) => seg.segment) : Array.from(text);
+}
+
+/** True when the value has no character a reader could actually see. */
+function isInvisible(text) {
+  return text.replace(/[\s]/gu, "").split("").every((c) => c === ZWNJ || c === ZWJ);
+}
 
 function sanitizeSubjectText(s, max = 200) {
   // Bound the RAW input before any full-string pass, so an extreme reason cannot amplify allocation
-  // before it is capped. The bound is a generous multiple of the cap rather than a tight one, because a
-  // tight bound can sever a long grapheme cluster (an emoji ZWJ sequence runs to a dozen UTF-16 units)
-  // BEFORE the cluster-aware cap below ever sees it, reintroducing the corruption that cap is for.
-  const raw = String(s ?? "").slice(0, max * 32);
+  // before it is capped. Whether that bound actually CUT anything is remembered, because the cut can
+  // land inside a cluster and the cluster-aware cap below cannot see that it happened.
+  const source = String(s ?? "");
+  const preBounded = source.length > max * 32;
+  const raw = preBounded ? source.slice(0, max * 32) : source;
   const flat = raw
     // Cc (control) becomes a separator - it stood between words, and it is what protects the TERMINAL
     // surfaces, where a notice is printed with no escaping at all and an ESC sequence could forge gate
@@ -48,17 +71,25 @@ function sanitizeSubjectText(s, max = 200) {
     .replace(/\p{Cs}/gu, "")
     .replace(/\s+/g, " ")   // \s covers U+2028 and U+2029
     .trim();
+  // The carve-out has a cost, and this is where it is paid. Joiners are zero-width, so a reason made
+  // ENTIRELY of them survives the trim and publishes a notice that reads "waiver reason: " followed by
+  // nothing - defeating the auditability the notice exists for. A reason with nothing visible in it is
+  // treated as no reason at all rather than quoted as blank.
+  if (isInvisible(flat)) return "";
   // Truncate on a GRAPHEME CLUSTER boundary. A code-point boundary was the previous fix and it is still
   // wrong for anything a reader would call one character: it severs a combining mark from its base, one
   // regional indicator from its pair (turning a flag into a stray letter), and any emoji ZWJ sequence
-  // mid-join. Intl.Segmenter is the Unicode segmentation the platform already ships, so this is not a
-  // hand-rolled table that goes stale.
-  const clusters = [...SEGMENTER.segment(flat)].map((seg) => seg.segment);
-  if (clusters.length <= max) return flat;
+  // mid-join.
+  const clusters = graphemes(flat);
   // The ellipsis is counted INSIDE the cap, so the returned string never exceeds max clusters. Guarded
   // for a small max, where max - 3 would otherwise go negative and slice from the end.
-  const keep = Math.max(0, max - 3);
-  return `${clusters.slice(0, keep).join("")}...`;
+  if (clusters.length > max) return `${clusters.slice(0, Math.max(0, max - 3)).join("")}...`;
+  // Under the cluster cap, but the RAW bound already cut the input - which happens when a single cluster
+  // is enormous ("a" followed by thousands of combining marks is one cluster). Segmentation sees one
+  // whole-looking cluster, concludes nothing was truncated, and returns a severed prefix with no marker.
+  // The at-risk cluster is the last one, so it is dropped and the truncation is stated.
+  if (preBounded) return `${clusters.slice(0, -1).join("")}...`;
+  return flat;
 }
 
 /**
@@ -165,7 +196,14 @@ export function resolveFindings(findings, config, provenanceByReq, { pinned, sin
         // and forge report sections, and every downstream consumer of `trustNotice` (including external
         // --json readers embedding it in their own output) inherits the exposure. Escaping at each
         // render site alone would protect only the sites we happen to own.
-        if (suppressionCleared) parts.push(`the subject's own suppression was cleared${subjectSuppression?.reason ? ` (waiver reason: ${sanitizeSubjectText(subjectSuppression.reason)})` : ""}`);
+        if (suppressionCleared) {
+          // The clause is decided on the SANITIZED text, never on the raw field. A reason of zero-width
+          // joiners is a non-empty string, so testing the raw value emitted "(waiver reason: )" with
+          // nothing between the parentheses - a quotation of nothing, which reads as a reporting bug
+          // rather than as the absence it actually is.
+          const reason = sanitizeSubjectText(subjectSuppression?.reason ?? "");
+          parts.push(`the subject's own suppression was cleared${reason ? ` (waiver reason: ${reason})` : ""}`);
+        }
         trust = {
           raised,
           suppressionCleared,

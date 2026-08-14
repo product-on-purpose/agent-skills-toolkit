@@ -116,7 +116,9 @@ function gradeMember(resolution, opts) {
       standardPin: ctx.library?.data?.standard ?? null,
       errors: gate.errorCount,
       warns: gate.warnCount,
-      // Standard debt: findings that are warnings ONLY because they postdate this member's pin. ADR 0039
+      // Standard debt: findings held below their resolved severity by this member's pin - an introduction
+      // (the check postdates the pin) or a tightening that has not reached it yet, which are one ceiling
+      // since Standard 0.13 and so are counted together. ADR 0039
       // requires it per member, because it is what makes "green by an old pin" visible rather than
       // flattering - the collection-level analogue of the trust calibration ADR 0036 shipped.
       standardDebt: live.filter((f) => f.ceiling != null).length,

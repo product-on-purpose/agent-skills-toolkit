@@ -65,7 +65,15 @@ export function escapeMdCell(s) {
  */
 export function mdCodeSpan(s) {
   const flat = String(s ?? "").replace(/[\r\n]+/g, " ");
+  // Nothing to quote is not a quotation of nothing. An empty span would render as literal backticks and
+  // invite a reader to think something was suppressed, so the caller gets an empty string and decides.
+  if (flat === "") return "";
   const runs = flat.match(/`+/g);
   const fence = "`".repeat((runs ? Math.max(...runs.map((r) => r.length)) : 0) + 1);
-  return `${fence} ${flat} ${fence}`;
+  // The padding is CONDITIONAL, because CommonMark strips one space from each end only when the content
+  // is NOT entirely spaces. Padding unconditionally therefore round-trips ordinary text exactly and
+  // silently ADDS two spaces to an all-space value - the one input where the byte-for-byte claim this
+  // function makes would have been false.
+  const pad = flat.trim() === "" ? "" : " ";
+  return `${fence}${pad}${flat}${pad}${fence}`;
 }

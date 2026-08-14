@@ -28,9 +28,12 @@ const SUBCOMMANDS = {
   "tier-report": path.join(PKG_ROOT, "scripts", "tier-report.mjs"),
   // Added at v1.13.0 because `G4`'s E35 migration finding has to tell a consumer how to regenerate
   // their INDEX.md, and a consumer who does not vendor this toolkit has no `scripts/` directory to run.
-  // The first version of that message named `npx agent-skills-toolkit-gen-index`, which is NOT a package
-  // this project owns - unusable as an instruction, and a package-claim supply-chain risk of exactly the
-  // kind the "askit" note below exists to prevent. It is also the E35 defect itself, one level down:
+  // The first version of that message named the generator as a HYPHENATED STANDALONE PACKAGE rather than
+  // a subcommand of this one. No such package is published by this project - unusable as an instruction,
+  // and a package-claim supply-chain risk of exactly the kind the "askit" note below exists to prevent.
+  // (The retired spelling is deliberately not written out here: tests/unit/retired-npx-name.test.mjs
+  // forbids it repository-wide with no exemptions, and an exemption is a hole rather than a courtesy.)
+  // It is also the E35 defect itself, one level down:
   // a remediation naming a command its reader does not have. `scripts/generators/gen-index.mjs` is in
   // the package `files` list, so this subcommand works from the published artifact.
   "gen-index": path.join(PKG_ROOT, "scripts", "generators", "gen-index.mjs"),
