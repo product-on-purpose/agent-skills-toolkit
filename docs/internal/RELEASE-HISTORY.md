@@ -31,6 +31,7 @@ The toolkit is a quality bar for AI skill libraries: it grades a plugin Bronze, 
 | v1.11.1 | 2026-08-12 | The shell that was not there: publishing was impossible from the default Windows shell | 30 / 0.12 |
 | v1.12.0 | 2026-08-12 | Marketplace scope: grading a catalogue, not one plugin at a time | 30 / 0.12 |
 | v1.12.1 | 2026-08-12 | The round that reviewed the fixes: four defects found in the previous round's fix code | 30 / 0.12 |
+| v1.13.0 | 2026-08-13 | The contract you adopted: one post-resolution ceiling over `since` and `until`, config provenance, and two graduations that could not previously fire | 31 / 0.13 |
 
 ("Spine" = the number of checks the gate runs. "Standard" = the version of the written specification. They were stable at 29 / 0.11 from v1.2.0 through v1.5.x; **v1.6.0 grew them to 30 / 0.12** - the first new requirement since v1.1.0, shipped under a warn-first burndown so no existing plugin newly fails.)
 
@@ -134,8 +135,37 @@ The recent arc is one idea executed in steps: **a quality tool earns trust by gr
 **Value, plainly:** the release that shipped a day earlier had three real defects in it, and they were found by reviewing the *fixes* rather than the original code. One review round is not a review; it is the first one.
 **Value, for engineers:** this is the third release running where the worst defects lived in round-1 fix code (v1.10.1 took six rounds, round 6 catching a defect in a round-5 fix; v1.11.0 took four). The practice that follows is written into every release plan since: run the review until a round comes back clean, and run the extra rounds **before** merging, not after tagging. Spine stayed 30, Standard stayed v0.12.
 
+### v1.13.0 - the contract you adopted (2026-08-13)
+**What:** the gate stopped applying tightenings on a calendar and started applying them on YOUR pin. Three
+version-gating mechanisms became one ceiling, computed from the version you declared and applied after your
+own configuration resolves. Two long-scheduled tightenings finally graduated, a thirty-first check landed,
+and a defect this toolkit had been writing into other people's repositories was fixed with a migration.
+
+**Value, plainly:** before this release, "you are graded against the ruleset you pinned" was true for new
+checks and quietly false for tightened ones - and a consumer could override the pin anyway, from their own
+config file, in either direction. Now the promise holds in both directions, and the only way to take on a
+stricter rule is to say so by raising your pin. Two scheduled tightenings that could never actually have
+fired now do.
+
+**Value, for engineers:** `applyStandardDowngrade` is deleted. Its logic is a ceiling over
+`(pinned, since, migration.until)` applied LAST inside `resolveFindings`, so a `rules.X = "error"` override
+is honoured and then held back, with the reason recorded in a new `ceiling` field (E26). Config carries
+provenance - grader-owned versus subject-owned - which is what made the published-verdict floor possible:
+a subject can no longer weaken an objective or vendor-cited finding about itself, though it can still be
+stricter, and anything the grader supplied is honoured in full (E38). That deliberately REVERSES a
+guarantee the code used to publish, and the reversal is ratified in ADR 0044 rather than discovered in a
+diff. `U13` and `S4` emit their target severity and let the ceiling hold them back, which is the only shape
+in which a graduation can fire at all - ADR 0041's cap sat at `warn` over a finding emitted as `warn`, so
+lifting it would have produced a warning. `U14` (ADR 0045) promotes the marketplace-only restricted-fields
+reading to the spine, so a plugin graded on its own is told too. And `gen-index` stops inferring whether a
+plugin vendors this toolkit's gate and reads a declaration instead, with `G4` capping the exact legacy
+rendering at warn until 0.14 so nobody is gated on our defect.
+
+**Measured, not argued:** every one of the six family members grades byte-identically to the pre-release
+baseline, except two that gain one capped warning each from the `G4` migration. Zero verdicts moved.
+
 ## Where we are now
-- Version **1.12.1**, Standard **0.12**, **30-check spine**, **3 scopes** (plugin, component, marketplace), **24 skills**, gate **Advanced 0/0**. Self-grading Gold on every CI build; installable from the `product-on-purpose` marketplace and from npm as `agent-skills-toolkit`, which has served **1.12.1** since 2026-08-12 via trusted publishing (OIDC) with no stored credential. Nothing checks that this line stays current - a maintainer updates it by hand at each release cut, the same failure mode the v1.10.1 `STATUS.md` rewrite corrected elsewhere in the repository, and it went stale exactly that way twice: between v1.10.1 and v1.12.0 (both v1.11 releases shipped without an entry here) and again at v1.12.1, which was found missing by round 7 of the v1.13.0 pre-implementation review rather than by anything in the release process.
+- Version **1.13.0**, Standard **0.13**, **31-check spine**, **3 scopes** (plugin, component, marketplace), **24 skills**, gate **Advanced 0/0**. Self-grading Gold on every CI build; installable from the `product-on-purpose` marketplace and from npm as `agent-skills-toolkit`, which has served **1.12.1** since 2026-08-12 via trusted publishing (OIDC) with no stored credential. Nothing checks that this line stays current - a maintainer updates it by hand at each release cut, the same failure mode the v1.10.1 `STATUS.md` rewrite corrected elsewhere in the repository, and it went stale exactly that way twice: between v1.10.1 and v1.12.0 (both v1.11 releases shipped without an entry here) and again at v1.12.1, which was found missing by round 7 of the v1.13.0 pre-implementation review rather than by anything in the release process.
 
 ## What's next, and why (the roadmap, in priority order)
 The v1.6.0 headline (the manifest-vs-disk drift check) and the report glossary + Bronze reference page both shipped above. The remaining v1.6.0-program work lands as continuous supporting effort:

@@ -67,7 +67,18 @@ A suppressed finding is removed from gating and the counts and is listed separat
 
 ## Published-verdict mode
 
-`mode: "local"` (the default, for a team running its own CI) applies every override and suppression as written. `mode: "published-verdict"` is for a grader publishing a conformance verdict about someone else's plugin: it prevents a subject from disabling an `objective` or `vendor-cited` finding to dodge the verdict. In published-verdict mode, such a finding that a rule, profile, or suppression turned off is surfaced at `warn` with a notice (never silently dropped, never raised to an error, so it can never gate-fail a plugin). A `house` finding is never clamped, so a consumer can always opt out of an askit convention.
+`mode: "local"` (the default, for a team running its own CI) applies every override and suppression as written. `mode: "published-verdict"` is for a grader publishing a conformance verdict about someone else's plugin: it prevents the SUBJECT from weakening an `objective` or `vendor-cited` finding to dodge the verdict.
+
+**This changed at Standard 0.13, and the change is deliberate.** Through 0.12 such a finding was merely *clamped* up to a `warn`, which meant turning the mode on could never fail a passing gate. From 0.13 a subject-owned setting that lowers the finding is DISCARDED, and the finding returns to the severity a grader-selected rubric would give it - so **a published verdict can now fail where it previously passed.** A guarantee that protects the subject is the wrong guarantee in the one mode built to publish a verdict *about* the subject.
+
+The rule is stated in terms of WHO chose the setting:
+
+- **Subject-owned** (anything read from the graded plugin's own `askit.config.json`, including its `profile`) cannot LOWER an objective or vendor-cited finding. It can raise one: a plugin being stricter about itself is honoured.
+- **Grader-owned** (anything you pass as a flag, such as `--profile plain-plugin` or `--mode`) is honoured in full, in either direction. Grading a third-party plugin against a rubric you chose is the intended use of the mode.
+- A **subject-owned suppression is cleared**, not merely surfaced. A waiver and a lowered severity are two independent ways to dodge the same finding, and a gate needs both to be clean.
+- A **`house` finding is never touched**, in any mode, so a consumer can always opt out of an askit convention.
+
+Every trust action is reported with a `trustNotice` naming which of the subject's own settings was overruled, and the aggregate is available as `dispositions.trustActions`. The older `clampNotice` field remains for one minor, populated only where the old semantics are still literally true - a result that really is a `warn`.
 
 ## CLI
 

@@ -6,19 +6,19 @@
 > technical history), and `docs/internal/release-plans/` (the per-release spec + implementation
 > packets). Do not add accretive per-release paragraphs here; append them to those instead.
 >
-> Last updated: 2026-08-12.
+> Last updated: 2026-08-13.
 
 ## Current state
 
 | Fact | Value |
 |---|---|
-| Version | 1.12.1 (cut 2026-08-12, and published to npm the same day) |
+| Version | 1.13.0 (cut 2026-08-13) |
 | Declared tier | Advanced (Gold) - `library.json` `tier: advanced` |
-| Standard pin | 0.12 |
-| Spine | 30 checks |
+| Standard pin | 0.13 |
+| Spine | 31 checks |
 | Scopes | 3 (plugin, component, marketplace) |
 | Skills | 24 |
-| Tests | 1013, 0 failures (local suite run 2026-08-13, both halves confirmed by `npm run release-counts` exiting 0 on this workstation now that E37 (the shell-probe timing budget) is fixed) |
+| Tests | 1102, 0 failures (local suite run 2026-08-13; both halves confirmed by `npm run release-counts` exiting 0) |
 | Self-proving | `node scripts/check.mjs .` exits 0 at Advanced, 0 errors, 0 warnings |
 
 ## What is open
@@ -61,7 +61,7 @@
   locally, `npm run release-counts` reported drift against any truthful "N tests, 0 failures" claim and
   exited non-zero - and `RELEASE.md` names that command as non-negotiable. Landed 2026-08-13 as **W6 of
   v1.13.0** with the **two different fixes** the corrected entry called for, one per case. Now measured
-  locally: 1013 tests / 0 failures, `release-counts` exit 0, both cases 5-of-5 under spawn-heavy load,
+  locally: `release-counts` exit 0 against a truthful count, both cases 5-of-5 under spawn-heavy load,
   and a full suite run leaving **zero** stray processes where it previously left about five.
   **Three things measurement corrected in the plan** and they are worth reading before writing a similar
   one: the accumulating orphan was the probe candidate, not the helper the plan named (the helper cannot
