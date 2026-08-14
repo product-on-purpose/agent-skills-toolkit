@@ -65,6 +65,27 @@ false instruction shipped inside your repository, over your signature. It now wr
 Regenerating your index is the fix. Until Standard 0.14, an `INDEX.md` that matches the old rendering
 exactly is reported as a **warning**, not an error, so you are not gated on a defect we caused.
 
+### How this release was verified
+
+Cutting a release here means running a checklist where every item is a gated check rather than a
+reminder. Two of them are worth stating in public, because they are the ones a reader cannot confirm
+for themselves.
+
+**The Codex round-trip was run for this tag.** The manifest this toolkit emits was installed into a
+throwaway local marketplace against the real `codex` CLI, and the skills were confirmed INGESTED rather
+than merely listed - the distinction matters, because a manifest can appear in a listing while the
+runtime quietly loads nothing from it. Run against **Codex CLI 0.144.5** on 2026-08-14: passing. The
+previously recorded verification was against 0.135.0, so this also re-confirms the emission against a
+newer CLI.
+
+**The branch was adversarially reviewed seven times, not once.** Each round reviewed the code the
+PREVIOUS round's fixes produced, because that code is otherwise unreviewed - and this project has the
+receipts for why that matters: v1.12.0 shipped after a single round and needed v1.12.1 for four more
+problems, every one of them inside round-one fix code. The rounds found, among other things, a way to
+bypass this release's own new check by putting a restricted field in a file the runtime loads but the
+gate was not reading, and a stale count on the front page of the README. Every fix carries a test that
+was proved capable of failing before it was trusted.
+
 ## 1.12.1 - 2026-08-12
 
 v1.12.0 was reviewed once. This patch exists because we then reviewed **the fixes that review produced**, which nobody had looked at - including one to the check that had just started blocking pull requests.

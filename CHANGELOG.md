@@ -71,6 +71,18 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
   **Exercised for real on 2026-08-12, not merely wired up.** With the trusted publisher registered against `product-on-purpose` / `agent-skills-toolkit` / `publish-npm.yml` / environment `npm-publish`, a `dry_run: true` dispatch packed cleanly and a `dry_run: false` dispatch published **1.12.1** to the registry, closing a gap where two releases were tagged, GitHub-released and marketplace re-pinned while npm consumers stayed on 1.11.1. The published tarball carries an automatic SLSA provenance attestation and a registry signature. Note for anyone reading the dry run as a rehearsal of the whole path: it is not, by design. Authentication happens only in the `publish` job, which the dry-run path never enters, so a dry run cannot tell you whether the publisher is registered - only the live run can. **1.12.0 was deliberately not published**, because it carried the three high-severity defects 1.12.1 fixed and an npm publish is irreversible after 72 hours.
 
+
+### Verified
+
+- **Codex round-trip (Q-E gate) run for this tag against Codex CLI 0.144.5**, 2026-08-14: the emitted
+  `.codex-plugin/plugin.json` was installed into a throwaway local marketplace against the real CLI and
+  the skills were confirmed INGESTED, not merely listed. The distinction is the whole point of the test:
+  a manifest can appear in a listing while the runtime loads nothing from it. The last recorded
+  verification was against 0.135.0, so this re-confirms emission against a newer CLI.
+- **Seven adversarial review rounds**, each one reviewing the code the PREVIOUS round's fixes produced,
+  because that code is otherwise unreviewed. v1.12.0 shipped after a single round and needed v1.12.1 for
+  four more defects, every one inside round-one fix code. Every fix in this release carries a test that
+  was proved capable of failing, by reverting the fix and confirming the test goes red.
 ### Fixed
 
 - **The shell-probe timing tests no longer fail because the machine is busy, and no longer leave stray processes behind (E37).** In plain terms: two tests were timing how long a piece of cleanup code took, using stopwatch limits that a loaded computer could exceed even when the code was working perfectly. On the maintainer's workstation that produced a permanent "1 test failing", which in turn blocked `npm run release-counts` - the check that a release's stated test numbers are true - so **a release could not complete its own verification protocol on that machine.** Both tests now measure against limits derived from the code's own declared timing contract instead of copied numbers, and both clean up the processes they deliberately strand.
