@@ -12,7 +12,7 @@
 
 | Fact | Value |
 |---|---|
-| Version | 1.13.0 (cut 2026-08-13) |
+| Version | 1.13.0 (cut 2026-08-13, shipped 2026-08-14) |
 | Declared tier | Advanced (Gold) - `library.json` `tier: advanced` |
 | Standard pin | 0.13 |
 | Spine | 31 checks |
@@ -34,7 +34,7 @@
   whether a plugin can be held to a collision with a sibling it does not know it is catalogued beside -
   has no ADR, and no release should graduate the set wholesale merely because it happens to be carrying
   a Standard bump.
-- **npm is CURRENT: the registry serves 1.12.1**, published 2026-08-12 via trusted publishing
+- **npm is CURRENT: the registry serves 1.13.0**, published 2026-08-14 via trusted publishing
   (OIDC) with **no stored credential of any kind** - the repository holds zero Actions secrets, and
   authentication is the runner's short-lived OIDC token alone. The published tarball carries an
   automatic SLSA provenance attestation and a registry signature; `--provenance` is not passed,
@@ -98,6 +98,19 @@
 - **Calibration, open, ADR-gated:** **E14** - U5 (description-score) is mathematically unpassable
   in a language its English trigger pattern does not know (0 of 346 on a French corpus). Needs a
   design ADR, not a patch that adds one more language's vocabulary.
+- **Two gaps v1.13.0 shipped KNOWINGLY, both ADR-gated, both found by its own review rounds:**
+  - **E42** (four checks read the agent REGISTRATION list) - `S2`, `S3`, `S4` and `S8` iterate
+    `ctx.subagents`, which excludes `agents/README.md` and underscore-prefixed files. Claude Code loads
+    them anyway, so `agents/_worker.md` bypasses the registration, prefix, metadata and chain checks while
+    the gate awards Silver or Gold. `U14` was fixed to read `ctx.agentDocs`; these four were not, because
+    widening them makes EXISTING checks emit findings on files they have never examined. That is a
+    Standard tightening, and ADR 0044 - shipped in this very release - says tightenings get an ADR and a
+    pin-gated migration window. The ADR must first decide whether an unregistered runtime-loaded agent
+    file is a REGISTRATION defect or a SHIPPING defect; the vendor behaviour argues the second.
+  - **E43** (`ctx.workflows` is read by `S7` and never built by the loader) - a command mapping to a real
+    `_workflows/<name>.md` is reported unresolved, and `S3`/`S8` do not inspect workflows at all. An
+    unfinished feature rather than a regression: the source comment says "ctx.workflows arrives in a later
+    phase". Finishing it means wiring canonical discovery through four checks plus index generation.
 - **Backlog from the competitive-comparison intake, all open:** **E4** (SARIF + GitHub
   annotations), **E9** (provenance as a first-class output contract), **E23** (surface check
   provenance in the report output), **E6** (prompt-injection + curl-pipe-bash content scan),
@@ -124,7 +137,7 @@ this file); the conclusions are stated here directly.
   collection report, new marketplace source kinds (`npm`, `archive`+`sha256`, `git-subdir`) and the
   `renames` field, the plugin-shipped-agent restricted-fields reading, the docs-site registry page,
   and the ADR 0042 parity flip to gating.
-- **v1.13.0 "the contract you adopted" (planned):** **the Standard 0.13 cut**, narrowed during planning
+- **v1.13.0 "the contract you adopted" (SHIPPED 2026-08-14):** **the Standard 0.13 cut**, narrowed during planning
   on 2026-08-12 from the four-workstream scope this list previously assigned it. One post-resolution
   Standard ceiling over `since` and `until` (ADR 0044), which **closes E26 and E38**; `U13`'s warn-to-error
   graduation and ADR 0041's chain-migration cap graduation, both discharged through that ceiling;
