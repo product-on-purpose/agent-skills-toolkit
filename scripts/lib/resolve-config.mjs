@@ -19,24 +19,46 @@ import { BASELINE } from "./standard-version.mjs";
  * length. In `published-verdict` mode the subject is explicitly untrusted, so its `askit.config.json`
  * strings must not be able to shape the structure of a report written about it.
  */
+// Constructed rather than written literally: a source file that CONTAINS the invisible characters it
+// strips is unreadable in review and unsearchable in a diff.
+const ZWNJ = String.fromCharCode(0x200c);  // zero-width non-joiner
+const ZWJ = String.fromCharCode(0x200d);   // zero-width joiner
+// Constructed once at module load: building a Segmenter per finding is a real cost on a large report.
+const SEGMENTER = new Intl.Segmenter("en", { granularity: "grapheme" });
+
 function sanitizeSubjectText(s, max = 200) {
   // Bound the RAW input before any full-string pass, so an extreme reason cannot amplify allocation
-  // before it is capped. Slicing UTF-16 units here can split a pair; the Cs strip below removes
-  // whatever that leaves, which is precisely why the strip is by category rather than by range.
-  const raw = String(s ?? "").slice(0, max * 8);
+  // before it is capped. The bound is a generous multiple of the cap rather than a tight one, because a
+  // tight bound can sever a long grapheme cluster (an emoji ZWJ sequence runs to a dozen UTF-16 units)
+  // BEFORE the cluster-aware cap below ever sees it, reintroducing the corruption that cap is for.
+  const raw = String(s ?? "").slice(0, max * 32);
   const flat = raw
-    // Cc (control) becomes a separator - it stood between words. Cf (format: bidi overrides,
-    // zero-width joiners, U+061C, the BOM) and Cs (LONE SURROGATES) are removed outright: they are
-    // invisible or malformed and have no place in a machine-generated sentence. Enumerated ranges
-    // were tried first and leaked both U+061C and any lone surrogate present in the INPUT - the cap
-    // fix only stopped truncation from CREATING one.
+    // Cc (control) becomes a separator - it stood between words, and it is what protects the TERMINAL
+    // surfaces, where a notice is printed with no escaping at all and an ESC sequence could forge gate
+    // output about the subject's own plugin.
     .replace(/\p{Cc}/gu, " ")
-    .replace(/[\p{Cf}\p{Cs}]/gu, "")
+    // Cf (format) is stripped BY CATEGORY, minus two carve-outs. Category rather than an enumerated
+    // range because ranges leaked U+061C; the carve-outs because the category is too broad to apply
+    // whole. ZWNJ and ZWJ are not decoration: in Persian they change spelling and meaning, in Indic
+    // scripts they control conjunct forms, and in emoji they bind a sequence - stripping them turns a
+    // subject's own words into a misquotation, in a report published about that subject. They are also
+    // the two Cf characters that cannot reorder or hide text, which is what the rest of the strip is
+    // defending against. Cs (LONE SURROGATES) is unconditional: malformed is never meaningful.
+    .replace(/\p{Cf}/gu, (c) => (c === ZWNJ || c === ZWJ ? c : ""))
+    .replace(/\p{Cs}/gu, "")
     .replace(/\s+/g, " ")   // \s covers U+2028 and U+2029
     .trim();
-  // Truncate on a CODE POINT boundary: slicing UTF-16 units can cut a surrogate pair in half.
-  const cps = Array.from(flat);
-  return cps.length > max ? `${cps.slice(0, max - 3).join("")}...` : flat;
+  // Truncate on a GRAPHEME CLUSTER boundary. A code-point boundary was the previous fix and it is still
+  // wrong for anything a reader would call one character: it severs a combining mark from its base, one
+  // regional indicator from its pair (turning a flag into a stray letter), and any emoji ZWJ sequence
+  // mid-join. Intl.Segmenter is the Unicode segmentation the platform already ships, so this is not a
+  // hand-rolled table that goes stale.
+  const clusters = [...SEGMENTER.segment(flat)].map((seg) => seg.segment);
+  if (clusters.length <= max) return flat;
+  // The ellipsis is counted INSIDE the cap, so the returned string never exceeds max clusters. Guarded
+  // for a small max, where max - 3 would otherwise go negative and slice from the end.
+  const keep = Math.max(0, max - 3);
+  return `${clusters.slice(0, keep).join("")}...`;
 }
 
 /**

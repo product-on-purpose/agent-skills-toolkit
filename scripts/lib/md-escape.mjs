@@ -1,6 +1,7 @@
-// what-it-is:   the one Markdown table-cell escape used everywhere untrusted text is rendered
-// what-it-does: escapes backslashes FIRST, then pipes, then collapses newlines, so a value cannot
-//               break out of the cell it was rendered into
+// what-it-is:   the two Markdown boundaries for untrusted text - a table-cell escape, and an inert span
+// what-it-does: escapeMdCell escapes backslashes FIRST, then pipes, then collapses newlines, so a value
+//               cannot break out of the cell it was rendered into; mdCodeSpan wraps subject-authored
+//               text in a dynamically fenced code span, where no inline construct is processed at all
 // why:          this exact defect (CodeQL js/incomplete-sanitization, high) was independently written
 //               THREE times by three different authors - report-render.mjs, eval-run-aggregate.mjs, and
 //               standards-watch.mjs. Three rediscoveries is not bad luck, it is a shape that invites the
@@ -31,19 +32,34 @@ export function escapeMdCell(s) {
 }
 
 /**
- * Escape a value that will be rendered as Markdown PROSE, not as a table cell.
+ * Wrap subject-authored text in a Markdown CODE SPAN, so it is rendered as inert literal text.
  *
- * escapeMdCell keeps a value inside its cell. It does NOT stop the value from being active MARKUP,
- * and for prose that is the bigger exposure: a suppression reason of
- * "![Official status](https://attacker.example/pixel)" survives the cell escape unchanged and renders
- * as a live image in a report published ABOUT the party who wrote it - a tracking pixel, or a
- * trusted-looking link, over our signature.
+ * This replaces an escape-the-metacharacters helper that enumerated brackets, parentheses, emphasis,
+ * backticks, angles and the image bang. That approach was shown to be UNCOMPLETABLE, not merely
+ * incomplete, and the distinction is why this is a boundary instead of a longer list:
  *
- * So every inline metacharacter that can OPEN a construct is escaped: link and image brackets, the
- * parentheses that carry their destination, emphasis, code spans, autolink angles, and the bang that
- * turns a link into an image. Backslash-escaping ASCII punctuation is defined by CommonMark, so each
- * one renders as the literal character.
+ *   - GitHub Flavored Markdown AUTOLINKS a bare "https://attacker.example/pixel" or an email address
+ *     with no metacharacter present anywhere in it. There is nothing to backslash-escape. The link is
+ *     created from the scheme, so no escape set can prevent it.
+ *   - CommonMark DECODES entity references, so an ASCII "&rlm;" written by the subject is turned back
+ *     into U+200F by the renderer - re-creating, at render time, exactly the bidi control that
+ *     sanitizeSubjectText removed at build time. An escape set that omits "&" hands the sanitizer's
+ *     work back.
+ *
+ * Inside a code span neither happens: CommonMark processes no inline constructs there at all, and the
+ * GFM autolink extension explicitly does not apply. One rule covers every construct, including the ones
+ * added to Markdown after this was written.
+ *
+ * FENCING IS DYNAMIC because the text may itself contain backticks: the fence is one longer than the
+ * longest backtick run in the content, which is the CommonMark rule for making a span that cannot be
+ * closed early. The single space on each side is the documented round-trip: a code span that both
+ * begins and ends with a space has exactly one removed from each end, so the subject's text renders
+ * byte-for-byte. Callers pass text already flattened by sanitizeSubjectText, and newlines are collapsed
+ * here as well, because a line ending inside a span would become a space and silently alter the quote.
  */
-export function escapeMdInline(s) {
-  return escapeMdCell(s).replace(/[\[\]()!*_`~<>#]/g, (c) => BS + c);
+export function mdCodeSpan(s) {
+  const flat = String(s ?? "").replace(/[\r\n]+/g, " ");
+  const runs = flat.match(/`+/g);
+  const fence = "`".repeat((runs ? Math.max(...runs.map((r) => r.length)) : 0) + 1);
+  return `${fence} ${flat} ${fence}`;
 }

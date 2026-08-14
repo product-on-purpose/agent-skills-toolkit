@@ -93,8 +93,11 @@ export function sectionFindings(findings, declaredTier) {
  * The one-line Standard-debt indicator, or "" when the pin is holding nothing back. A plugin pinned to
  * an older Standard prints "no blockers detected" with exit 0 while carrying post-pin findings that all
  * become gate-failing the moment it re-pins; this states that latent debt next to the verdict instead of
- * leaving it to be inferred from the warning stream. The due-at version is the HIGHEST `since` among the
- * held-back findings, compared numerically so 0.10 outranks 0.9. (PSR-6, ADR 0036.)
+ * leaving it to be inferred from the warning stream. Dates are computed SEPARATELY for the gating and
+ * above-tier partitions and lead with the EARLIEST due version, compared numerically so 0.10 outranks
+ * 0.9. Both parts of that are corrections: one date over the whole set let above-tier debt name the day
+ * the gate breaks, and leading with the highest told a plugin holding debt due at 0.13 and 0.14 that it
+ * was safe until 0.14. (PSR-6, ADR 0036.)
  * Exported for unit testing.
  */
 export function standardDebtLine(findings, declaredTier) {
@@ -103,7 +106,21 @@ export function standardDebtLine(findings, declaredTier) {
   // field would print an undefined version for every `until`-only hold, which is most of them.
   const held = findings.filter((f) => f.ceiling && !f.suppressed);
   if (held.length === 0) return "";
-  const dueAt = held.reduce((hi, f) => (compareStandard(f.ceiling.due, hi) > 0 ? f.ceiling.due : hi), held[0].ceiling.due);
+  // Dates are computed PER PARTITION, below, never once over everything. Reducing across all held
+  // findings first and then splitting let an above-tier finding set the date printed in the GATING
+  // sentence: a plugin pinned to 0.12 whose gating debt comes due at 0.13, carrying one above-tier
+  // finding due at 0.14, was told its gate breaks at 0.14. It breaks at 0.13. Under-warning by a
+  // version is worse than not stating a date, because the reader plans the upgrade around it.
+  const earliest = (set) => set.reduce((lo, f) => (compareStandard(f.ceiling.due, lo) < 0 ? f.ceiling.due : lo), set[0].ceiling.due);
+  const latest = (set) => set.reduce((hi, f) => (compareStandard(f.ceiling.due, hi) > 0 ? f.ceiling.due : hi), set[0].ceiling.due);
+  // EARLIEST leads the sentence, where the old line led with the highest. "All of them become errors at
+  // 0.14 or later" is technically true of the maximum and still reads as safe-until-0.14 to someone
+  // holding a finding due at 0.13. The first date is the one that costs them something.
+  const span = (set) => {
+    const first = earliest(set);
+    const last = latest(set);
+    return first === last ? `at Standard ${first}` : `from Standard ${first} onwards (the last at ${last})`;
+  };
 
   // The tier ceiling applies here too, and saying otherwise was a live falsehood. `G4` is Advanced, so
   // a plugin declaring Convergent that carries the E35 index migration was told its held finding
@@ -113,18 +130,20 @@ export function standardDebtLine(findings, declaredTier) {
   // still comes due, it just never gates THIS plugin at THIS declared tier.
   const ceiling = ceilingIndex(declaredTier);
   const gating = held.filter((f) => TIER_ORDER.indexOf(tierForReq(f.reqId)) <= ceiling);
-  const above = held.length - gating.length;
+  // The above-tier findings themselves, not just how many: they carry their own due dates, and the
+  // clause about them has to be computed from those rather than borrowing the gating set's.
+  const aboveSet = held.filter((f) => TIER_ORDER.indexOf(tierForReq(f.reqId)) > ceiling);
   const pinned = held[0].ceiling.pinned;
 
   if (gating.length === 0) {
     return `Standard debt: ${held.length} finding(s) held back by your pinned Standard ${pinned}; ` +
-      `all of them are above your declared tier, so they become errors at Standard ${dueAt} or later without affecting this plugin's grade.`;
+      `all of them are above your declared tier, so they become errors ${span(held)} without affecting this plugin's grade.`;
   }
-  const aboveBit = above > 0
-    ? ` A further ${above} held finding(s) are above your declared tier and become errors without affecting your grade.`
+  const aboveBit = aboveSet.length > 0
+    ? ` A further ${aboveSet.length} held finding(s) are above your declared tier and become errors ${span(aboveSet)} without affecting your grade.`
     : "";
   return `Standard debt: ${gating.length} finding(s) held back by your pinned Standard ${pinned}; ` +
-    `all of them become gate-failing errors at Standard ${dueAt} or later.${aboveBit}`;
+    `they become gate-failing errors ${span(gating)}.${aboveBit}`;
 }
 
 /**
