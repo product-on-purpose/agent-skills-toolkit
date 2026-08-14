@@ -135,6 +135,9 @@ function findingLine(f) {
   return `  [${sev}/${prov}] ${f.check}${f.reqId ? " (" + f.reqId + ")" : ""}: ${f.message}` +
     `${f.ceiling ? ` [${ceilingAnnotation(f.ceiling)}]` : ""}` +
     `${f.clampNotice ? ` [clamped to warn: published-verdict, ${f.provenance}]` : ""}` +
+    // A trust action must be VISIBLE, or a published verdict fails with no explanation that the
+    // subject's own configuration was overruled - which is the promise ADR 0044 makes.
+    `${f.trustNotice ? ` [${f.trustNotice}]` : ""}` +
     `${f.migrationNotice ? ` [${f.migrationNotice}]` : ""}` +
     `${f.file ? "  -> " + f.file : ""}`;
 }

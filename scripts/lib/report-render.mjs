@@ -86,12 +86,16 @@ function deriveModel(report, opts = {}) {
     // different mechanisms - a published-verdict trust clamp vs. a warn-first migration ceiling - so
     // both renderers label them distinctly rather than merging them into one generic note.
     const clampNotices = [...new Set(live.map((f) => f.clampNotice).filter(Boolean))];
+    // trustNotice (ADR 0044): a THIRD mechanism, and the one that can now turn a passing published
+    // verdict into a failing one. Collected the same way and labelled distinctly, because a trust
+    // action (the subject's own setting overruled) is not a clamp and is not a migration ceiling.
+    const trustNotices = [...new Set(live.map((f) => f.trustNotice).filter(Boolean))];
     // provenance (E9/E23): resolveFindings already stamps every resolved finding with `provenance`
     // ("objective" | "vendor-cited" | "house") - it was on the data all along, just never surfaced in
     // the designed reports. Projected from the SAME lead finding `evidence`/`file`/`migrationNotices`
     // already read above, so a PASS/N/A row (no live finding) carries `provenance: null`: there is
     // nothing on a finding that does not exist to serialize a provenance from.
-    return { reqId, id, tier, tierName: TIER_NAME[tier] ?? tier, status, evidence, module, file: lead?.file ?? null, provenance: lead?.provenance ?? null, why: metaFor(reqId).why, migrationNotices, clampNotices };
+    return { reqId, id, tier, tierName: TIER_NAME[tier] ?? tier, status, evidence, module, file: lead?.file ?? null, provenance: lead?.provenance ?? null, why: metaFor(reqId).why, migrationNotices, clampNotices, trustNotices };
   });
 
   const tiers = TIER_ORDER.map((tier) => {
@@ -353,6 +357,10 @@ function renderMarkdown(report, opts = {}) {
         // overruled because a third party is reading this report), not a warn-first migration ceiling.
         for (const notice of r.clampNotices) {
           out.push(`> Published-verdict clamp for ${r.reqId}: ${notice}`);
+          out.push("");
+        }
+        for (const notice of r.trustNotices) {
+          out.push(`> Published-verdict trust action for ${r.reqId}: ${notice}`);
           out.push("");
         }
         out.push(`> Why ${r.reqId} matters: ${r.why}`);
@@ -758,7 +766,8 @@ function htmlLedger(m) {
       // suppression or off-rule because a third party is reading this report, which is a different
       // mechanism from a warn-first migration ceiling, and conflating the two would be worse than
       // omitting one.
-      const clamp = r.clampNotices.map((n) => `<div class="why warn"><b>Published-verdict clamp</b>${escapeHtml(n)}</div>`).join("");
+      const clamp = r.clampNotices.map((n) => `<div class="why warn"><b>Published-verdict clamp</b>${escapeHtml(n)}</div>`).join("")
+        + r.trustNotices.map((n) => `<div class="why warn"><b>Published-verdict trust action</b>${escapeHtml(n)}</div>`).join("");
       const fileBit = r.file ? ` <span class="src">${escapeHtml(r.file)}</span>` : "";
       // provenance (E9/E23): a compact pill next to the status badge, reusing the .pill class already
       // defined for improvement-card effort tags (no new CSS). Null (a PASS/N/A row with no live

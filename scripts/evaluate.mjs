@@ -148,7 +148,7 @@ export function formatReport(r) {
   lines.push(`Evaluating (${r.scope}): ${r.target}`);
   for (const f of r.findings) {
     if (f.suppressed || effSev(f) === "off") continue; // disabled/waived findings are summarized in the split, not listed here
-    lines.push(`  [${effSev(f)}] ${f.reqId ?? f.check}: ${f.message}${f.clampNotice ? " [clamped to warn: published-verdict]" : ""}${f.migrationNotice ? ` [${f.migrationNotice}]` : ""}${f.file ? "  -> " + f.file : ""}`);
+    lines.push(`  [${effSev(f)}] ${f.reqId ?? f.check}: ${f.message}${f.clampNotice ? " [clamped to warn: published-verdict]" : ""}${f.trustNotice ? ` [${f.trustNotice}]` : ""}${f.migrationNotice ? ` [${f.migrationNotice}]` : ""}${f.file ? "  -> " + f.file : ""}`);
   }
   if (r.tier !== undefined) lines.push(`Tier: ${r.tier}`);
   lines.push(`${r.summary.errors} error(s), ${r.summary.warns} warning(s).`);
@@ -157,6 +157,15 @@ export function formatReport(r) {
     lines.push(`Real issues (objective + vendor-cited errors): ${d.realIssues}`);
     lines.push(`Profile conformance (house conventions, profile downgrades): ${d.profileConformance}   suppressed: ${d.suppressed}`);
     if (d.clamped > 0) lines.push(`Clamped (objective/vendor checks this config tried to disable, surfaced at warn): ${d.clamped}`);
+    // The aggregate a per-finding notice cannot replace. Without it, a published verdict that failed
+    // BECAUSE the subject's own configuration was overruled looks identical to one that failed on an
+    // ordinary finding, and automation watching for an attempted disabling reads nothing at all.
+    if (d.trustActions.raised > 0 || d.trustActions.suppressionsCleared > 0) {
+      lines.push(
+        `Trust actions (published-verdict: the subject's own settings overruled): ` +
+        `${d.trustActions.raised} severity restored, ${d.trustActions.suppressionsCleared} suppression(s) cleared`
+      );
+    }
   }
   return lines.join("\n");
 }

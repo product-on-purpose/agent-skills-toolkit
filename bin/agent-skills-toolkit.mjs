@@ -26,6 +26,14 @@ const SUBCOMMANDS = {
   check: path.join(PKG_ROOT, "scripts", "check.mjs"),
   evaluate: path.join(PKG_ROOT, "scripts", "evaluate.mjs"),
   "tier-report": path.join(PKG_ROOT, "scripts", "tier-report.mjs"),
+  // Added at v1.13.0 because `G4`'s E35 migration finding has to tell a consumer how to regenerate
+  // their INDEX.md, and a consumer who does not vendor this toolkit has no `scripts/` directory to run.
+  // The first version of that message named `npx agent-skills-toolkit-gen-index`, which is NOT a package
+  // this project owns - unusable as an instruction, and a package-claim supply-chain risk of exactly the
+  // kind the "askit" note below exists to prevent. It is also the E35 defect itself, one level down:
+  // a remediation naming a command its reader does not have. `scripts/generators/gen-index.mjs` is in
+  // the package `files` list, so this subcommand works from the published artifact.
+  "gen-index": path.join(PKG_ROOT, "scripts", "generators", "gen-index.mjs"),
 };
 
 // Deliberately no "askit" alias here. "askit" is a real, unrelated package already published on the
@@ -46,6 +54,7 @@ Usage:
   agent-skills-toolkit check [path] [flags]         same as above, explicit subcommand
   agent-skills-toolkit evaluate [path] [flags]      the structured evaluator (--format, --report, --mode, --profile, ...)
   agent-skills-toolkit tier-report [path] [--json]  the tier-earned-plus-burndown report
+  agent-skills-toolkit gen-index [path] [--write]   regenerate INDEX.md from library.json + frontmatter
   agent-skills-toolkit --help, -h                   show this help
   agent-skills-toolkit --version, -v                print the installed version
 

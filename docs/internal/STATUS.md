@@ -18,7 +18,7 @@
 | Spine | 31 checks |
 | Scopes | 3 (plugin, component, marketplace) |
 | Skills | 24 |
-| Tests | 1102, 0 failures (local suite run 2026-08-13; both halves confirmed by `npm run release-counts` exiting 0) |
+| Tests | 1109, 0 failures (local suite run 2026-08-14; both halves confirmed by `npm run release-counts` exiting 0) |
 | Self-proving | `node scripts/check.mjs .` exits 0 at Advanced, 0 errors, 0 warnings |
 
 ## What is open

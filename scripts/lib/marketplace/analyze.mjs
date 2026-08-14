@@ -12,7 +12,7 @@
 import path from "node:path";
 import { createHash } from "node:crypto";
 import { finding, SEVERITY } from "../findings.mjs";
-import { AGENT_FIELDS_DOC, PLUGIN_AGENT_SUPPORTED_FIELDS as SUPPORTED_FIELDS, unsupportedFieldsOn } from "../vendor-agent-fields.mjs";
+import { AGENT_FIELDS_DOC, AGENT_FIELDS_QUOTE, PLUGIN_AGENT_SUPPORTED_FIELDS as SUPPORTED_FIELDS, unsupportedFieldsOn } from "../vendor-agent-fields.mjs";
 
 /**
  * The check ids marketplace scope emits. Every one carries `reqId: null` on purpose: ADR 0039 question 3
@@ -188,7 +188,7 @@ export function agentRestrictedFields(members) {
       out.push(mkFinding(
         MARKETPLACE_CHECKS.AGENT_RESTRICTED_FIELDS, SEVERITY.WARN,
         `${m.entry.name ?? path.basename(m.dir)}: agent "${agent.name}" declares ${offending.map((f) => `\`${f}\``).join(", ")}, which Claude Code does not support on a plugin-shipped agent ` +
-        `("For security reasons, hooks, mcpServers, and permissionMode are not supported for plugin-shipped agents" - ${AGENT_FIELDS_DOC}). ` +
+        `("${AGENT_FIELDS_QUOTE}" - ${AGENT_FIELDS_DOC}). ` +
         `The author has configured something the runtime refuses. Supported fields: ${SUPPORTED_FIELDS.join(", ")}.`,
         path.posix.join("agents", `${agent.name}.md`),
       ));

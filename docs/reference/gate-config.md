@@ -51,7 +51,9 @@ A profile selects a base severity map applied before `rules`. The built-in profi
 - **`plain-plugin`**: grades a vanilla plugin on the portable, vendor-grounded universal checks only; the askit house checks are turned off - the manifest contract (`U1`), the root `AGENTS.md` anatomy (`U2`) and the description scorer (`U5`), the Convergent ladder (`S1-S8`), and Gold (`G1-G10`) (ADR 0029). Use this to grade a plain Claude Code or Codex plugin as itself, not against the askit library contract.
 - **`house-style`**: the opt-in slot reserved (ADR 0028) for re-homed house preferences. Empty today; the dash preference remains the shipped `hooks/no-dashes.mjs` hook.
 
-Resolution precedence is **per-rule override > profile > the severity the check emitted** (which already reflects the pinned-Standard downgrade of STANDARD.md sec 7.7).
+Resolution runs in **four ordered steps** (ADR 0044). (1) Profile, then per-rule override, with precedence **per-rule override > profile > the severity the check emitted**. (2) Suppression matching. (3) The published-verdict trust step, which runs only in that mode and never for `house` findings. (4) The **Standard ceiling**, applied LAST and never raising, which holds a finding back to what your pinned `standard` permits.
+
+The ordering matters and it changed at Standard 0.13: the pin used to be applied as a pre-pass BEFORE your configuration resolved, which meant a per-rule override outranked it. **It no longer does.** A `rules.X = "error"` on a check introduced or tightened after your pin is honoured and then held back, and the reason is reported rather than the override silently appearing ignored.
 
 To grade a plugin you do not own under a profile, pass `--profile <name>` on the CLI instead of writing a config file into its tree (see [CLI](#cli)). This is the intended path for grading a third-party plugin: `--profile plain-plugin` drops the askit library-ladder findings so only portable defects remain.
 
