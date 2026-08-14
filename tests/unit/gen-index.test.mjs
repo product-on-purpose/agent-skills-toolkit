@@ -40,24 +40,25 @@ test("manifest and doc rows render only for artifacts the plugin actually ships"
   }
 });
 
-test("the self-validation line is still emitted unconditionally (E35, a KNOWN defect held for a migration release)", () => {
-  // This test asserts the CURRENT, KNOWN-WRONG behavior on purpose, so the defect cannot be
-  // accidentally re-fixed without meeting the reason it was held back.
+test("the self-validation line is CONDITIONAL now, and the reason it was not is kept (E35, INVERTED)", () => {
+  // This test asserted the CURRENT, KNOWN-WRONG behaviour on purpose, so the defect could not be
+  // accidentally re-fixed without meeting the reason it was held back. It said, in its own words:
+  // "When E35 lands, invert this test rather than deleting it." E35 landed at v1.13.0, so it is
+  // inverted, and the reason it was held is kept because it is the more useful half.
   //
-  // The line names `node scripts/check.mjs` even for a plugin that has no such path - a command
-  // nothing installs for a consumer, emitted into their own repository over their signature. The
-  // one-line conditional fix was written and tested inside the v1.12.0 cut and then reverted:
-  // measuring it showed it moves a live verdict (product-lifecycle-templates, green at Advanced 0/0,
-  // took a G4 error the moment the expected INDEX changed), and v1.12.0's governing invariant is that
-  // no existing verdict moves. E35 carries the fix to a release that schedules a migration.
-  //
-  // When E35 lands, invert this test rather than deleting it.
+  // The line named `node scripts/check.mjs` even for a plugin that has no such path - a command nothing
+  // installs for a consumer, emitted into their own repository over their signature. The one-line
+  // conditional fix was written and tested inside the v1.12.0 cut and then REVERTED: measuring it rather
+  // than reasoning about it showed it moved a live verdict (product-lifecycle-templates, green at
+  // Advanced 0/0, took a G4 error the moment the expected INDEX changed), and v1.12.0's governing
+  // invariant is that no existing verdict moves. This release schedules the migration that makes it
+  // safe: G4 caps the exact legacy rendering at warn until Standard 0.14.
   const dir = mkdtempSync(path.join(tmpdir(), "genidx-selfvalidate-"));
   try {
-    writeFileSync(path.join(dir, "library.json"), '{ "name": "consumer", "version": "0.1.0", "tier": "universal" }\n');
+    writeFileSync(path.join(dir, "library.json"), JSON.stringify({ name: "consumer", version: "0.1.0", tier: "universal" }));
     const consumer = renderIndex(loadPlugin(dir));
-    assert.match(consumer, /Self-validating: `node scripts\/check\.mjs`/, "unconditional today; see E35");
-    assert.ok(!consumer.includes("npx agent-skills-toolkit"), "the conditional fix is deliberately NOT in this release");
+    assert.match(consumer, /Self-validating: `npx agent-skills-toolkit \.`/, "a consumer gets a command it actually has");
+    assert.ok(!consumer.includes("node scripts/check.mjs"), "and is no longer told to run a program it does not install");
   } finally {
     rmSync(dir, { recursive: true, force: true });
   }

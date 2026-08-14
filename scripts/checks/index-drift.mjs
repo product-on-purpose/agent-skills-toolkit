@@ -3,11 +3,25 @@
 // why:          enforces the Standard requirement G4 deterministically, one module per reqId, so the gate stays model-free
 // used-by:      registered in scripts/lib/registry.mjs; run by scripts/check.mjs and tier-report.mjs
 import { finding, SEVERITY } from "../lib/findings.mjs";
-import { renderIndex } from "../generators/gen-index.mjs";
+import { renderIndex, renderLegacyIndex } from "../generators/gen-index.mjs";
 import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
 
 export const meta = { id: "index-drift", tier: "advanced", reqId: "G4", since: "0.x", provenance: "house" };
+
+/**
+ * The E35 migration window. STATIC and activation-neutral per ADR 0044: it says what the migration is
+ * about, never what a particular run did, because the raw object is visible through --json at any pin.
+ *
+ * `until: "0.14"` rather than 0.13: the plugins affected are the ones this toolkit generated an INDEX
+ * for, and they get a full minor to regenerate. Matrix row 17 asserts the cap actually LIFTS at 0.14,
+ * because an inert cap would pass every other row exactly as the inert S4 graduation did.
+ */
+const LEGACY_INDEX_MIGRATION = Object.freeze({
+  capAt: SEVERITY.WARN,
+  until: "0.14",
+  reason: "E35: this toolkit generated a self-validation line that named a command the plugin does not have.",
+});
 
 // Normalize line endings (CRLF/LF) and trailing whitespace so the comparison is not flaky on
 // Windows/CI checkouts where git may rewrite line endings.
@@ -31,6 +45,20 @@ export function check(ctx) {
     return [finding(meta.id, SEVERITY.ERROR, `INDEX.md could not be read: ${e.message}`, { file: "INDEX.md", reqId: meta.reqId })];
   }
   if (norm(onDisk) !== norm(renderIndex(ctx))) {
+    // E35 MIGRATION. A file that matches the PRE-v1.13.0 rendering exactly is drift THIS TOOLKIT caused:
+    // the old generator emitted the vendored self-validation line into every plugin, including plugins
+    // that have no `scripts/check.mjs`. Capping that case at warn until Standard 0.14 means a consumer
+    // who did nothing wrong is asked to regenerate rather than gated on our defect.
+    //
+    // ONLY an exact match earns the cap. Every other form of drift - a hand-edited section, a stale
+    // component list, anything at all beyond this one line - stays a hard error, so strictness is
+    // unchanged for every case except the one this toolkit caused. A cap that swallowed real drift
+    // would be a worse defect than the one it migrates.
+    if (norm(onDisk) === norm(renderLegacyIndex(ctx))) {
+      return [finding(meta.id, SEVERITY.ERROR,
+        "INDEX.md matches the pre-v1.13.0 rendering exactly: this toolkit's own generator emitted a `Self-validating: node scripts/check.mjs` line into every plugin, including plugins that do not vendor the gate (E35). Regenerate to pick up the corrected line: node scripts/generators/gen-index.mjs . --write (or npx agent-skills-toolkit-gen-index . --write). If your plugin DOES vendor this toolkit's gate, declare `\"selfValidation\": \"vendored\"` in library.json first.",
+        { file: "INDEX.md", reqId: meta.reqId, migration: LEGACY_INDEX_MIGRATION })];
+    }
     return [finding(meta.id, SEVERITY.ERROR, "INDEX.md is out of date with library.json + component frontmatter (a hand-edited generated file is an error at Gold, Standard sec 2.6 G4). Regenerate: node scripts/generators/gen-index.mjs . --write", { file: "INDEX.md", reqId: meta.reqId })];
   }
   return [];
