@@ -9,6 +9,14 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Added
+
+- **Standard 0.13, and a new reference page saying what adopting it costs.** [`docs/reference/adopting-standard-0-13.md`](docs/reference/adopting-standard-0-13.md) states, in one place, the four things that become effective when you raise your own `standard` pin - `U13` (register every skill you ship), `S4` (a string-shaped chain declaration is held to the same bar as an array), `U14` (plugin-shipped agents may not declare `hooks`, `mcpServers` or `permissionMode`), and the new `library.json` `selfValidation` enum - together with how to price the move before committing to it (`npx agent-skills-toolkit . --strict` shows exactly the findings adoption would make real).
+
+  **It leads with the case that has no migration window at all: an UNPINNED plugin.** If `library.json` has no `standard`, or its value is not a `MAJOR.MINOR` string, every requirement applies immediately, including this release's. That is not new in 0.13 and it is not an oversight - a plugin that never declared which contract it adopted cannot be graded against the one it adopted - but it had never been said plainly on a page a consumer reads, and a guarantee whose exceptions are buried is not a guarantee. The page also names the two things that change WITHOUT a pin change: `--strict` (which ignores your pin by definition, and now ignores the ceilings too) and `published-verdict` mode.
+
+- **`library.json` gains an optional `selfValidation` field**, a closed enum of `"vendored"` or `"npx"` where absent means `"npx"`. It selects which self-validation command a generated `INDEX.md` names. Registered in the Standard's sec 5.1 normative field schema, because enforcing a field in `U1` while leaving it out of 5.1 would have Standard 0.13 contradicting its own implementation.
+
 ### Fixed
 
 - **The shell-probe timing tests no longer fail because the machine is busy, and no longer leave stray processes behind (E37).** In plain terms: two tests were timing how long a piece of cleanup code took, using stopwatch limits that a loaded computer could exceed even when the code was working perfectly. On the maintainer's workstation that produced a permanent "1 test failing", which in turn blocked `npm run release-counts` - the check that a release's stated test numbers are true - so **a release could not complete its own verification protocol on that machine.** Both tests now measure against limits derived from the code's own declared timing contract instead of copied numbers, and both clean up the processes they deliberately strand.

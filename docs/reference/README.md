@@ -39,6 +39,7 @@ Reference material: one page per askit-* skill plus the per-tier conformance-che
 - `evaluation-reports.md` - the "evaluation reports (--format, --report)" page.
 - `family-registry.md` - the "the family registry (a dated collection report)" page.
 - `frontmatter-taxonomy.md` - the "frontmatter taxonomy" page.
+- `adopting-standard-0-13.md` - what raising your `standard` pin to 0.13 costs, and why an unpinned plugin gets no migration window.
 - `gate-config.md` - the "gate configuration (askit.config.json)" page.
 - `gold-checks.md` - the "gold checks" page.
 - `marketplace-scope.md` - the "marketplace scope (grading a catalogue)" page.
