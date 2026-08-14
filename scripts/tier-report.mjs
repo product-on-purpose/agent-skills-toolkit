@@ -22,8 +22,16 @@ function defaultResolved(root, ctx) {
 }
 
 export function computeTierReport(root, ctx = loadPlugin(root), findings = defaultResolved(root, ctx)) {
-  const declaredTier = ctx.library?.data?.tier ?? null;
-  const declaredIdx = declaredTier ? TIER_ORDER.indexOf(declaredTier) : -1;
+  // PRESENCE, not nullishness. `?? null` cannot tell an ABSENT field from an explicit `"tier": null`,
+  // so a library.json that declares the field as null was read as "never declared a tier" and fell
+  // through to the check-every-tier path - earning Advanced under the plain-plugin profile, which is
+  // the precise defect the previous commit set out to close. It closed the "banana" spelling of it and
+  // not the null one. A field that is PRESENT is a declaration, whatever it holds; only its absence is
+  // the deliberate no-claim case.
+  const declared = ctx.library?.data ?? {};
+  const tierDeclared = Object.hasOwn(declared, "tier");
+  const declaredTier = tierDeclared ? declared.tier : null;
+  const declaredIdx = typeof declaredTier === "string" ? TIER_ORDER.indexOf(declaredTier) : -1;
   // A declaration the tool CANNOT READ is not the same as no declaration, and conflating them awarded a
   // top grade for a typo. `tier: "banana"` - or `"ADVANCED"`, which is likelier - is non-null, so it slipped
   // past the null guard in humanLine below, fell through to "no ceiling, check every tier", and printed
@@ -35,8 +43,8 @@ export function computeTierReport(root, ctx = loadPlugin(root), findings = defau
   // TRUE when there is nothing unreadable: either a recognised tier, or no declaration at all. Setting
   // it from `declaredIdx >= 0` alone marked a MISSING tier invalid and swallowed the honest
   // not-graded-against-the-ladder message that case already had.
-  const declaredTierValid = declaredTier === null ? true : declaredIdx >= 0;
-  if (declaredTier !== null && !declaredTierValid) {
+  const declaredTierValid = tierDeclared ? declaredIdx >= 0 : true;
+  if (tierDeclared && !declaredTierValid) {
     return { tier: "none", satisfies: [], blocked: {}, declaredTier, declaredTierValid: false };
   }
 

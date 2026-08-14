@@ -44,6 +44,7 @@
     "scripts/tier-report.mjs",
     "scripts/checks/",
     "scripts/generators/gen-index.mjs",
+    "scripts/generators/gen-manifest.mjs",
     "scripts/lib/",
     "!scripts/lib/advisory-score.mjs",
     "!scripts/lib/craft-review.mjs",

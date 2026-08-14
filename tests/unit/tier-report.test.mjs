@@ -58,22 +58,30 @@ test("a tier declaration the tool cannot read earns NO grade, in the line and in
   // humanLine already carried the reasoning for this exposure and even named the profile, but it tested
   // `declaredTier == null`. An unreadable tier is NOT null, so it walked straight past the guard written
   // for it. A missing declaration is a choice; an unreadable one is an error, and an error must not earn.
-  const mk = (tier) => ({ library: { data: tier === null ? {} : { tier } }, root: "." });
+  // A sentinel for ABSENT, because the first version of this helper mapped null to {} - encoding the
+  // very conflation under test, so the null case could not be expressed and quietly tested absence
+  // instead. A test helper can carry the same defect as the code it guards.
+  const ABSENT = Symbol("absent");
+  const mk = (tier) => ({ library: { data: tier === ABSENT ? {} : { tier } }, root: "." });
   // An empty string is included deliberately: it is falsy, so a `declaredTier ? ... : -1` guard treats it
   // as "no declaration" while it is in fact a malformed one.
-  for (const bad of ["banana", "ADVANCED", "Gold", ""]) {
+  // `null`, `3` and `""` are here because the FIRST version of this fix used `?? null`, which cannot
+  // tell an ABSENT field from one explicitly declared null - so `"tier": null` was read as "never
+  // declared" and earned Advanced, preserving the exact defect the fix was written to close. Presence
+  // is the question, not nullishness.
+  for (const bad of ["banana", "ADVANCED", "Gold", "", null, 3]) {
     const r = computeTierReport(".", mk(bad), []);
     assert.equal(r.tier, "none", `${JSON.stringify(bad)}: no tier is earned`);
     assert.equal(r.declaredTierValid, false, `${JSON.stringify(bad)}: the data says the declaration is invalid`);
     assert.deepEqual(r.satisfies, [], `${JSON.stringify(bad)}: nothing is claimed as satisfied`);
     const line = humanLine(r);
     assert.match(line, /not graded/, `${JSON.stringify(bad)}: the human line refuses to grade`);
-    assert.ok(line.includes(bad), "and quotes back what was actually declared");
+    if (typeof bad === "string" && bad !== "") assert.ok(line.includes(bad), "and quotes back what was actually declared");
     assert.ok(!/Advanced \(no blockers/.test(line), "never the top grade");
   }
 
   // The two states it must NOT change.
-  const missing = computeTierReport(".", mk(null), []);
+  const missing = computeTierReport(".", mk(ABSENT), []);
   assert.match(humanLine(missing), /not graded against the tier ladder/, "a MISSING tier is unchanged");
   const valid = computeTierReport(".", mk("universal"), []);
   assert.equal(valid.tier, "universal", "a valid declaration still grades");

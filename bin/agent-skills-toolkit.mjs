@@ -37,6 +37,12 @@ const SUBCOMMANDS = {
   // a remediation naming a command its reader does not have. `scripts/generators/gen-index.mjs` is in
   // the package `files` list, so this subcommand works from the published artifact.
   "gen-index": path.join(PKG_ROOT, "scripts", "generators", "gen-index.mjs"),
+  // Added at v1.13.0 for the same reason gen-index was, one round later: `U8` (native manifest drift)
+  // and `S6` (per-target manifest presence) print a remediation naming this generator, and it was not
+  // in the package files list at all - so a consumer following the printed instruction reached a path
+  // that does not exist in their install. The sibling defect, in the sibling generator, missed when
+  // the first one was fixed.
+  "gen-manifest": path.join(PKG_ROOT, "scripts", "generators", "gen-manifest.mjs"),
 };
 
 // Deliberately no "askit" alias here. "askit" is a real, unrelated package already published on the
