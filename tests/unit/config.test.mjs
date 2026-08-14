@@ -4,7 +4,7 @@ import { mkdtempSync, cpSync, writeFileSync, readFileSync, rmSync } from "node:f
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { loadConfig, DEFAULT_CONFIG, CONFIG_FILENAME } from "../../scripts/lib/config.mjs";
+import { loadConfig, configFrom, withGraderOptions, DEFAULT_CONFIG, CONFIG_FILENAME } from "../../scripts/lib/config.mjs";
 import { resolveFindings, gatingFindings } from "../../scripts/lib/resolve-config.mjs";
 import { globToRegExp, matchSuppression } from "../../scripts/lib/suppressions.mjs";
 import { runGate } from "../../scripts/check.mjs";
@@ -21,7 +21,7 @@ const REPO_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..
 const FIXTURES = path.join(REPO_ROOT, "tests/fixtures");
 const PROV = provenanceByReq();
 const f = (severity, reqId, extra = {}) => ({ check: reqId ?? "x", severity, message: "m", file: null, reqId, ...extra });
-const cfg = (over = {}) => ({ mode: "local", profile: "askit-library", rules: {}, suppressions: [], ...over });
+const cfg = (over = {}) => configFrom({ mode: "local", profile: "askit-library", rules: {}, suppressions: [], ...over });
 
 // Build a minimal valid plugin (clone of golden/minimal-skill) in a temp dir; run fn(dir); always clean up.
 function withPlugin(setup, fn) {
@@ -160,7 +160,11 @@ test("H: a malformed or unknown-key config is surfaced as findings and never cra
   });
   withPlugin((dir) => writeConfig(dir, { profile: "nope", rules: { U99: "warn", U6: "loud" }, suppressions: [{ file: "x" }] }), (dir) => {
     const { config, findings } = loadConfig(dir);
-    assert.equal(config.profile, "askit-library", "unknown profile falls back");
+    assert.equal(config.profile.value, "askit-library", "unknown profile falls back");
+    // ADR 0044: a REJECTED value keeps the default's origin. The subject wrote something, but it is not
+    // the value in force, and stamping it `subject` would let a malformed config claim ownership of a
+    // setting it never successfully chose - which the published-verdict trust step would then act on.
+    assert.equal(config.profile.origin, "default", "a rejected profile is not subject-owned");
     assert.ok(findings.some((x) => /unknown profile/.test(x.message)));
     assert.ok(findings.some((x) => /unknown rule id 'U99'/.test(x.message)));
     assert.ok(findings.some((x) => /'loud' is not error\/warn\/off/.test(x.message)));
@@ -169,35 +173,89 @@ test("H: a malformed or unknown-key config is surfaced as findings and never cra
   });
 });
 
-// --- J: the minimal published-verdict trust clamp ---------------------------------------------------
+// --- J: the published-verdict TRUST STEP, which REVERSES the old clamp (E38, ADR 0044) -------------
 
-test("J: published-verdict mode clamps an off'd objective finding to warn; local mode drops it; house is never clamped", () => {
-  // objective (U6) turned off in published-verdict mode -> surfaced at warn with a clampNotice
-  const [clamped] = resolveFindings([f("error", "U6")], cfg({ mode: "published-verdict", rules: { U6: "off" } }), PROV);
-  assert.equal(clamped.effectiveSeverity, "warn");
-  assert.ok(clamped.clampNotice, "carries a clampNotice");
-  assert.equal(gatingFindings([clamped]).length, 0, "clamp is warn-only, never gates");
-  // the SAME config in local mode drops it
+test("J: a subject cannot weaken a published verdict about itself; the old off-to-warn clamp is reversed", () => {
+  // WAS: an off'd objective finding was lifted to `warn` with a clampNotice, and resolve-config.mjs
+  // promised in so many words that "turning the mode on can never flip a passing gate to failing".
+  // ADR 0044 deliberately REVERSES that guarantee, in this mode only, for subject-owned settings only.
+  // A guarantee that protects the subject is the wrong guarantee in the one mode built to publish a
+  // verdict ABOUT the subject. This test is rewritten rather than deleted so the reversal is visible in
+  // the diff instead of being a test that quietly stopped existing.
+  const [restored] = resolveFindings([f("error", "U6")], cfg({ mode: "published-verdict", rules: { U6: "off" } }), PROV);
+  assert.equal(restored.effectiveSeverity, "error", "the TRUSTED resolution, not the old warn clamp");
+  assert.equal(restored.trust.raised, true);
+  assert.ok(restored.trustNotice, "the subject is told which of its own settings was overruled");
+  assert.match(restored.trustNotice, /rules\.U6/, "and which one, by name");
+  assert.equal(gatingFindings([restored]).length, 1, "it GATES, which the clamp could never make it do");
+  assert.equal(restored.clampNotice, null, "the deprecated field cannot describe a gate-failing error truthfully");
+
+  // LOCAL mode is untouched: a subject's own config is authoritative about its own repository.
   const [dropped] = resolveFindings([f("error", "U6")], cfg({ rules: { U6: "off" } }), PROV);
   assert.equal(dropped.effectiveSeverity, "off");
-  assert.equal(dropped.clampNotice, null);
-  // a house finding (G10) off in published-verdict mode is NOT clamped
+  assert.equal(dropped.trustNotice, null);
+
+  // HOUSE provenance is never touched by the trust step, in any mode.
   const [house] = resolveFindings([f("error", "G10")], cfg({ mode: "published-verdict", rules: { G10: "off" } }), PROV);
   assert.equal(house.effectiveSeverity, "off");
-  assert.equal(house.clampNotice, null);
-  // a suppression of an objective finding in published-verdict mode surfaces it at warn (not suppressed)
-  const [supClamp] = resolveFindings([f("error", "U6", { file: "a.md" })], cfg({ mode: "published-verdict", suppressions: [{ reqId: "U6", reason: "r" }] }), PROV);
-  assert.equal(supClamp.effectiveSeverity, "warn");
-  assert.equal(supClamp.suppressed, false, "an objective suppression is surfaced, not hidden, in published-verdict mode");
-  assert.ok(supClamp.clampNotice);
+  assert.equal(house.trustNotice, null);
+
+  // Suppression is decided INDEPENDENTLY of severity, and getting this wrong would have left the whole
+  // fix bypassable: gatingFindings requires `error` AND `!suppressed`, so a step that only raised
+  // severity leaves a subject-owned waiver intact and the finding still publishes green.
+  const [waived] = resolveFindings([f("error", "U6", { file: "a.md" })], cfg({ mode: "published-verdict", suppressions: [{ reqId: "U6", reason: "r" }] }), PROV);
+  assert.equal(waived.suppressed, false, "the subject's own waiver is cleared");
+  assert.equal(waived.effectiveSeverity, "error");
+  assert.equal(waived.trust.suppressionCleared, true);
+  assert.equal(gatingFindings([waived]).length, 1);
 });
 
-test("J2: a clamped finding is its OWN disposition, never folded into profile conformance", () => {
-  const resolved = resolveFindings([f("error", "U6")], cfg({ mode: "published-verdict", rules: { U6: "off" } }), PROV);
-  const clamped = resolved.filter((x) => x.clampNotice != null).length;
-  const profileConformance = resolved.filter((x) => x.clampNotice == null && ((x.effectiveSeverity === "error" && x.provenance === "house") || x.downgradedFrom != null)).length;
-  assert.equal(clamped, 1);
-  assert.equal(profileConformance, 0, "the clamped objective finding must not be counted as profile conformance");
+test("J-guard: the trust step RAISES ONLY - a stricter subject survives untouched", () => {
+  // Without this guard the fix inverts into the defect it exists to prevent. A subject writing
+  // rules.U7 = "error" on a check that declares `warn` is being STRICTER about itself; an unconditional
+  // recomputation drops it back to warn, turning a deliberately failing published verdict green by way
+  // of the mechanism built to stop verdicts being turned green.
+  const [stricter] = resolveFindings([f("warn", "U7")], cfg({ mode: "published-verdict", rules: { U7: "error" } }), PROV);
+  assert.equal(stricter.effectiveSeverity, "error", "the subject's own stricter setting stands");
+  assert.equal(stricter.trust, null, "nothing was overruled, so no trust action is recorded");
+  assert.equal(gatingFindings([stricter]).length, 1);
+});
+
+test("J-grader: a GRADER-owned reduction passes through; the same value written by the SUBJECT does not", () => {
+  // The whole point of config provenance, as one pair. plain-plugin resolves U4 to warn (ADR 0031's
+  // calibration), and that is the real use of the mode: publishing an honest verdict about a third-party
+  // plugin against a rubric the GRADER chose. A subject writing the same profile into its own config
+  // gets no reduction, so the exemption cannot be self-granted.
+  const graderChose = withGraderOptions(cfg({ mode: "published-verdict" }), { profile: "plain-plugin" });
+  const [byGrader] = resolveFindings([f("error", "U4")], graderChose, PROV);
+  assert.equal(byGrader.effectiveSeverity, "warn", "the grader's own rubric is trusted");
+  assert.equal(byGrader.trust, null);
+
+  const [bySubject] = resolveFindings([f("error", "U4")], cfg({ mode: "published-verdict", profile: "plain-plugin" }), PROV);
+  assert.equal(bySubject.effectiveSeverity, "error", "a self-granted exemption is overruled");
+  assert.match(bySubject.trustNotice, /profile/);
+});
+
+test("J-rollback: the trust step rolls back to the TRUSTED resolution, not to the declared severity", () => {
+  // "Restore the declared severity" was wrong. With a grader-owned --profile plain-plugin (which
+  // resolves U4 to warn) beneath a subject-owned rules.U4 = "off", an atomic reset to the declared
+  // severity yields `error` - discarding the grader's own deliberate warn and violating the rule that
+  // grader-owned reductions pass through untouched.
+  const cfgMixed = withGraderOptions(cfg({ mode: "published-verdict", rules: { U4: "off" } }), { profile: "plain-plugin" });
+  const [out] = resolveFindings([f("error", "U4")], cfgMixed, PROV);
+  assert.equal(out.effectiveSeverity, "warn", "the grader asked for warn, and warn is what it gets");
+  assert.equal(out.trust.raised, true, "the subject's `off` was still overruled");
+});
+
+test("J-compat: clampNotice survives only where it can still be TRUE - a result that really is warn", () => {
+  // The deprecated field is populated only where the old clamp would have fired AND the final severity
+  // really is `warn`, which is exactly the set of findings whose old semantics it can still state
+  // truthfully. Mirroring it onto every trust action would stamp "clamped to warn" on a gate-failing
+  // error, and a compatibility field that lies is worse than one that is absent.
+  const [w] = resolveFindings([f("warn", "U6")], cfg({ mode: "published-verdict", rules: { U6: "off" } }), PROV);
+  assert.equal(w.effectiveSeverity, "warn");
+  assert.ok(w.clampNotice, "the old semantics are still true here");
+  assert.ok(w.trustNotice, "and the new field is set on every trust action");
 });
 
 // --- K: the migration cap (round-2 adversarial review, S4 warn-first findings promoted back to
@@ -207,9 +265,14 @@ test("J2: a clamped finding is its OWN disposition, never folded into profile co
 
 const withMigration = (severity, reqId, migration, extra = {}) => f(severity, reqId, { migration, ...extra });
 
+// ADR 0044: the cap is one cause of a pin-relative ceiling, not an unconditional rule, so these cases
+// have to declare a pin to exercise it at all. An UNPINNED target now has no migration window (ADR
+// 0027's back-compat rule), which chain-contract-migration-cap.test.mjs measures end to end.
+const CAPPED = { pinned: "0.12", sinceByReq: {} };
+
 test("K: a per-rule override that would raise severity past the cap is pulled back down to capAt, and the cap is surfaced (never silent)", () => {
   const migration = { capAt: "warn", until: "0.13", reason: "ADR 0041: warn-first until Standard 0.13" };
-  const [out] = resolveFindings([withMigration("warn", "S4", migration)], cfg({ rules: { S4: "error" } }), PROV);
+  const [out] = resolveFindings([withMigration("warn", "S4", migration)], cfg({ rules: { S4: "error" } }), PROV, CAPPED);
   assert.equal(out.effectiveSeverity, "warn", "the override asked for error; the cap holds it at warn");
   assert.ok(out.migrationNotice, "a consumer whose override was overruled must be told why");
   assert.match(out.migrationNotice, /0\.13/);
@@ -219,11 +282,11 @@ test("K: a per-rule override that would raise severity past the cap is pulled ba
 test("K2: the cap is a ceiling, never a floor - it does not raise an already-lower severity", () => {
   const migration = { capAt: "warn", until: "0.13", reason: "r" };
   // rules turn it fully off: the cap must not resurrect it to warn.
-  const [off] = resolveFindings([withMigration("warn", "S4", migration)], cfg({ rules: { S4: "off" } }), PROV);
+  const [off] = resolveFindings([withMigration("warn", "S4", migration)], cfg({ rules: { S4: "off" } }), PROV, CAPPED);
   assert.equal(off.effectiveSeverity, "off", "off must still win; the cap never raises off back to warn");
   assert.equal(off.migrationNotice, null, "the cap did not act, so there is nothing to surface");
   // no override at all: severity is already at (not above) the cap, so nothing changes.
-  const [atCap] = resolveFindings([withMigration("warn", "S4", migration)], cfg(), PROV);
+  const [atCap] = resolveFindings([withMigration("warn", "S4", migration)], cfg(), PROV, CAPPED);
   assert.equal(atCap.effectiveSeverity, "warn");
   assert.equal(atCap.migrationNotice, null, "a severity already at the cap is not reported as capped");
 });
@@ -231,7 +294,7 @@ test("K2: the cap is a ceiling, never a floor - it does not raise an already-low
 test("K3: a capped finding that is also suppressed stays suppressed and does not reappear as a warning", () => {
   const migration = { capAt: "warn", until: "0.13", reason: "r" };
   const sup = { reqId: "S4", reason: "waived for this fixture" };
-  const [out] = resolveFindings([withMigration("warn", "S4", migration)], cfg({ rules: { S4: "error" }, suppressions: [sup] }), PROV);
+  const [out] = resolveFindings([withMigration("warn", "S4", migration)], cfg({ rules: { S4: "error" }, suppressions: [sup] }), PROV, CAPPED);
   assert.equal(out.suppressed, true, "suppression still wins regardless of the cap");
   assert.equal(out.effectiveSeverity, "warn", "the cap still resolves the severity underneath the suppression");
   assert.equal(gatingFindings([out]).length, 0);

@@ -1,4 +1,4 @@
-// what-it-is:   README front-door claim drift guard
+// what-it-is:   front-door claim drift guard: the README, plus every PRESENT-TENSE spine-size claim
 // what-it-does: reads library.json (version, tier, skill count) and the check registry (spine
 //               size), then fails if the README's version badge, or its `## Status` section's
 //               version / tier / skill-count / spine-size claims, disagrees with any of them
@@ -42,11 +42,12 @@
 // "024" -> Number("024") === 24, coincidentally matching a real count of 24 and passing as
 // agreement). extractLabeledCounts reads the complete grouped number and normalizes the thousands
 // separator before comparing.
-import { readFileSync, existsSync } from "node:fs";
+import { readFileSync, existsSync, readdirSync } from "node:fs";
+import { execFileSync } from "node:child_process";
 import path from "node:path";
 import { CHECKS } from "./lib/registry.mjs";
 import { TIER_NAME, TIER_SUB, TIER_ORDER } from "./lib/tier.mjs";
-import { extractLabeledCounts } from "./lib/stated-counts.mjs";
+import { extractLabeledCounts, INT_TOKEN_SRC, normalizeCount } from "./lib/stated-counts.mjs";
 
 const dir = process.argv[2] ? path.resolve(process.argv[2]) : process.cwd();
 const libPath = path.join(dir, "library.json");
@@ -205,11 +206,133 @@ for (const c of extractLabeledCounts(statusBody, "checks")) {
   }
 }
 
+// 5. PRESENT-TENSE prose states the spine size too, and nothing governed any of it until v1.13.0: ten
+// separate places said "30 checks" while the registry held 31, across explanation, reference, tutorial,
+// the marketplace source README and the site catalogue. The README is the front door, but these are
+// where a reader goes for the mechanism, and a wrong number there is the same class of unverified claim.
+//
+// The first version of this guard covered exactly the two architecture pages that had already been
+// FIXED BY HAND, which is the same partial-coverage shape it exists to prevent - a guard written around
+// the instances you happened to notice reports success for the ones you did not. So the scan is defined
+// by what a file IS, not by a list of files someone remembered.
+//
+// HISTORY IS EXCLUDED, and that is the whole design constraint. CHANGELOG, RELEASE-NOTES,
+// RELEASE-HISTORY, ADRs, release plans, execution logs and report templates all state older spine sizes
+// CORRECTLY - they describe the spine as it was at the time. "Correct" the record and you falsify it.
+const HISTORICAL = [
+  "CHANGELOG.md", "RELEASE-NOTES.md",
+  `docs${path.sep}internal${path.sep}RELEASE-HISTORY.md`,
+  `docs${path.sep}internal${path.sep}decisions`,
+  `docs${path.sep}internal${path.sep}release-plans`,
+  `docs${path.sep}internal${path.sep}execution`,
+  `docs${path.sep}internal${path.sep}template`,
+  `docs${path.sep}internal${path.sep}eval-runs`,
+  `tests${path.sep}fixtures`,
+];
+
+// The four canonical shapes a present-tense spine claim is written in. Scoped this tightly on purpose:
+// a bare "N checks" also matches legitimate TIER-SUBSET counts ("Universal is 13 checks"), and a guard
+// that fails on those would be turned off within a week.
+// The number token comes from the SHARED parser, never a local copy. A hand-rolled `(\d+)` matched
+// "031" inside "1,031-check spine" and accepted it as 31 - the identical substring-versus-token defect
+// a previous release already found in the skill and spine counts, rediscovered here because these
+// patterns were written by hand instead of reusing that lesson. A test asserts this file grows no
+// local redefinition, and it caught exactly that.
+const NUM = INT_TOKEN_SRC;
+
+// The four PROSE shapes, plus the two BADGE shapes. The badge is the first number a stranger reads and
+// was stale on main while every prose claim was correct - the guard scanned README.md and simply did not
+// recognise a shields.io slug or its alt text as a spine claim.
+const SPINE_CLAIM = [
+  new RegExp(String.raw`${NUM}-check \w+`, "g"),
+  new RegExp(String.raw`${NUM} spine checks`, "g"),
+  new RegExp(String.raw`spine is \*{0,2}${NUM} checks`, "g"),
+  new RegExp(String.raw`\|\s*Spine\s*\|\s*${NUM} checks`, "g"),
+  new RegExp(String.raw`badge/checks-${NUM}-`, "g"),
+  new RegExp(String.raw`Validation checks: ${NUM}`, "g"),
+];
+
+// Tracked files only. Git already draws the exact authored-versus-generated line this needs: the site's
+// generated docs mirror is gitignored (and asserted untracked by its own check), while the site's
+// authored catalogue and scripts are tracked and DO state the spine.
+// Git when it is available, a filesystem walk when it is not. This script takes a directory argument and
+// its own unit tests point it at temp fixtures that are not repositories, so a hard requirement on git
+// made the guard fail on every caller except this one - the enumeration was right for this repository
+// and wrong for the script's actual contract.
+//
+// The fallback is a SUPERSET, never a narrowing: it can only include extra files (a locally generated
+// site mirror), and those carry the same claims as their sources, so over-scanning costs nothing while
+// under-scanning would be the silent failure this section exists to prevent.
+let tracked;
+try {
+  tracked = execFileSync("git", ["ls-files", "-z", "*.md"], { cwd: dir, encoding: "utf8", maxBuffer: 32 * 1024 * 1024, stdio: ["ignore", "pipe", "ignore"] })
+    .split("\0").filter(Boolean);
+} catch {
+  tracked = walkMarkdown(dir).map((f) => path.relative(dir, f).split(path.sep).join("/"));
+}
+
+/** Every .md under `root`, for the no-git fallback. Skips node_modules and .git, which are never ours. */
+function walkMarkdown(root) {
+  const out = [];
+  const stack = [root];
+  while (stack.length > 0) {
+    const cur = stack.pop();
+    let entries;
+    try {
+      entries = readdirSync(cur, { withFileTypes: true });
+    } catch {
+      continue;
+    }
+    for (const e of entries) {
+      if (e.name === "node_modules" || e.name === ".git") continue;
+      const full = path.join(cur, e.name);
+      if (e.isDirectory()) stack.push(full);
+      else if (e.name.toLowerCase().endsWith(".md")) out.push(full);
+    }
+  }
+  return out;
+}
+
+const spineClaimFiles = [];
+for (const rel of tracked) {
+  const native = rel.split("/").join(path.sep);
+  if (HISTORICAL.some((h) => native === h || native.startsWith(h + path.sep))) continue;
+  const full = path.join(dir, native);
+  if (!existsSync(full)) continue;
+  const text = readFileSync(full, "utf8");
+  let sawClaim = false;
+  for (const re of SPINE_CLAIM) {
+    for (const m of text.matchAll(re)) {
+      sawClaim = true;
+      if (normalizeCount(m[1]) !== spineSize) {
+        failures.push(`${rel}  claims "${m[0]}"; the registry has ${spineSize}`);
+      }
+    }
+  }
+  if (sawClaim) spineClaimFiles.push(rel);
+}
+
+// Guard the guard. If the scan silently matches nothing - a rephrase that drifts out of all four canonical
+// shapes, a change to how files are enumerated - it would report success over an unread repository, which
+// is indistinguishable from success over a correct one.
+//
+// Applied ONLY to this project, by name. The floor is a fact about THIS repository's documentation, not a
+// requirement on any plugin this script is pointed at: demanding five spine claims from someone else's
+// plugin would invent a rule they never agreed to, which is the same error as the tier claim's
+// only-when-declared scope note above.
+if (lib?.name === "agent-skills-toolkit" && spineClaimFiles.length < 5) {
+  failures.push(
+    `the spine-claim scan found claims in only ${spineClaimFiles.length} file(s) (${spineClaimFiles.join(", ") || "none"}); ` +
+    `at least 5 present-tense pages state the spine size, so this means the scan stopped seeing them, not that the claims went away. ` +
+    `Write a spine claim as "N-check spine", "N spine checks", or "the spine is N checks" so it stays visible to this guard.`
+  );
+}
+
 if (failures.length > 0) {
   process.stderr.write(
-    `check-readme-version: README front-door drift detected\n` +
+    `check-readme-version: front-door claim drift detected\n` +
     failures.map((f) => `  ${f}\n`).join("") +
-    `  Update README.md "## Status" so its claims match the repository.\n`
+    `  Update the file named on each line so its claims match the repository.\n`
   );
   process.exit(1);
 }

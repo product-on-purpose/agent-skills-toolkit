@@ -48,6 +48,7 @@ import { evaluate } from "../../scripts/evaluate.mjs";
 import { loadPlugin } from "../../scripts/lib/load-plugin.mjs";
 import { runGate } from "../../scripts/check.mjs";
 import { computeTierReport } from "../../scripts/tier-report.mjs";
+import { PLUGIN_SURFACES } from "../../scripts/lib/marketplace/evaluate-marketplace.mjs";
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = path.resolve(HERE, "../..");
@@ -779,10 +780,17 @@ test("detectMarketplaceScope: EVERY plugin component surface keeps plugin scope,
   // Round 2 finding: the guard checked only library.json, skills/, agents/ and commands/, so a plugin
   // carrying AGENTS.md, a native plugin.json and only hook or MCP components was still re-scoped to a
   // catalogue and skipped its own plugin checks entirely.
-  const surfaces = {
-    files: ["library.json", ".claude-plugin/plugin.json", ".codex-plugin/plugin.json", ".mcp.json"],
-    dirs: ["skills", "agents", "commands", "hooks", "workflows", "output-styles", "themes", "monitors"],
-  };
+  // The REAL constant, imported. This test used to keep its own copy, and the copy repeated the
+  // same wrong directory name as the source - so it asserted the bypass was closed while it was open.
+  const surfaces = PLUGIN_SURFACES;
+  // Importing the constant removes the duplication that let the test and the source be wrong the SAME
+  // way - but it also makes the sweep below a TAUTOLOGY: "every directory in the list keeps plugin
+  // scope" is true of any list, including one naming the wrong directory. A mutation proved exactly
+  // that: changing _workflows back to workflows in the source left this test green.
+  //
+  // So the canonical names are pinned HERE, against the Standard rather than against the constant.
+  assert.ok(surfaces.dirs.includes("_workflows"), "the Standard names the workflow directory _workflows (sec 3.6, sec 10.1) and every other module uses that");
+  assert.ok(!surfaces.dirs.includes("workflows"), "the un-prefixed name is NOT a component surface; listing it routed a workflow-bearing plugin to marketplace scope, past the whole plugin spine");
   for (const f of surfaces.files) {
     const dir = tmp();
     try {

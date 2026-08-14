@@ -47,10 +47,12 @@ test("standardDebtLine is empty when nothing was held back by a pin", () => {
 });
 
 test("standardDebtLine reports the count, the pin, and the Standard the debt comes due at", () => {
+  // Reads `ceiling`, not the legacy stamped fields: debt is now anything held below its severity by a
+  // BINDING constraint, whichever cause bound it.
   const findings = [
-    { ...err("U12"), severity: "warn", downgraded: true, since: "0.10", pinned: "0.8" },
-    { ...err("U13"), severity: "warn", downgraded: true, since: "0.12", pinned: "0.8" },
-    { ...err("G7"), severity: "warn", downgraded: true, since: "0.9", pinned: "0.8" },
+    { ...err("U12"), effectiveSeverity: "warn", ceiling: { pinned: "0.8", from: "error", to: "warn", due: "0.10", constraints: [{ cause: "since", due: "0.10" }] } },
+    { ...err("U13"), effectiveSeverity: "warn", ceiling: { pinned: "0.8", from: "error", to: "warn", due: "0.12", constraints: [{ cause: "since", due: "0.12" }] } },
+    { ...err("G7"), effectiveSeverity: "warn", ceiling: { pinned: "0.8", from: "error", to: "warn", due: "0.9", constraints: [{ cause: "since", due: "0.9" }] } },
   ];
   const line = standardDebtLine(findings);
   assert.match(line, /3 finding/, "the count of held-back findings");
@@ -60,10 +62,24 @@ test("standardDebtLine reports the count, the pin, and the Standard the debt com
 
 test("standardDebtLine compares Standard minors numerically, so 0.10 outranks 0.9", () => {
   const findings = [
-    { ...err("U12"), severity: "warn", downgraded: true, since: "0.9", pinned: "0.8" },
-    { ...err("U13"), severity: "warn", downgraded: true, since: "0.10", pinned: "0.8" },
+    { ...err("U12"), effectiveSeverity: "warn", ceiling: { pinned: "0.8", from: "error", to: "warn", due: "0.9", constraints: [{ cause: "since", due: "0.9" }] } },
+    { ...err("U13"), effectiveSeverity: "warn", ceiling: { pinned: "0.8", from: "error", to: "warn", due: "0.10", constraints: [{ cause: "since", due: "0.10" }] } },
   ];
   assert.match(standardDebtLine(findings), /0\.10/, "0.10 > 0.9 numerically, the trap a string compare fails");
+});
+
+test("standardDebtLine reports a TIGHTENING-only hold, which has no `since` at all", () => {
+  const findings = [{ ...err("S4"), effectiveSeverity: "warn", ceiling: { pinned: "0.12", from: "error", to: "warn", due: "0.13", constraints: [{ cause: "until", due: "0.13" }] } }];
+  const line = standardDebtLine(findings);
+  assert.match(line, /1 finding/);
+  assert.match(line, /0\.12/, "the pin holding it back");
+  assert.match(line, /0\.13/, "the due version comes from the constraint, not from a `since` that is absent");
+  assert.ok(!/undefined/.test(line), "the legacy `since` field is absent here and must not be printed");
+});
+
+test("standardDebtLine takes the LATEST due across mixed causes", () => {
+  const findings = [{ ...err("G7"), effectiveSeverity: "warn", ceiling: { pinned: "0.8", from: "error", to: "warn", due: "0.10", constraints: [{ cause: "since", due: "0.10" }] } }, { ...err("S4"), effectiveSeverity: "warn", ceiling: { pinned: "0.12", from: "error", to: "warn", due: "0.13", constraints: [{ cause: "until", due: "0.13" }] } }];
+  assert.match(standardDebtLine(findings), /0\.13/, "the finding set is only free when the last constraint lifts");
 });
 
 test("format labels the above-tier section so it cannot be read as blocking (PSR-7)", () => {

@@ -3,7 +3,7 @@
 // why:          MD (PR review / agents), HTML (non-engineers), JSON, and terminal all derive from one object so they never diverge (E1)
 // used-by:      scripts/evaluate.mjs (--format), the askit-evaluate skill
 import { metaFor } from "./report-meta.mjs";
-import { escapeMdCell } from "./md-escape.mjs";
+import { escapeMdCell, mdCodeSpan } from "./md-escape.mjs";
 import { TIER_NAME, TIER_SUB, TIER_ORDER } from "./tier.mjs";
 
 // --- tier display vocabulary (universal/convergent/advanced -> Bronze/Silver/Gold) ---
@@ -86,12 +86,16 @@ function deriveModel(report, opts = {}) {
     // different mechanisms - a published-verdict trust clamp vs. a warn-first migration ceiling - so
     // both renderers label them distinctly rather than merging them into one generic note.
     const clampNotices = [...new Set(live.map((f) => f.clampNotice).filter(Boolean))];
+    // trustNotice (ADR 0044): a THIRD mechanism, and the one that can now turn a passing published
+    // verdict into a failing one. Collected the same way and labelled distinctly, because a trust
+    // action (the subject's own setting overruled) is not a clamp and is not a migration ceiling.
+    const trustNotices = [...new Set(live.map((f) => f.trustNotice).filter(Boolean))];
     // provenance (E9/E23): resolveFindings already stamps every resolved finding with `provenance`
     // ("objective" | "vendor-cited" | "house") - it was on the data all along, just never surfaced in
     // the designed reports. Projected from the SAME lead finding `evidence`/`file`/`migrationNotices`
     // already read above, so a PASS/N/A row (no live finding) carries `provenance: null`: there is
     // nothing on a finding that does not exist to serialize a provenance from.
-    return { reqId, id, tier, tierName: TIER_NAME[tier] ?? tier, status, evidence, module, file: lead?.file ?? null, provenance: lead?.provenance ?? null, why: metaFor(reqId).why, migrationNotices, clampNotices };
+    return { reqId, id, tier, tierName: TIER_NAME[tier] ?? tier, status, evidence, module, file: lead?.file ?? null, provenance: lead?.provenance ?? null, why: metaFor(reqId).why, migrationNotices, clampNotices, trustNotices };
   });
 
   const tiers = TIER_ORDER.map((tier) => {
@@ -351,8 +355,26 @@ function renderMarkdown(report, opts = {}) {
         // Same blockquote treatment as the migration-cap notice above, but a distinct label (E28):
         // a published-verdict clamp is a different mechanism (a consumer's own suppression or off-rule
         // overruled because a third party is reading this report), not a warn-first migration ceiling.
-        for (const notice of r.clampNotices) {
-          out.push(`> Published-verdict clamp for ${r.reqId}: ${notice}`);
+        // The DEPRECATED clamp line is suppressed whenever a trust notice already explains the same
+        // action, so a human report never carries two descriptions of one event. clampNotice survives
+        // in the DATA for external --json readers; it just stops being rendered twice over.
+        if (r.trustNotices.length === 0) {
+          for (const notice of r.clampNotices) {
+            out.push(`> Published-verdict clamp for ${r.reqId}: ${escapeMd(notice)}`);
+            out.push("");
+          }
+        }
+        // escapeMd because a trust notice quotes the SUBJECT's own suppression reason, and this report
+        // is published ABOUT that subject. The text is already flattened where the notice is built
+        // (sanitizeSubjectText), so this is the second of two independent guards rather than the only one.
+        for (const notice of r.trustNotices) {
+          // A CODE SPAN, not an escape pass. The notice quotes the SUBJECT's own suppression reason into
+          // a report published ABOUT that subject, and escaping metacharacters cannot make that safe: GFM
+          // autolinks a bare URL that contains nothing to escape, and CommonMark decodes "&rlm;" back
+          // into the bidi control the sanitizer removed. A span is inert for every construct at once.
+          // Rendering it monospace is not a cosmetic accident - this IS a verbatim quotation of what the
+          // subject wrote, and it should not read as our own prose.
+          out.push(`> Published-verdict trust action for ${r.reqId}: ${mdCodeSpan(notice)}`);
           out.push("");
         }
         out.push(`> Why ${r.reqId} matters: ${r.why}`);
@@ -758,7 +780,10 @@ function htmlLedger(m) {
       // suppression or off-rule because a third party is reading this report, which is a different
       // mechanism from a warn-first migration ceiling, and conflating the two would be worse than
       // omitting one.
-      const clamp = r.clampNotices.map((n) => `<div class="why warn"><b>Published-verdict clamp</b>${escapeHtml(n)}</div>`).join("");
+      const clamp = (r.trustNotices.length === 0
+        ? r.clampNotices.map((n) => `<div class="why warn"><b>Published-verdict clamp</b>${escapeHtml(n)}</div>`).join("")
+        : "")
+        + r.trustNotices.map((n) => `<div class="why warn"><b>Published-verdict trust action</b>${escapeHtml(n)}</div>`).join("");
       const fileBit = r.file ? ` <span class="src">${escapeHtml(r.file)}</span>` : "";
       // provenance (E9/E23): a compact pill next to the status badge, reusing the .pill class already
       // defined for improvement-card effort tags (no new CSS). Null (a PASS/N/A row with no live
@@ -1112,7 +1137,7 @@ function renderCollectionMarkdown(report, opts = {}) {
     ])
   ));
   out.push("");
-  out.push("**Standard debt** counts the findings that are warnings only because they postdate that member's own Standard pin. It is what makes green-by-an-old-pin visible rather than flattering.");
+  out.push("**Standard debt** counts the findings held below their severity by that member's own Standard pin - either because the check did not exist at that pin, or because a tightening has not reached it yet. It is what makes green-by-an-old-pin visible rather than flattering.");
   out.push("");
   const notResolved = m.members.filter((x) => x.status !== "resolved");
   if (notResolved.length) {
@@ -1212,7 +1237,7 @@ function renderCollectionHtml(report, opts = {}) {
       <td><code>${escapeHtml(shortSha(x.gradedSha))}</code></td>
       <td>${escapeHtml(x.status !== "resolved" ? "-" : x.diverged ? "DIVERGED" : x.pinSha && x.gradedSha ? "in sync" : "not comparable")}</td>
     </tr>`).join("")}</tbody></table></div>
-    <div class="aside" style="margin-top:14px"><h4>What the columns mean</h4><p><b>Standard debt</b> counts findings that are warnings only because they postdate that member's own Standard pin: green-by-an-old-pin, made visible. <b>Pin</b> is what the catalogue advertises; <b>Graded</b> is the checkout this run actually read. They are shown for every member, including the ones where they agree.</p></div>`;
+    <div class="aside" style="margin-top:14px"><h4>What the columns mean</h4><p><b>Standard debt</b> counts findings held below their severity by that member's own Standard pin, whether the check postdates the pin or a tightening has not reached it yet: green-by-an-old-pin, made visible. <b>Pin</b> is what the catalogue advertises; <b>Graded</b> is the checkout this run actually read. They are shown for every member, including the ones where they agree.</p></div>`;
 
   const notResolved = m.members.filter((x) => x.status !== "resolved");
   const notResolvedBody = notResolved.length

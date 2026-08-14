@@ -6,19 +6,19 @@
 > technical history), and `docs/internal/release-plans/` (the per-release spec + implementation
 > packets). Do not add accretive per-release paragraphs here; append them to those instead.
 >
-> Last updated: 2026-08-12.
+> Last updated: 2026-08-13.
 
 ## Current state
 
 | Fact | Value |
 |---|---|
-| Version | 1.12.0 (being cut now; v1.11.1 was cut 2026-08-12) |
+| Version | 1.13.0 (cut 2026-08-13) |
 | Declared tier | Advanced (Gold) - `library.json` `tier: advanced` |
-| Standard pin | 0.12 |
-| Spine | 30 checks |
+| Standard pin | 0.13 |
+| Spine | 31 checks |
 | Scopes | 3 (plugin, component, marketplace) |
 | Skills | 24 |
-| Tests | 1004, 0 failures (verified by `npm run release-counts`, 2026-08-12) |
+| Tests | 1146, 0 failures (local suite run 2026-08-14; both halves confirmed by `npm run release-counts` exiting 0) |
 | Self-proving | `node scripts/check.mjs .` exits 0 at Advanced, 0 errors, 0 warnings |
 
 ## What is open
@@ -28,24 +28,47 @@
   with the collection report as the sixth report type. The spine did not move; every finding it
   emits is scope-local and carries no `reqId`. Two follow-ups are filed rather than done:
   **E33** (A6 restricted fields are detected in marketplace scope but not in plugin scope) and
-  **E34** (whether any cross-member finding should become a numbered spine check at all). Both are
-  ADR-gated on the Standard 0.13 cut.
-- **npm is BEHIND: the registry serves 1.11.1, while v1.12.0 and v1.12.1 are both tagged, released
-  and marketplace re-pinned.** The live `publish-npm.yml` run failed with `ENEEDAUTH`; the
-  `npm-publish` environment exists and carries its branch policy but holds zero secrets.
-  **The workflow has since been converted to npm trusted publishing (OIDC) and needs no credential
-  at all** - no token to store, rotate or leak, and provenance is automatic. It also asserts the
-  npm >= 11.5.1 and Node >= 22.14.0 floors OIDC requires, rather than inheriting whatever npm the
-  pinned Node bundles.
-  **The one remaining step is on the maintainer's npm account and cannot be automated:** register a
-  trusted publisher at npmjs.com (package Settings, Trusted Publisher, GitHub Actions) bound to
-  `product-on-purpose` / `agent-skills-toolkit` / `publish-npm.yml` / environment `npm-publish`.
-  After that, dispatching the workflow publishes with no further setup. Full diagnosis in the
-  v1.12.0 release packet; the mechanism is documented in `RELEASE.md`.
+  **E34** (whether any cross-member finding should become a numbered spine check at all). **They are
+  now scheduled apart, and this line said otherwise until 2026-08-13:** E33 lands in the Standard 0.13
+  cut (v1.13.0) as `U14` with its own ADR 0045; **E34 defers to v1.14.0**, because its prior question -
+  whether a plugin can be held to a collision with a sibling it does not know it is catalogued beside -
+  has no ADR, and no release should graduate the set wholesale merely because it happens to be carrying
+  a Standard bump.
+- **npm is CURRENT: the registry serves 1.12.1**, published 2026-08-12 via trusted publishing
+  (OIDC) with **no stored credential of any kind** - the repository holds zero Actions secrets, and
+  authentication is the runner's short-lived OIDC token alone. The published tarball carries an
+  automatic SLSA provenance attestation and a registry signature; `--provenance` is not passed,
+  because trusted publishing generates it for a public package from a public repository. The
+  workflow asserts the npm >= 11.5.1 and Node >= 22.14.0 floors OIDC requires rather than
+  inheriting whatever npm the pinned Node bundles.
+  **1.12.0 was deliberately never published.** It carried the three high-severity defects v1.12.1
+  fixed, and an npm publish is irreversible after 72 hours, so shipping it would have left a
+  knowingly-defective version permanently installable by exact version. npm's version history is
+  not required to be contiguous; `CHANGELOG.md` and the GitHub releases carry the full record.
+  Verified from the consumer position after publishing, per `RELEASE.md`: installed from the live
+  registry into a clean directory outside this repository and graded a plugin with `npx`, which
+  returned `Tier: Advanced`, 0 errors, 0 warnings, exit 0.
+  **Still outstanding, and blocking nothing:** the package is still owned by `jprisant` rather than
+  the `product-on-purpose` org. The transfer must be done in the npmjs.com web UI, because
+  `npm owner add product-on-purpose:developers` expects a username, not a team.
 - **The validator-parity harness is GATING** as of v1.12.0, discharging ADR 0042's scheduled flip.
   Its stated condition was met by v1.11.0 and v1.11.1 completing real CI cycles green. One
   consequence was accepted knowingly: under gating, a run where `uvx` cannot be installed reds a
   required check rather than printing a line nobody reads.
+- **E37 (the shell-probe timing budget) is FIXED, and the release-time counts gate now passes on this
+  workstation.** It had been an escalation from how it was filed: `scripts/check-release-counts.mjs`
+  compares both halves of a stated count (total AND failures), so while E37's two wall-clock cases failed
+  locally, `npm run release-counts` reported drift against any truthful "N tests, 0 failures" claim and
+  exited non-zero - and `RELEASE.md` names that command as non-negotiable. Landed 2026-08-13 as **W6 of
+  v1.13.0** with the **two different fixes** the corrected entry called for, one per case. Now measured
+  locally: `release-counts` exit 0 against a truthful count, both cases 5-of-5 under spawn-heavy load,
+  and a full suite run leaving **zero** stray processes where it previously left about five.
+  **Three things measurement corrected in the plan** and they are worth reading before writing a similar
+  one: the accumulating orphan was the probe candidate, not the helper the plan named (the helper cannot
+  outlive its parent on Windows); "30 s or more" was not enough on its own, since a bar derived from a
+  30 s lifetime still failed 1 run in 5 under load; and asserting that the cleanup must succeed put the
+  flakiness straight back, because the forced kill itself fails under load. Full entry in
+  [`backlog/enhancements.md`](backlog/enhancements.md).
 - **E13 (defect-rich model triple) is DONE.** Run 2026-08-04, recorded as batch 2026-08-04 runs
   12-14 in [`eval-runs.md`](eval-runs/eval-runs.md). Three real dispatches (Haiku 4.5, Sonnet 5,
   Opus 5, effort held at `high`) against the seeded-defect fixture. All three cells are
@@ -101,15 +124,21 @@ this file); the conclusions are stated here directly.
   collection report, new marketplace source kinds (`npm`, `archive`+`sha256`, `git-subdir`) and the
   `renames` field, the plugin-shipped-agent restricted-fields reading, the docs-site registry page,
   and the ADR 0042 parity flip to gating.
-- **v1.13.0 "current with the vendors":** the ADR pack (commands-as-skills, frontmatter
-  vocabulary strictness, U5 scope per E14) followed by the code batch, plus standing up
-  vendor-watch. **This is the Standard 0.13 cut**, so it also carries `U13`'s warn-to-error
-  graduation, ADR 0041's chain-migration cap graduation, and the two v1.12.0 follow-ups that need a
-  Standard minor to land: **E33** (A6 as a numbered plugin-scope check) and **E34** (which, if any,
-  cross-member findings belong on the spine).
-- **v1.14.0 "evidence":** fix the measurement instrument (E16, E17, E20, E15), publish the E13
+- **v1.13.0 "the contract you adopted" (planned):** **the Standard 0.13 cut**, narrowed during planning
+  on 2026-08-12 from the four-workstream scope this list previously assigned it. One post-resolution
+  Standard ceiling over `since` and `until` (ADR 0044), which **closes E26 and E38**; `U13`'s warn-to-error
+  graduation and ADR 0041's chain-migration cap graduation, both discharged through that ceiling;
+  **E33** as `U14` with its own ADR 0045 (spine 30 to 31); **E35**'s `gen-index` fix carrying a
+  migration; and **E37**, pulled in because it blocks the release-time counts gate. Packet at
+  [`release-plans/plan_v1.13.0/RELEASE-PLAN.md`](release-plans/plan_v1.13.0/RELEASE-PLAN.md).
+- **v1.14.0 "current with the vendors":** the ADR pack (commands-as-skills, frontmatter vocabulary
+  strictness, `U5` scope per **E14**) followed by the code batch, plus standing up vendor-watch. It also
+  inherits **E34** (which, if any, cross-member findings belong on the spine) and **E36** (malformed and
+  mixed marketplace manifests), both of which need an ADR nobody has drafted. **Why it moved:** bundling three undrafted ADRs with a Standard bump made
+  v1.13.0 a release-of-releases; the vendor work keeps its own name and its own cut.
+- **v1.15.0 "evidence":** fix the measurement instrument (E16, E17, E20, E15), publish the E13
   readings as final, execute the live-hook behavioral evals.
-- **v1.15.0 "graded cohort":** grade an external cohort on portable checks and publish the
+- **v1.16.0 "graded cohort":** grade an external cohort on portable checks and publish the
   registry page.
 
 **Not on this list:** manage-and-studio (a read-only studio dashboard) is deferred indefinitely -

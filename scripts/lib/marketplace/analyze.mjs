@@ -12,6 +12,7 @@
 import path from "node:path";
 import { createHash } from "node:crypto";
 import { finding, SEVERITY } from "../findings.mjs";
+import { AGENT_FIELDS_DOC, AGENT_FIELDS_QUOTE, PLUGIN_AGENT_SUPPORTED_FIELDS as SUPPORTED_FIELDS, unsupportedFieldsOn } from "../vendor-agent-fields.mjs";
 
 /**
  * The check ids marketplace scope emits. Every one carries `reqId: null` on purpose: ADR 0039 question 3
@@ -164,11 +165,10 @@ function collisionsOver(members, pick, check, label, dirLabel) {
  * these believes they have configured something, and the field is refused rather than honored. Same
  * silent-no-op class as the v1.10.0 phantom-subagent discovery.
  */
-export const PLUGIN_AGENT_UNSUPPORTED_FIELDS = Object.freeze(["hooks", "mcpServers", "permissionMode"]);
-export const PLUGIN_AGENT_SUPPORTED_FIELDS = Object.freeze([
-  "name", "description", "model", "effort", "maxTurns", "tools", "disallowedTools", "skills", "memory", "background", "isolation",
-]);
-const AGENT_FIELDS_DOC = "https://code.claude.com/docs/en/plugins-reference (Agents; read 2026-08-12)";
+// ADR 0045: the field list and the citation now live in scripts/lib/vendor-agent-fields.mjs, which U14
+// reads too. Re-exported here rather than redefined so the two scopes CANNOT disagree - a plugin's
+// verdict must not depend on whether it was graded on its own or as a catalogue member.
+export { PLUGIN_AGENT_UNSUPPORTED_FIELDS, PLUGIN_AGENT_SUPPORTED_FIELDS } from "../vendor-agent-fields.mjs";
 
 /**
  * A6: an agent shipped inside a plugin carrying a field the runtime refuses. WARN, not error, and
@@ -183,13 +183,13 @@ export function agentRestrictedFields(members) {
     for (const agent of m.subagents ?? []) {
       const fm = agent.frontmatter;
       if (!fm || typeof fm !== "object") continue;
-      const offending = PLUGIN_AGENT_UNSUPPORTED_FIELDS.filter((f) => Object.prototype.hasOwnProperty.call(fm, f));
+      const offending = unsupportedFieldsOn(fm);
       if (offending.length === 0) continue;
       out.push(mkFinding(
         MARKETPLACE_CHECKS.AGENT_RESTRICTED_FIELDS, SEVERITY.WARN,
         `${m.entry.name ?? path.basename(m.dir)}: agent "${agent.name}" declares ${offending.map((f) => `\`${f}\``).join(", ")}, which Claude Code does not support on a plugin-shipped agent ` +
-        `("For security reasons, hooks, mcpServers, and permissionMode are not supported for plugin-shipped agents" - ${AGENT_FIELDS_DOC}). ` +
-        `The author has configured something the runtime refuses. Supported fields: ${PLUGIN_AGENT_SUPPORTED_FIELDS.join(", ")}.`,
+        `("${AGENT_FIELDS_QUOTE}" - ${AGENT_FIELDS_DOC}). ` +
+        `The author has configured something the runtime refuses. Supported fields: ${SUPPORTED_FIELDS.join(", ")}.`,
         path.posix.join("agents", `${agent.name}.md`),
       ));
     }

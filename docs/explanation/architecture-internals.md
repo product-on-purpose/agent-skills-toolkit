@@ -12,7 +12,7 @@ Everything here lives under `scripts/`. The two entrypoints are `scripts/check.m
 
 ## A check module's shape
 
-A conformance check is a small ES module under `scripts/checks/` with exactly two exports: a `meta` object and a synchronous `check(ctx)` function. The contract is uniform across all 30 spine checks. Here is `scripts/checks/library-json.mjs` (the `U1` manifest check), trimmed to its shape:
+A conformance check is a small ES module under `scripts/checks/` with exactly two exports: a `meta` object and a synchronous `check(ctx)` function. The contract is uniform across all 31 spine checks. Here is `scripts/checks/library-json.mjs` (the `U1` manifest check), trimmed to its shape:
 
 ```js
 import { finding, SEVERITY } from "../lib/findings.mjs";
@@ -72,7 +72,7 @@ export const CHECKS = [
   versionMatch, mcpValid,
   libraryRegression, deprecation,
   hookDocumentation, selfHosting, releaseNotes, indexDrift,
-  // ... abridged; see scripts/lib/registry.mjs for the full ordered 30-check list
+  // ... abridged; see scripts/lib/registry.mjs for the full ordered 31-check list
 ];
 
 export function runAllChecks(ctx) {
@@ -128,6 +128,48 @@ export function gateExitFromFindings(findings, declaredTier) {
 ```
 
 This is what makes the tiers a genuine climb. A plugin that declares `tier: convergent` is *not* failed by a `G3` Gold error - it sees that error as a Gold burndown item in the tier report, but its gate stays green because the Silver-and-below errors are clean. A plugin that declares `tier: advanced` (as this repository does) gates on everything. `scripts/evaluate.mjs` reuses the same `gateExitFromFindings`, so the `askit-evaluate` CLI and the gate CLI agree on pass/fail to the byte.
+
+### The Standard ceiling, and why checks stopped knowing their own history
+
+The declared-tier ceiling answers *does this finding gate THIS plugin*. A second ceiling answers *does
+this finding apply at the Standard this plugin PINNED*, and since Standard 0.13 there is exactly one of
+them. `scripts/lib/standard-ceiling.mjs` computes it and `resolveFindings` applies it **last**.
+
+The inversion underneath is the part worth reading twice. **A check now emits its TARGET severity,
+always, and the ceiling lowers it per pin.** Checks used to encode their own migration state - emitting
+`warn` while a tightening was pending and `error` afterwards - and that quietly made scheduled
+tightenings impossible. `chain-contract.mjs` emitted `warn` on both string-derived branches under a
+`warn` cap, so lifting the cap produced a warning: **removing a ceiling cannot promote anything.** A
+graduation scheduled that way was incapable of firing, and one had been sitting scheduled.
+
+Two inputs, one ceiling. `since` governs an INTRODUCTION - a check that did not exist at the pinned
+Standard cannot fail a plugin that adopted an earlier one. `migration.until` governs a TIGHTENING - a
+rule whose severity rises at a named version. They are separate questions and they produce one cap,
+compared **by rank, never lexically**, because `min("error", "warn")` is `"error"` in string order and
+would invert the whole mechanism.
+
+The ceiling is a ceiling and never a floor: a severity already at or below a cap is left as resolved, so
+`off` and suppression still win. It is also recorded only when it BINDS - a version condition that
+changes no outcome is not debt, and recording it anyway would print a due date for a finding that was
+never held.
+
+### The published-verdict trust step
+
+`resolveFindings` runs four ordered steps: profile, per-rule override and suppression; then the trust
+step; then the ceiling. The trust step exists because a report published ABOUT a subject cannot be
+configured BY that subject. In `published-verdict` mode it re-resolves each finding with every
+subject-owned setting absent and **raises only**, so a subject being stricter about itself survives
+while a subject-owned reduction of an objective or vendor-cited finding does not.
+
+Suppression is cleared **independently of severity**, and that is not a detail: a gate needs `error`
+AND `not suppressed`, so a step that restored severity alone would still publish green behind a
+subject-owned waiver.
+
+This deliberately REVERSES a guarantee the resolver used to make - that enabling the mode could never
+flip a passing gate to failing. It now can. ADR 0044 records that as a decision rather than a
+consequence: a guarantee protecting the subject is the wrong guarantee in the one mode built to publish
+a verdict about the subject. Local mode is untouched, and a subject's own config remains authoritative
+about its own repository.
 
 ## The load-plugin context (`ctx`)
 

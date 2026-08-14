@@ -7,8 +7,8 @@ import { existsSync, statSync, writeFileSync, readFileSync, readdirSync } from "
 import { loadPlugin, loadSkill, looksLikePlugin } from "./lib/load-plugin.mjs";
 import { detectMarketplaceScope, evaluateMarketplace, formatMarketplaceReport, marketplaceExitCode } from "./lib/marketplace/evaluate-marketplace.mjs";
 import { runAllChecks, provenanceByReq, CHECKS } from "./lib/registry.mjs";
-import { applyStandardDowngrade } from "./lib/standard-gate.mjs";
-import { loadConfig } from "./lib/config.mjs";
+import { SINCE_BY_REQ } from "./lib/standard-gate.mjs";
+import { loadConfig, withGraderOptions } from "./lib/config.mjs";
 import { PROFILES } from "./lib/profiles.mjs";
 import { resolveFindings } from "./lib/resolve-config.mjs";
 import { computeTierReport } from "./tier-report.mjs";
@@ -45,18 +45,45 @@ function baseReport(scope, target, findings) {
 // survive config) vs askit "profile conformance" (house errors + profile/override downgrades), plus the
 // suppressed count and the published-verdict clamp count. A clamped finding (an objective/vendor check a
 // subject tried to disable, surfaced at warn) is its OWN disposition, never folded into profile conformance.
-function dispositions(resolved) {
-  const live = resolved.filter((f) => !f.suppressed);
+export function dispositions(resolved) {
+  // An ORDERED, EXHAUSTIVE partition with exact predicates: FIRST MATCH WINS, and the five buckets sum
+  // to the finding count.
+  //
+  // They did not before. A live non-house error reduced by config was counted in BOTH realIssues and
+  // profileConformance, and a warn reduced from error was in both warns and profileConformance - so
+  // "the buckets sum" was never true of the old code either, which is what everyone assumed they could
+  // do. Under first-match each finding lands in exactly one bucket, so profileConformance and warns both
+  // SHRINK. That is the cost of a partition consumers can actually sum, and it is a public meaning
+  // change recorded in ADR 0044 rather than slipped in.
+  //
+  // `warns` is the RESIDUAL rather than "every live warning", which is what makes the partition
+  // satisfiable at all: a grader-profile-reduced U4 warn belongs to profileConformance and would
+  // otherwise also be a live warning, making the two buckets provably non-exclusive.
+  const counts = { realIssues: 0, profileConformance: 0, suppressed: 0, clamped: 0, warns: 0 };
   const byProvenance = {};
-  for (const f of live) byProvenance[f.provenance] = (byProvenance[f.provenance] ?? 0) + 1;
-  return {
-    realIssues: live.filter((f) => f.effectiveSeverity === "error" && f.provenance !== "house").length,
-    profileConformance: live.filter((f) => f.clampNotice == null && ((f.effectiveSeverity === "error" && f.provenance === "house") || f.downgradedFrom != null)).length,
-    suppressed: resolved.filter((f) => f.suppressed).length,
-    clamped: live.filter((f) => f.clampNotice != null).length,
-    warns: live.filter((f) => f.effectiveSeverity === "warn").length,
-    byProvenance,
-  };
+  // ORTHOGONAL to the partition and deliberately excluded from its sum: ONE finding can both have its
+  // severity raised and its suppression cleared, so these cannot be buckets. They exist because
+  // narrowing the clampNotice mirror costs an AGGREGATE signal - automation watching
+  // `dispositions.clamped` to detect an ATTEMPTED disabling would now silently read zero, and a
+  // per-finding trustNotice does not replace a counter.
+  const trustActions = { raised: 0, suppressionsCleared: 0 };
+
+  for (const f of resolved) {
+    if (f.trust?.raised) trustActions.raised++;
+    if (f.trust?.suppressionCleared) trustActions.suppressionsCleared++;
+
+    if (f.suppressed) { counts.suppressed++; continue; }
+    byProvenance[f.provenance] = (byProvenance[f.provenance] ?? 0) + 1;
+    if (f.clampNotice != null) { counts.clamped++; continue; }
+    if (f.effectiveSeverity === "error" && f.provenance !== "house") { counts.realIssues++; continue; }
+    // An unreduced house error stays here, exactly as today. `configReduced` rather than
+    // `downgradedFrom != null`: the latter also catches a ceiling-lowered finding, filing pin-driven
+    // Standard debt under "profile conformance" - which it is not, and which standardDebtLine and the
+    // `ceiling` field already report. It also catches a subject INCREASE, which is not conformance at all.
+    if ((f.effectiveSeverity === "error" && f.provenance === "house") || f.configReduced) { counts.profileConformance++; continue; }
+    counts.warns++;
+  }
+  return { ...counts, byProvenance, trustActions };
 }
 
 function evaluateComponent(target, opts = {}) {
@@ -69,9 +96,11 @@ function evaluateComponent(target, opts = {}) {
   // are honored instead of silently dropped (a third-party single skill graded under plain-plugin
   // must not be held to the house checks). Same precedence: file config, then CLI overrides.
   const { config, findings: configFindings } = loadConfig(target);
-  const cfg = { ...config, ...(opts.mode ? { mode: opts.mode } : {}), ...(opts.profile ? { profile: opts.profile } : {}) };
-  const resolved = resolveFindings([...configFindings, ...checkAgentskills(ctx)], cfg, provenanceByReq());
-  return { ...baseReport("component", target, resolved), profile: cfg.profile, mode: cfg.mode };
+  const cfg = withGraderOptions(config, opts);
+  // Component scope has no library.json and therefore no pin: `pinned` stays undefined, so every version
+  // constraint is inert and a single skill grades at full strength, exactly as it does today.
+  const resolved = resolveFindings([...configFindings, ...checkAgentskills(ctx)], cfg, provenanceByReq(), { sinceByReq: SINCE_BY_REQ });
+  return { ...baseReport("component", target, resolved), profile: cfg.profile.value, mode: cfg.mode.value };
 }
 
 export function evaluate(target, opts = {}) {
@@ -92,20 +121,21 @@ export function evaluate(target, opts = {}) {
   }
   if (looksLikePlugin(target)) {
     const ctx = loadPlugin(target);
-    // F1 (ADR 0027): downgrade post-pin errors to warn so the report reflects the pinned Standard.
-    const downgraded = applyStandardDowngrade(runAllChecks(ctx), ctx.library?.data?.standard);
+    // F1 (ADR 0027), now ADR 0044: the pin is honoured by a ceiling applied last inside resolveFindings,
+    // so a consumer's own `rules` override can no longer beat it (E26).
+    const raw = runAllChecks(ctx);
     // F3: resolve config (profile + per-rule override + suppressions + published-verdict clamp), so the
     // report object, summary, dispositions split, and --json all reflect the consumer's grading config.
     const { config, findings: configFindings } = loadConfig(target);
     // CLI --mode / --profile override the file (so a third-party plugin can be graded under a chosen
     // profile without writing askit.config.json into its tree); an explicit per-rule override still wins.
-    const cfg = { ...config, ...(opts.mode ? { mode: opts.mode } : {}), ...(opts.profile ? { profile: opts.profile } : {}) };
-    const resolved = resolveFindings([...configFindings, ...downgraded], cfg, provenanceByReq());
+    const cfg = withGraderOptions(config, opts);
+    const resolved = resolveFindings([...configFindings, ...raw], cfg, provenanceByReq(), { pinned: ctx.library?.data?.standard, sinceByReq: SINCE_BY_REQ });
     const t = computeTierReport(target, ctx, resolved);
     return {
       ...baseReport("plugin", target, resolved),
       tier: t.tier, satisfies: t.satisfies, blocked: t.blocked,
-      profile: cfg.profile, mode: cfg.mode,
+      profile: cfg.profile.value, mode: cfg.mode.value,
       dispositions: dispositions(resolved),
     };
   }
@@ -118,7 +148,7 @@ export function formatReport(r) {
   lines.push(`Evaluating (${r.scope}): ${r.target}`);
   for (const f of r.findings) {
     if (f.suppressed || effSev(f) === "off") continue; // disabled/waived findings are summarized in the split, not listed here
-    lines.push(`  [${effSev(f)}] ${f.reqId ?? f.check}: ${f.message}${f.clampNotice ? " [clamped to warn: published-verdict]" : ""}${f.migrationNotice ? ` [${f.migrationNotice}]` : ""}${f.file ? "  -> " + f.file : ""}`);
+    lines.push(`  [${effSev(f)}] ${f.reqId ?? f.check}: ${f.message}${f.clampNotice && !f.trustNotice ? " [clamped to warn: published-verdict]" : ""}${f.trustNotice ? ` [${f.trustNotice}]` : ""}${f.migrationNotice ? ` [${f.migrationNotice}]` : ""}${f.file ? "  -> " + f.file : ""}`);
   }
   if (r.tier !== undefined) lines.push(`Tier: ${r.tier}`);
   lines.push(`${r.summary.errors} error(s), ${r.summary.warns} warning(s).`);
@@ -126,7 +156,21 @@ export function formatReport(r) {
     const d = r.dispositions;
     lines.push(`Real issues (objective + vendor-cited errors): ${d.realIssues}`);
     lines.push(`Profile conformance (house conventions, profile downgrades): ${d.profileConformance}   suppressed: ${d.suppressed}`);
-    if (d.clamped > 0) lines.push(`Clamped (objective/vendor checks this config tried to disable, surfaced at warn): ${d.clamped}`);
+    // Only the findings the DEPRECATED mechanism is the sole explanation for. A finding carrying both
+    // clampNotice and trustNotice is ONE event, and printing "Clamped: 1" beside "Trust actions: 1
+    // severity restored" describes it twice and makes the retired mechanism look current.
+    // `dispositions.clamped` is unchanged in the machine data, where compatibility requires it.
+    const clampedOnly = r.findings.filter((x) => x.clampNotice != null && !x.trustNotice && !x.suppressed).length;
+    if (clampedOnly > 0) lines.push(`Clamped (objective/vendor checks this config tried to disable, surfaced at warn): ${clampedOnly}`);
+    // The aggregate a per-finding notice cannot replace. Without it, a published verdict that failed
+    // BECAUSE the subject's own configuration was overruled looks identical to one that failed on an
+    // ordinary finding, and automation watching for an attempted disabling reads nothing at all.
+    if (d.trustActions.raised > 0 || d.trustActions.suppressionsCleared > 0) {
+      lines.push(
+        `Trust actions (published-verdict: the subject's own settings overruled): ` +
+        `${d.trustActions.raised} severity restored, ${d.trustActions.suppressionsCleared} suppression(s) cleared`
+      );
+    }
   }
   return lines.join("\n");
 }

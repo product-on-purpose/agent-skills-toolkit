@@ -30,6 +30,8 @@ The toolkit is a quality bar for AI skill libraries: it grades a plugin Bronze, 
 | v1.11.0 | 2026-08-12 | Reach: the grade becomes runnable, machine-readable and visible outside this repo | 30 / 0.12 |
 | v1.11.1 | 2026-08-12 | The shell that was not there: publishing was impossible from the default Windows shell | 30 / 0.12 |
 | v1.12.0 | 2026-08-12 | Marketplace scope: grading a catalogue, not one plugin at a time | 30 / 0.12 |
+| v1.12.1 | 2026-08-12 | The round that reviewed the fixes: four defects found in the previous round's fix code | 30 / 0.12 |
+| v1.13.0 | 2026-08-13 | The contract you adopted: one post-resolution ceiling over `since` and `until`, config provenance, and two graduations that could not previously fire | 31 / 0.13 |
 
 ("Spine" = the number of checks the gate runs. "Standard" = the version of the written specification. They were stable at 29 / 0.11 from v1.2.0 through v1.5.x; **v1.6.0 grew them to 30 / 0.12** - the first new requirement since v1.1.0, shipped under a warn-first burndown so no existing plugin newly fails.)
 
@@ -128,8 +130,42 @@ The recent arc is one idea executed in steps: **a quality tool earns trust by gr
 **Value, plainly:** a catalogue can show six green grades and still be broken as a catalogue. The first run of this against the family marketplace reported it **red**, for two different reasons that are both real: one member declares Gold and earns Silver, and another declares no tier at all. That is the scope working. The report says so on its own front page rather than being quietly tuned until the number looked better.
 **Value, for engineers:** the aggregation rule is self-consistency worst-member, which invents no tier expectation for anybody and offers no threshold to move. Two failures wear the word "unresolved" and only one is a red: a broken catalogue entry is a defect in the artifact, while a member simply not cloned on this machine is a gap in the environment reading it, reported `not-graded` with an unconditional coverage count. Every member row carries the registry pin, entry version, graded sha and divergence marker **even when they agree**, because a report that shows them only on disagreement teaches a reader to assume agreement from silence. Every finding it emits is scope-local and carries no `reqId`: the 30-check spine did not move, so adopting this release costs an existing plugin nothing. A6 (restricted fields on plugin-shipped agents) therefore ships as a catalogue-level reading rather than a numbered check, and its graduation is filed for the Standard 0.13 cut with the reason recorded rather than left as an oversight. Spine stayed 30, Standard stayed v0.12.
 
+### v1.12.1 - the round that reviewed the fixes (2026-08-12)
+**What:** v1.12.0 merged after a single adversarial review round. A second round was then run against the same code and returned **four findings, three of them high, every one of them inside code the first round had caused to exist.** The parity-exception fingerprint was matching against the validator's entire output rather than its per-diagnostic lines, so a second unrelated defect would have stayed excused on a harness that had just started gating every pull request. Member identity, on its third attempt, moved from `endsWith` (which accepted `notgithub.com/owner/name`) through a path-boundary version (which accepted `evil.example/github.com/owner/name`) to exact host-and-path comparison with no prefix allowance. And the scope guard was four surfaces short, so a plugin shipping only hooks or MCP servers could still be re-scoped to a catalogue.
+**Value, plainly:** the release that shipped a day earlier had three real defects in it, and they were found by reviewing the *fixes* rather than the original code. One review round is not a review; it is the first one.
+**Value, for engineers:** this is the third release running where the worst defects lived in round-1 fix code (v1.10.1 took six rounds, round 6 catching a defect in a round-5 fix; v1.11.0 took four). The practice that follows is written into every release plan since: run the review until a round comes back clean, and run the extra rounds **before** merging, not after tagging. Spine stayed 30, Standard stayed v0.12.
+
+### v1.13.0 - the contract you adopted (2026-08-13)
+**What:** the gate stopped applying tightenings on a calendar and started applying them on YOUR pin. Three
+version-gating mechanisms became one ceiling, computed from the version you declared and applied after your
+own configuration resolves. Two long-scheduled tightenings finally graduated, a thirty-first check landed,
+and a defect this toolkit had been writing into other people's repositories was fixed with a migration.
+
+**Value, plainly:** before this release, "you are graded against the ruleset you pinned" was true for new
+checks and quietly false for tightened ones - and a consumer could override the pin anyway, from their own
+config file, in either direction. Now the promise holds in both directions, and the only way to take on a
+stricter rule is to say so by raising your pin. Two scheduled tightenings that could never actually have
+fired now do.
+
+**Value, for engineers:** `applyStandardDowngrade` is deleted. Its logic is a ceiling over
+`(pinned, since, migration.until)` applied LAST inside `resolveFindings`, so a `rules.X = "error"` override
+is honoured and then held back, with the reason recorded in a new `ceiling` field (E26). Config carries
+provenance - grader-owned versus subject-owned - which is what made the published-verdict floor possible:
+a subject can no longer weaken an objective or vendor-cited finding about itself, though it can still be
+stricter, and anything the grader supplied is honoured in full (E38). That deliberately REVERSES a
+guarantee the code used to publish, and the reversal is ratified in ADR 0044 rather than discovered in a
+diff. `U13` and `S4` emit their target severity and let the ceiling hold them back, which is the only shape
+in which a graduation can fire at all - ADR 0041's cap sat at `warn` over a finding emitted as `warn`, so
+lifting it would have produced a warning. `U14` (ADR 0045) promotes the marketplace-only restricted-fields
+reading to the spine, so a plugin graded on its own is told too. And `gen-index` stops inferring whether a
+plugin vendors this toolkit's gate and reads a declaration instead, with `G4` capping the exact legacy
+rendering at warn until 0.14 so nobody is gated on our defect.
+
+**Measured, not argued:** every one of the six family members grades byte-identically to the pre-release
+baseline, except two that gain one capped warning each from the `G4` migration. Zero verdicts moved.
+
 ## Where we are now
-- Version **1.12.0**, Standard **0.12**, **30-check spine**, **3 scopes** (plugin, component, marketplace), **24 skills**, gate **Advanced 0/0**. Self-grading Gold on every CI build; installable from the `product-on-purpose` marketplace and from npm as `agent-skills-toolkit`. Nothing checks that this line stays current - a maintainer updates it by hand at each release cut, the same failure mode the v1.10.1 `STATUS.md` rewrite corrected elsewhere in the repository, and it went stale exactly that way between v1.10.1 and v1.12.0 (both v1.11 releases shipped without an entry here; they are backfilled above).
+- Version **1.13.0**, Standard **0.13**, **31-check spine**, **3 scopes** (plugin, component, marketplace), **24 skills**, gate **Advanced 0/0**. Self-grading Gold on every CI build; installable from the `product-on-purpose` marketplace and from npm as `agent-skills-toolkit`, which has served **1.12.1** since 2026-08-12 via trusted publishing (OIDC) with no stored credential. Nothing checks that this line stays current - a maintainer updates it by hand at each release cut, the same failure mode the v1.10.1 `STATUS.md` rewrite corrected elsewhere in the repository, and it went stale exactly that way twice: between v1.10.1 and v1.12.0 (both v1.11 releases shipped without an entry here) and again at v1.12.1, which was found missing by round 7 of the v1.13.0 pre-implementation review rather than by anything in the release process.
 
 ## What's next, and why (the roadmap, in priority order)
 The v1.6.0 headline (the manifest-vs-disk drift check) and the report glossary + Bronze reference page both shipped above. The remaining v1.6.0-program work lands as continuous supporting effort:
@@ -137,4 +173,5 @@ The v1.6.0 headline (the manifest-vs-disk drift check) and the report glossary +
 2. **Measure advisory quality, not just cost (F3).** Build fixture plugins with known planted issues and a scoring key, so the AI review layer gets a real precision/recall number per model and effort, and replicate the model triple on a defect-rich target. *Why:* today we measure what a review costs but only narrate how good it is.
 3. **Authoring token measurements (F5).** Fill the token dossier's last unmeasured range by measuring real `askit-build-*` runs. *Why:* a builder should be able to budget an authoring run.
 4. **Carried:** corpus batch 3, a Gemini emitter, and the remainder of the competitive gap-analysis backlog. (The marketplace-scope evaluation mode carried here since v1.6.0 **shipped in v1.12.0**; E4, E9 and E23 shipped in v1.11.0.)
-5. **Next, and it is a Standard cut:** v1.13.0 brings the toolkit current with both vendors - the ADR pack first (commands-as-skills, frontmatter vocabulary strictness, U5 scope), then the code batch - and carries the Standard 0.13 bump, which graduates `U13` from warn to error, graduates ADR 0041's chain-migration cap, and is the vehicle for the two v1.12.0 follow-ups that need a Standard minor (**E33**, A6 as a numbered plugin-scope check; **E34**, which cross-member findings belong on the spine at all).
+5. **Next, and it is a Standard cut:** v1.13.0 "the contract you adopted" carries the Standard 0.13 bump. It replaces the pin-downgrade pre-pass and ADR 0041's unconditional cap with **one post-resolution Standard ceiling** over `since` and `until` (ADR 0044), which also closes **E26** (the pin downgrade is overridable by a consumer's own config) and **E38** (a subject's own config can lower an objective finding and still publish green), the latter by introducing grader-owned versus subject-owned config provenance. Riding that ceiling: `U13`'s warn-to-error graduation, ADR 0041's chain-migration cap graduation, and **E33** as the new `U14` check with its own ADR 0045 (spine 30 to 31). It also lands **E35** (the `gen-index` self-validation line, with a migration) and **E37** (the shell-probe timing budget, pulled in because it blocks the release-time counts gate).
+6. **Then v1.14.0 "current with the vendors":** the ADR pack (commands-as-skills, frontmatter vocabulary strictness, `U5` scope per **E14**), the code batch, and standing up vendor-watch, plus the two items that need an undrafted ADR - **E34** (which cross-member findings belong on the spine at all) and **E36** (malformed and mixed marketplace manifests). *Why it moved:* bundling three undrafted ADRs with a Standard bump made v1.13.0 a release-of-releases. "Evidence" shifts to v1.15.0 and "graded cohort" to v1.16.0.

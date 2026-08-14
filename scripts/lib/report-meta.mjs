@@ -3,7 +3,7 @@
 // why:          keeps human-facing remediation prose out of the deterministic check modules (the gate stays a thin linter, ADR 0028); one table the MD and HTML renderers share so they never diverge
 // used-by:      scripts/lib/report-render.mjs
 //
-// One entry per reqId currently in the spine (U1-U9, U11-U13, S1-S8, G1-G10). The registry-coverage
+// One entry per reqId currently in the spine (U1-U9, U11-U14, S1-S8, G1-G10). The registry-coverage
 // test in tests/unit/report-render.test.mjs fails CI if a future spine addition forgets its row, so a
 // new check cannot ship with a blank "why". The `why` strings for U5/U7/G2/G3/G5 are lifted from the
 // editorial sample's blockquotes; the rest are authored from each check's purpose and Standard clause.
@@ -67,6 +67,11 @@ export const REPORT_META = Object.freeze({
   U13: {
     why: "A skill on disk that the manifest does not register ships but is invisible to installers; the catalog must list everything the library delivers, and a registered skill with no directory cannot be delivered at all.",
     fixPrompt: "Register the unregistered skill in library.json components.skills[] (or the marketplace plugins[] catalog), or remove a registration entry that has no skills/<name>/ directory. Then run node scripts/check.mjs and confirm U13 passes.",
+    effort: "~5 min",
+  },
+  U14: {
+    why: "Claude Code refuses hooks, mcpServers and permissionMode on a plugin-shipped agent for security reasons, so an agent declaring one has configured something the runtime will not honour - and nothing tells the author, which is the whole hazard.",
+    fixPrompt: "Remove the unsupported field from the agent frontmatter under agents/. If the behaviour is genuinely needed, move it to a surface the runtime supports for plugins (a hook file, an MCP server declaration, or the consuming project's own settings) rather than the agent. Then run node scripts/check.mjs and confirm U14 passes.",
     effort: "~5 min",
   },
   S1: {

@@ -28,7 +28,7 @@ export function check(ctx) {
         finding(
           meta.id,
           SEVERITY.ERROR,
-          `library.json declares agent-target "${t}" but its native manifest ${rel} is missing on disk (REQUIRED at Convergent+; Standard sec 5.1, sec 10.1). Generate it with: node scripts/generators/gen-manifest.mjs . --write --target=all`,
+          `library.json declares agent-target "${t}" but its native manifest ${rel} is missing on disk (REQUIRED at Convergent+; Standard sec 5.1, sec 10.1). Generate it with: npx agent-skills-toolkit gen-manifest . --write --target=all (or \`node scripts/generators/gen-manifest.mjs . --write --target=all\` if you vendor this toolkit)`,
           { file: rel, reqId: meta.reqId }
         )
       );
@@ -47,7 +47,7 @@ export function check(ctx) {
           finding(
             meta.id,
             SEVERITY.ERROR,
-            `plugin ships MCP servers (.mcp.json) but ${rel} does not carry "mcpServers": "./.mcp.json" for target "${t}" (Standard sec 3.9). Regenerate: node scripts/generators/gen-manifest.mjs . --write --target=all`,
+            `plugin ships MCP servers (.mcp.json) but ${rel} does not carry "mcpServers": "./.mcp.json" for target "${t}" (Standard sec 3.9). Regenerate: npx agent-skills-toolkit gen-manifest . --write --target=all (or \`node scripts/generators/gen-manifest.mjs . --write --target=all\` if you vendor this toolkit)`,
             { file: rel, reqId: meta.reqId }
           )
         );

@@ -46,9 +46,14 @@ const isDir = (p) => existsSync(p) && statSync(p).isDirectory();
  * and no manifest and no components of any kind, is read as a catalogue. That shape is a catalogue by
  * any reading of Standard sec 12.
  */
-const PLUGIN_SURFACES = Object.freeze({
+// Exported so the test IMPORTS it rather than keeping its own copy. It kept a copy, the copy said
+// "workflows" where the Standard says `_workflows/`, and both were wrong in the same way - so the
+// test could not catch the routing bypass it was written to catch. A list written down twice is a
+// list that will disagree with itself, which this repository already learned about check messages
+// and number parsing.
+export const PLUGIN_SURFACES = Object.freeze({
   files: ["library.json", ".claude-plugin/plugin.json", ".codex-plugin/plugin.json", ".mcp.json"],
-  dirs: ["skills", "agents", "commands", "hooks", "workflows", "output-styles", "themes", "monitors"],
+  dirs: ["skills", "agents", "commands", "hooks", "_workflows", "output-styles", "themes", "monitors"],
 });
 
 function shipsOwnComponents(target) {
@@ -116,10 +121,12 @@ function gradeMember(resolution, opts) {
       standardPin: ctx.library?.data?.standard ?? null,
       errors: gate.errorCount,
       warns: gate.warnCount,
-      // Standard debt: findings that are warnings ONLY because they postdate this member's pin. ADR 0039
+      // Standard debt: findings held below their resolved severity by this member's pin - an introduction
+      // (the check postdates the pin) or a tightening that has not reached it yet, which are one ceiling
+      // since Standard 0.13 and so are counted together. ADR 0039
       // requires it per member, because it is what makes "green by an old pin" visible rather than
       // flattering - the collection-level analogue of the trust calibration ADR 0036 shipped.
-      standardDebt: live.filter((f) => f.downgraded).length,
+      standardDebt: live.filter((f) => f.ceiling != null).length,
       exitCode: gate.exitCode,
       // A member FAILS ITS OWN CLAIM iff its own gate would fail. That is the whole of question 2's
       // aggregation rule: no collection-level tier expectation is invented for anyone (which is the

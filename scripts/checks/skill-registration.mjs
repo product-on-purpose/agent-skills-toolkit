@@ -12,11 +12,21 @@ import { finding, SEVERITY } from "../lib/findings.mjs";
 
 export const meta = { id: "skill-registration", tier: "universal", reqId: "U13", since: "0.12", provenance: "objective" };
 
-// BURNDOWN (ADR 0035 + STANDARD.md sec 7.7): U13 is introduced at Standard 0.12, so it ships as a WARN
-// for the 0.12 minor (surfaced, never gate-failing) and GRADUATES to SEVERITY.ERROR at Standard 0.13.
-// Change the next line to SEVERITY.ERROR in the 0.13 release (the per-check-flip mechanism; the gate has
-// no enforcedSince field). Do not gate on this before 0.13.
-const U13_SEVERITY = SEVERITY.WARN;
+// BURNDOWN (ADR 0035 + STANDARD.md sec 7.7), DISCHARGED at Standard 0.13 (ADR 0044).
+//
+// U13 now emits its TARGET severity unconditionally, and the migration below is what holds it at warn
+// for anyone pinned below 0.13. There is no longer a constant for a future maintainer to remember to
+// hand-edit: "graduates at 0.13" used to be a promise kept by someone remembering, in two files, with
+// no test that failed if they did not. It is now data the resolver enforces, and the horizon test
+// asserts every registered `until` is a real Standard version at most one minor out.
+const U13_SEVERITY = SEVERITY.ERROR;
+const U13_MIGRATION = Object.freeze({
+  capAt: SEVERITY.WARN,
+  until: "0.13",
+  // STATIC and activation-neutral: what the migration is ABOUT, never what this run did. A reason
+  // asserting the finding "stays capped at warn" is false under --strict, where the ceiling is off.
+  reason: "ADR 0035: skill-registration drift is newly detected at Standard 0.12.",
+});
 
 /** The <name> segment of a skills/<name>/... path or ./skills/<name> source. Null if not under skills/. */
 export function skillNameFromPath(p) {
@@ -74,7 +84,7 @@ export function check(ctx) {
       out.push(finding(meta.id, U13_SEVERITY,
         `skill "${name}" exists on disk (skills/${name}/) but is not registered in the plugin's manifest; ` +
         `it ships but is invisible to installers. Register it in library.json components.skills[] (or the marketplace plugins[] catalog).`,
-        { file: `skills/${name}/SKILL.md`, reqId: "U13" }));
+        { file: `skills/${name}/SKILL.md`, reqId: "U13", migration: U13_MIGRATION }));
     }
   }
   for (const name of registered) {
@@ -83,7 +93,7 @@ export function check(ctx) {
       out.push(finding(meta.id, U13_SEVERITY,
         `skill "${name}" is registered in the manifest but has no skills/${name}/ directory on disk; ` +
         `it is catalogued but cannot be delivered. Add the skill or remove the registration entry.`,
-        { file: `skills/${name}/SKILL.md`, reqId: "U13" }));
+        { file: `skills/${name}/SKILL.md`, reqId: "U13", migration: U13_MIGRATION }));
     }
   }
   return out;

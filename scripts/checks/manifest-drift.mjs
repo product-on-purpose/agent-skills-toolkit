@@ -28,7 +28,7 @@ export function check(ctx) {
         // a single `node scripts/check.mjs .` must fail on it, not leave the gate green and exit 0.
         // Name drift stays a WARN (cosmetic at install time; the tag guard does not gate on it).
         const severity = k === "version" ? SEVERITY.ERROR : SEVERITY.WARN;
-        out.push(finding(meta.id, severity, `${file} ${k} "${m[k]}" differs from library.json "${lib[k]}"; native manifests are generated from library.json (Standard sec 5, G4). Regenerate with: node scripts/generators/gen-manifest.mjs . --write --target=all`, { file, reqId: "U8" }));
+        out.push(finding(meta.id, severity, `${file} ${k} "${m[k]}" differs from library.json "${lib[k]}"; native manifests are generated from library.json (Standard sec 5, G4). Regenerate with: npx agent-skills-toolkit gen-manifest . --write --target=all (or \`node scripts/generators/gen-manifest.mjs . --write --target=all\` if you vendor this toolkit)`, { file, reqId: "U8" }));
       }
     }
   }

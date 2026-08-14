@@ -12,8 +12,8 @@
 // used-by:      invoked by contributors and by .github/workflows/ci.yml; the self-hosting (G2) target
 import { loadPlugin } from "./lib/load-plugin.mjs";
 import { runAllChecks, provenanceByReq } from "./lib/registry.mjs";
-import { applyStandardDowngrade } from "./lib/standard-gate.mjs";
-import { loadConfig } from "./lib/config.mjs";
+import { SINCE_BY_REQ } from "./lib/standard-gate.mjs";
+import { loadConfig, publicConfig, withGraderOptions } from "./lib/config.mjs";
 import { PROFILES } from "./lib/profiles.mjs";
 import { resolveFindings, gatingFindings } from "./lib/resolve-config.mjs";
 import { computeTierReport, humanLine } from "./tier-report.mjs";
@@ -36,20 +36,26 @@ export function gateExitFromFindings(findings, declaredTier) {
 
 export function runGate(root, ctx = loadPlugin(root), { strict = false, mode, profile } = {}) {
   const raw = runAllChecks(ctx);
-  // F1 (ADR 0027): honor the plugin's pinned Standard by downgrading post-pin errors to warn, unless
-  // --strict (which grades against the full live spine, for authors validating the Standard itself).
-  const downgraded = strict ? raw : applyStandardDowngrade(raw, ctx?.library?.data?.standard);
+  // F1 (ADR 0027), now ADR 0044: the pin is honoured by a CEILING applied last inside resolveFindings,
+  // not by a pre-pass. As a pre-pass it ran before configuration resolved, so a consumer's
+  // `rules.X = "error"` beat it (E26). Under --strict the pin is passed as undefined, which makes every
+  // version constraint go inert together - there is no second strict flag to keep in sync.
+  const pinned = strict ? undefined : ctx?.library?.data?.standard;
   // F3: load askit.config.json and resolve severities (profile + per-rule override + suppressions +
   // published-verdict clamp). With no config this is a no-op: effectiveSeverity === severity, nothing
   // suppressed, configFindings empty, so the gate exit equals the pre-F3 behavior (test G-BC).
   const { config, findings: configFindings } = loadConfig(root);
-  const effectiveConfig = { ...config, ...(mode ? { mode } : {}), ...(profile ? { profile } : {}) }; // CLI --mode / --profile override the file
-  const resolved = resolveFindings([...configFindings, ...downgraded], effectiveConfig, provenanceByReq());
+  // CLI --mode / --profile override the file AND are stamped grader-owned (ADR 0044). The marketplace
+  // scope reaches this same path through gradeMember(), so a catalogue's caller options are grader-owned
+  // for every member without that scope needing a merge of its own.
+  const effectiveConfig = withGraderOptions(config, { mode, profile });
+  const resolved = resolveFindings([...configFindings, ...raw], effectiveConfig, provenanceByReq(), { pinned, sinceByReq: SINCE_BY_REQ });
   // Project effectiveSeverity onto .severity so gateExitFromFindings (the tier ceiling) is UNCHANGED.
   const forGate = gatingFindings(resolved).map((f) => ({ ...f, severity: f.effectiveSeverity }));
   const { errorCount, exitCode } = gateExitFromFindings(forGate, ctx?.library?.data?.tier);
   const warnCount = resolved.filter((f) => f.effectiveSeverity === "warn" && !f.suppressed).length;
-  return { findings: resolved, errorCount, warnCount, exitCode, config: effectiveConfig };
+  // `config` is published origin-free: provenance is a resolution input, not a new external contract.
+  return { findings: resolved, errorCount, warnCount, exitCode, config: publicConfig(effectiveConfig) };
 }
 
 /**
@@ -87,16 +93,73 @@ export function sectionFindings(findings, declaredTier) {
  * The one-line Standard-debt indicator, or "" when the pin is holding nothing back. A plugin pinned to
  * an older Standard prints "no blockers detected" with exit 0 while carrying post-pin findings that all
  * become gate-failing the moment it re-pins; this states that latent debt next to the verdict instead of
- * leaving it to be inferred from the warning stream. The due-at version is the HIGHEST `since` among the
- * held-back findings, compared numerically so 0.10 outranks 0.9. (PSR-6, ADR 0036.)
+ * leaving it to be inferred from the warning stream. Dates are computed SEPARATELY for the gating and
+ * above-tier partitions and lead with the EARLIEST due version, compared numerically so 0.10 outranks
+ * 0.9. Both parts of that are corrections: one date over the whole set let above-tier debt name the day
+ * the gate breaks, and leading with the highest told a plugin holding debt due at 0.13 and 0.14 that it
+ * was safe until 0.14. (PSR-6, ADR 0036.)
  * Exported for unit testing.
  */
-export function standardDebtLine(findings) {
-  const held = findings.filter((f) => f.downgraded && !f.suppressed);
+export function standardDebtLine(findings, declaredTier) {
+  // Reads `ceiling`, not the legacy `since`. Debt is now findings held below their severity by a binding
+  // INTRODUCTION or TIGHTENING ceiling, and a tightening has no `since` at all - selecting on the legacy
+  // field would print an undefined version for every `until`-only hold, which is most of them.
+  const held = findings.filter((f) => f.ceiling && !f.suppressed);
   if (held.length === 0) return "";
-  const dueAt = held.reduce((hi, f) => (compareStandard(f.since, hi) > 0 ? f.since : hi), held[0].since);
-  return `Standard debt: ${held.length} finding(s) held back by your pinned Standard ${held[0].pinned}; ` +
-    `all of them become gate-failing errors at Standard ${dueAt} or later.`;
+  // Dates are computed PER PARTITION, below, never once over everything. Reducing across all held
+  // findings first and then splitting let an above-tier finding set the date printed in the GATING
+  // sentence: a plugin pinned to 0.12 whose gating debt comes due at 0.13, carrying one above-tier
+  // finding due at 0.14, was told its gate breaks at 0.14. It breaks at 0.13. Under-warning by a
+  // version is worse than not stating a date, because the reader plans the upgrade around it.
+  const earliest = (set) => set.reduce((lo, f) => (compareStandard(f.ceiling.due, lo) < 0 ? f.ceiling.due : lo), set[0].ceiling.due);
+  const latest = (set) => set.reduce((hi, f) => (compareStandard(f.ceiling.due, hi) > 0 ? f.ceiling.due : hi), set[0].ceiling.due);
+  // EARLIEST leads the sentence, where the old line led with the highest. "All of them become errors at
+  // 0.14 or later" is technically true of the maximum and still reads as safe-until-0.14 to someone
+  // holding a finding due at 0.13. The first date is the one that costs them something.
+  const span = (set) => {
+    const first = earliest(set);
+    const last = latest(set);
+    return first === last ? `at Standard ${first}` : `from Standard ${first} onwards (the last at ${last})`;
+  };
+
+  // The tier ceiling applies here too, and saying otherwise was a live falsehood. `G4` is Advanced, so
+  // a plugin declaring Convergent that carries the E35 index migration was told its held finding
+  // "becomes a gate-failing error" - it cannot, at any Standard, because gateExitFromFindings filters
+  // by the same declared-tier ceiling. That also contradicted this very terminal's own above-tier
+  // label, three lines further down. Split rather than dropped: above-tier debt is still real debt and
+  // still comes due, it just never gates THIS plugin at THIS declared tier.
+  const ceiling = ceilingIndex(declaredTier);
+  const gating = held.filter((f) => TIER_ORDER.indexOf(tierForReq(f.reqId)) <= ceiling);
+  // The above-tier findings themselves, not just how many: they carry their own due dates, and the
+  // clause about them has to be computed from those rather than borrowing the gating set's.
+  const aboveSet = held.filter((f) => TIER_ORDER.indexOf(tierForReq(f.reqId)) > ceiling);
+  const pinned = held[0].ceiling.pinned;
+
+  if (gating.length === 0) {
+    return `Standard debt: ${held.length} finding(s) held back by your pinned Standard ${pinned}; ` +
+      `all of them are above your declared tier, so they become errors ${span(held)} without affecting this plugin's grade.`;
+  }
+  const aboveBit = aboveSet.length > 0
+    ? ` A further ${aboveSet.length} held finding(s) are above your declared tier and become errors ${span(aboveSet)} without affecting your grade.`
+    : "";
+  return `Standard debt: ${gating.length} finding(s) held back by your pinned Standard ${pinned}; ` +
+    `they become gate-failing errors ${span(gating)}.${aboveBit}`;
+}
+
+/**
+ * The per-finding ceiling annotation, branched on CAUSE.
+ *
+ * The old text was `since`-shaped ("introduced in Standard X, after pinned Y") and is simply wrong for a
+ * tightening: it would report a `U13` cap as due at 0.12 when it is due at 0.13. Both causes can be
+ * active at once, so all three shapes are spelled out rather than inferred from whichever constraint
+ * happened to come first.
+ */
+function ceilingAnnotation(c) {
+  const since = c.constraints.find((x) => x.cause === "since");
+  const until = c.constraints.find((x) => x.cause === "until");
+  if (since && until) return `held at ${c.to}: introduced in Standard ${since.due} and capped until Standard ${until.due}, after pinned ${c.pinned}`;
+  if (until) return `held at ${c.to}: capped until Standard ${until.due}, after pinned ${c.pinned}`;
+  return `downgraded: introduced in Standard ${since.due}, after pinned ${c.pinned}`;
 }
 
 function findingLine(f) {
@@ -108,8 +171,13 @@ function findingLine(f) {
   // resolve-config.mjs's own default for a finding whose reqId provenance is not on record.
   const prov = f.provenance ?? "objective";
   return `  [${sev}/${prov}] ${f.check}${f.reqId ? " (" + f.reqId + ")" : ""}: ${f.message}` +
-    `${f.downgraded ? ` [downgraded: introduced in Standard ${f.since}, after pinned ${f.pinned}]` : ""}` +
-    `${f.clampNotice ? ` [clamped to warn: published-verdict, ${f.provenance}]` : ""}` +
+    `${f.ceiling ? ` [${ceilingAnnotation(f.ceiling)}]` : ""}` +
+    // The deprecated clamp annotation is suppressed when a trust notice already explains the same
+    // action; it stays in the DATA for external --json readers.
+    `${f.clampNotice && !f.trustNotice ? ` [clamped to warn: published-verdict, ${f.provenance}]` : ""}` +
+    // A trust action must be VISIBLE, or a published verdict fails with no explanation that the
+    // subject's own configuration was overruled - which is the promise ADR 0044 makes.
+    `${f.trustNotice ? ` [${f.trustNotice}]` : ""}` +
     `${f.migrationNotice ? ` [${f.migrationNotice}]` : ""}` +
     `${f.file ? "  -> " + f.file : ""}`;
 }
@@ -157,7 +225,12 @@ export function formatGithubAnnotations(findings, declaredTier) {
       if (f.line != null) params.push(`line=${ghaEscapeProperty(String(f.line))}`);
       const paramStr = params.length ? " " + params.join(",") : "";
       const label = f.reqId ? `${f.check} (${f.reqId}): ` : `${f.check}: `;
-      return `::${cmd}${paramStr}::${ghaEscapeData(label + f.message)}`;
+      // The trust notice is APPENDED to the annotation a reviewer reads on the diff. Without it, a
+      // finding the subject had tried to waive looks identical to one nobody touched, which is the
+      // opposite of what published-verdict mode exists to show. Already sanitized where the notice is
+      // built; ghaEscapeData then handles the workflow-command encoding.
+      const notice = f.trustNotice ? ` [${f.trustNotice}]` : "";
+      return `::${cmd}${paramStr}::${ghaEscapeData(label + f.message + notice)}`;
     })
     .join("\n");
 }
@@ -223,7 +296,7 @@ if (process.argv[1]?.endsWith("check.mjs")) {
   }
   console.log(`\n${humanLine(computeTierReport(root, ctx, r.findings))}`);
   console.log(`\n${r.errorCount} error(s), ${r.warnCount} warning(s).`);
-  const debt = standardDebtLine(r.findings);
+  const debt = standardDebtLine(r.findings, ctx?.library?.data?.tier);
   if (debt) console.log(debt);
   process.exit(r.exitCode);
 }

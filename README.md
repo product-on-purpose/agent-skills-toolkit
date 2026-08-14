@@ -19,10 +19,10 @@ Most skill collections are a flat, single-agent, ungoverned pile. This is the St
 <p>
   <img src="https://img.shields.io/badge/status-active-success?style=flat-square" alt="Status: Active">
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-Apache--2.0-blue?style=flat-square" alt="License: Apache-2.0"></a>
-  <img src="https://img.shields.io/badge/version-1.12.1-blue?style=flat-square" alt="Version 1.12.1">
+  <img src="https://img.shields.io/badge/version-1.13.0-blue?style=flat-square" alt="Version 1.13.0">
   <a href="https://product-on-purpose.github.io/agent-skills-toolkit/badges/tier.json"><img src="https://img.shields.io/endpoint?url=https%3A%2F%2Fproduct-on-purpose.github.io%2Fagent-skills-toolkit%2Fbadges%2Ftier.json&style=flat-square" alt="Tier badge, generated in CI at the graded commit sha - click through for the raw JSON (tier, sha, Standard pin, date)"></a>
   <a href="#the-catalog"><img src="https://img.shields.io/badge/skills-24-brightgreen?style=flat-square" alt="Skills: 24"></a>
-  <img src="https://img.shields.io/badge/checks-30-brightgreen?style=flat-square" alt="Validation checks: 30">
+  <img src="https://img.shields.io/badge/checks-31-brightgreen?style=flat-square" alt="Validation checks: 31">
   <a href="https://agentskills.io/specification"><img src="https://img.shields.io/badge/spec-agentskills.io-orange?style=flat-square" alt="Agent Skills Spec"></a>
 </p>
 
@@ -216,7 +216,7 @@ No single dimension is uniquely ours; the unoccupied position is the **combinati
 
 A bare folder of agentskills.io skills is just **loose components**: the skills work a la carte, but the collection is not yet a plugin. The three tiers are the ladder that turns it into a best-in-class library, one rung at a time. They are **monotonic** - each tier includes everything below it - so a Bronze plugin grows into Silver and Gold without rework. The bar rises, and the earlier work still counts.
 
-A tier is reported only when its checks actually pass; the tooling flags any claim above what is met. The spine is **30 checks** total (`U1-U9`, `U11-U13`, `S1-S8`, `G1-G10`); the `G7` slot is the `docs-frontmatter` check (assigned in Standard v0.10), and `U13` (`skill-registration`) was added in Standard v0.12. Tier inclusion (a Gold plugin satisfies every Bronze and Silver requirement) is a structural property of the monotonic tiers, not a numbered check.
+A tier is reported only when its checks actually pass; the tooling flags any claim above what is met. The spine is **31 checks** total (`U1-U9`, `U11-U14`, `S1-S8`, `G1-G10`); the `G7` slot is the `docs-frontmatter` check (assigned in Standard v0.10), `U13` (`skill-registration`) was added in Standard v0.12, and `U14` (`agent-restricted-fields`) in Standard v0.13. Tier inclusion (a Gold plugin satisfies every Bronze and Silver requirement) is a structural property of the monotonic tiers, not a numbered check.
 
 ### At a glance
 
@@ -388,13 +388,13 @@ The Claude slash commands that give the core flows an explicit `/command` entry 
 
 ## Status
 
-**`v1.12.1`, Gold grade, installable.** The repository declares `tier: advanced` and self-validates at Advanced in CI: the full gate is green and `tier-report` prints `advanced` with an empty burndown, so the toolkit is a self-proving example of the Standard it defines. Gold check `G1` (hooks) now grades the toolkit's own demonstrative no-dash `PreToolUse` hook; `G6` (deprecation) is still satisfied without exercise, since the toolkit ships no deprecated components yet. The toolkit installs from the `product-on-purpose` marketplace (see [Install](#install)).
+**`v1.13.0`, Gold grade, installable.** The repository declares `tier: advanced` and self-validates at Advanced in CI: the full gate is green and `tier-report` prints `advanced` with an empty burndown, so the toolkit is a self-proving example of the Standard it defines. Gold check `G1` (hooks) now grades the toolkit's own demonstrative no-dash `PreToolUse` hook; `G6` (deprecation) is still satisfied without exercise, since the toolkit ships no deprecated components yet. The toolkit installs from the `product-on-purpose` marketplace (see [Install](#install)).
 
-- **Version** - `1.12.1` (Standard `v0.12`).
+- **Version** - `1.13.0` (Standard `v0.13`).
 - **Tier** - Advanced (Gold), self-validated.
 - **Install** - `product-on-purpose` marketplace (`agent-plugins`).
 - **Components** - 24 skills, 7 subagents, 2 commands.
-- **Validation spine** - 30 checks (`U1-U9`, `U11-U13`, `S1-S8`, `G1-G10`).
+- **Validation spine** - 31 checks (`U1-U9`, `U11-U14`, `S1-S8`, `G1-G10`), graded against the Standard version a plugin PINS: a requirement introduced or tightened after your pin is surfaced as Standard debt, never a gate failure, until you adopt it.
 - **Evaluation scopes** - 3: one plugin, one component, or a whole `marketplace.json` catalogue ([marketplace scope](docs/reference/marketplace-scope.md)).
 - **Agents** - Claude Code and Codex; agentskills.io-compatible at Bronze.
 - **License** - Apache-2.0.

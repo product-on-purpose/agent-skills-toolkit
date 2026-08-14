@@ -1,76 +1,368 @@
-// what-it-is:   the config resolver (F3)
-// what-it-does: annotates each finding with its effective severity (after profile + per-rule override),
-//               its provenance, a suppressed flag (after the baseline matcher), a published-verdict
-//               clampNotice, and a migration-cap ceiling, leaving the array intact so the report shows
-//               what was downgraded/waived/clamped/capped rather than hiding it
+// what-it-is:   the config resolver (F3), and since ADR 0044 the single place a finding's disposition is
+//               decided
+// what-it-does: annotates each finding with its effective severity, its provenance, a suppressed flag,
+//               the published-verdict trust step's notice, and the Standard ceiling - leaving the array
+//               intact so the report shows what was overruled/waived/held back rather than hiding it
 // why:          one resolution path keeps check.mjs, evaluate.mjs, and tier-report.mjs consistent and keeps
 //               the gate deterministic (a pure data transform over the finding array, no model, no I/O)
 // used-by:      scripts/check.mjs, scripts/evaluate.mjs, scripts/tier-report.mjs
+import { ORIGIN } from "./config.mjs";
 import { PROFILES } from "./profiles.mjs";
 import { matchSuppression } from "./suppressions.mjs";
-
-// Severity rank for the migration cap's ceiling comparison: off < warn < error. Ranking "off" below
-// "warn" is what makes the cap a pure ceiling with no special-casing needed - min(current, capAt) by
-// rank can only ever lower a severity, so an off'd (or suppressed, which is orthogonal to this rank
-// entirely - see below) finding is never lifted back up to warn by a cap that only ever caps at warn.
-const SEVERITY_RANK = { off: 0, warn: 1, error: 2 };
+import { activeConstraints, latestDue, lowerSeverity, SEVERITY_RANK } from "./standard-ceiling.mjs";
+import { BASELINE } from "./standard-version.mjs";
 
 /**
- * Resolve raw findings against the loaded config. Precedence per finding: per-rule override > profile >
- * the severity the check emitted (which already carries F1's standard-aware downgrade). Then, in
- * published-verdict mode ONLY, the trust clamp lifts any objective/vendor-cited finding that a rule,
- * profile, or suppression turned off back to "warn" (with a clampNotice, never silently dropped); a
- * "house" finding is never clamped. The clamp only ever raises off->warn, never to error, so turning the
- * mode on can never flip a passing gate to failing.
+ * Flatten subject-authored text to a single safe line before it is quoted into a published notice.
  *
- * Finally, a per-finding migration cap (round-2 adversarial review, high severity: "S4 warn-first
- * findings can be promoted back to errors") is applied LAST, after every precedence step above has
- * produced effectiveSeverity. A finding may carry `migration: { capAt, until, reason }` (set by the
- * check itself for a shape it is warn-first migrating, e.g. S4's string-shaped chain declarations,
- * ADR 0041); if the effectiveSeverity computed above outranks `capAt`, it is pulled back down to
- * `capAt` and the reason is surfaced via `migrationNotice` - so a consumer whose `rules.<reqId> =
- * "error"` override gets overruled sees WHY, rather than the override silently appearing ignored. The
- * cap is a CEILING, never a floor: it is compared by SEVERITY_RANK, so a severity already at or below
- * `capAt` (including "off", from a rule or the published-verdict clamp) is left exactly as resolved -
- * suppression and "off" still win, because this step never raises anything. Applying it after
- * suppression matching (rather than before) means a capped-and-suppressed finding stays suppressed:
- * `suppressed` is computed independently above and this step never touches it.
- * Pure and synchronous; never mutates the input.
- * @param {Array<object>} findings raw findings (post-F1-downgrade)
- * @param {object} config frozen config from loadConfig
- * @param {Map<string,string>} provenanceByReq reqId -> provenance
- * @returns {Array<object>} resolved findings, each + { provenance, effectiveSeverity, downgradedFrom, suppressed, suppressionReason, clampNotice, migrationNotice }
+ * Collapses every control character and whitespace run (newlines included) to one space and caps the
+ * length. In `published-verdict` mode the subject is explicitly untrusted, so its `askit.config.json`
+ * strings must not be able to shape the structure of a report written about it.
  */
-export function resolveFindings(findings, config, provenanceByReq) {
-  const profileRules = (PROFILES[config.profile] ?? PROFILES["askit-library"]).rules;
-  const published = config.mode === "published-verdict";
+// ONE definition of "a reader cannot see this", asked by all three consumers: the strip, the
+// empty-reason test, and the discarded-suffix scan. They used to disagree, and every disagreement was a
+// defect. The strip removed every Cf - but U+06DD (ARABIC END OF AYAH) is Cf and VISIBLE, so deleting it
+// silently edited the subject's words. Meanwhile the suffix scan counted U+034F as worth keeping while
+// the empty-reason test called that same character invisible, so a notice could report the truncation of
+// nothing. One property, asked three times, cannot contradict itself.
+const INVISIBLE_G = /\p{Default_Ignorable_Code_Point}/gu;
+
+/** Inclusive code-point range, for building the keep-set without writing invisible characters here. */
+function range(lo, hi) {
+  const out = [];
+  for (let c = lo; c <= hi; c++) out.push(c);
+  return out;
+}
+
+// Invisible, and yet NOT removable: these shape the character beside them rather than standing alone.
+// The joiners carry meaning in Persian and Indic scripts and bind emoji sequences; a variation selector
+// chooses a character's presentation, and dropping one turns a legitimate emoji into a different glyph.
+// Built from code points, because a source file containing the invisible characters it discusses cannot
+// be reviewed or searched.
+const KEEP_INVISIBLE = new Set([0x200c, 0x200d, ...range(0xfe00, 0xfe0f), ...range(0xe0100, 0xe01ef)]);
+
+// A character a reader would actually notice. The subtraction lists EVERY category the strip above
+// disposes of - whitespace, invisibles, controls and lone surrogates - because this predicate answers
+// "would the reader have seen it", and a control character that becomes a space is not something they
+// saw. Omitting Cc made a tail of 7,000 BEL characters count as discarded content and marked a
+// truncation of nothing. Set SUBTRACTION rather than
+// an enumerated class, so it stays correct as Unicode grows. The `g` copy exists because the suffix scan
+// searches from an offset, and assigning lastIndex avoids slicing an enormous reason in half to ask a
+// yes/no question.
+const HAS_VISIBLE = /[\P{White_Space}--\p{Default_Ignorable_Code_Point}--\p{Cc}--\p{Cs}]/v;
+const HAS_VISIBLE_G = /[\P{White_Space}--\p{Default_Ignorable_Code_Point}--\p{Cc}--\p{Cs}]/gv;
+
+// Built ONCE, on first use, and tolerant of a Node compiled WITHOUT internationalization. Constructing
+// it at module load made this module unimportable on such a build, and check, evaluate and tier-report
+// all import it - so an exotic Node turned the whole gate into a TypeError before any grading ran. The
+// fallback is code-point segmentation: less precise at one boundary of one quoted sentence, still
+// well-formed UTF-16, and a degraded notice is a far better failure than an unusable tool.
+let segmenterInstance;
+let segmenterResolved = false;
+function segmenter() {
+  if (!segmenterResolved) {
+    segmenterResolved = true;
+    try {
+      segmenterInstance = new Intl.Segmenter("en", { granularity: "grapheme" });
+    } catch {
+      segmenterInstance = null;   // no ICU, or no Intl at all
+    }
+  }
+  return segmenterInstance;
+}
+
+function graphemes(text) {
+  const seg = segmenter();
+  return seg ? [...seg.segment(text)].map((x) => x.segment) : Array.from(text);
+}
+
+/**
+ * Whether the raw bound severed a grapheme, decided from BOTH SIDES of the cut.
+ *
+ * Inferring it from the last RETAINED code unit dropped legitimate text: "a" followed by U+0301 ENDS a
+ * complete cluster, but the retained unit is a combining mark, so the test concluded the cluster was
+ * split and a whole accented character was removed from the quotation. Continuity is not a property of
+ * one side. A boundary EXISTS at the cut exactly when a segment starts there, so a small window spanning
+ * the cut answers it directly.
+ *
+ * Without Intl this returns false: unable to tell, it declines to drop a complete cluster rather than
+ * guessing, which is the conservative direction for a quotation.
+ */
+function severedAtCut(raw, source, from) {
+  const seg = segmenter();
+  if (!seg) return false;
+  const before = raw.slice(-64);
+  const window = before + source.slice(from, from + 64);
+  const cutAt = before.length;
+  for (const part of seg.segment(window)) {
+    if (part.index === cutAt) return false;
+    if (part.index > cutAt) break;
+  }
+  return true;
+}
+
+function sanitizeSubjectText(s, max = 200) {
+  // Bound the RAW input before any full-string pass, so an extreme reason cannot amplify allocation
+  // before it is capped. Whether that bound discarded anything is a SEPARATE question, asked below,
+  // because the answer is not visible from the flattened result.
+  const source = String(s ?? "");
+  const preBounded = source.length > max * 32;
+  const raw = preBounded ? source.slice(0, max * 32) : source;
+  const flat = raw
+    // Cc (control) becomes a separator - it stood between words, and it is what protects the TERMINAL
+    // surfaces, where a notice is printed with no escaping at all and an ESC sequence could forge gate
+    // output about the subject's own plugin.
+    .replace(/\p{Cc}/gu, " ")
+    // Lone surrogates, unconditionally: malformed is never meaningful.
+    .replace(/\p{Cs}/gu, "")
+    // Everything a reader cannot see, minus the shaping characters. Deliberately NOT "all of Cf": that
+    // removed visible Cf characters and kept invisible non-Cf ones, in the same pass.
+    .replace(INVISIBLE_G, (c) => (KEEP_INVISIBLE.has(c.codePointAt(0)) ? c : ""))
+    .replace(/\s+/g, " ")   // \s covers U+2028 and U+2029
+    .trim();
+  // A reason with nothing visible in it is no reason at all, rather than a quotation of blankness. The
+  // clause that prints it is decided on THIS value, never on the raw field, which is non-empty for a
+  // string of zero-width characters.
+  if (!HAS_VISIBLE.test(flat)) return "";
+  // Truncate on a GRAPHEME CLUSTER boundary. A code-point boundary severs a combining mark from its
+  // base, one regional indicator from its pair, and any emoji ZWJ sequence mid-join.
+  const clusters = graphemes(flat);
+  // The ellipsis is counted INSIDE the cap, so the result never exceeds max clusters. Guarded for a
+  // small max, where max - 3 would otherwise go negative and slice from the end.
+  if (clusters.length > max) return `${clusters.slice(0, Math.max(0, max - 3)).join("")}...`;
+  if (!preBounded) return flat;
+  // The bound cut the input. Two independent questions, and answering only one has been wrong in both
+  // directions: marking on any cut turned "hello" plus 7,000 control characters into "hell...", and
+  // marking on none hid a "VISIBLE" suffix sitting past 6,395 spaces.
+  const from = max * 32;
+  HAS_VISIBLE_G.lastIndex = from;
+  if (!HAS_VISIBLE_G.test(source)) return flat;   // nothing a reader would have noticed was discarded
+  return `${(severedAtCut(raw, source, from) ? clusters.slice(0, -1) : clusters).join("")}...`;
+}
+
+/**
+ * Resolve raw findings against the loaded config, in four ordered steps (ADR 0044).
+ *
+ *   1-2. Profile, then per-rule override, then suppression matching. Precedence is unchanged:
+ *        per-rule override > profile > the severity the check emitted.
+ *   3.   The TRUST STEP, in published-verdict mode only and never for `house` provenance. It resolves
+ *        to the trusted resolution - the same precedence with every SUBJECT-owned setting absent - and
+ *        RAISES ONLY, so a subject being stricter about itself survives. Suppression is decided
+ *        independently of severity, because a gate needs `error` AND `!suppressed` and a step that
+ *        raised only severity would still publish green behind a subject-owned waiver.
+ *   4.   The STANDARD CEILING, always last and never raising, computed from (pinned, since,
+ *        migration.until) and applied by SEVERITY_RANK.
+ *
+ * THE GUARANTEE THIS FUNCTION USED TO MAKE IS DELIBERATELY REVERSED, and this comment is one of the five
+ * public surfaces that stated it. It read: "the clamp only ever raises off->warn, never to error, so
+ * turning the mode on can never flip a passing gate to failing." In published-verdict mode it now can,
+ * for a subject-owned reduction of an objective or vendor-cited finding. That is the point of the fix,
+ * not a side effect: a guarantee that protects the subject is the wrong guarantee in the one mode built
+ * to publish a verdict ABOUT the subject (E38). Grader-owned settings are still honoured in full, and
+ * local mode is untouched - a subject's own config remains authoritative about its own repository.
+ *
+ * The ceiling is a CEILING, never a floor: a severity already at or below a constraint's cap is left
+ * exactly as resolved, so "off" and suppression still win. And because the ceiling runs after the trust
+ * step, the trust step can never lift a finding above its ceiling - which is why closing E38 cannot
+ * break this release's red-ward invariant.
+ *
+ * Pure and synchronous; never mutates the input.
+ * @param {Array<object>} findings raw findings from the checks, at their TARGET severity
+ * @param {object} config origin-bearing config from loadConfig, optionally merged via withGraderOptions
+ * @param {Map<string,string>} provenanceByReq reqId -> provenance
+ * @param {{pinned?: unknown, sinceByReq?: Record<string,string>}} standard the plugin's pin (undefined
+ *        under --strict, which makes every constraint inert) and the reqId -> introduction-version map
+ * @returns {Array<object>} resolved findings, each + { provenance, effectiveSeverity, downgradedFrom,
+ *          suppressed, suppressionReason, clampNotice, configReduced, trustNotice, trust,
+ *          migrationNotice, ceiling }
+ */
+export function resolveFindings(findings, config, provenanceByReq, { pinned, sinceByReq = {} } = {}) {
+  // The config is ORIGIN-BEARING (ADR 0044): every setting is `{ value, origin }` so the published-verdict
+  // trust step can tell a rubric the grader chose from one the subject wrote about itself.
+  const profileRules = (PROFILES[config.profile.value] ?? PROFILES["askit-library"]).rules;
+  const published = config.mode.value === "published-verdict";
   return findings.map((f) => {
     const declared = f.severity;
+    // Provenance and `since` are LOOKED UP, never read off the finding: a finding carries
+    // { check, severity, message, file, reqId, migration, line } and neither `provenance` nor `meta`.
     const provenance = provenanceByReq.get(f.reqId) ?? "objective";
-    const overridden = config.rules[f.reqId];          // already normalized to a bare severity by loadConfig
+    const since = sinceByReq[f.reqId] ?? BASELINE;
+
+    // STEPS 1-2: profile, then per-rule override, then suppression matching.
+    const overridden = config.rules[f.reqId]?.value;   // already normalized to a bare severity by loadConfig
     const profiled = profileRules[f.reqId];
-    let effectiveSeverity = overridden ?? profiled ?? declared;
+    const subjectResolved = overridden ?? profiled ?? declared;
+    let effectiveSeverity = subjectResolved;
     let sup = matchSuppression(f, config.suppressions);
-    let clampNotice = null;
-    if (published && provenance !== "house" && (effectiveSeverity === "off" || sup)) {
-      clampNotice = `clamped to warn in published-verdict mode (provenance ${provenance}): a published verdict cannot disable an objective or vendor-cited check`;
-      effectiveSeverity = "warn";
-      sup = null; // surfaced, not suppressed
+    const subjectSuppression = sup;
+
+    // STEP 3: THE TRUST STEP (E38). Runs only in published-verdict mode and only for objective and
+    // vendor-cited findings; house provenance is never touched.
+    //
+    // It resolves to the TRUSTED RESOLUTION - the same precedence as steps 1-2 but with every
+    // subject-owned setting absent - and it RAISES ONLY. "Restore the declared severity" was wrong: with
+    // a grader-owned `--profile plain-plugin` (which resolves U4 to warn) beneath a subject-owned
+    // `rules.U4 = "off"`, an atomic reset to the declared severity yields `error`, discarding the
+    // grader's own deliberate warn. Rolling back to the trusted resolution yields `warn`, which is what
+    // the grader asked for.
+    //
+    // The rank guard is what keeps the fix from inverting into the defect it exists to prevent: a
+    // subject writing `rules.U7 = "error"` is being STRICTER about itself, and an unconditional
+    // recomputation would drop it back to `warn` - taking a deliberately failing published verdict and
+    // turning it green, by way of the mechanism built to stop verdicts being turned green.
+    //
+    // Severity and suppression are decided INDEPENDENTLY. gatingFindings requires `error` AND
+    // `!suppressed`, so a step that only raised severity would leave a subject-owned suppression intact:
+    // the finding would read `error`, satisfy the floor literally, and still publish green.
+    const oldClampWouldHaveFired = published && provenance !== "house" && (subjectResolved === "off" || !!sup);
+    let trust = null;
+    if (published && provenance !== "house") {
+      const graderProfileRules = config.profile.origin === ORIGIN.GRADER
+        ? (PROFILES[config.profile.value] ?? PROFILES["askit-library"]).rules
+        : {};
+      const graderRule = config.rules[f.reqId]?.origin === ORIGIN.GRADER ? config.rules[f.reqId].value : undefined;
+      // A grader rule beats a grader profile, the same precedence as steps 1-2.
+      const trusted = graderRule ?? graderProfileRules[f.reqId] ?? declared;
+
+      // RAISE-ONLY, by rank. An equal or stricter subject result survives untouched.
+      const raised = SEVERITY_RANK[subjectResolved] < SEVERITY_RANK[trusted];
+      if (raised) effectiveSeverity = trusted;
+      const suppressionCleared = !!sup && sup.origin === ORIGIN.SUBJECT;
+      if (suppressionCleared) sup = null; // surfaced, not suppressed
+
+      if (raised || suppressionCleared) {
+        const overruled = config.rules[f.reqId]?.origin === ORIGIN.SUBJECT
+          ? `the subject's own rules.${f.reqId}`
+          : config.profile.origin === ORIGIN.SUBJECT
+            ? `the subject's own profile '${config.profile.value}'`
+            : "a subject-owned setting";
+        const parts = [];
+        if (raised) parts.push(`severity restored to "${trusted}" from "${subjectResolved}", overruling ${overruled}`);
+        // The waiver reason is the ONLY subject-controlled text this notice carries, and the notice is
+        // published in a report ABOUT that subject - so it is neutralized where it is built, not only
+        // where it is rendered. A reason containing newlines can otherwise escape a Markdown blockquote
+        // and forge report sections, and every downstream consumer of `trustNotice` (including external
+        // --json readers embedding it in their own output) inherits the exposure. Escaping at each
+        // render site alone would protect only the sites we happen to own.
+        if (suppressionCleared) {
+          // The clause is decided on the SANITIZED text, never on the raw field. A reason of zero-width
+          // joiners is a non-empty string, so testing the raw value emitted "(waiver reason: )" with
+          // nothing between the parentheses - a quotation of nothing, which reads as a reporting bug
+          // rather than as the absence it actually is.
+          const reason = sanitizeSubjectText(subjectSuppression?.reason ?? "");
+          parts.push(`the subject's own suppression was cleared${reason ? ` (waiver reason: ${reason})` : ""}`);
+        }
+        trust = {
+          raised,
+          suppressionCleared,
+          notice: `published-verdict (provenance ${provenance}): ${parts.join("; and ")}. A published verdict cannot be weakened by the subject it is about.`,
+        };
+      }
     }
-    let migrationNotice = null;
-    if (f.migration && SEVERITY_RANK[effectiveSeverity] > SEVERITY_RANK[f.migration.capAt]) {
-      migrationNotice = `capped at ${f.migration.capAt} until Standard ${f.migration.until} (${f.migration.reason}); your configured severity would otherwise be "${effectiveSeverity}"`;
-      effectiveSeverity = f.migration.capAt;
-    }
+    // The severity after steps 1-3 and BEFORE any ceiling. Both the ceiling's `from` and the binding test
+    // measure against this, not against `declared`: reporting the ceiling as lowering from what the module
+    // emitted would overstate what the pin is holding back when config had already moved it.
+    const postTrust = effectiveSeverity;
+    // A CONFIG-caused reduction that survived the trust step. This is the only way to tell a
+    // config-lowered finding from a ceiling-lowered one, and the two belong in different dispositions.
+    const configReduced = SEVERITY_RANK[postTrust] < SEVERITY_RANK[declared];
+
+    // STEP 4: the Standard ceiling, always last, never raises.
+    const constraints = activeConstraints(pinned, since, f.migration);
+    for (const c of constraints) effectiveSeverity = lowerSeverity(effectiveSeverity, c.ceiling);
+
+    // Did the ceiling ACTUALLY lower anything? A version condition that changes no outcome is not debt:
+    // where config has already lowered a finding, the constraint is still version-active but binds
+    // nothing, and reporting it would tell every debt consumer the pin is holding back a finding the
+    // unchanged config keeps a warning either way.
+    const binding = SEVERITY_RANK[effectiveSeverity] < SEVERITY_RANK[postTrust];
+    // Per-constraint, deliberately NOT derived from the aggregate `binding`: at pin 0.11 both a `since`
+    // ceiling (warn) and an `until` ceiling (capAt) can be active and EQUAL, and an aggregate test cannot
+    // say which one did the work. Equal ceilings mean both bind, and the notice is emitted.
+    const untilConstraint = constraints.find((c) => c.cause === "until");
+    const bindingUntil = untilConstraint && SEVERITY_RANK[f.migration.capAt] < SEVERITY_RANK[postTrust] ? untilConstraint : null;
+    const sinceConstraint = constraints.find((c) => c.cause === "since");
+
+    // `clampNotice` is DEPRECATED for one minor, not deleted: it is consumed by check.mjs and
+    // evaluate.mjs terminal rendering, by `dispositions`, by both renderers' view models, by unit tests,
+    // by a published JSON example in the docs, and directly through both JSON CLIs. Deleting it would
+    // either break that automation or silently remove the trust explanation from shareable reports.
+    //
+    // It is populated ONLY where the old clamp would have fired AND the result really is `warn` - which
+    // is exactly the set of findings whose old semantics it can still state truthfully. It is
+    // deliberately NOT mirrored onto every trust action: a declared-error objective finding carrying a
+    // subject-owned suppression now ends UNSUPPRESSED at error, and stamping the literal words "clamped
+    // to warn" on a gate-failing error would make `dispositions` count it as both a real issue and a
+    // clamped one, while profileConformance - which excludes every clampNotice finding - silently
+    // dropped it. A compatibility field that lies is worse than one that is absent, because the
+    // automation reading it has no way to tell.
+    // Keyed on postTrust, NOT on the post-ceiling severity. The old clamp produced `warn` ITSELF; a
+    // `warn` that the later Standard ceiling produced is a different cause, and attributing it to the
+    // clamp makes the finding contradict itself. Concretely: a subject-owned `rules.U14 = "off"` in
+    // published-verdict mode at pin 0.12 is restored to `error` by the trust step and then held to
+    // `warn` by the introduction ceiling - the finding would have said both that published-verdict
+    // restored an error AND that published-verdict clamped it to warn.
+    const clampNotice = oldClampWouldHaveFired && postTrust === "warn"
+      ? `clamped to warn in published-verdict mode (provenance ${provenance}): a published verdict cannot disable an objective or vendor-cited check`
+      : null;
+
+    // THE GRADUATION NOTE, which the checks used to append at emit time and no longer can.
+    //
+    // It is RUN-SPECIFIC: true only where the tightening ceiling actually bound. A check knows neither
+    // the plugin's pin nor whether --strict is on, so it cannot decide this - and at pin 0.12 under
+    // --strict the ceiling is disabled and the finding IS already an error, so a note promising it
+    // "becomes an error once you pin 0.13" would be false in that very run. The static half of the
+    // story lives in `migration.reason`, which says what the migration is about and claims nothing
+    // about any particular run, so it stays safe in --json at any pin in any mode.
+    const graduationNote = bindingUntil
+      ? ` Held at "${effectiveSeverity}" by your pinned Standard ${pinned}; it becomes "${postTrust}" once you pin Standard ${f.migration.until}.`
+      : "";
+
     return {
       ...f,
+      message: f.message + graduationNote,
       provenance,
       effectiveSeverity,
       downgradedFrom: effectiveSeverity !== declared ? declared : null,
       suppressed: !!sup,
       suppressionReason: sup ? sup.reason ?? null : null,
       clampNotice,
-      migrationNotice,
+      configReduced,
+      // ADDITIVE, and set on EVERY trust action - unlike clampNotice, which can only speak for the
+      // narrow subset it can still describe truthfully.
+      trustNotice: trust ? trust.notice : null,
+      // The structured half, so `dispositions.trustActions` can count raises and cleared suppressions
+      // separately. One finding can increment both, which is why trustActions is an ORTHOGONAL metric
+      // rather than a bucket of the disposition partition.
+      trust: trust ? { raised: trust.raised, suppressionCleared: trust.suppressionCleared } : null,
+      // The cap's public explanation survives the move. The old branch both applied the cap and wrote
+      // this notice; replacing it without re-specifying the notice would silently delete an explanation
+      // that check.mjs, evaluate.mjs, --json and both renderers consume.
+      migrationNotice: bindingUntil
+        ? `capped at ${f.migration.capAt} until Standard ${f.migration.until} (${f.migration.reason}); severity before the cap was ${postTrust}`
+        : null,
+      // ALWAYS PRESENT, null when nothing BINDS - never omitted, never an empty object or array, so
+      // `if (f.ceiling)` is the whole check a consumer needs.
+      ceiling: binding
+        ? {
+            pinned,
+            from: postTrust,
+            to: effectiveSeverity,
+            due: latestDue(constraints),
+            constraints: constraints.map((c) => ({ cause: c.cause, due: c.due })),
+          }
+        : null,
+      // LEGACY --json COMPATIBILITY, deprecated for one minor. Each field is specified independently,
+      // because treating them as an atomic triple is self-contradictory for an `until`-only ceiling.
+      // `downgraded` has always meant "an applied downgrade", so it follows `binding` rather than mere
+      // version-activity; `since` is emitted only when an INTRODUCTION participates, because a tightening
+      // does not change when a check was introduced and deriving it from max(due) would tell a reader the
+      // check appeared in a version it did not.
+      // Spread rather than assigned, so a non-binding finding carries no key at all - exactly the shape
+      // the pre-pass produced. Assigning `undefined` would leave the key present for `in` and deepEqual.
+      ...(binding
+        ? { downgraded: true, pinned, ...(sinceConstraint ? { since: sinceConstraint.due } : {}) }
+        : {}),
     };
   });
 }

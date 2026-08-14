@@ -130,12 +130,14 @@ showed them only on disagreement would teach a reader to assume agreement from s
 | Advisory | deterministic analyses that can never move the verdict |
 | Metadata | catalogue identity, search roots, tier distribution, aggregation rule, exit code |
 
-**Standard debt** is the count of findings that are warnings *only* because they postdate that member's
-own Standard pin. It is what makes "green by an old pin" visible rather than flattering.
+**Standard debt** is the count of findings held below their resolved severity by that member's own
+Standard pin - whether because the check POSTDATES the pin (an introduction) or because a TIGHTENING
+has not reached it yet. Both are one ceiling since Standard 0.13, so both count. It is what makes
+"green by an old pin" visible rather than flattering.
 
 ## The finding classes
 
-All of these are **scope-local**: they carry no `U`/`S`/`G` number, and the 30-check spine every plugin
+All of these are **scope-local**: they carry no `U`/`S`/`G` number, and the 31-check spine every plugin
 is held to does not move. Graduating any of them to a numbered check is a separate decision with its own
 migration window.
 

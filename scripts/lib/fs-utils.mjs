@@ -107,7 +107,29 @@ export function listAgentFiles(root) {
     .filter((p) => fileExists(p));
 }
 
-/** Absolute paths of commands/*.md definitions, excluding _-prefixed control files and a folder README.md. */
+/** Absolute paths of commands/**
+ * Absolute paths of EVERY .md under agents/, including README.md and underscore-prefixed files.
+ *
+ * listAgentFiles above answers "what does this plugin REGISTER as a subagent" and excludes those two
+ * shapes. This answers a different question: "what will Claude Code actually LOAD at runtime". They are
+ * not the same, and folder-readme.mjs records the empirical proof - a directory holding real-agent.md,
+ * README.md, _README.md and README.txt registered THREE subagents: "real-agent", "README" and "_README".
+ * The underscore prefix protects nothing; only the non-.md extension was skipped.
+ *
+ * Any check asking what a plugin SHIPS TO A RUNTIME must use this. U14 used the registration list, so it
+ * could be bypassed by putting restricted fields in agents/_unsafe.md - a file Claude loads and the gate
+ * never read.
+ */
+export function listRuntimeAgentDocs(root) {
+  const agentsRoot = path.join(root, "agents");
+  if (!existsSync(agentsRoot) || !statSync(agentsRoot).isDirectory()) return [];
+  return readdirSync(agentsRoot)
+    .filter((name) => name.endsWith(".md"))
+    .map((name) => path.join(agentsRoot, name))
+    .filter((p) => fileExists(p));
+}
+
+/*.md definitions, excluding _-prefixed control files and a folder README.md. */
 export function listCommandFiles(root) {
   const commandsRoot = path.join(root, "commands");
   if (!existsSync(commandsRoot) || !statSync(commandsRoot).isDirectory()) return [];

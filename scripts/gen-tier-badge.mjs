@@ -15,6 +15,10 @@ import { spawnSync } from "node:child_process";
 import { writeFileSync, mkdirSync } from "node:fs";
 import path from "node:path";
 import { computeTierReport } from "./tier-report.mjs";
+import { loadConfig, withGraderOptions } from "./lib/config.mjs";
+import { resolveFindings } from "./lib/resolve-config.mjs";
+import { provenanceByReq, runAllChecks } from "./lib/registry.mjs";
+import { SINCE_BY_REQ } from "./lib/standard-gate.mjs";
 import { loadPlugin } from "./lib/load-plugin.mjs";
 import { TIER_NAME, TIER_SUB } from "./lib/tier.mjs";
 import { normalizeArgPath } from "./lib/fs-utils.mjs";
@@ -82,7 +86,26 @@ export function parseArgs(argv) {
 if (process.argv[1]?.endsWith("gen-tier-badge.mjs")) {
   const { root, out } = parseArgs(process.argv.slice(2));
   const ctx = loadPlugin(root);
-  const report = computeTierReport(root, ctx);
+  // PUBLISHED-VERDICT, forced, and grader-owned. This is the single most public artifact this project
+  // produces: a badge on a README asserting a tier to strangers.
+  //
+  // computeTierReport with no findings resolves through the SUBJECT'S OWN config - its profile, its
+  // per-rule reductions, its suppressions. So a plugin could suppress a finding in its own
+  // askit.config.json and publish a Gold badge at a commit whose published-verdict gate fails. That is
+  // exactly the trust boundary ADR 0044 exists to draw, applied everywhere except the one output nobody
+  // reading it can inspect.
+  //
+  // The mode is stamped ORIGIN.GRADER via withGraderOptions, so the trust step treats it as OUR decision
+  // rather than the subject's, and subject-owned reductions are overruled before the tier is computed.
+  const { config, findings: configFindings } = loadConfig(root);
+  const graderConfig = withGraderOptions(config, { mode: "published-verdict" });
+  const resolved = resolveFindings(
+    [...configFindings, ...runAllChecks(ctx)],
+    graderConfig,
+    provenanceByReq(),
+    { pinned: ctx.library?.data?.standard, sinceByReq: SINCE_BY_REQ },
+  );
+  const report = computeTierReport(root, ctx, resolved);
   const sha = resolveGradedSha(root);
   const gradedAt = new Date().toISOString().slice(0, 10);
   const payload = buildBadgePayload({ tier: report.tier, standard: ctx.library?.data?.standard ?? null, sha, gradedAt });

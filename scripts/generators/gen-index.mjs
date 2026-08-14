@@ -75,6 +75,13 @@ const desc = (c) => {
   return typeof d === "string" ? d.replace(/\s+/g, " ").trim() : "";
 };
 
+/** The two self-validation renderings. Absent, or anything not in the enum, means the npx form. */
+export function selfValidationLine(declared) {
+  return declared === "vendored"
+    ? "Self-validating: `node scripts/check.mjs`."
+    : "Self-validating: `npx agent-skills-toolkit .`.";
+}
+
 /**
  * Render INDEX.md, the human navigation map, deterministically from library.json + component
  * frontmatter. INDEX is a generated artifact at Gold (G4): edit the source (frontmatter,
@@ -103,23 +110,28 @@ export function renderIndex(ctx) {
   if (label) tierBits.push(`**Tier:** ${label} (${tier}).`);
   if (data.standard) tierBits.push(`Standard ${data.standard}.`);
   if (data.version) tierBits.push(`Version ${data.version}.`);
-  // KNOWN DEFECT, deliberately not fixed here - see backlog E35.
+  // E35, FIXED at v1.13.0 (ADR 0044's subrule rule). This line used to be emitted UNCONDITIONALLY,
+  // including into plugins that have no `scripts/check.mjs`, so for them it named a command nothing
+  // installs - shipped inside the CONSUMER's own repository, over their signature. Found by running this
+  // repository's own published instruction from a consumer's position.
   //
-  // This line is emitted unconditionally, including into plugins that have no `scripts/check.mjs`, so
-  // for them it names a command nothing installs. That is the same defect class v1.10.0 fixed for the
-  // two boilerplate sections below, one layer deeper: it ships inside the CONSUMER's own repository,
-  // over their signature. It was found by running this repository's own published instruction from a
-  // consumer's position (`npm i -D agent-skills-toolkit` into a clean directory, then regenerate).
+  // Three drafts inferred identity from a side effect and each was rejected, so the fixtures that kill
+  // them still exist:
+  //   1. `existsSync(<root>/scripts/check.mjs)` - a generic path. A consumer with an unrelated file
+  //      there gets an INDEX telling its readers to self-validate by running SOMEONE ELSE'S program.
+  //   2. the `G2` self-hosting condition - `self-hosting.mjs` never calls existsSync on the gate at
+  //      all; it regex-matches workflow YAML. A consumer whose CI merely REFERENCES the path satisfies
+  //      it. A check answering "does your CI mention the gate" was read as answering "are you the gate".
+  //   3. `library.json` name equalling this toolkit's - a name in a target's own manifest is authored
+  //      data, not authenticated identity. A fork, a rename, or an unrelated plugin using the name gets
+  //      the same false instruction.
   //
-  // The one-line conditional fix was written, tested, and REVERTED inside the v1.12.0 cut, because
-  // measuring it rather than reasoning about it showed it moves a live verdict: it changes the expected
-  // INDEX for every plugin without a `scripts/check.mjs`, and `product-lifecycle-templates` - green at
-  // Advanced 0/0 before the change - went to a G4 error immediately. The reasoning that had justified
-  // shipping it ("every affected plugin is already in G4 drift from the v1.10.0 fix, so one
-  // regeneration closes both") was simply false, and one measurement falsified it. A migration-bearing
-  // generator change belongs in a release that schedules a migration; v1.12.0's governing invariant is
-  // that no existing verdict moves. E35 carries it to the Standard 0.13 cut.
-  tierBits.push("Self-validating: `node scripts/check.mjs`.");
+  // The shipped rule stops inferring and reads a DECLARATION. The renderer owns the command text for
+  // both cases; the manifest only SELECTS between them, which is why `selfValidation` is a closed enum
+  // rather than a command string - free text would let a plugin write arbitrary content into its own
+  // INDEX through our generator, and would give G4 a value it cannot check. A generator should not infer
+  // a fact about a repository that the repository can simply state.
+  tierBits.push(selfValidationLine(data.selfValidation));
   lines.push(tierBits.join(" "));
   lines.push("");
 
@@ -164,6 +176,22 @@ export function renderIndex(ctx) {
 
   return lines.join("\n") + "\n";
 }
+
+/**
+ * The pre-v1.13.0 rendering, which emitted the vendored self-validation line unconditionally.
+ *
+ * EXACTLY ONE CALLER: `scripts/checks/index-drift.mjs`. It exists so `G4` can tell a file THIS TOOLKIT
+ * generated with the old defect apart from a file its author hand-edited. Only an exact match against
+ * this output earns the migration cap; every other form of drift stays a hard error, so strictness is
+ * unchanged for every case except the one this toolkit caused.
+ */
+export function renderLegacyIndex(ctx) {
+  return renderIndex(ctx).replace(
+    selfValidationLine(ctx.library?.data?.selfValidation),
+    "Self-validating: `node scripts/check.mjs`."
+  );
+}
+
 
 if (process.argv[1]?.endsWith("gen-index.mjs")) {
   // Normalized through normalizeArgPath so a Windows backslash root is not silently misread (the

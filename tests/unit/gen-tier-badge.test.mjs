@@ -6,6 +6,7 @@ import { execFileSync } from "node:child_process";
 import { mkdtempSync, cpSync, rmSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { buildBadgePayload, resolveGradedSha } from "../../scripts/gen-tier-badge.mjs";
+import { mkdirSync } from "node:fs";
 
 // Proves workstream 3 of v1.11.0 ("reach"): a CI-generated, sha-pinned tier badge. The generator is a
 // pure serialization of computeTierReport()'s already-computed tier (scripts/tier-report.mjs) plus
@@ -132,6 +133,50 @@ test("CLI gen-tier-badge.mjs: a deliberately-broken fixture changes the badge's 
     assert.equal(after.tier, "universal", "removing agent-targets must drop the earned tier to universal (Bronze)");
     assert.notEqual(after.message, before.message, "the badge message must visibly change");
     assert.notEqual(after.color, before.color, "the badge color must visibly change");
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+// --- the badge is a PUBLISHED verdict, and its subject must not be able to raise it ---
+
+test("a subject cannot raise its own public tier badge", () => {
+  // This is the single most public artifact the project produces: a badge on a README asserting a tier to
+  // strangers. The generator called computeTierReport with no findings, which resolves through the
+  // SUBJECT'S OWN askit.config.json - so a plugin could suppress a finding about itself and publish a
+  // passing badge at a commit whose published-verdict gate fails. ADR 0044 draws exactly that boundary
+  // everywhere except, until now, the one output nobody reading it can inspect.
+  //
+  // The fixture isolates ONE Universal-tier error on purpose. An earlier version of this probe left U13
+  // failing beside U6, so suppressing U6 could not move the tier and the check reported "no difference"
+  // both before and after the fix - passing for a reason that had nothing to do with the behavior.
+  const dir = mkdtempSync(path.join(tmpdir(), "askit-badge-trust-"));
+  try {
+    mkdirSync(path.join(dir, "skills", "demo"), { recursive: true });
+    writeFileSync(path.join(dir, "library.json"), JSON.stringify({
+      name: "t", version: "0.1.0",
+      description: "A fixture isolating exactly one Universal-tier error, so this test measures what it claims to.",
+      standard: "0.13", tier: "universal", prefix: "t",
+      components: { skills: [{ name: "demo", path: "skills/demo", version: "0.1.0", description: "A demo skill registered properly so U13 passes." }] },
+    }, null, 2));
+    writeFileSync(path.join(dir, "AGENTS.md"), "# t\n\nGuidance.\n");
+    writeFileSync(path.join(dir, "skills", "demo", "SKILL.md"),
+      "---\nname: demo\ndescription: A demo skill carrying a deliberately broken reference link.\n---\n\n# demo\n\nSee [missing](./nope.md).\n");
+
+    const badgeTier = () => JSON.parse(execFileSync(process.execPath, [SCRIPT, dir], { encoding: "utf8" })).tier;
+
+    assert.equal(badgeTier(), "none", "the fixture really does fail on its own, with no config at all");
+
+    // Every subject-owned lever that could plausibly raise a grade.
+    for (const [label, cfg] of [
+      ["a suppression of its own U6", { suppressions: [{ reqId: "U6", reason: "we accept this" }] }],
+      ["turning U6 off outright", { rules: { U6: "off" } }],
+      ["reducing U6 to a warning", { rules: { U6: "warn" } }],
+      ["selecting a laxer profile", { profile: "plain-plugin" }],
+    ]) {
+      writeFileSync(path.join(dir, "askit.config.json"), JSON.stringify(cfg, null, 2));
+      assert.equal(badgeTier(), "none", `${label} must not raise the published badge`);
+    }
   } finally {
     rmSync(dir, { recursive: true, force: true });
   }

@@ -5,6 +5,7 @@ import { fileURLToPath } from "node:url";
 import { loadPlugin } from "../../scripts/lib/load-plugin.mjs";
 import { check } from "../../scripts/checks/name-matches-dir.mjs";
 import { resolveFindings } from "../../scripts/lib/resolve-config.mjs";
+import { configFrom } from "../../scripts/lib/config.mjs";
 import { provenanceByReq } from "../../scripts/lib/registry.mjs";
 import { runGate } from "../../scripts/check.mjs";
 
@@ -31,7 +32,7 @@ test("name != dir is a U4 error", () => {
 const PROV = provenanceByReq();
 const u4 = (over = {}) => resolveFindings(
   [{ reqId: "U4", check: "name-matches-dir", severity: "error", message: "name != dir" }],
-  { mode: "local", profile: "askit-library", rules: {}, suppressions: [], ...over },
+  configFrom({ mode: "local", profile: "askit-library", rules: {}, suppressions: [], ...over }),
   PROV,
 )[0];
 

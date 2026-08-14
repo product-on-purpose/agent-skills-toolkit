@@ -3,6 +3,11 @@ import assert from "node:assert/strict";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { loadPlugin } from "../../scripts/lib/load-plugin.mjs";
+import { resolveFindings } from "../../scripts/lib/resolve-config.mjs";
+import { configFrom } from "../../scripts/lib/config.mjs";
+import { provenanceByReq } from "../../scripts/lib/registry.mjs";
+
+const PROV = provenanceByReq();
 import { check, meta } from "../../scripts/checks/chain-contract.mjs";
 import { SEVERITY } from "../../scripts/lib/findings.mjs";
 
@@ -105,14 +110,52 @@ test("metadata.chain as a string still wins over a conflicting legacy top-level 
 // declaration, with a message naming the Standard 0.13 graduation, and unchanged ERROR for an
 // array-shaped declaration (the shape main already parsed and gated on).
 
-test("ADR 0041: a string-shaped orphan is SEVERITY.WARN, not ERROR, and its message names the Standard 0.13 graduation", () => {
+test("ADR 0041 + 0044: a string-shaped orphan now EMITS error and carries the migration that holds it back", () => {
+  // REPLACED at v1.13.0, not deleted. The old version asserted `severity === WARN` and that the raw
+  // message named 0.13 - both properties this design deliberately MOVES. A check now emits its target
+  // severity always, because a warn-ceiling over a warn finding is what made ADR 0041's graduation
+  // inert; and the 0.13 note is now a property of a RESOLVED finding, not an emitted one, because only
+  // the resolver knows the pin and whether --strict is on. The replacements below assert the resolved
+  // output for the default, lifted, non-binding and strict runs, which is strictly more than the old
+  // assertion covered.
   const ctx = loadPlugin(path.join(FIXTURES, "golden/subagent-fixture"));
   ctx.skills[0].frontmatter.metadata.chain = "sf-not-permitted";
   const r = check(ctx);
   const f = r.find((f) => f.reqId === "S4" && /sf-caller/.test(f.message) && /sf-not-permitted/.test(f.message) && /orphan/.test(f.message));
   assert.ok(f, "expected an S4 orphan finding");
-  assert.equal(f.severity, SEVERITY.WARN);
-  assert.match(f.message, /0\.13/);
+  assert.equal(f.severity, SEVERITY.ERROR, "the check emits its TARGET severity");
+  assert.equal(f.migration.capAt, SEVERITY.WARN);
+  assert.equal(f.migration.until, "0.13");
+  assert.ok(!/0\.13/.test(f.message), "the raw message makes no run-specific claim; the note is derived on resolution");
+  assert.ok(!/stays capped/.test(f.migration.reason), "the reason is activation-neutral, so it is safe in --json under --strict");
+});
+
+test("ADR 0044: the string-shaped S4 finding resolves per PIN - held, lifted, and inert under --strict", () => {
+  const ctx = loadPlugin(path.join(FIXTURES, "golden/subagent-fixture"));
+  ctx.skills[0].frontmatter.metadata.chain = "sf-not-permitted";
+  const raw = check(ctx).filter((f) => f.reqId === "S4" && /orphan/.test(f.message));
+  assert.ok(raw.length >= 1);
+  const resolve = (pinned) => resolveFindings(raw, configFrom({}), PROV, { pinned, sinceByReq: {} })[0];
+
+  // DEFAULT: pinned below the graduation, so the ceiling binds and the note is emitted.
+  const held = resolve("0.12");
+  assert.equal(held.effectiveSeverity, "warn", "a consumer pinned at 0.12 sees exactly what it saw before");
+  assert.ok(held.migrationNotice, "and is told why");
+  assert.match(held.message, /once you pin Standard 0\.13/, "the note is run-specific and derived here");
+
+  // LIFTED: the graduation is real, which is what ADR 0041's own mechanism could never deliver.
+  const lifted = resolve("0.13");
+  assert.equal(lifted.effectiveSeverity, "error");
+  assert.equal(lifted.migrationNotice, null);
+  assert.ok(!/once you pin/.test(lifted.message), "nothing is pending, so nothing is promised");
+
+  // STRICT: the caller passes no pin at all, so the ceiling is inert and no graduation is promised in a
+  // run where the finding is ALREADY an error - the falsehood that forced the reason to go neutral.
+  const strict = resolve(undefined);
+  assert.equal(strict.effectiveSeverity, "error");
+  assert.equal(strict.migrationNotice, null);
+  assert.equal(strict.ceiling, null);
+  assert.ok(!/once you pin/.test(strict.message));
 });
 
 test("ADR 0041: an array-shaped orphan (metadata.chain as a list) is still SEVERITY.ERROR, unchanged", () => {
@@ -125,15 +168,16 @@ test("ADR 0041: an array-shaped orphan (metadata.chain as a list) is still SEVER
   assert.doesNotMatch(f.message, /0\.13/);
 });
 
-test("ADR 0041: chain-string-no-contract fixture - the only chaining signal is a STRING declaration, so the missing-contract finding is SEVERITY.WARN with the Standard 0.13 graduation note", () => {
+test("ADR 0041 + 0044: the chain-string-no-contract fixture EMITS error and carries the migration (see the resolved-output test above)", () => {
   const ctx = loadPlugin(path.join(FIXTURES, "anti/chain-string-no-contract"));
   assert.equal(typeof ctx.skills[0]?.frontmatter?.metadata?.chain, "string");
   const r = check(ctx);
   assert.equal(r.length, 1);
   assert.equal(r[0].reqId, "S4");
-  assert.equal(r[0].severity, SEVERITY.WARN);
+  assert.equal(r[0].severity, SEVERITY.ERROR, "the check emits its TARGET severity");
   assert.match(r[0].message, /agents\/_chain-permitted\.yaml is missing/);
-  assert.match(r[0].message, /0\.13/);
+  assert.equal(r[0].migration.until, "0.13", "and the migration is what holds it back per-pin");
+  assert.ok(!/0\.13/.test(r[0].message), "the raw message makes no run-specific claim");
 });
 
 test("ADR 0041: same chain-string-no-contract plugin, with the declaration mutated to an ARRAY, still produces SEVERITY.ERROR for the missing-contract finding, unchanged", () => {

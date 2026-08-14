@@ -20,7 +20,7 @@ Members failing their own declared claim: **beta**. A member fails its own claim
 | delta | NOT GRADED | - | - | - | - | - | 5.1.0 | 4444444 | - | - |
 | epsilon | UNRESOLVABLE | - | - | - | - | - | 1.0.0 | - | - | - |
 
-**Standard debt** counts the findings that are warnings only because they postdate that member's own Standard pin. It is what makes green-by-an-old-pin visible rather than flattering.
+**Standard debt** counts the findings held below their severity by that member's own Standard pin - either because the check did not exist at that pin, or because a tightening has not reached it yet. It is what makes green-by-an-old-pin visible rather than flattering.
 
 ### Members not graded, and why
 

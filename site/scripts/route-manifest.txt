@@ -43,6 +43,7 @@
 /how-to/watch-the-upstream-spec/index.html
 /index.html
 /overview/index.html
+/reference/adopting-standard-0-13/index.html
 /reference/askit-backlog/index.html
 /reference/askit-build-agents-md/index.html
 /reference/askit-build-chain-contract/index.html

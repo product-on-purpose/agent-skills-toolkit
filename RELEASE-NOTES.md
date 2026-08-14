@@ -2,6 +2,90 @@
 
 Curated, user-facing highlights. For the full technical history see [`CHANGELOG.md`](CHANGELOG.md).
 
+## 1.13.0 - 2026-08-13
+
+**You are now graded against the ruleset you pinned - in both directions.**
+
+That was already true for a brand-new check: if your `library.json` says `"standard": "0.12"`, a check
+introduced at 0.13 was reported as a warning, never a gate failure. It was quietly NOT true for a rule
+that already existed and was being made stricter. Those took effect for everyone the day the tooling
+shipped them.
+
+It also was not true if you had an `askit.config.json`. Your own per-rule override was applied *after* the
+pin, so it beat the pin - which sounds like a feature until you notice it works in the harmful direction
+too: a rule you turned up to `error` would gate you on a check that did not exist when you pinned.
+
+Both are fixed. There is now one ceiling, it is computed from the version you declared, and it is applied
+last - after your profile, your overrides and your suppressions. If you change nothing, nothing about your
+grade changes.
+
+### What this costs you, and when
+
+Nothing, until you raise your own `standard` pin. When you do, four things become effective. The full list
+with remediation for each is in
+[Adopting Standard 0.13](docs/reference/adopting-standard-0-13.md):
+
+- **`U13`** - every skill directory you ship must be registered in your manifest, and every registered
+  skill must exist on disk. This was scheduled for 0.13 when it was introduced at 0.12.
+- **`S4`** - a chain declaration written as a string is held to the same bar as one written as an array.
+  Also scheduled.
+- **`U14`** (new) - an agent shipped inside a plugin may not declare `hooks`, `mcpServers` or
+  `permissionMode`. Claude Code refuses these three, in its own words "for security reasons". The field is
+  refused rather than ignored, and nothing tells you - so an agent carrying one has configured something
+  that is simply not in effect. The toolkit already detected this when grading a catalogue; now it tells
+  you when you grade your own plugin, which is how almost everyone runs it.
+- **`selfValidation`** - a new optional `library.json` field. You almost certainly want to omit it.
+
+**If you have no `standard` pin at all, none of this protects you.** An unpinned plugin is graded against
+the current ruleset immediately, because a plugin that never declared which contract it adopted cannot be
+graded against the one it adopted. Adding one line fixes it, and the page above leads with this.
+
+### Two things that can now fail where they passed
+
+Said plainly, because a guarantee whose exceptions are buried is not a guarantee:
+
+- **`--strict` ignores your pin, by definition, and now ignores the ceilings too.** If you run `--strict`
+  in your own CI at an older pin, the newly graduated checks will fail there. That is the flag doing what
+  it has always said it does.
+- **A published verdict can now fail where it passed.** In `published-verdict` mode - the mode for
+  publishing a conformance verdict about *someone else's* plugin - a setting the graded subject wrote
+  about itself can no longer weaken an objective or vendor-cited finding. Previously such a setting was
+  merely clamped up to a warning, which meant turning the mode on could never fail a passing gate. A
+  subject can still be *stricter* about itself, and any setting you supply as the grader is honoured in
+  full. What changed is that a subject cannot grade itself leniently in the one mode built to publish a
+  verdict about it.
+
+### One thing we fixed that was our fault
+
+`gen-index` wrote `Self-validating: node scripts/check.mjs` into every `INDEX.md` it generated - including
+for plugins that consume this toolkit rather than vendoring it, and therefore have no such file. That is a
+false instruction shipped inside your repository, over your signature. It now writes
+`npx agent-skills-toolkit .` unless your `library.json` declares `"selfValidation": "vendored"`.
+
+Regenerating your index is the fix. Until Standard 0.14, an `INDEX.md` that matches the old rendering
+exactly is reported as a **warning**, not an error, so you are not gated on a defect we caused.
+
+### How this release was verified
+
+Cutting a release here means running a checklist where every item is a gated check rather than a
+reminder. Two of them are worth stating in public, because they are the ones a reader cannot confirm
+for themselves.
+
+**The Codex round-trip was run for this tag.** The manifest this toolkit emits was installed into a
+throwaway local marketplace against the real `codex` CLI, and the skills were confirmed INGESTED rather
+than merely listed - the distinction matters, because a manifest can appear in a listing while the
+runtime quietly loads nothing from it. Run against **Codex CLI 0.144.5** on 2026-08-14: passing. The
+previously recorded verification was against 0.135.0, so this also re-confirms the emission against a
+newer CLI.
+
+**The branch was adversarially reviewed seven times, not once.** Each round reviewed the code the
+PREVIOUS round's fixes produced, because that code is otherwise unreviewed - and this project has the
+receipts for why that matters: v1.12.0 shipped after a single round and needed v1.12.1 for four more
+problems, every one of them inside round-one fix code. The rounds found, among other things, a way to
+bypass this release's own new check by putting a restricted field in a file the runtime loads but the
+gate was not reading, and a stale count on the front page of the README. Every fix carries a test that
+was proved capable of failing before it was trusted.
+
 ## 1.12.1 - 2026-08-12
 
 v1.12.0 was reviewed once. This patch exists because we then reviewed **the fixes that review produced**, which nobody had looked at - including one to the check that had just started blocking pull requests.
