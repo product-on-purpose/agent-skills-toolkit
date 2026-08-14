@@ -234,7 +234,12 @@ const HISTORICAL = [
 // a bare "N checks" also matches legitimate TIER-SUBSET counts ("Universal is 13 checks"), and a guard
 // that fails on those would be turned off within a week.
 const SPINE_CLAIM = [
-  /(\d+)-check spine/g,
+  // Any "N-check <noun>", not just "N-check spine". Two live pages said "30-check list" and
+  // "30-check backbone" and sailed past a spine-only pattern while the floor was satisfied by five
+  // other files - a guard shaped around the phrasings I had already seen, for the third time in this
+  // release. In this repository the hyphenated compound always names the spine; tier-subset counts are
+  // written "13 checks", never "13-check something", so this cannot fire on one.
+  /(\d+)-check \w+/g,
   /(\d+) spine checks/g,
   /spine is \*{0,2}(\d+) checks/g,
   /\|\s*Spine\s*\|\s*(\d+) checks/g,

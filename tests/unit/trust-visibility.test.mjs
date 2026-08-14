@@ -666,3 +666,66 @@ test("mdCodeSpan round-trips exactly, including the inputs where padding would l
   const ord = mdCodeSpan("hello");
   assert.equal(ord, `${BT2} hello ${BT2}`, "ordinary content is padded so the renderer strips it back to exact");
 });
+
+// --- round 6: what the boundary character could not answer --------------------------------------
+
+test("visible text discarded by the raw bound is reported, even when the cut lands on whitespace", () => {
+  // The boundary character says where the cut FELL, never what lay beyond it. A reason of "hello",
+  // then thousands of spaces, then "VISIBLE" puts whitespace at the cut, so a boundary-only test
+  // concluded nothing was lost and published "hello" - dropping the subject's actual words from a
+  // notice about the subject, with no marker at all. The two questions are separate: was anything
+  // worth keeping discarded (scan the omitted suffix), and was the final cluster severed (the
+  // boundary character). Answering only one has now been wrong in both directions.
+  const reasonOf = (r) => {
+    const n = published(f("error", "U6", { file: "a.md" }), { suppressions: [{ reqId: "U6", reason: r }] }).trustNotice;
+    const q = n.match(/waiver reason: (.*)\)\./s);
+    assert.ok(q, "the reason is quoted back");
+    return q[1];
+  };
+
+  const hidden = reasonOf(`hello${" ".repeat(6395)}VISIBLE`);
+  assert.ok(hidden.endsWith("..."), "the loss is stated");
+  assert.ok(hidden.startsWith("hello"), "and the surviving text is NOT truncated further - the cut was not inside it");
+  assert.equal(hidden, "hello...", "exactly the kept text plus the marker");
+
+  // Still silent when the discarded suffix really was going to vanish.
+  assert.equal(reasonOf(`hello${CP(7).repeat(7000)}`), "hello", "a purely strippable tail is not a truncation");
+});
+
+test("a reason of zero-width characters OUTSIDE Cf is still recognised as invisible", () => {
+  // isInvisible knew only whitespace and the two joiners, so U+FE0F (variation selector), U+034F
+  // (combining grapheme joiner) and the astral U+E0100 were classified as visible and published an
+  // empty waiver clause. They are category Mn, not Cf, so the strip deliberately KEEPS them - what
+  // survives sanitization and what a reader can SEE are different questions, and this asks the second.
+  const noticeFor = (r) => published(f("error", "U6", { file: "a.md" }), { suppressions: [{ reqId: "U6", reason: r }] }).trustNotice;
+  for (const [label, cp] of [["VS16", 0xfe0f], ["combining grapheme joiner", 0x034f], ["astral VS17", 0xe0100], ["ZWJ", 0x200d]]) {
+    const n = noticeFor(CP(cp).repeat(4));
+    assert.ok(!/waiver reason:/.test(n), `${label}: an invisible reason must not produce a waiver clause`);
+    assert.match(n, /suppression was cleared/, `${label}: the trust action itself is still reported`);
+  }
+  // The astral case is the one a UTF-16 walk could never catch: neither surrogate half equals an
+  // ignorable code point, so a split("") comparison always concluded "visible".
+  assert.ok(!/waiver reason:/.test(noticeFor(CP(0xe0100))), "a single astral ignorable is invisible too");
+  // And a variation selector attached to REAL text is content, not emptiness.
+  const heart = `ok ${CP(0x2764)}${CP(0xfe0f)}`;
+  assert.ok(noticeFor(heart).includes(heart), "an emoji presentation sequence survives intact");
+});
+
+test("mdCodeSpan pads by the ASCII-space rule, not by trim()", () => {
+  // CommonMark strips one space from each end only when the content is not entirely U+0020. trim()
+  // also counts tabs and no-break spaces, so those were classified as "all spaces" and left unpadded -
+  // and a renderer, seeing content that is not entirely U+0020, then stripped the outer characters it
+  // found and changed the quotation.
+  const BT3 = String.fromCharCode(96);
+  const NBSP = String.fromCharCode(0xa0);
+  const spanned = (t) => new RegExp(`^(${BT3}+)(.*)\\1$`).exec(mdCodeSpan(t));
+  for (const [label, content] of [["tab", "\t"], ["no-break space", NBSP], ["space tab space", " \t "]]) {
+    const m3 = spanned(content);
+    assert.ok(m3, `${label}: forms a span`);
+    assert.equal(m3[2], ` ${content} `, `${label}: padded, because the renderer WILL strip one space from each end`);
+  }
+  // Genuinely all-ASCII-space content is the exception, and stays unpadded.
+  for (const content of [" ", "   "]) {
+    assert.equal(spanned(content)[2], content, "all-ASCII-space content is not padded");
+  }
+});

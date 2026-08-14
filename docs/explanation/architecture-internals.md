@@ -72,7 +72,7 @@ export const CHECKS = [
   versionMatch, mcpValid,
   libraryRegression, deprecation,
   hookDocumentation, selfHosting, releaseNotes, indexDrift,
-  // ... abridged; see scripts/lib/registry.mjs for the full ordered 30-check list
+  // ... abridged; see scripts/lib/registry.mjs for the full ordered 31-check list
 ];
 
 export function runAllChecks(ctx) {

@@ -32,39 +32,58 @@ const RETIRED = /agent-skills-toolkit-gen[-_]?index/i;
  * already the exact line between authored and generated in this repository, and asking git removes both
  * the false skip and the extension list that omitted `.mdx`.
  */
-function trackedTextFiles() {
+function trackedFiles() {
   const out = execFileSync("git", ["ls-files", "-z"], { cwd: REPO_ROOT, encoding: "utf8", maxBuffer: 32 * 1024 * 1024 });
-  const BINARY = new Set([".png", ".jpg", ".jpeg", ".gif", ".svg", ".ico", ".woff", ".woff2", ".pdf", ".zip"]);
-  return out.split("\0").filter(Boolean)
-    .filter((rel) => !BINARY.has(path.extname(rel).toLowerCase()))
-    .map((rel) => path.join(REPO_ROOT, rel))
-    .filter((f) => fs.existsSync(f));
+  return out.split("\0").filter(Boolean);
+}
+
+/**
+ * Read a file as BYTES and decode latin1, which maps each byte to one character losslessly.
+ *
+ * There is deliberately no binary-extension list and no text/binary classification. The previous version
+ * had one, and it excluded `.svg` - which is text, and can carry an instruction a reader will follow.
+ * Any such list is a place for the next exempt extension to hide. Decoding latin1 means an ASCII pattern
+ * is found exactly in a UTF-8 file, in a UTF-16 file, and in something that is genuinely binary, at the
+ * cost of nothing: a false positive here would be a real occurrence of the string.
+ */
+function readBytesAsText(abs) {
+  return fs.readFileSync(abs).toString("latin1");
 }
 
 test("no tracked file names an npm package this project does not own", () => {
-  // NO EXEMPTIONS, deliberately. The previous version waived any line that LOOKED like a comment, which
-  // it decided by checking whether the trimmed line began with "//" or "*". The CLI's help text is a
+  // NO EXEMPTIONS, deliberately. An earlier version waived any line that LOOKED like a comment, which it
+  // decided by checking whether the trimmed line began with "//" or "*". The CLI's help text is a
   // multi-line template literal, so a live help bullet written in that shape was waived as a comment -
   // the guard would have stayed green while shipping the instruction it exists to forbid. A waiver whose
-  // condition an attacker (or a tired author) can satisfy in the text being guarded is not a waiver.
+  // condition can be satisfied inside the text being guarded is not a waiver.
   //
-  // The one comment that genuinely needed to discuss the retired name was rephrased to describe it
-  // instead of spelling it, which costs one sentence and removes the hole entirely.
+  // FAIL CLOSED. The version before this one caught every read error with `continue` and skipped any path
+  // that did not exist, so a single unreadable tracked file made the whole guard pass without inspecting
+  // it - a security guard whose failure mode is silent success. Unreadable and missing files are now
+  // reported as failures in their own right, naming the path.
   const offenders = [];
-  for (const file of trackedTextFiles()) {
-    if (file === SELF) continue; // this file must name the pattern in order to forbid it
-    let lines;
+  const unreadable = [];
+  for (const rel of trackedFiles()) {
+    const abs = path.join(REPO_ROOT, rel);
+    if (abs === SELF) continue; // this file must name the pattern in order to forbid it
+    let text;
     try {
-      lines = fs.readFileSync(file, "utf8").split(/\r?\n/);
-    } catch {
-      continue; // unreadable or genuinely binary despite its extension
+      text = readBytesAsText(abs);
+    } catch (e) {
+      unreadable.push(`${rel}: ${e.code ?? e.message}`);
+      continue;
     }
-    lines.forEach((line, i) => {
+    text.split(/\r?\n/).forEach((line, i) => {
       if (RETIRED.test(line)) {
-        offenders.push(`${path.relative(REPO_ROOT, file)}:${i + 1}: ${line.trim().slice(0, 120)}`);
+        offenders.push(`${rel}:${i + 1}: ${line.trim().slice(0, 120)}`);
       }
     });
   }
+  assert.deepEqual(
+    unreadable,
+    [],
+    `every tracked file must be READ, not skipped - an unscanned file is an unguarded one:\n${unreadable.join("\n")}`,
+  );
   assert.deepEqual(
     offenders,
     [],
@@ -77,7 +96,7 @@ test("the guard scans what it claims to, and can actually fail", () => {
   assert.ok(RETIRED.test("npx agent-skills-toolkit-gen-index . --write"), "the retired form is matched");
   assert.ok(!RETIRED.test("npx agent-skills-toolkit gen-index . --write"), "the owned form is not matched");
 
-  const scanned = trackedTextFiles().map((f) => path.relative(REPO_ROOT, f).split(path.sep).join("/"));
+  const scanned = trackedFiles().map((f) => f.split(path.sep).join("/"));
   // The specific blind spots the previous version had.
   assert.ok(scanned.includes("CHANGELOG.md"), "the file the second instance was found in is scanned");
   assert.ok(scanned.some((f) => f.startsWith("site/")), "authored files under site/ are scanned, not skipped as generated");
@@ -85,6 +104,10 @@ test("the guard scans what it claims to, and can actually fail", () => {
   assert.ok(scanned.includes("bin/agent-skills-toolkit.mjs"), "the CLI whose help text is a template literal is scanned");
   // And the generated tree really is excluded by being untracked, not by a hand-written skip.
   assert.ok(!scanned.some((f) => f.startsWith("site/src/content/docs/explanation/")), "the generated docs mirror is untracked and therefore out of scope");
+  // No extension is exempt any more. SVG is text and can carry an instruction; it was on the old
+  // binary list, which is exactly the kind of hole a classification invites.
+  assert.ok(scanned.some((f) => f.endsWith(".svg")), "text formats like SVG are scanned, not classified away as binary");
+  assert.equal(readBytesAsText(path.join(REPO_ROOT, "package.json")).includes("\"name\""), true, "files are read as bytes and decoded losslessly");
 
   // A near-miss spelling is caught too, so "fix the exact string" cannot become the next escape route.
   assert.ok(RETIRED.test("agent-skills-toolkit-genindex"), "a near-miss spelling is still a package we do not own");

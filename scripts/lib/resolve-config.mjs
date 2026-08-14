@@ -21,6 +21,10 @@ import { BASELINE } from "./standard-version.mjs";
  */
 // Constructed rather than written literally: a source file that CONTAINS the invisible characters it
 // strips is unreadable in review and unsearchable in a diff.
+// Anything OUTSIDE these categories survives sanitizeSubjectText's strip. Used to ask whether material
+// discarded by the raw bound actually mattered.
+const SURVIVES_STRIP = /[^\s\p{Cc}\p{Cf}\p{Cs}]/gu;
+const DEFAULT_IGNORABLE = /\p{Default_Ignorable_Code_Point}/u;
 const ZWNJ = String.fromCharCode(0x200c);  // zero-width non-joiner
 const ZWJ = String.fromCharCode(0x200d);   // zero-width joiner
 // Built ONCE, on first use, and tolerant of a Node compiled WITHOUT internationalization. Constructing
@@ -43,9 +47,23 @@ function graphemes(text) {
   return segmenter ? [...segmenter.segment(text)].map((seg) => seg.segment) : Array.from(text);
 }
 
-/** True when the value has no character a reader could actually see. */
+/**
+ * True when the value has no character a reader could actually see.
+ *
+ * Decided by the Unicode DEFAULT_IGNORABLE property, not by a hand-listed pair. The list version knew
+ * only whitespace, ZWNJ and ZWJ - so U+FE0F (variation selector), U+034F (combining grapheme joiner) and
+ * the astral U+E0100 all sailed through as "visible" and still published an empty waiver clause. They
+ * are category Mn, not Cf, so the strip above deliberately keeps them; the question here is not what
+ * SURVIVES sanitization but what a reader can SEE, and those are different questions.
+ *
+ * Iterated by code point (for...of), never by UTF-16 unit. A `.split("")` walk compares surrogate halves,
+ * neither of which can ever equal an astral ignorable, so the astral case was guaranteed to be missed.
+ */
 function isInvisible(text) {
-  return text.replace(/[\s]/gu, "").split("").every((c) => c === ZWNJ || c === ZWJ);
+  for (const ch of text.replace(/\s+/gu, "")) {
+    if (!DEFAULT_IGNORABLE.test(ch)) return false;
+  }
+  return true;
 }
 
 function sanitizeSubjectText(s, max = 200) {
@@ -84,24 +102,31 @@ function sanitizeSubjectText(s, max = 200) {
   // The ellipsis is counted INSIDE the cap, so the returned string never exceeds max clusters. Guarded
   // for a small max, where max - 3 would otherwise go negative and slice from the end.
   if (clusters.length > max) return `${clusters.slice(0, Math.max(0, max - 3)).join("")}...`;
-  // Under the cluster cap, but the RAW bound cut the input - which happens when a single cluster is
-  // enormous ("a" followed by thousands of combining marks is ONE cluster). Segmentation sees one
-  // whole-looking cluster, concludes nothing was truncated, and returns a severed prefix with no marker.
+  // Under the cluster cap, but the RAW bound cut the input. Two separate questions have to be answered
+  // here, and answering only one of them has now been wrong twice in opposite directions.
   //
-  // But "the bound cut something" is the wrong question, and asking it was a defect of its own: it fires
-  // for input whose tail was going to VANISH anyway. "hello" followed by seven thousand control
-  // characters sanitizes to "hello", and this returned "hell..." - corrupting a short legitimate reason
-  // and claiming a truncation that never happened.
+  //   WAS ANYTHING WORTH KEEPING DISCARDED?  Decided by scanning the OMITTED SUFFIX, because the
+  //   boundary character cannot answer it. "hello", then 6,395 spaces, then "VISIBLE" puts whitespace at
+  //   the cut, so a boundary-only test concluded nothing was lost and published "hello" - silently
+  //   dropping the subject's actual words from a notice about the subject. The scan uses lastIndex
+  //   rather than slicing, so an enormous reason is not copied to ask a yes/no question.
   //
-  // The right question is whether the cut fell inside material that SURVIVES the strip, and the last
-  // retained code unit answers it. Whitespace or a stripped control means the boundary landed in
-  // material headed for deletion. Anything else - including a lone surrogate, which is half of a cluster
-  // by definition - means the final cluster may be severed, so it is dropped and the truncation stated.
-  const lastUnit = preBounded ? raw[raw.length - 1] : "";
-  const strippedAtBoundary = /[\s\p{Cc}]/u.test(lastUnit)
-    || (/\p{Cf}/u.test(lastUnit) && lastUnit !== ZWNJ && lastUnit !== ZWJ);
-  if (preBounded && !strippedAtBoundary) return `${clusters.slice(0, -1).join("")}...`;
-  return flat;
+  //   WAS THE FINAL CLUSTER SEVERED?  Decided by the boundary character, which is exactly what it can
+  //   answer. Only then is that cluster dropped. Dropping it whenever anything was lost is what turned
+  //   "hello" into "hell..." in the first version of this fix.
+  const from = max * 32;
+  let lostSomething = false;
+  if (preBounded) {
+    SURVIVES_STRIP.lastIndex = from;
+    lostSomething = SURVIVES_STRIP.test(source)
+      || source.indexOf(ZWNJ, from) !== -1
+      || source.indexOf(ZWJ, from) !== -1;
+  }
+  if (!lostSomething) return flat;
+  const lastUnit = raw[raw.length - 1];
+  const severedFinalCluster = !(/[\s\p{Cc}]/u.test(lastUnit)
+    || (/\p{Cf}/u.test(lastUnit) && lastUnit !== ZWNJ && lastUnit !== ZWJ));
+  return `${(severedFinalCluster ? clusters.slice(0, -1) : clusters).join("")}...`;
 }
 
 /**

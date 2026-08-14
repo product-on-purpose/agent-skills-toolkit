@@ -74,6 +74,12 @@ export function mdCodeSpan(s) {
   // is NOT entirely spaces. Padding unconditionally therefore round-trips ordinary text exactly and
   // silently ADDS two spaces to an all-space value - the one input where the byte-for-byte claim this
   // function makes would have been false.
-  const pad = flat.trim() === "" ? "" : " ";
+  //
+  // ASCII SPACE ONLY, matching the spec's wording rather than approximating it with trim(). trim() also
+  // treats tabs and no-break spaces as whitespace, so a value of tab-or-NBSP was classified as "all
+  // spaces" and left unpadded - and a renderer, seeing content that is NOT entirely U+0020, then stripped
+  // the outer characters it found, changing the quoted text. The two definitions differ on exactly the
+  // inputs where getting it wrong alters a quotation.
+  const pad = /^ *$/.test(flat) ? "" : " ";
   return `${fence}${pad}${flat}${pad}${fence}`;
 }
