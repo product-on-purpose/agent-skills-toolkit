@@ -45,21 +45,45 @@ function baseReport(scope, target, findings) {
 // survive config) vs askit "profile conformance" (house errors + profile/override downgrades), plus the
 // suppressed count and the published-verdict clamp count. A clamped finding (an objective/vendor check a
 // subject tried to disable, surfaced at warn) is its OWN disposition, never folded into profile conformance.
-function dispositions(resolved) {
-  const live = resolved.filter((f) => !f.suppressed);
+export function dispositions(resolved) {
+  // An ORDERED, EXHAUSTIVE partition with exact predicates: FIRST MATCH WINS, and the five buckets sum
+  // to the finding count.
+  //
+  // They did not before. A live non-house error reduced by config was counted in BOTH realIssues and
+  // profileConformance, and a warn reduced from error was in both warns and profileConformance - so
+  // "the buckets sum" was never true of the old code either, which is what everyone assumed they could
+  // do. Under first-match each finding lands in exactly one bucket, so profileConformance and warns both
+  // SHRINK. That is the cost of a partition consumers can actually sum, and it is a public meaning
+  // change recorded in ADR 0044 rather than slipped in.
+  //
+  // `warns` is the RESIDUAL rather than "every live warning", which is what makes the partition
+  // satisfiable at all: a grader-profile-reduced U4 warn belongs to profileConformance and would
+  // otherwise also be a live warning, making the two buckets provably non-exclusive.
+  const counts = { realIssues: 0, profileConformance: 0, suppressed: 0, clamped: 0, warns: 0 };
   const byProvenance = {};
-  for (const f of live) byProvenance[f.provenance] = (byProvenance[f.provenance] ?? 0) + 1;
-  return {
-    realIssues: live.filter((f) => f.effectiveSeverity === "error" && f.provenance !== "house").length,
-    // Counts CONFIG-caused reductions, not every change. `downgradedFrom != null` also catches a
-    // ceiling-lowered finding, which files pin-driven Standard debt under "profile conformance" - which
-    // it is not, and which is already reported by standardDebtLine and the `ceiling` field.
-    profileConformance: live.filter((f) => f.clampNotice == null && ((f.effectiveSeverity === "error" && f.provenance === "house") || f.configReduced)).length,
-    suppressed: resolved.filter((f) => f.suppressed).length,
-    clamped: live.filter((f) => f.clampNotice != null).length,
-    warns: live.filter((f) => f.effectiveSeverity === "warn").length,
-    byProvenance,
-  };
+  // ORTHOGONAL to the partition and deliberately excluded from its sum: ONE finding can both have its
+  // severity raised and its suppression cleared, so these cannot be buckets. They exist because
+  // narrowing the clampNotice mirror costs an AGGREGATE signal - automation watching
+  // `dispositions.clamped` to detect an ATTEMPTED disabling would now silently read zero, and a
+  // per-finding trustNotice does not replace a counter.
+  const trustActions = { raised: 0, suppressionsCleared: 0 };
+
+  for (const f of resolved) {
+    if (f.trust?.raised) trustActions.raised++;
+    if (f.trust?.suppressionCleared) trustActions.suppressionsCleared++;
+
+    if (f.suppressed) { counts.suppressed++; continue; }
+    byProvenance[f.provenance] = (byProvenance[f.provenance] ?? 0) + 1;
+    if (f.clampNotice != null) { counts.clamped++; continue; }
+    if (f.effectiveSeverity === "error" && f.provenance !== "house") { counts.realIssues++; continue; }
+    // An unreduced house error stays here, exactly as today. `configReduced` rather than
+    // `downgradedFrom != null`: the latter also catches a ceiling-lowered finding, filing pin-driven
+    // Standard debt under "profile conformance" - which it is not, and which standardDebtLine and the
+    // `ceiling` field already report. It also catches a subject INCREASE, which is not conformance at all.
+    if ((f.effectiveSeverity === "error" && f.provenance === "house") || f.configReduced) { counts.profileConformance++; continue; }
+    counts.warns++;
+  }
+  return { ...counts, byProvenance, trustActions };
 }
 
 function evaluateComponent(target, opts = {}) {

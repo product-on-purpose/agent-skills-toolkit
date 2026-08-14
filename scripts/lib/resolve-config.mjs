@@ -1,41 +1,52 @@
-// what-it-is:   the config resolver (F3)
-// what-it-does: annotates each finding with its effective severity (after profile + per-rule override),
-//               its provenance, a suppressed flag (after the baseline matcher), a published-verdict
-//               clampNotice, and a migration-cap ceiling, leaving the array intact so the report shows
-//               what was downgraded/waived/clamped/capped rather than hiding it
+// what-it-is:   the config resolver (F3), and since ADR 0044 the single place a finding's disposition is
+//               decided
+// what-it-does: annotates each finding with its effective severity, its provenance, a suppressed flag,
+//               the published-verdict trust step's notice, and the Standard ceiling - leaving the array
+//               intact so the report shows what was overruled/waived/held back rather than hiding it
 // why:          one resolution path keeps check.mjs, evaluate.mjs, and tier-report.mjs consistent and keeps
 //               the gate deterministic (a pure data transform over the finding array, no model, no I/O)
 // used-by:      scripts/check.mjs, scripts/evaluate.mjs, scripts/tier-report.mjs
+import { ORIGIN } from "./config.mjs";
 import { PROFILES } from "./profiles.mjs";
 import { matchSuppression } from "./suppressions.mjs";
 import { activeConstraints, latestDue, lowerSeverity, SEVERITY_RANK } from "./standard-ceiling.mjs";
 import { BASELINE } from "./standard-version.mjs";
 
 /**
- * Resolve raw findings against the loaded config. Precedence per finding: per-rule override > profile >
- * the severity the check emitted (which already carries F1's standard-aware downgrade). Then, in
- * published-verdict mode ONLY, the trust clamp lifts any objective/vendor-cited finding that a rule,
- * profile, or suppression turned off back to "warn" (with a clampNotice, never silently dropped); a
- * "house" finding is never clamped. The clamp only ever raises off->warn, never to error, so turning the
- * mode on can never flip a passing gate to failing.
+ * Resolve raw findings against the loaded config, in four ordered steps (ADR 0044).
  *
- * Finally, a per-finding migration cap (round-2 adversarial review, high severity: "S4 warn-first
- * findings can be promoted back to errors") is applied LAST, after every precedence step above has
- * produced effectiveSeverity. A finding may carry `migration: { capAt, until, reason }` (set by the
- * check itself for a shape it is warn-first migrating, e.g. S4's string-shaped chain declarations,
- * ADR 0041); if the effectiveSeverity computed above outranks `capAt`, it is pulled back down to
- * `capAt` and the reason is surfaced via `migrationNotice` - so a consumer whose `rules.<reqId> =
- * "error"` override gets overruled sees WHY, rather than the override silently appearing ignored. The
- * cap is a CEILING, never a floor: it is compared by SEVERITY_RANK, so a severity already at or below
- * `capAt` (including "off", from a rule or the published-verdict clamp) is left exactly as resolved -
- * suppression and "off" still win, because this step never raises anything. Applying it after
- * suppression matching (rather than before) means a capped-and-suppressed finding stays suppressed:
- * `suppressed` is computed independently above and this step never touches it.
+ *   1-2. Profile, then per-rule override, then suppression matching. Precedence is unchanged:
+ *        per-rule override > profile > the severity the check emitted.
+ *   3.   The TRUST STEP, in published-verdict mode only and never for `house` provenance. It resolves
+ *        to the trusted resolution - the same precedence with every SUBJECT-owned setting absent - and
+ *        RAISES ONLY, so a subject being stricter about itself survives. Suppression is decided
+ *        independently of severity, because a gate needs `error` AND `!suppressed` and a step that
+ *        raised only severity would still publish green behind a subject-owned waiver.
+ *   4.   The STANDARD CEILING, always last and never raising, computed from (pinned, since,
+ *        migration.until) and applied by SEVERITY_RANK.
+ *
+ * THE GUARANTEE THIS FUNCTION USED TO MAKE IS DELIBERATELY REVERSED, and this comment is one of the five
+ * public surfaces that stated it. It read: "the clamp only ever raises off->warn, never to error, so
+ * turning the mode on can never flip a passing gate to failing." In published-verdict mode it now can,
+ * for a subject-owned reduction of an objective or vendor-cited finding. That is the point of the fix,
+ * not a side effect: a guarantee that protects the subject is the wrong guarantee in the one mode built
+ * to publish a verdict ABOUT the subject (E38). Grader-owned settings are still honoured in full, and
+ * local mode is untouched - a subject's own config remains authoritative about its own repository.
+ *
+ * The ceiling is a CEILING, never a floor: a severity already at or below a constraint's cap is left
+ * exactly as resolved, so "off" and suppression still win. And because the ceiling runs after the trust
+ * step, the trust step can never lift a finding above its ceiling - which is why closing E38 cannot
+ * break this release's red-ward invariant.
+ *
  * Pure and synchronous; never mutates the input.
- * @param {Array<object>} findings raw findings (post-F1-downgrade)
- * @param {object} config frozen config from loadConfig
+ * @param {Array<object>} findings raw findings from the checks, at their TARGET severity
+ * @param {object} config origin-bearing config from loadConfig, optionally merged via withGraderOptions
  * @param {Map<string,string>} provenanceByReq reqId -> provenance
- * @returns {Array<object>} resolved findings, each + { provenance, effectiveSeverity, downgradedFrom, suppressed, suppressionReason, clampNotice, migrationNotice }
+ * @param {{pinned?: unknown, sinceByReq?: Record<string,string>}} standard the plugin's pin (undefined
+ *        under --strict, which makes every constraint inert) and the reqId -> introduction-version map
+ * @returns {Array<object>} resolved findings, each + { provenance, effectiveSeverity, downgradedFrom,
+ *          suppressed, suppressionReason, clampNotice, configReduced, trustNotice, trust,
+ *          migrationNotice, ceiling }
  */
 export function resolveFindings(findings, config, provenanceByReq, { pinned, sinceByReq = {} } = {}) {
   // The config is ORIGIN-BEARING (ADR 0044): every setting is `{ value, origin }` so the published-verdict
@@ -52,18 +63,61 @@ export function resolveFindings(findings, config, provenanceByReq, { pinned, sin
     // STEPS 1-2: profile, then per-rule override, then suppression matching.
     const overridden = config.rules[f.reqId]?.value;   // already normalized to a bare severity by loadConfig
     const profiled = profileRules[f.reqId];
-    let effectiveSeverity = overridden ?? profiled ?? declared;
+    const subjectResolved = overridden ?? profiled ?? declared;
+    let effectiveSeverity = subjectResolved;
     let sup = matchSuppression(f, config.suppressions);
+    const subjectSuppression = sup;
 
-    // STEP 3: the published-verdict trust step. W1c replaces this clamp entirely; until then it is the
-    // behaviour it has always been.
-    let clampNotice = null;
-    if (published && provenance !== "house" && (effectiveSeverity === "off" || sup)) {
-      clampNotice = `clamped to warn in published-verdict mode (provenance ${provenance}): a published verdict cannot disable an objective or vendor-cited check`;
-      effectiveSeverity = "warn";
-      sup = null; // surfaced, not suppressed
+    // STEP 3: THE TRUST STEP (E38). Runs only in published-verdict mode and only for objective and
+    // vendor-cited findings; house provenance is never touched.
+    //
+    // It resolves to the TRUSTED RESOLUTION - the same precedence as steps 1-2 but with every
+    // subject-owned setting absent - and it RAISES ONLY. "Restore the declared severity" was wrong: with
+    // a grader-owned `--profile plain-plugin` (which resolves U4 to warn) beneath a subject-owned
+    // `rules.U4 = "off"`, an atomic reset to the declared severity yields `error`, discarding the
+    // grader's own deliberate warn. Rolling back to the trusted resolution yields `warn`, which is what
+    // the grader asked for.
+    //
+    // The rank guard is what keeps the fix from inverting into the defect it exists to prevent: a
+    // subject writing `rules.U7 = "error"` is being STRICTER about itself, and an unconditional
+    // recomputation would drop it back to `warn` - taking a deliberately failing published verdict and
+    // turning it green, by way of the mechanism built to stop verdicts being turned green.
+    //
+    // Severity and suppression are decided INDEPENDENTLY. gatingFindings requires `error` AND
+    // `!suppressed`, so a step that only raised severity would leave a subject-owned suppression intact:
+    // the finding would read `error`, satisfy the floor literally, and still publish green.
+    const oldClampWouldHaveFired = published && provenance !== "house" && (subjectResolved === "off" || !!sup);
+    let trust = null;
+    if (published && provenance !== "house") {
+      const graderProfileRules = config.profile.origin === ORIGIN.GRADER
+        ? (PROFILES[config.profile.value] ?? PROFILES["askit-library"]).rules
+        : {};
+      const graderRule = config.rules[f.reqId]?.origin === ORIGIN.GRADER ? config.rules[f.reqId].value : undefined;
+      // A grader rule beats a grader profile, the same precedence as steps 1-2.
+      const trusted = graderRule ?? graderProfileRules[f.reqId] ?? declared;
+
+      // RAISE-ONLY, by rank. An equal or stricter subject result survives untouched.
+      const raised = SEVERITY_RANK[subjectResolved] < SEVERITY_RANK[trusted];
+      if (raised) effectiveSeverity = trusted;
+      const suppressionCleared = !!sup && sup.origin === ORIGIN.SUBJECT;
+      if (suppressionCleared) sup = null; // surfaced, not suppressed
+
+      if (raised || suppressionCleared) {
+        const overruled = config.rules[f.reqId]?.origin === ORIGIN.SUBJECT
+          ? `the subject's own rules.${f.reqId}`
+          : config.profile.origin === ORIGIN.SUBJECT
+            ? `the subject's own profile '${config.profile.value}'`
+            : "a subject-owned setting";
+        const parts = [];
+        if (raised) parts.push(`severity restored to "${trusted}" from "${subjectResolved}", overruling ${overruled}`);
+        if (suppressionCleared) parts.push(`the subject's own suppression was cleared${subjectSuppression?.reason ? ` (waiver reason: ${subjectSuppression.reason})` : ""}`);
+        trust = {
+          raised,
+          suppressionCleared,
+          notice: `published-verdict (provenance ${provenance}): ${parts.join("; and ")}. A published verdict cannot be weakened by the subject it is about.`,
+        };
+      }
     }
-
     // The severity after steps 1-3 and BEFORE any ceiling. Both the ceiling's `from` and the binding test
     // measure against this, not against `declared`: reporting the ceiling as lowering from what the module
     // emitted would overstate what the pin is holding back when config had already moved it.
@@ -88,6 +142,23 @@ export function resolveFindings(findings, config, provenanceByReq, { pinned, sin
     const bindingUntil = untilConstraint && SEVERITY_RANK[f.migration.capAt] < SEVERITY_RANK[postTrust] ? untilConstraint : null;
     const sinceConstraint = constraints.find((c) => c.cause === "since");
 
+    // `clampNotice` is DEPRECATED for one minor, not deleted: it is consumed by check.mjs and
+    // evaluate.mjs terminal rendering, by `dispositions`, by both renderers' view models, by unit tests,
+    // by a published JSON example in the docs, and directly through both JSON CLIs. Deleting it would
+    // either break that automation or silently remove the trust explanation from shareable reports.
+    //
+    // It is populated ONLY where the old clamp would have fired AND the result really is `warn` - which
+    // is exactly the set of findings whose old semantics it can still state truthfully. It is
+    // deliberately NOT mirrored onto every trust action: a declared-error objective finding carrying a
+    // subject-owned suppression now ends UNSUPPRESSED at error, and stamping the literal words "clamped
+    // to warn" on a gate-failing error would make `dispositions` count it as both a real issue and a
+    // clamped one, while profileConformance - which excludes every clampNotice finding - silently
+    // dropped it. A compatibility field that lies is worse than one that is absent, because the
+    // automation reading it has no way to tell.
+    const clampNotice = oldClampWouldHaveFired && effectiveSeverity === "warn"
+      ? `clamped to warn in published-verdict mode (provenance ${provenance}): a published verdict cannot disable an objective or vendor-cited check`
+      : null;
+
     return {
       ...f,
       provenance,
@@ -97,6 +168,13 @@ export function resolveFindings(findings, config, provenanceByReq, { pinned, sin
       suppressionReason: sup ? sup.reason ?? null : null,
       clampNotice,
       configReduced,
+      // ADDITIVE, and set on EVERY trust action - unlike clampNotice, which can only speak for the
+      // narrow subset it can still describe truthfully.
+      trustNotice: trust ? trust.notice : null,
+      // The structured half, so `dispositions.trustActions` can count raises and cleared suppressions
+      // separately. One finding can increment both, which is why trustActions is an ORTHOGONAL metric
+      // rather than a bucket of the disposition partition.
+      trust: trust ? { raised: trust.raised, suppressionCleared: trust.suppressionCleared } : null,
       // The cap's public explanation survives the move. The old branch both applied the cap and wrote
       // this notice; replacing it without re-specifying the notice would silently delete an explanation
       // that check.mjs, evaluate.mjs, --json and both renderers consume.
