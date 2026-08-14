@@ -229,3 +229,26 @@ test("index-drift: missing, legacy-match, and other-drift are three distinct out
     }
   );
 });
+
+test("the debt line's tier filter AGREES with the gate's, for every tier including an undeclared one", () => {
+  // The debt line makes a claim about the future ("becomes gate-failing"), and the gate decides the
+  // present. If those two used different tier logic they would disagree about the same finding, which
+  // is the defect round 2 found in its first form. They share ceilingIndex/TIER_ORDER deliberately, and
+  // this pins that: for every declared tier, "the debt line says it gates" must equal "the gate would
+  // gate on it". `undefined` is in the list because a plugin may declare no tier at all - pm-skills, a
+  // live family member, does - and ceilingIndex resolves that to the MAXIMUM tier, so such a plugin
+  // really is gated on every tier's errors.
+  const held = (reqId) => ({
+    check: reqId, severity: "error", reqId, file: "f.md", effectiveSeverity: "warn", suppressed: false,
+    ceiling: { pinned: "0.12", from: "error", to: "warn", due: "0.14", constraints: [{ cause: "until", due: "0.14" }] },
+  });
+  for (const reqId of ["U13", "S4", "G4"]) {
+    for (const tier of ["universal", "convergent", "advanced", undefined]) {
+      const line = standardDebtLine([held(reqId)], tier);
+      const debtSaysItGates = /become gate-failing errors/.test(line);
+      // What the gate would do once the ceiling lifts and the finding is an error again.
+      const gateWouldFail = gateExitFromFindings([{ ...held(reqId), severity: "error" }], tier).exitCode === 1;
+      assert.equal(debtSaysItGates, gateWouldFail, `${reqId} at tier ${String(tier)}: debt line and gate disagree`);
+    }
+  }
+});
