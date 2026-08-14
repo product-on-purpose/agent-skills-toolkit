@@ -216,7 +216,7 @@ No single dimension is uniquely ours; the unoccupied position is the **combinati
 
 A bare folder of agentskills.io skills is just **loose components**: the skills work a la carte, but the collection is not yet a plugin. The three tiers are the ladder that turns it into a best-in-class library, one rung at a time. They are **monotonic** - each tier includes everything below it - so a Bronze plugin grows into Silver and Gold without rework. The bar rises, and the earlier work still counts.
 
-A tier is reported only when its checks actually pass; the tooling flags any claim above what is met. The spine is **30 checks** total (`U1-U9`, `U11-U13`, `S1-S8`, `G1-G10`); the `G7` slot is the `docs-frontmatter` check (assigned in Standard v0.10), and `U13` (`skill-registration`) was added in Standard v0.12. Tier inclusion (a Gold plugin satisfies every Bronze and Silver requirement) is a structural property of the monotonic tiers, not a numbered check.
+A tier is reported only when its checks actually pass; the tooling flags any claim above what is met. The spine is **31 checks** total (`U1-U9`, `U11-U14`, `S1-S8`, `G1-G10`); the `G7` slot is the `docs-frontmatter` check (assigned in Standard v0.10), `U13` (`skill-registration`) was added in Standard v0.12, and `U14` (`agent-restricted-fields`) in Standard v0.13. Tier inclusion (a Gold plugin satisfies every Bronze and Silver requirement) is a structural property of the monotonic tiers, not a numbered check.
 
 ### At a glance
 
@@ -394,7 +394,7 @@ The Claude slash commands that give the core flows an explicit `/command` entry 
 - **Tier** - Advanced (Gold), self-validated.
 - **Install** - `product-on-purpose` marketplace (`agent-plugins`).
 - **Components** - 24 skills, 7 subagents, 2 commands.
-- **Validation spine** - 30 checks (`U1-U9`, `U11-U13`, `S1-S8`, `G1-G10`).
+- **Validation spine** - 31 checks (`U1-U9`, `U11-U14`, `S1-S8`, `G1-G10`).
 - **Evaluation scopes** - 3: one plugin, one component, or a whole `marketplace.json` catalogue ([marketplace scope](docs/reference/marketplace-scope.md)).
 - **Agents** - Claude Code and Codex; agentskills.io-compatible at Bronze.
 - **License** - Apache-2.0.

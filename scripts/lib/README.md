@@ -29,6 +29,7 @@ The shared library the checks, generators, and gate import: findings, frontmatte
 - `sarif-render.mjs` - renderSarif(): a pure SARIF 2.1.0 serialization of runGate()'s findings, one reportingDescriptor per check (carrying its provenance) and one result per non-off finding.
 - `suppressions.mjs` - the baseline matcher (reqId + file glob + message substring).
 - `standard-ceiling.mjs` - the ADR 0044 post-resolution ceiling: activeConstraints() over `since` and `until`, by severity rank.
+- `vendor-agent-fields.mjs` - the vendor's field list for plugin-shipped agents, shared by U14 and the marketplace A6 reading (ADR 0045).
 - `standard-gate.mjs` - SINCE_BY_REQ, the reqId -> introduction-version map the ceiling resolves against (ADR 0027).
 - `standards-watch.mjs` - the deterministic upstream watch (STANDARD.md sec 6): pin reading, structural surface extraction, material/review/cosmetic classification, and the report, ADR-skeleton, and re-pin renderers. Write-incapable by construction.
 - `standard-version.mjs` - Standard-version arithmetic (parseStandard, compareStandard, isAfter).
