@@ -84,11 +84,23 @@ function sanitizeSubjectText(s, max = 200) {
   // The ellipsis is counted INSIDE the cap, so the returned string never exceeds max clusters. Guarded
   // for a small max, where max - 3 would otherwise go negative and slice from the end.
   if (clusters.length > max) return `${clusters.slice(0, Math.max(0, max - 3)).join("")}...`;
-  // Under the cluster cap, but the RAW bound already cut the input - which happens when a single cluster
-  // is enormous ("a" followed by thousands of combining marks is one cluster). Segmentation sees one
+  // Under the cluster cap, but the RAW bound cut the input - which happens when a single cluster is
+  // enormous ("a" followed by thousands of combining marks is ONE cluster). Segmentation sees one
   // whole-looking cluster, concludes nothing was truncated, and returns a severed prefix with no marker.
-  // The at-risk cluster is the last one, so it is dropped and the truncation is stated.
-  if (preBounded) return `${clusters.slice(0, -1).join("")}...`;
+  //
+  // But "the bound cut something" is the wrong question, and asking it was a defect of its own: it fires
+  // for input whose tail was going to VANISH anyway. "hello" followed by seven thousand control
+  // characters sanitizes to "hello", and this returned "hell..." - corrupting a short legitimate reason
+  // and claiming a truncation that never happened.
+  //
+  // The right question is whether the cut fell inside material that SURVIVES the strip, and the last
+  // retained code unit answers it. Whitespace or a stripped control means the boundary landed in
+  // material headed for deletion. Anything else - including a lone surrogate, which is half of a cluster
+  // by definition - means the final cluster may be severed, so it is dropped and the truncation stated.
+  const lastUnit = preBounded ? raw[raw.length - 1] : "";
+  const strippedAtBoundary = /[\s\p{Cc}]/u.test(lastUnit)
+    || (/\p{Cf}/u.test(lastUnit) && lastUnit !== ZWNJ && lastUnit !== ZWJ);
+  if (preBounded && !strippedAtBoundary) return `${clusters.slice(0, -1).join("")}...`;
   return flat;
 }
 

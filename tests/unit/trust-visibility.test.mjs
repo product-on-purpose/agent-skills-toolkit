@@ -628,6 +628,26 @@ test("a single cluster larger than the raw bound is truncated visibly, not silen
   assert.ok(quoted[1].length < huge.length, "and the value really was shortened");
 });
 
+test("a raw bound that cut only strippable material does NOT claim a truncation", () => {
+  // The other half, and the defect the first version of the fix above introduced. "The bound cut
+  // something" is the wrong question: it is true for input whose tail was going to VANISH anyway. A
+  // reason of "hello" followed by seven thousand control characters sanitizes to "hello", and the
+  // marker-on-any-cut version returned "hell..." - corrupting a short legitimate reason AND claiming a
+  // truncation that never happened. The question is whether the cut fell inside surviving material.
+  const reasonOf = (r) => {
+    const n = published(f("error", "U6", { file: "a.md" }), { suppressions: [{ reqId: "U6", reason: r }] }).trustNotice;
+    const q = n.match(/waiver reason: (.*)\)\./s);
+    assert.ok(q, "the reason is quoted back");
+    return q[1];
+  };
+  for (const [label, tail] of [["control characters", CP(0x0007)], ["spaces", " "], ["newlines", "\n"]]) {
+    assert.equal(reasonOf(`hello${tail.repeat(7000)}`), "hello", `${label}: nothing visible was lost, so nothing is marked`);
+  }
+  // A boundary landing on a LONE SURROGATE is half a cluster by definition, so that one IS a real cut.
+  const severed = reasonOf(`hi${"😀".repeat(4000)}`);
+  assert.ok(severed.endsWith("..."), "a cut through surviving material is still stated");
+});
+
 test("mdCodeSpan round-trips exactly, including the inputs where padding would lie", () => {
   // CommonMark removes one padding space from each end ONLY when the content is not entirely spaces.
   // Padding unconditionally therefore round-trips ordinary text and silently ADDS two spaces to an
