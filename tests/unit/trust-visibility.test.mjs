@@ -252,3 +252,28 @@ test("the debt line's tier filter AGREES with the gate's, for every tier includi
     }
   }
 });
+
+test("a hostile reason cannot force malformed UTF-16 or invisible reordering into a notice", () => {
+  // Found by probing the sanitizer rather than by reading it. The length cap sliced UTF-16 UNITS, so a
+  // reason of 300 emoji was cut through a surrogate pair and left a LONE SURROGATE in the notice -
+  // invalid UTF-16 that strict serializers reject, forced into a published report by untrusted input.
+  // Bidi overrides and zero-width characters survived too, which can make a notice display as something
+  // other than what it says.
+  const lone = /[\uD800-\uDBFF](?![\uDC00-\uDFFF])|(?<![\uD800-\uDBFF])[\uDC00-\uDFFF]/;
+  const invisible = /[\u200b-\u200f\u202a-\u202e\u2060-\u206f\ufeff]/;
+  const cases = {
+    "surrogate pairs past the cap": "\uD83D\uDE00".repeat(300),
+    "bidi override": "a\u202Eb",
+    "line separator U+2028": "a\u2028b",
+    "paragraph separator U+2029": "a\u2029b",
+    "zero-width space": "a\u200Bb",
+  };
+  for (const [label, reason] of Object.entries(cases)) {
+    const out = published(f("error", "U6", { file: "a.md" }), { suppressions: [{ reqId: "U6", reason }] });
+    const n = out.trustNotice;
+    assert.ok(!lone.test(n), `${label}: a lone surrogate reached the notice`);
+    assert.ok(!invisible.test(n), `${label}: an invisible or reordering character reached the notice`);
+    assert.ok(!/[\u0000-\u001f\u007f\u2028\u2029]/.test(n), `${label}: a structural character reached the notice`);
+    assert.equal(JSON.parse(JSON.stringify(n)), n, `${label}: the notice does not survive a JSON round trip`);
+  }
+});

@@ -20,8 +20,16 @@ import { BASELINE } from "./standard-version.mjs";
  * strings must not be able to shape the structure of a report written about it.
  */
 function sanitizeSubjectText(s, max = 200) {
-  const flat = String(s ?? "").replace(/[\u0000-\u001f\u007f]+/g, " ").replace(/\s+/g, " ").trim();
-  return flat.length > max ? `${flat.slice(0, max - 3)}...` : flat;
+  const flat = String(s ?? "")
+    .replace(/[\u0000-\u001f\u007f]+/g, " ")                          // control characters
+    .replace(/[\u200b-\u200f\u202a-\u202e\u2060-\u206f\ufeff]/g, "")  // invisible and bidi-reordering
+    .replace(/\s+/g, " ")                                             // \s covers U+2028 and U+2029
+    .trim();
+  // Truncate on a CODE POINT boundary. Slicing UTF-16 units can cut a surrogate pair in half and
+  // leave a LONE SURROGATE - invalid UTF-16 that strict serializers reject, forced into a published
+  // report by an untrusted input. Measured: a 300-emoji reason produced exactly that.
+  const cps = Array.from(flat);
+  return cps.length > max ? `${cps.slice(0, max - 3).join("")}...` : flat;
 }
 
 /**
