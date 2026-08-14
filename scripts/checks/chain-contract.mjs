@@ -16,24 +16,27 @@ import { parse as parseYaml } from "yaml";
 
 export const meta = { id: "chain-contract", tier: "convergent", reqId: "S4", since: "0.x", provenance: "house" };
 
-// ADR 0041: a finding that is newly reachable ONLY because a STRING-shaped chain declaration was
-// parsed graduates from WARN to ERROR at Standard 0.13. Appended to a finding's message so a reader
-// knows the WARN is scheduled, not optional.
-const GRADUATION_NOTE = " This is a warning at Standard 0.12 and becomes an error at Standard 0.13 (ADR 0041).";
+// ADR 0041's graduation note USED TO BE BUILT HERE and is now derived by resolveFindings instead.
+// The note is run-specific - it is true only when the migration ceiling actually bound - and this
+// module knows neither the plugin's pin nor whether --strict is on, so a conditional note could not be
+// produced here at all. Under --strict the ceiling is disabled and this finding IS already an error, so
+// a note promising it "becomes an error once you pin 0.13" would be false in that very run.
 
 // ADR 0041 addendum (round-2 adversarial review, high severity): the WARN this module emits for a
 // string-derived finding is not itself enough - scripts/lib/resolve-config.mjs applies a consumer's
 // askit.config.json rules override with HIGHER precedence than the severity emitted here, so
 // `rules.S4 = "error"` could promote this exact WARN back into a gate-failing error, from config
 // alone, with zero change to the plugin. This metadata rides along on the finding so resolveFindings
-// can enforce a ceiling no override can cross: capped at "warn" until Standard 0.13, matching the
-// GRADUATION_NOTE text above so the two can never drift apart. Attached ONLY to the two
+// can enforce a ceiling no override can cross: capped at "warn" until Standard 0.13. Attached ONLY to the two
 // string-derived branches below; the array-shaped and legacy-array paths carry no migration field at
 // all (finding()'s default), so they are completely untouched by the cap.
 const STRING_SHAPE_MIGRATION = Object.freeze({
   capAt: SEVERITY.WARN,
   until: "0.13",
-  reason: "ADR 0041: a string-shaped chain declaration is newly parsed at Standard 0.12; it stays capped at warn regardless of any rules.S4 override until Standard 0.13.",
+  // STATIC and activation-neutral: it states what the migration is ABOUT, never what this run did.
+  // The old text claimed the finding "stays capped at warn until Standard 0.13", which is false in
+  // any --strict run, and the raw migration object is visible through --json at any pin in any mode.
+  reason: "ADR 0041: a string-shaped chain declaration is newly parsed at Standard 0.12.",
 });
 
 function isDir(p) { return existsSync(p) && statSync(p).isDirectory(); }
@@ -103,10 +106,13 @@ export function check(ctx) {
     // newly-parsed STRING declarations, this is the scheduled tightening: WARN, with a note.
     const hasArrayDeclaration = declaredChains.some((c) => c.shape === "array");
     const preexistingSignal = hasWorkflows || hasArrayDeclaration;
-    const severity = preexistingSignal ? SEVERITY.ERROR : SEVERITY.WARN;
-    const note = preexistingSignal ? "" : GRADUATION_NOTE;
+    // ADR 0044: the check emits its TARGET severity and lets the ceiling hold it back per-pin. What
+    // still distinguishes the string-derived path is the MIGRATION METADATA, not a lower severity -
+    // which is the whole reason ADR 0041's graduation was inert: lifting a warn-ceiling off a warn
+    // finding yields a warn, so S4 could never have graduated no matter how the ceiling changed.
+    const severity = SEVERITY.ERROR;
     const migration = preexistingSignal ? undefined : STRING_SHAPE_MIGRATION;
-    out.push(finding(meta.id, severity, `chaining is used (a component declares a frontmatter \`chain:\` or _workflows/ is present) but agents/_chain-permitted.yaml is missing (chain contract is REQUIRED when chaining is used; Standard sec 3.6).${note}`, { file: "agents/_chain-permitted.yaml", reqId: meta.reqId, migration }));
+    out.push(finding(meta.id, severity, `chaining is used (a component declares a frontmatter \`chain:\` or _workflows/ is present) but agents/_chain-permitted.yaml is missing (chain contract is REQUIRED when chaining is used; Standard sec 3.6).`, { file: "agents/_chain-permitted.yaml", reqId: meta.reqId, migration }));
     return out;
   }
 
@@ -147,12 +153,11 @@ export function check(ctx) {
   // this reader (ADR 0040) - is WARN for one Standard minor (ADR 0027 burndown), with a note.
   for (const { name, chain, shape } of declaredChains) {
     const permitted = new Set(Array.isArray(contract[name]) ? contract[name].filter((x) => typeof x === "string") : []);
-    const severity = shape === "array" ? SEVERITY.ERROR : SEVERITY.WARN;
-    const note = shape === "array" ? "" : GRADUATION_NOTE;
+    const severity = SEVERITY.ERROR;
     const migration = shape === "array" ? undefined : STRING_SHAPE_MIGRATION;
     for (const target of chain) {
       if (!permitted.has(target)) {
-        out.push(finding(meta.id, severity, `"${name}" declares (frontmatter chain) that it may invoke "${target}" but agents/_chain-permitted.yaml does not permit "${name}" -> "${target}" (orphan; Standard sec 3.6).${note}`, { file: "agents/_chain-permitted.yaml", reqId: meta.reqId, migration }));
+        out.push(finding(meta.id, severity, `"${name}" declares (frontmatter chain) that it may invoke "${target}" but agents/_chain-permitted.yaml does not permit "${name}" -> "${target}" (orphan; Standard sec 3.6).`, { file: "agents/_chain-permitted.yaml", reqId: meta.reqId, migration }));
       }
     }
   }

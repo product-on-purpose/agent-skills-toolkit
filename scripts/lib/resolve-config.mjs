@@ -159,8 +159,21 @@ export function resolveFindings(findings, config, provenanceByReq, { pinned, sin
       ? `clamped to warn in published-verdict mode (provenance ${provenance}): a published verdict cannot disable an objective or vendor-cited check`
       : null;
 
+    // THE GRADUATION NOTE, which the checks used to append at emit time and no longer can.
+    //
+    // It is RUN-SPECIFIC: true only where the tightening ceiling actually bound. A check knows neither
+    // the plugin's pin nor whether --strict is on, so it cannot decide this - and at pin 0.12 under
+    // --strict the ceiling is disabled and the finding IS already an error, so a note promising it
+    // "becomes an error once you pin 0.13" would be false in that very run. The static half of the
+    // story lives in `migration.reason`, which says what the migration is about and claims nothing
+    // about any particular run, so it stays safe in --json at any pin in any mode.
+    const graduationNote = bindingUntil
+      ? ` Held at "${effectiveSeverity}" by your pinned Standard ${pinned}; it becomes "${postTrust}" once you pin Standard ${f.migration.until}.`
+      : "";
+
     return {
       ...f,
+      message: f.message + graduationNote,
       provenance,
       effectiveSeverity,
       downgradedFrom: effectiveSeverity !== declared ? declared : null,

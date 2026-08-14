@@ -4,6 +4,12 @@ import { mkdtempSync, mkdirSync, writeFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { check, resolveRegistrationSource, skillNameFromPath } from "../../scripts/checks/skill-registration.mjs";
+import { resolveFindings, gatingFindings } from "../../scripts/lib/resolve-config.mjs";
+import { configFrom } from "../../scripts/lib/config.mjs";
+import { provenanceByReq } from "../../scripts/lib/registry.mjs";
+import { SINCE_BY_REQ } from "../../scripts/lib/standard-gate.mjs";
+
+const PROV = provenanceByReq();
 
 // A ctx whose on-disk skills are the given directory names (the loader exposes ctx.skills as
 // objects carrying a `dir`; the check keys by path.basename(dir)).
@@ -94,14 +100,39 @@ test("resolveRegistrationSource never throws on a malformed marketplace.json (R-
 
 // --- check (the comparison) ---
 
-test("check headline (R-REG-2): a skill on disk but unregistered is one warn naming it", () => {
+test("check headline (R-REG-2): a skill on disk but unregistered is one finding naming it", () => {
   const ctx = ctxWithDisk(["a", "b", "ghost-on-disk"], [{ path: "skills/a/SKILL.md" }, { path: "skills/b/SKILL.md" }]);
   const out = check(ctx);
   assert.equal(out.length, 1);
-  assert.equal(out[0].severity, "warn"); // R-REG-6: warn at Standard 0.12 (the burndown)
+  // GRADUATED at Standard 0.13 (ADR 0035, discharged through ADR 0044's ceiling). The check emits its
+  // TARGET severity and the migration below is what holds it at warn for anyone pinned lower - which is
+  // the only shape in which a graduation can actually fire, since a warn-ceiling over a warn finding
+  // could never promote anything. The burndown used to live in a hand-edited constant here.
+  assert.equal(out[0].severity, "error");
+  assert.equal(out[0].migration.capAt, "warn");
+  assert.equal(out[0].migration.until, "0.13");
   assert.equal(out[0].reqId, "U13");
   assert.match(out[0].message, /ghost-on-disk/);
   assert.match(out[0].message, /invisible|register/i);
+});
+
+test("R-REG-6 GRADUATION: the same unregistered skill is a warn at pin 0.12 and a gate-failing error at 0.13", () => {
+  // The acceptance pair for the graduation, asserted under DEFAULT config - not under a rules.U13
+  // override, since an override happening to produce the right answer is exactly how the inert
+  // graduation stayed invisible for a whole minor.
+  const ctx = ctxWithDisk(["a", "ghost-on-disk"], [{ path: "skills/a/SKILL.md" }]);
+  const raw = check(ctx);
+  const resolve = (pinned) => resolveFindings(raw, configFrom({}), PROV, { pinned, sinceByReq: SINCE_BY_REQ })[0];
+
+  const before = resolve("0.12");
+  assert.equal(before.effectiveSeverity, "warn", "a consumer pinned at 0.12 sees exactly what it saw before");
+  assert.equal(gatingFindings([before]).length, 0, "and it does not gate");
+  assert.ok(before.migrationNotice, "and is told the tightening is scheduled, not optional");
+
+  const after = resolve("0.13");
+  assert.equal(after.effectiveSeverity, "error", "adopting 0.13 is what turns it on");
+  assert.equal(gatingFindings([after]).length, 1, "and then it gates");
+  assert.equal(after.ceiling, null, "with no ceiling left to explain");
 });
 
 test("check phantom (R-REG-3): a registered skill missing on disk is one warn, distinguished", () => {
