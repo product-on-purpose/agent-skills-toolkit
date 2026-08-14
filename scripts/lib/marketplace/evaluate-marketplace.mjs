@@ -46,9 +46,14 @@ const isDir = (p) => existsSync(p) && statSync(p).isDirectory();
  * and no manifest and no components of any kind, is read as a catalogue. That shape is a catalogue by
  * any reading of Standard sec 12.
  */
-const PLUGIN_SURFACES = Object.freeze({
+// Exported so the test IMPORTS it rather than keeping its own copy. It kept a copy, the copy said
+// "workflows" where the Standard says `_workflows/`, and both were wrong in the same way - so the
+// test could not catch the routing bypass it was written to catch. A list written down twice is a
+// list that will disagree with itself, which this repository already learned about check messages
+// and number parsing.
+export const PLUGIN_SURFACES = Object.freeze({
   files: ["library.json", ".claude-plugin/plugin.json", ".codex-plugin/plugin.json", ".mcp.json"],
-  dirs: ["skills", "agents", "commands", "hooks", "workflows", "output-styles", "themes", "monitors"],
+  dirs: ["skills", "agents", "commands", "hooks", "_workflows", "output-styles", "themes", "monitors"],
 });
 
 function shipsOwnComponents(target) {

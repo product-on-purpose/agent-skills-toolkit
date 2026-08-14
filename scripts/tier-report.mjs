@@ -24,6 +24,21 @@ function defaultResolved(root, ctx) {
 export function computeTierReport(root, ctx = loadPlugin(root), findings = defaultResolved(root, ctx)) {
   const declaredTier = ctx.library?.data?.tier ?? null;
   const declaredIdx = declaredTier ? TIER_ORDER.indexOf(declaredTier) : -1;
+  // A declaration the tool CANNOT READ is not the same as no declaration, and conflating them awarded a
+  // top grade for a typo. `tier: "banana"` - or `"ADVANCED"`, which is likelier - is non-null, so it slipped
+  // past the null guard in humanLine below, fell through to "no ceiling, check every tier", and printed
+  // "Tier: Advanced (no blockers detected)" with exit 0. U1 normally catches the bad enum first, but the
+  // plain-plugin profile turns U1 off - and that profile exists for plugins that have NOT adopted this
+  // Standard, which is exactly the population most likely to carry a malformed tier.
+  //
+  // A missing declaration is a choice. An unreadable one is an error, and an error must never earn a grade.
+  // TRUE when there is nothing unreadable: either a recognised tier, or no declaration at all. Setting
+  // it from `declaredIdx >= 0` alone marked a MISSING tier invalid and swallowed the honest
+  // not-graded-against-the-ladder message that case already had.
+  const declaredTierValid = declaredTier === null ? true : declaredIdx >= 0;
+  if (declaredTier !== null && !declaredTierValid) {
+    return { tier: "none", satisfies: [], blocked: {}, declaredTier, declaredTierValid: false };
+  }
 
   const errorsByTier = { universal: [], convergent: [], advanced: [] };
   for (const f of findings) {
@@ -46,13 +61,19 @@ export function computeTierReport(root, ctx = loadPlugin(root), findings = defau
   const blocked = {};
   const next = TIER_ORDER[satisfies.length <= ceiling ? satisfies.length : ceiling + 1];
   if (next && errorsByTier[next]?.length > 0) blocked[next] = errorsByTier[next];
-  return { tier, satisfies, blocked, declaredTier };
+  return { tier, satisfies, blocked, declaredTier, declaredTierValid };
 }
 
 export function humanLine(r) {
   // A plugin that never declared an askit tier (no library.json tier) is not graded against the tier
   // ladder; under plain-plugin (where U1/library.json is off) it would otherwise read as the top tier
   // just for passing the objective checks. Report it honestly instead of asserting an earned tier.
+  // An UNREADABLE declaration is reported as the author error it is, never as a grade. This branch is
+  // first because the value is non-null, so the null guard below cannot see it - which is how a plugin
+  // declaring `tier: "banana"` printed "Tier: Advanced".
+  if (r.declaredTierValid === false) {
+    return `Tier: not graded - library.json declares tier ${JSON.stringify(r.declaredTier)}, which is not one of ${TIER_ORDER.join(", ")}. Fix the declaration; the tool will not guess which tier you meant.`;
+  }
   if (r.declaredTier == null && r.tier !== "none") {
     return `Objective checks pass (no askit tier declared; not graded against the tier ladder).`;
   }
