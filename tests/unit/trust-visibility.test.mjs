@@ -170,6 +170,13 @@ test("the Markdown and HTML reports render the trust action, escaped", () => {
       assert.ok(inner.includes("https://atk.example/bare"), "the bare URL is inside the span, where GFM does not autolink");
       assert.ok(inner.includes("&rlm;"), "the entity stays literal instead of being decoded back into the bidi control the sanitizer removed");
 
+      // The one thing a code span does NOT do is escape pipes, and it must not: outside a table a
+      // backslash-pipe renders as a literal backslash and corrupts the quotation. So the constraint is
+      // that a notice never lands in a table ROW - true today only because of where the renderer happens
+      // to emit it, which is exactly the kind of accident worth pinning down before someone moves it.
+      const rowsWithNotice = md.split("\n").filter((l) => l.trimStart().startsWith("|") && l.includes("Published-verdict trust action"));
+      assert.deepEqual(rowsWithNotice, [], "a notice is never emitted into a table row, where its unescaped pipes would break the row");
+
       const html = renderHtml(r, opts);
       assert.match(html, /Published-verdict trust action/, "the HTML report shows it");
       assert.ok(!html.includes("<script>alert(1)</script>"), "escaped in HTML too");

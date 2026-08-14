@@ -50,6 +50,12 @@ export function escapeMdCell(s) {
  * GFM autolink extension explicitly does not apply. One rule covers every construct, including the ones
  * added to Markdown after this was written.
  *
+ * NOT FOR A TABLE CELL, and that is a real constraint rather than a style note. A code span does not
+ * escape pipes and MUST NOT: inside a GFM table a pipe needs escaping, but outside one a backslash-pipe
+ * renders as a literal backslash and corrupts the quotation this exists to keep exact. So the two
+ * boundaries do not compose - use escapeMdCell for a cell, this for prose. A test asserts no notice is
+ * ever emitted into a table row, because "we happen not to do that today" is not a guarantee.
+ *
  * FENCING IS DYNAMIC because the text may itself contain backticks: the fence is one longer than the
  * longest backtick run in the content, which is the CommonMark rule for making a span that cannot be
  * closed early. The single space on each side is the documented round-trip: a code span that both

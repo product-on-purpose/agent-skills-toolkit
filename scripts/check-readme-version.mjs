@@ -1,4 +1,4 @@
-// what-it-is:   README front-door claim drift guard
+// what-it-is:   front-door claim drift guard: the README, plus the spine size on the architecture pages
 // what-it-does: reads library.json (version, tier, skill count) and the check registry (spine
 //               size), then fails if the README's version badge, or its `## Status` section's
 //               version / tier / skill-count / spine-size claims, disagrees with any of them
@@ -205,11 +205,37 @@ for (const c of extractLabeledCounts(statusBody, "checks")) {
   }
 }
 
+// 5. The two ARCHITECTURE pages state the spine size too, and nothing governed them until v1.13.0:
+// both said "30 checks" while the registry held 31, found while reviewing that release. The README is
+// the front door, but these are where a reader goes for the mechanism, and a wrong number there is the
+// same class of unverified claim. Scoped to the spine size alone - version and tier claims are
+// README-specific and mean something different on an explanation page.
+//
+// TWO labels, because extractLabeledCounts requires the number ADJACENT to its label: one page writes
+// "31 checks" and the other "31 spine checks", and a guard reading only the first label would have
+// silently covered one page while reporting success for both. They match disjoint text, so a page
+// cannot be counted twice.
+const ARCH_PAGES = ["docs/explanation/architecture.md", "docs/explanation/architecture-internals.md"];
+for (const rel of ARCH_PAGES) {
+  const full = path.join(dir, rel);
+  // Existence is the docs-presence check's job (and it identifies these pages by frontmatter doc-role,
+  // not by filename); this owns only their numbers. Missing is therefore skipped, not failed.
+  if (!existsSync(full)) continue;
+  const text = readFileSync(full, "utf8");
+  for (const label of ["checks", "spine checks"]) {
+    for (const c of extractLabeledCounts(text, label)) {
+      if (c.count !== spineSize) {
+        failures.push(`${rel}  claims a ${c.raw} spine; the registry has ${spineSize}`);
+      }
+    }
+  }
+}
+
 if (failures.length > 0) {
   process.stderr.write(
-    `check-readme-version: README front-door drift detected\n` +
+    `check-readme-version: front-door claim drift detected\n` +
     failures.map((f) => `  ${f}\n`).join("") +
-    `  Update README.md "## Status" so its claims match the repository.\n`
+    `  Update the file named on each line so its claims match the repository.\n`
   );
   process.exit(1);
 }
