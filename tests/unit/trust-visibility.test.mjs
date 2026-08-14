@@ -729,3 +729,30 @@ test("mdCodeSpan pads by the ASCII-space rule, not by trim()", () => {
     assert.equal(spanned(content)[2], content, "all-ASCII-space content is not padded");
   }
 });
+
+test("the omitted-suffix scan holds no state between findings or between runs", () => {
+  // The suffix scan uses a MODULE-LEVEL global regex, and a global regex carries lastIndex between
+  // calls. Assigning it before each use is correct, but "correct by inspection" is exactly the claim
+  // this file exists to stop trusting: one report resolves many findings in a single call, so a leak
+  // would corrupt the SECOND finding's notice and nothing in a single-finding test could ever see it.
+  const mk = (reqId) => f("error", reqId, { file: "a.md" });
+  const reasons = {
+    U6: `hello${" ".repeat(6395)}VISIBLE`,   // visible text discarded past the bound
+    U4: "short and clean",                   // nothing near the bound at all
+    U3: `hello${CP(7).repeat(7000)}`,        // only strippable material discarded
+    U8: `a${CP(0x301).repeat(7000)}`,        // one enormous cluster, severed
+  };
+  const run = () => resolveFindings(
+    Object.keys(reasons).map(mk),
+    configFrom({ mode: "published-verdict", suppressions: Object.entries(reasons).map(([reqId, reason]) => ({ reqId, reason })) }),
+    PROV,
+  ).map((x) => {
+    const q = x.trustNotice && x.trustNotice.match(/waiver reason: ([^)]*)\)/);
+    return q ? q[1] : "(none)";
+  });
+
+  const expected = ["hello...", "short and clean", "hello", "..."];
+  assert.deepEqual(run(), expected, "every finding in one call is sanitized independently");
+  assert.deepEqual(run(), expected, "and a second call is identical, so no lastIndex survived the first");
+  assert.deepEqual(run(), expected, "and a third");
+});
