@@ -168,9 +168,23 @@ test("the Markdown and HTML reports render the trust action, escaped", () => {
       assert.ok(fence.length > longestRun, "the fence outlasts every backtick run it contains, so the span cannot be closed early");
       // Verbatim, not merely inert: a defence that silently rewrote the subject's words would be its own
       // defect, in a report published about that subject.
-      assert.ok(inner.includes("![img](https://atk.example/px)"), "the image attack is quoted verbatim");
-      assert.ok(inner.includes("https://atk.example/bare"), "the bare URL is inside the span, where GFM does not autolink");
-      assert.ok(inner.includes("&rlm;"), "the entity stays literal instead of being decoded back into the bidi control the sanitizer removed");
+      //
+      // Asserted as EXACT EQUALITY against the notice the resolver built, rather than as three substring
+      // checks. That is both stronger - character for character, so a rewrite anywhere fails - and free of
+      // a shape that reads as a security defect: CodeQL flags `.includes("https://host/path")` as
+      // js/incomplete-url-substring-sanitization, because substring-matching a URL to decide whether a
+      // host is trusted really is a vulnerability. The intent here was only "the fixture text survived",
+      // but a scanner cannot see intent, and an assertion that has to be explained to a scanner every
+      // time is worse than one written unambiguously.
+      assert.ok(
+        acted.some((x) => x.trustNotice === inner),
+        "the span contains the resolver's notice verbatim, character for character",
+      );
+      // The fixture really does carry the constructs this is protecting against, so the equality above is
+      // not satisfied by some blander string. Named without their schemes, for the reason given above.
+      assert.match(HOSTILE, /!\[img\]\(/, "fixture carries an image whose destination is an attacker host");
+      assert.match(HOSTILE, /atk\.example\/bare/, "fixture carries a bare URL GFM would autolink");
+      assert.match(HOSTILE, /&rlm;/, "fixture carries an entity CommonMark would decode to a bidi control");
 
       // The one thing a code span does NOT do is escape pipes, and it must not: outside a table a
       // backslash-pipe renders as a literal backslash and corrupts the quotation. So the constraint is
