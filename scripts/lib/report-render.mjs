@@ -355,12 +355,20 @@ function renderMarkdown(report, opts = {}) {
         // Same blockquote treatment as the migration-cap notice above, but a distinct label (E28):
         // a published-verdict clamp is a different mechanism (a consumer's own suppression or off-rule
         // overruled because a third party is reading this report), not a warn-first migration ceiling.
-        for (const notice of r.clampNotices) {
-          out.push(`> Published-verdict clamp for ${r.reqId}: ${notice}`);
-          out.push("");
+        // The DEPRECATED clamp line is suppressed whenever a trust notice already explains the same
+        // action, so a human report never carries two descriptions of one event. clampNotice survives
+        // in the DATA for external --json readers; it just stops being rendered twice over.
+        if (r.trustNotices.length === 0) {
+          for (const notice of r.clampNotices) {
+            out.push(`> Published-verdict clamp for ${r.reqId}: ${escapeMd(notice)}`);
+            out.push("");
+          }
         }
+        // escapeMd because a trust notice quotes the SUBJECT's own suppression reason, and this report
+        // is published ABOUT that subject. The text is already flattened where the notice is built
+        // (sanitizeSubjectText), so this is the second of two independent guards rather than the only one.
         for (const notice of r.trustNotices) {
-          out.push(`> Published-verdict trust action for ${r.reqId}: ${notice}`);
+          out.push(`> Published-verdict trust action for ${r.reqId}: ${escapeMd(notice)}`);
           out.push("");
         }
         out.push(`> Why ${r.reqId} matters: ${r.why}`);
@@ -766,7 +774,9 @@ function htmlLedger(m) {
       // suppression or off-rule because a third party is reading this report, which is a different
       // mechanism from a warn-first migration ceiling, and conflating the two would be worse than
       // omitting one.
-      const clamp = r.clampNotices.map((n) => `<div class="why warn"><b>Published-verdict clamp</b>${escapeHtml(n)}</div>`).join("")
+      const clamp = (r.trustNotices.length === 0
+        ? r.clampNotices.map((n) => `<div class="why warn"><b>Published-verdict clamp</b>${escapeHtml(n)}</div>`).join("")
+        : "")
         + r.trustNotices.map((n) => `<div class="why warn"><b>Published-verdict trust action</b>${escapeHtml(n)}</div>`).join("");
       const fileBit = r.file ? ` <span class="src">${escapeHtml(r.file)}</span>` : "";
       // provenance (E9/E23): a compact pill next to the status badge, reusing the .pill class already

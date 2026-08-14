@@ -13,6 +13,18 @@ import { activeConstraints, latestDue, lowerSeverity, SEVERITY_RANK } from "./st
 import { BASELINE } from "./standard-version.mjs";
 
 /**
+ * Flatten subject-authored text to a single safe line before it is quoted into a published notice.
+ *
+ * Collapses every control character and whitespace run (newlines included) to one space and caps the
+ * length. In `published-verdict` mode the subject is explicitly untrusted, so its `askit.config.json`
+ * strings must not be able to shape the structure of a report written about it.
+ */
+function sanitizeSubjectText(s, max = 200) {
+  const flat = String(s ?? "").replace(/[\u0000-\u001f\u007f]+/g, " ").replace(/\s+/g, " ").trim();
+  return flat.length > max ? `${flat.slice(0, max - 3)}...` : flat;
+}
+
+/**
  * Resolve raw findings against the loaded config, in four ordered steps (ADR 0044).
  *
  *   1-2. Profile, then per-rule override, then suppression matching. Precedence is unchanged:
@@ -110,7 +122,13 @@ export function resolveFindings(findings, config, provenanceByReq, { pinned, sin
             : "a subject-owned setting";
         const parts = [];
         if (raised) parts.push(`severity restored to "${trusted}" from "${subjectResolved}", overruling ${overruled}`);
-        if (suppressionCleared) parts.push(`the subject's own suppression was cleared${subjectSuppression?.reason ? ` (waiver reason: ${subjectSuppression.reason})` : ""}`);
+        // The waiver reason is the ONLY subject-controlled text this notice carries, and the notice is
+        // published in a report ABOUT that subject - so it is neutralized where it is built, not only
+        // where it is rendered. A reason containing newlines can otherwise escape a Markdown blockquote
+        // and forge report sections, and every downstream consumer of `trustNotice` (including external
+        // --json readers embedding it in their own output) inherits the exposure. Escaping at each
+        // render site alone would protect only the sites we happen to own.
+        if (suppressionCleared) parts.push(`the subject's own suppression was cleared${subjectSuppression?.reason ? ` (waiver reason: ${sanitizeSubjectText(subjectSuppression.reason)})` : ""}`);
         trust = {
           raised,
           suppressionCleared,
@@ -155,7 +173,13 @@ export function resolveFindings(findings, config, provenanceByReq, { pinned, sin
     // clamped one, while profileConformance - which excludes every clampNotice finding - silently
     // dropped it. A compatibility field that lies is worse than one that is absent, because the
     // automation reading it has no way to tell.
-    const clampNotice = oldClampWouldHaveFired && effectiveSeverity === "warn"
+    // Keyed on postTrust, NOT on the post-ceiling severity. The old clamp produced `warn` ITSELF; a
+    // `warn` that the later Standard ceiling produced is a different cause, and attributing it to the
+    // clamp makes the finding contradict itself. Concretely: a subject-owned `rules.U14 = "off"` in
+    // published-verdict mode at pin 0.12 is restored to `error` by the trust step and then held to
+    // `warn` by the introduction ceiling - the finding would have said both that published-verdict
+    // restored an error AND that published-verdict clamped it to warn.
+    const clampNotice = oldClampWouldHaveFired && postTrust === "warn"
       ? `clamped to warn in published-verdict mode (provenance ${provenance}): a published verdict cannot disable an objective or vendor-cited check`
       : null;
 

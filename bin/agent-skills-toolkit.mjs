@@ -10,7 +10,7 @@
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { spawnSync } from "node:child_process";
-import { readFileSync } from "node:fs";
+import { readFileSync, existsSync, statSync } from "node:fs";
 
 const SCRIPT_DIR = path.dirname(fileURLToPath(import.meta.url));
 const PKG_ROOT = path.resolve(SCRIPT_DIR, "..");
@@ -63,9 +63,11 @@ passed through unchanged to the underlying script - see STANDARD.md and the "Ins
 how-to page on the published docs site for --strict, --mode, --profile, --format, and --report.
 
 Exit code is always the gate's: 0 means no gate-failing error at the plugin's declared tier, 1 means
-at least one. If your plugin directory is literally named "check", "evaluate", or "tier-report", pass
-an explicit subcommand first (e.g. "agent-skills-toolkit check ./evaluate") so it is read as a path,
-not mistaken for the subcommand of the same name.
+at least one. A subcommand name always wins over a directory of the same name, so if your plugin
+directory is literally named ${Object.keys(SUBCOMMANDS).map((s) => JSON.stringify(s)).join(", ")},
+disambiguate it as a PATH by writing "./<name>" (e.g. "agent-skills-toolkit ./gen-index") or by passing
+an explicit subcommand first (e.g. "agent-skills-toolkit check ./gen-index"). This list is generated
+from the dispatch table, so it cannot fall out of date when a subcommand is added.
 
 This package does not ship the maintainer-only corpus/eval-run tooling from the agent-skills-toolkit
 source repository (eval-run, its aggregator, the advisory scorer, standards-watch); those read paths
@@ -87,6 +89,18 @@ if (first === "--version" || first === "-v") {
 let script;
 let rest;
 if (first !== undefined && Object.prototype.hasOwnProperty.call(SUBCOMMANDS, first)) {
+  // A subcommand name wins over a same-named directory, which is the documented contract and is not
+  // changed here. What IS new: say so out loud when both readings exist. Adding `gen-index` created a
+  // collision where `agent-skills-toolkit gen-index` beside a plugin directory of that name runs the
+  // GENERATOR and exits 0 - a silent false pass for any CI that trusts only the exit code. The warning
+  // goes to stderr so it cannot corrupt --json/--sarif/--gha on stdout.
+  if (existsSync(first) && statSync(first).isDirectory()) {
+    process.stderr.write(
+      `agent-skills-toolkit: "${first}" is both a subcommand and a directory here; running the ` +
+      `SUBCOMMAND. To grade that directory instead, write "./${first}" or "agent-skills-toolkit check ./${first}".
+`
+    );
+  }
   script = SUBCOMMANDS[first];
   rest = restRaw;
 } else {

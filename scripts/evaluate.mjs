@@ -148,7 +148,7 @@ export function formatReport(r) {
   lines.push(`Evaluating (${r.scope}): ${r.target}`);
   for (const f of r.findings) {
     if (f.suppressed || effSev(f) === "off") continue; // disabled/waived findings are summarized in the split, not listed here
-    lines.push(`  [${effSev(f)}] ${f.reqId ?? f.check}: ${f.message}${f.clampNotice ? " [clamped to warn: published-verdict]" : ""}${f.trustNotice ? ` [${f.trustNotice}]` : ""}${f.migrationNotice ? ` [${f.migrationNotice}]` : ""}${f.file ? "  -> " + f.file : ""}`);
+    lines.push(`  [${effSev(f)}] ${f.reqId ?? f.check}: ${f.message}${f.clampNotice && !f.trustNotice ? " [clamped to warn: published-verdict]" : ""}${f.trustNotice ? ` [${f.trustNotice}]` : ""}${f.migrationNotice ? ` [${f.migrationNotice}]` : ""}${f.file ? "  -> " + f.file : ""}`);
   }
   if (r.tier !== undefined) lines.push(`Tier: ${r.tier}`);
   lines.push(`${r.summary.errors} error(s), ${r.summary.warns} warning(s).`);

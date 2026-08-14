@@ -97,15 +97,34 @@ export function sectionFindings(findings, declaredTier) {
  * held-back findings, compared numerically so 0.10 outranks 0.9. (PSR-6, ADR 0036.)
  * Exported for unit testing.
  */
-export function standardDebtLine(findings) {
+export function standardDebtLine(findings, declaredTier) {
   // Reads `ceiling`, not the legacy `since`. Debt is now findings held below their severity by a binding
   // INTRODUCTION or TIGHTENING ceiling, and a tightening has no `since` at all - selecting on the legacy
   // field would print an undefined version for every `until`-only hold, which is most of them.
   const held = findings.filter((f) => f.ceiling && !f.suppressed);
   if (held.length === 0) return "";
   const dueAt = held.reduce((hi, f) => (compareStandard(f.ceiling.due, hi) > 0 ? f.ceiling.due : hi), held[0].ceiling.due);
-  return `Standard debt: ${held.length} finding(s) held back by your pinned Standard ${held[0].ceiling.pinned}; ` +
-    `all of them become gate-failing errors at Standard ${dueAt} or later.`;
+
+  // The tier ceiling applies here too, and saying otherwise was a live falsehood. `G4` is Advanced, so
+  // a plugin declaring Convergent that carries the E35 index migration was told its held finding
+  // "becomes a gate-failing error" - it cannot, at any Standard, because gateExitFromFindings filters
+  // by the same declared-tier ceiling. That also contradicted this very terminal's own above-tier
+  // label, three lines further down. Split rather than dropped: above-tier debt is still real debt and
+  // still comes due, it just never gates THIS plugin at THIS declared tier.
+  const ceiling = ceilingIndex(declaredTier);
+  const gating = held.filter((f) => TIER_ORDER.indexOf(tierForReq(f.reqId)) <= ceiling);
+  const above = held.length - gating.length;
+  const pinned = held[0].ceiling.pinned;
+
+  if (gating.length === 0) {
+    return `Standard debt: ${held.length} finding(s) held back by your pinned Standard ${pinned}; ` +
+      `all of them are above your declared tier, so they become errors at Standard ${dueAt} or later without affecting this plugin's grade.`;
+  }
+  const aboveBit = above > 0
+    ? ` A further ${above} held finding(s) are above your declared tier and become errors without affecting your grade.`
+    : "";
+  return `Standard debt: ${gating.length} finding(s) held back by your pinned Standard ${pinned}; ` +
+    `all of them become gate-failing errors at Standard ${dueAt} or later.${aboveBit}`;
 }
 
 /**
@@ -134,7 +153,9 @@ function findingLine(f) {
   const prov = f.provenance ?? "objective";
   return `  [${sev}/${prov}] ${f.check}${f.reqId ? " (" + f.reqId + ")" : ""}: ${f.message}` +
     `${f.ceiling ? ` [${ceilingAnnotation(f.ceiling)}]` : ""}` +
-    `${f.clampNotice ? ` [clamped to warn: published-verdict, ${f.provenance}]` : ""}` +
+    // The deprecated clamp annotation is suppressed when a trust notice already explains the same
+    // action; it stays in the DATA for external --json readers.
+    `${f.clampNotice && !f.trustNotice ? ` [clamped to warn: published-verdict, ${f.provenance}]` : ""}` +
     // A trust action must be VISIBLE, or a published verdict fails with no explanation that the
     // subject's own configuration was overruled - which is the promise ADR 0044 makes.
     `${f.trustNotice ? ` [${f.trustNotice}]` : ""}` +
@@ -251,7 +272,7 @@ if (process.argv[1]?.endsWith("check.mjs")) {
   }
   console.log(`\n${humanLine(computeTierReport(root, ctx, r.findings))}`);
   console.log(`\n${r.errorCount} error(s), ${r.warnCount} warning(s).`);
-  const debt = standardDebtLine(r.findings);
+  const debt = standardDebtLine(r.findings, ctx?.library?.data?.tier);
   if (debt) console.log(debt);
   process.exit(r.exitCode);
 }
