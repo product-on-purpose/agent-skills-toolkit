@@ -1,6 +1,10 @@
 // what-it-is:   the reference-links check (U6)
 // what-it-does: asserts every relative link in a component resolves on disk (the no-dangling-reference discipline)
 // why:          enforces the Standard requirement U6 deterministically, one module per reqId, so the gate stays model-free
+// scope-note:  skills only, and that is E18's open question rather than a ratified decision - link rot in a
+//               command or subagent is invisible here. ADR 0048 deliberately did NOT extend U6 to commands
+//               (a command is not a skill); whether link resolution should apply to every markdown component
+//               the plugin ships is a different question with a different answer
 // used-by:      registered in scripts/lib/registry.mjs; run by scripts/check.mjs and tier-report.mjs
 import { finding, SEVERITY } from "../lib/findings.mjs";
 import { statSync, existsSync, readdirSync, readFileSync } from "node:fs";

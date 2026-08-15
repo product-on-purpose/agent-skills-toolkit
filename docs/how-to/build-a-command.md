@@ -40,8 +40,12 @@ You can also scaffold manually:
 
 Then fill the frontmatter fields:
 
-- `description` - what the command does AND when to use it, mirroring the backing
-  skill's triggering intent (Standard sec 8.1). Must be non-empty.
+- `description` - the label a caller sees beside `/<name>`. State what invoking the
+  command does; it MUST be non-empty. It SHOULD agree with the backing skill's intent,
+  but it is **not** a trigger surface and is not held to the sec 8.1 discoverability bar
+  (Standard sec 3.2): a command is invoked by name, not matched from a request, and on
+  Codex the backing skill is the invocable form, so no command description exists at all.
+  Keep it short enough to read in a menu.
 - `maps-to` - the name of the backing skill or workflow (without extension, without
   path prefix). Must resolve to an on-disk component.
 - `argument-hint` - optional; a short usage string shown to the caller (e.g.

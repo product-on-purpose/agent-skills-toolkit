@@ -9,6 +9,20 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Changed
+
+- **Standard 0.13 to 0.14.** The version note records all seven decisions of the v1.14.0 ADR pack (ADRs 0046 to 0052) and, per sec 7.7, which of them a plugin adopts by re-pinning to 0.14 (`U15`, `U16`) and which are held for every pin below 0.15 (`U17`, the workflow mirror). The Universal checks are now `U1-U9`, `U11-U17`; the spine is **34**.
+
+- **Sec 3.2: a command's description MUST is DEMOTED to a SHOULD (ADR 0048), and this is the diff to read if you track the Standard.** The rule said a command's description "MUST match the skill's triggering intent" - unenforceable as written, and **satisfied by 0 of 14 commands in the reference family, this toolkit's own two included.** Those two score 0.65 while their backing skills, of identical name and intent, score **1.00**; the entire gap is one literal token ("Use **to** audit" is not "Use **when**"). It splits into a MUST (non-empty, states what invoking does - enforced by `S7`) and a SHOULD (agrees with the backing skill's intent - real, and not machine-checkable).
+
+  **Why the bar is wrong for the surface, not merely mistuned:** a skill is selected by a model matching its description, so the description IS its trigger surface; a command is selected by a person typing `/<name>`, and on Codex there is no command artifact at all, so the backing skill does the triggering. **On neither runtime does a command description perform trigger matching.** `templates/command.md`, `docs/how-to/build-a-command.md` and the `askit-build-command` skill all asked authors for a trigger sentence and are corrected; the how-to's sec 8.1 citation is what made two hand-written commands here score 0.65. `U5`, `U6` and `U7` keep their skills-only scope, and a test now fails if `U5` is widened to commands.
+
+- **Sec 8.1 is scoped to skills, and its scorer declines rather than fails a language it cannot read (ADR 0049).** The scoping is stated because the bar had been read as applying to any component. The declining half is normative: tooling MUST NOT report a description as failing when it cannot read the description's language, because a low score is a claim about the description and only "not scored" is a claim the tool has evidence for.
+
+- **Sec 12 records that a catalogue-level finding is never a numbered requirement on an individual plugin (ADR 0051), which CLOSES the question of graduating cross-member findings.** The criterion is the **unilateral-remedy test**: a marketplace finding may become a numbered requirement only if the member named in it can resolve it by editing its own repository alone, without reference to any other member and without editing the catalogue. Applied to all eight marketplace classes, exactly one passes, and it already graduated as `U14`. The code had been saying so and nobody had noticed: six of the seven attribute their finding to the catalogue's own manifest or to a path spanning two members. A test asserts `reqId: null` by iterating the **emitters**, so a ninth class carrying a reqId fails CI rather than being caught in review.
+
+  **One condition would reopen it, for two of the seven only.** `skill-collision` and `command-collision` rest on components entering a shared runtime namespace: if a runtime namespaces by plugin they should be **retired** rather than graduated. The other five are unconditional, because no vendor change makes a member the owner of a catalogue's file.
+
 ### Added
 
 - **`U17` (`catalogue-manifest-shape`), spine 33 to 34: a `.claude-plugin/marketplace.json` that no scope can read (ADR 0052). Warn-only at 0.14; gates at 0.15.** The disjointness rule between marketplace scope and `U13` is a clean partition of the WELL-FORMED cases and says nothing about the rest.

@@ -952,3 +952,38 @@ test("a member's RESTRICTED-FIELD findings are identical whether it is graded al
     rmSync(siblings, { recursive: true, force: true });
   }
 });
+
+test("ADR 0051: EVERY marketplace-scope finding carries reqId null, iterating the emitters not a list", () => {
+  // The unilateral-remedy test, made mechanical. A marketplace finding may become a numbered spine
+  // requirement only if the member named in it can resolve it by editing its OWN repository alone,
+  // without reference to any other member and without editing the catalogue. Applied to all eight
+  // classes, exactly one passes - and it already graduated, as U14 in v1.13.0 (ADR 0045).
+  //
+  // The other seven stay scope-local: three are properties of the catalogue's own manifest, one of a
+  // catalogue ENTRY, two of a PAIR of members, and one is a two-party disagreement between a catalogue
+  // pin and a member's manifest. The spine is a contract each PLUGIN is held to individually, and a
+  // requirement it cannot discharge alone is not a requirement.
+  //
+  // Iterating the EMITTERS rather than a hand-written list is the point: adding a ninth class with a
+  // reqId fails here and forces its author to meet ADR 0051 rather than discovering it in review.
+  const members = [
+    { status: "resolved", dir: "/x/a", entry: entry("a", 0), skillNames: ["dup"], commandNames: ["dup"],
+      library: { version: "9.9.9" }, subagents: [], agentDocs: [{ name: "bad", frontmatter: { name: "bad", hooks: {} } }] },
+    { status: "resolved", dir: "/x/b", entry: entry("b", 1), skillNames: ["dup"], commandNames: ["dup"],
+      library: { version: "0.0.1" }, subagents: [], agentDocs: [] },
+  ];
+  const entries = [entry("a", 0), entry("a", 1)];
+
+  const produced = [
+    ...duplicateCatalogueNames(entries),
+    ...renameCollisions(entries),
+    ...versionAgreement(members),
+    ...skillCollisions(members),
+    ...commandCollisions(members),
+    ...agentRestrictedFields(members),
+  ];
+  assert.ok(produced.length >= 4, `the fixtures must actually produce findings (got ${produced.length})`);
+  for (const f of produced) {
+    assert.equal(f.reqId, null, `a marketplace finding claimed a spine reqId: ${f.check} - ${f.message.slice(0, 80)}`);
+  }
+});
