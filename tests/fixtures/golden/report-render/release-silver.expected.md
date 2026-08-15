@@ -15,7 +15,7 @@
 | Report type | Release-readiness assessment |
 | Evaluated | 2026-01-01 |
 | Standard | v0.8 |
-| Spine | 31 checks |
+| Spine | 32 checks |
 | Declared tier | Convergent (Silver) |
 | Grade earned | Silver (Convergent) |
 | Climb | 3 blocker(s) remain to Gold |
@@ -36,7 +36,7 @@
 
 **Summary: a derived, plain-language read of the deterministic result. silver-fixture earns Silver.**
 
-silver-fixture declares the Silver (Convergent) tier and earns Silver. Of the 31 checks in the spine, 28 do not fail (23 pass, 1 warn, 4 not applicable) and 3 fail. The deterministic gate exits 0.
+silver-fixture declares the Silver (Convergent) tier and earns Silver. Of the 32 checks in the spine, 29 do not fail (24 pass, 1 warn, 4 not applicable) and 3 fail. The deterministic gate exits 0.
 
 3 requirement(s) block Gold: G2, G5, G4. Section 06 orders the climb and section 07 gives a copy-paste fix prompt for each gap that drives the matching askit builder and re-runs the gate.
 
@@ -76,9 +76,9 @@ Vacuous passes here: U12, U11, G6, G1. A vacuous pass means there was nothing to
 
 ## 05 Tier compliance - evidence ledger
 
-**Summary: one row per requirement, all 31 itemized, grouped by tier. Every non-pass carries a why-it-matters note.**
+**Summary: one row per requirement, all 32 itemized, grouped by tier. Every non-pass carries a why-it-matters note.**
 
-### Bronze / Universal (13 checks) - 13 of 13 satisfied
+### Bronze / Universal (14 checks) - 14 of 14 satisfied
 
 | Req | Status | Provenance | Evidence |
 | --- | --- | --- | --- |
@@ -95,6 +95,7 @@ Vacuous passes here: U12, U11, G6, G1. A vacuous pass means there was nothing to
 | U11 mcp-valid | N/A | - | Nothing to validate for this subject (vacuous pass). Module: checks/mcp-valid.mjs. |
 | U13 skill-registration | PASS | - | Requirement satisfied; no finding raised. Module: checks/skill-registration.mjs. |
 | U14 agent-restricted-fields | PASS | - | Requirement satisfied; no finding raised. Module: checks/agent-restricted-fields.mjs. |
+| U15 agents-dir-registerable | PASS | - | Requirement satisfied; no finding raised. Module: checks/agents-dir-registerable.mjs. |
 
 ### Silver / Convergent (8 checks) - 8 of 8 satisfied
 
@@ -203,7 +204,7 @@ Run `askit-evaluate` in review mode to populate this section; a conformance repo
 | MODULE | checks/release-notes.mjs - the check behind a non-pass row above. |
 | MODULE | checks/index-drift.mjs - the check behind a non-pass row above. |
 | MODULE | checks/folder-readme.mjs - the check behind a non-pass row above. |
-| CLAUSE | Advanced Skill Library Standard v0.8 - the 31-check spine and the Bronze / Silver / Gold tier definitions this report grades against. |
+| CLAUSE | Advanced Skill Library Standard v0.8 - the 32-check spine and the Bronze / Silver / Gold tier definitions this report grades against. |
 | FILE | library.json - declares the subject identity (name, version, tier, agent-targets, prefix). |
 
 ## 10 Report metadata
@@ -214,7 +215,7 @@ Run `askit-evaluate` in review mode to populate this section; a conformance repo
 | --- | --- |
 | Subject | silver-fixture v0.1.0 |
 | Standard version | v0.8 |
-| Spine | 31 checks |
+| Spine | 32 checks |
 | Declared tier | convergent |
 | Grade earned | Silver (Convergent) |
 | Grading profile | askit-library |
@@ -222,11 +223,11 @@ Run `askit-evaluate` in review mode to populate this section; a conformance repo
 | Evaluator | askit-evaluate (deterministic gate, renderer) |
 | Gate exit code | 0 |
 | Evaluated | 2026-01-01 |
-| Checks | 23 PASS, 3 FAIL, 1 WARN, 4 N/A |
+| Checks | 24 PASS, 3 FAIL, 1 WARN, 4 N/A |
 
 ## 11 Per-check glossary
 
-**Summary: what each of the 31 checks verifies, in one line. A plain-language reference for every PASS / FAIL / WARN / N/A row above.**
+**Summary: what each of the 32 checks verifies, in one line. A plain-language reference for every PASS / FAIL / WARN / N/A row above.**
 
 | Check | Tier | What it verifies |
 | --- | --- | --- |
@@ -251,6 +252,7 @@ Run `askit-evaluate` in review mode to populate this section; a conformance repo
 | U11 mcp-valid | Bronze | An MCP server definition that is malformed or carries an inline secret either fails to connect or leaks a credential into the repository; validating it keeps the integration safe and loadable. |
 | U13 skill-registration | Bronze | A skill on disk that the manifest does not register ships but is invisible to installers; the catalog must list everything the library delivers, and a registered skill with no directory cannot be delivered at all. |
 | U14 agent-restricted-fields | Bronze | Claude Code refuses hooks, mcpServers and permissionMode on a plugin-shipped agent for security reasons, so an agent declaring one has configured something the runtime will not honour - and nothing tells the author, which is the whole hazard. |
+| U15 agents-dir-registerable | Bronze | Claude Code scans agents/ for *.md and registers every file it finds, so a file the plugin excludes from its own registration is still a live subagent - with whatever name and frontmatter it happens to carry - and it escapes every check that reads the registration list. |
 | G3 library-regression | Gold | Chain edges are where delegation breaks quietly; a regression eval per edge turns the chain contract from a declaration into a tested guarantee that a refactor cannot sever unnoticed. |
 | G6 deprecation | Gold | A component removed or replaced without following the deprecation policy breaks consumers who depended on it; an explicit deprecation gives them a status, a reason, and a migration path. |
 | G1 hook-documentation | Gold | An undocumented hook changes the agent's behavior invisibly; documenting each hook is what lets a reviewer and a consumer see what fires and why before they install it. |

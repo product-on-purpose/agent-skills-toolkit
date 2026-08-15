@@ -119,6 +119,11 @@ export function listAgentFiles(root) {
  * Any check asking what a plugin SHIPS TO A RUNTIME must use this. U14 used the registration list, so it
  * could be bypassed by putting restricted fields in agents/_unsafe.md - a file Claude loads and the gate
  * never read.
+ *
+ * Three callers honour that today: `U14` (agent-restricted-fields), `U15` (agents-dir-registerable, which
+ * exists to make this list and listAgentFiles' list provably EQUAL for a conforming plugin), and the
+ * marketplace member build, whose divergence from U14 broke ADR 0045's cross-scope guarantee for a whole
+ * release. A fourth caller that reaches for listAgentFiles instead is almost certainly a defect.
  */
 export function listRuntimeAgentDocs(root) {
   const agentsRoot = path.join(root, "agents");
