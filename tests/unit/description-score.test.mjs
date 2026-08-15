@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { loadPlugin } from "../../scripts/lib/load-plugin.mjs";
-import { check, scoreDescription } from "../../scripts/checks/description-score.mjs";
+import { check, scoreDescription, englishDensity, notScoredCount, READABLE_FLOOR } from "../../scripts/checks/description-score.mjs";
 
 const FIXTURES = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../fixtures");
 const golden = path.join(FIXTURES, "golden/minimal-skill");
@@ -78,4 +78,75 @@ test("a TODO placeholder description fails regardless of matched verbs", () => {
 // Guard: the help-pattern must not resurrect the anti-pattern stem.
 test("'Helps with' stays a vague anti-pattern, not an action", () => {
   assert.ok(scoreDescription("Helps with various things. Use when the user asks for help with project files and more.") < 0.7);
+});
+
+// --- ADR 0049: U5 declines rather than failing a description it cannot read -----------------------
+
+test("ADR 0049: the French exemplar produces NO finding, where it used to score 0.30", () => {
+  // reading 18's clearest case. It states what it does, states when to use it, and carries concrete
+  // trigger keywords - a word-for-word French rendering of the exact construction the WHEN regex is
+  // built to reward - and U5's message ("state what it does AND when to use it") is false of every
+  // clause of it. A check with no evidence must say nothing, not say something wrong.
+  const fr =
+    "À utiliser quand l'utilisateur veut relire, corriger ou améliorer un texte français";
+  assert.ok(scoreDescription(fr) < 0.7, "the scorer still cannot read it; that is the premise");
+  assert.ok(englishDensity(fr) < READABLE_FLOOR, `density was ${englishDensity(fr)}`);
+
+  const ctx = { skills: [{ name: "fr", skillMdPath: "skills/fr/SKILL.md", frontmatter: { description: fr } }] };
+  assert.deepEqual(check(ctx), [], "a description the scorer cannot read must produce no finding");
+  assert.equal(notScoredCount(ctx), 1, "and the decline must be counted, or it is indistinguishable from a pass");
+});
+
+test("ADR 0049: the 0.102-density English exemplar is STILL SCORED, which is what fixes the floor at 0.10", () => {
+  // The calibration's whole cost is here. This is legitimate keyword-dense technical English from the
+  // TerminalSkills corpus; it sits just above the floor. A floor of 0.15 would silence it along with 61
+  // others to gain 0.3 points of French coverage, which is the wrong trade and the reason 0.10 was
+  // chosen from a sweep rather than picked.
+  // VERBATIM from TerminalSkills/skills at sha 7a5cc967, density 0.1020. Written out in full and not
+  // paraphrased: an invented "roughly like this" string is what made the first version of this test
+  // prove NOTHING - appending "Use when managing ad spend" added two function words and pushed the
+  // density above 0.15, so moving the floor to 0.15 left the test green. The mutation check caught it.
+  const en =
+    "Optimize paid advertising campaigns across Google Ads, Meta, TikTok, LinkedIn, and other platforms. " +
+    "Use when tasks involve bid optimization, audience targeting, creative testing, ROAS improvement, " +
+    "attribution modeling, budget allocation, campaign structure, retargeting strategies, lookalike " +
+    "audiences, or reducing customer acquisition cost. Covers multi-platform campaign management and " +
+    "creative performance analysis.";
+  const d = englishDensity(en);
+  assert.equal(d.toFixed(4), "0.1020", "the exemplar must stay the verbatim corpus string");
+  assert.ok(
+    d >= READABLE_FLOOR,
+    `density ${d.toFixed(4)} is below the ${READABLE_FLOOR} floor: raising the floor silences this ` +
+      "description and the 57 others measured in the 0.10-0.15 band, to gain 0.3 points of French coverage"
+  );
+
+  const ctx = { skills: [{ name: "en", skillMdPath: "skills/en/SKILL.md", frontmatter: { description: en } }] };
+  assert.equal(notScoredCount(ctx), 0, "an English description must never be declined");
+});
+
+test("ADR 0049: englishDensity returns 0 for an empty token set rather than NaN", () => {
+  // 0/0 is NaN, and NaN < READABLE_FLOOR is FALSE, so the guard would fall through and score a
+  // description with no word tokens at all - the opposite of the intended behaviour.
+  assert.equal(englishDensity(""), 0);
+  assert.equal(englishDensity("!!! ??? ..."), 0);
+  assert.equal(englishDensity(42), 0);
+});
+
+test("ADR 0049: declining WITHDRAWS a finding and can never add one", () => {
+  // The green-ward claim that lets this ship with no migration window, asserted rather than argued:
+  // for any description, the set of findings after the floor is a SUBSET of the set before it.
+  const cases = [
+    "Helps with stuff.",
+    "Converts a CSV file into a formatted summary table. Use when the user asks to summarize data.",
+    "À utiliser quand l'utilisateur veut relire un texte",
+    "TODO",
+    "",
+  ];
+  for (const desc of cases) {
+    const ctx = { skills: [{ name: "x", skillMdPath: "skills/x/SKILL.md", frontmatter: { description: desc } }] };
+    const after = check(ctx).length;
+    const wouldHaveBeen =
+      typeof desc === "string" && desc.length > 0 && scoreDescription(desc) < 0.7 ? 1 : 0;
+    assert.ok(after <= wouldHaveBeen, `declining added a finding for ${JSON.stringify(desc)}`);
+  }
 });

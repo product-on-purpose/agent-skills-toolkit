@@ -9,6 +9,22 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Changed
+
+- **`U5` (description-score) now DECLINES to score a description whose language it cannot read, instead of failing it (ADR 0049).** `U5` awards 0.35 of a 1.00 score for matching an English trigger-phrase pattern, against a 0.70 threshold. A description that pattern cannot match therefore caps at **0.65 and cannot pass at any quality.** On a 349-skill French corpus the pattern fired on **0 of 346** parseable descriptions while **341 of them carried an explicit French trigger clause.** The finding `U5` emitted - "state what it does AND when to use it, with concrete trigger keywords" - was false of every clause of descriptions that did exactly that, in French.
+
+  Before scoring, `U5` measures the description's **English function-word density** and emits nothing below a floor of **0.10**. No language-detection dependency, no per-language lexicon, and `scoreDescription` itself is unchanged: this is a decision about when the scorer should decline to produce a number, not a recalibration.
+
+  **Measured on the French corpus: 346 findings become 3.** Median function-word density is **0.000** on that corpus and **0.233** on the largest English one, so the separation is not marginal. The floor came from a sensitivity sweep over **2068 descriptions in seven pinned corpora**, not a guess: at 0.10 the cost is **3 descriptions in 1376** English; at 0.15 it is 62, and the ones lost in between are legitimate keyword-dense technical English.
+
+  **The three that still fail on that corpus are the honest residual** - French descriptions carrying enough English loanwords to cross the floor. This reduces a systematic defect to a rare one; it does not eliminate it.
+
+  **A decline is not a pass and does not print like one.** `check.mjs` reports the not-scored count in its human output and as `descriptionsNotScored` in `--json`, computed outside the verdict path. Without it, a plugin whose descriptions are all unreadable would be indistinguishable from one whose descriptions are all good.
+
+  **Nothing moves red-ward, at any pin, in any mode**, so this ships with no migration window: the change can only ever withdraw a finding. A test asserts that directly, over five description shapes.
+
+  The backlog's own recommended alternative - a language-independent structural signal for "states an occasion" - was prototyped and **falsified**: it fires on **99.9 percent** of all 2068 descriptions, including 94.4 percent of Anthropic's own, so it cannot discriminate. A pluggable French lexicon was also prototyped and reached only 33.2 percent.
+
 ### Fixed
 
 - **A plugin's restricted-field verdict depended on how it was graded, which is the one thing ADR 0045 exists to prevent.** v1.13.0's own changelog states that the vendor field list "live[s] in one module both scopes import, so a plugin's verdict cannot depend on whether it was graded on its own or as a catalogue member." **That was false as shipped.** Sharing the field list was necessary and not sufficient: the two scopes must also apply it to the same **agents**, and they did not. `U14` was moved to `ctx.agentDocs` (every `.md` a runtime loads from `agents/`) during v1.13.0's review, while the marketplace scope kept building each member from `ctx.subagents` (only what the plugin registers, excluding `README.md` and underscore-prefixed files).
