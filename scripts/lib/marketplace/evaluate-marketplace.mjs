@@ -133,7 +133,18 @@ function gradeMember(resolution, opts) {
       // uniform-worst-member option ADR 0038 forbids), and nothing is thresholded.
       failsOwnClaim: gate.exitCode !== 0,
       skills: ctx.skills,
+      // BOTH agent lists, named for what they are, mirroring the loader's own vocabulary.
+      // `subagents` is what the member REGISTERS; `agentDocs` is what a runtime LOADS, which
+      // additionally includes README.md and underscore-prefixed files.
+      //
+      // This member carried only `subagents`, and that single word is why ADR 0045's guarantee -
+      // "a plugin's verdict must not depend on whether it was graded on its own or as a catalogue
+      // member" - was false as shipped in v1.13.0. That ADR shared the vendor FIELD LIST between the
+      // two scopes; it did not share the AGENT LIST. When `U14` moved to `ctx.agentDocs` the member
+      // build stayed on `ctx.subagents`, so the same bytes got two different answers. Any analysis
+      // asking what a member SHIPS TO A RUNTIME must read `agentDocs`.
       subagents: ctx.subagents,
+      agentDocs: ctx.agentDocs,
       skillNames: ctx.skills.map((s) => path.basename(s.dir)),
       commandNames: listCommandFiles(resolution.dir).map((f) => path.basename(f, ".md")),
       gradingError: null,
@@ -142,7 +153,7 @@ function gradeMember(resolution, opts) {
     return {
       library: null, declaredTier: null, earnedTier: null, standardPin: null,
       errors: 0, warns: 0, standardDebt: 0, exitCode: 0, failsOwnClaim: false,
-      skills: [], subagents: [], skillNames: [], commandNames: [],
+      skills: [], subagents: [], agentDocs: [], skillNames: [], commandNames: [],
       gradingError: e?.message ?? String(e),
     };
   }
@@ -191,7 +202,7 @@ export function evaluateMarketplace(target, opts = {}) {
       entry: r.entry,
     };
     if (r.status !== "resolved") {
-      return { ...base, library: null, declaredTier: null, earnedTier: null, standardPin: null, errors: 0, warns: 0, standardDebt: 0, exitCode: 0, failsOwnClaim: false, skills: [], subagents: [], skillNames: [], commandNames: [], gradingError: null, diverged: false };
+      return { ...base, library: null, declaredTier: null, earnedTier: null, standardPin: null, errors: 0, warns: 0, standardDebt: 0, exitCode: 0, failsOwnClaim: false, skills: [], subagents: [], agentDocs: [], skillNames: [], commandNames: [], gradingError: null, diverged: false };
     }
     const graded = { ...base, ...gradeMember(r, opts) };
     return { ...graded, diverged: Boolean(graded.pinSha && graded.gradedSha && graded.pinSha !== graded.gradedSha) };

@@ -172,15 +172,24 @@ export { PLUGIN_AGENT_UNSUPPORTED_FIELDS, PLUGIN_AGENT_SUPPORTED_FIELDS } from "
 
 /**
  * A6: an agent shipped inside a plugin carrying a field the runtime refuses. WARN, not error, and
- * carrying no reqId - see MARKETPLACE_CHECKS. This is a reading over each member, not a spine check:
- * making it a numbered requirement is a Standard 0.13 tightening (ADR 0027's burndown), and that cut
- * belongs to the alignment batch, not to the release that adds marketplace scope.
+ * carrying no reqId - see MARKETPLACE_CHECKS. This is a reading over each member, not a spine check.
+ * `U14` is the numbered plugin-scope requirement that graduated from it (ADR 0045), and per ADR 0051's
+ * unilateral-remedy test it is the ONLY one of the eight classes that was ever eligible to.
+ *
+ * `agentDocs`, NOT `subagents`, and this is the whole of what ADR 0045 got wrong. That ADR shared the
+ * vendor FIELD LIST between this reading and `U14` so the two scopes could not disagree - and they
+ * still did, because they did not share the AGENT LIST. `U14` reads what a runtime LOADS; a member
+ * built from the REGISTRATION list drops README.md and underscore-prefixed files, so the same bytes
+ * produced a `U14` error when graded alone and nothing when graded as a catalogue member. The
+ * `?? m.subagents` fallback keeps a hand-built member object (several unit tests build one) working,
+ * and `tests/unit/marketplace-scope.test.mjs` carries the end-to-end parity test that a field-list
+ * comparison cannot express.
  */
 export function agentRestrictedFields(members) {
   const out = [];
   for (const m of members) {
     if (m.status !== "resolved") continue;
-    for (const agent of m.subagents ?? []) {
+    for (const agent of m.agentDocs ?? m.subagents ?? []) {
       const fm = agent.frontmatter;
       if (!fm || typeof fm !== "object") continue;
       const offending = unsupportedFieldsOn(fm);

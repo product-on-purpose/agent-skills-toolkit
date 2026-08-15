@@ -9,6 +9,18 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Fixed
+
+- **A plugin's restricted-field verdict depended on how it was graded, which is the one thing ADR 0045 exists to prevent.** v1.13.0's own changelog states that the vendor field list "live[s] in one module both scopes import, so a plugin's verdict cannot depend on whether it was graded on its own or as a catalogue member." **That was false as shipped.** Sharing the field list was necessary and not sufficient: the two scopes must also apply it to the same **agents**, and they did not. `U14` was moved to `ctx.agentDocs` (every `.md` a runtime loads from `agents/`) during v1.13.0's review, while the marketplace scope kept building each member from `ctx.subagents` (only what the plugin registers, excluding `README.md` and underscore-prefixed files).
+
+  **The observable effect:** a plugin shipping `agents/_shadow.md` with `permissionMode` took a `U14` error when graded on its own and produced **no finding at all** when graded as a member of a catalogue. Same bytes, two answers.
+
+  A member now carries **both** lists under their true names - `subagents` for what it registers, `agentDocs` for what a runtime loads - mirroring the loader's own vocabulary, and the `A6` reading uses `agentDocs`. `subagents` keeps its existing meaning, so nothing reading the collection report changes.
+
+  **Three tests were blind to this, each correctly, and that is the part worth keeping.** The `A6` unit test hand-builds its `members` array and so never reaches the real member build. The verdict-parity test compares tier, errors, warnings and exit code, and `A6` is a scope-local `warn` carrying no `reqId`, so it never enters a verdict. And ADR 0045's own "cross-scope parity assertion" compares **field lists**, which are identical on both sides of this defect. The new guard is end-to-end: one fixture directory graded both ways, comparing the restricted-field **findings**. It was proved capable of failing against each half of the fix independently.
+
+  No verdict moves on any of the six family members. ADR 0045 is **not amended** - its decision was correct and its implementation diverged from it a release later - but it now carries a dated correction recording what the guarantee actually required.
+
 ## [1.13.0] - 2026-08-13
 
 ### Upgrade

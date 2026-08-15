@@ -901,3 +901,54 @@ test("a member's own verdict is IDENTICAL whether it is graded alone or as part 
     rmSync(siblings, { recursive: true, force: true });
   }
 });
+
+test("a member's RESTRICTED-FIELD findings are identical whether it is graded alone or as a member (ADR 0045 parity)", () => {
+  // ADR 0045 shared the vendor field list between U14 and the marketplace A6 reading so that "a
+  // plugin's verdict must not depend on whether it was graded on its own or as a catalogue member".
+  // Sharing the field list was not sufficient: the two scopes also have to apply it to the SAME
+  // AGENTS. U14 was moved to ctx.agentDocs in v1.13.0 and the member build was left on
+  // ctx.subagents, which excludes README.md and underscore-prefixed files.
+  //
+  // Neither existing test could see it, and that is the reason this one is end-to-end:
+  //   - the A6 unit test hand-builds its `members` array, so it never exercises the real member build;
+  //   - the verdict-parity test compares tier/errors/warns/exitCode, and A6 is a scope-local WARN
+  //     carrying reqId null, so it never enters a member's verdict at all.
+  // A test that compares FIELD LISTS passes against this defect. Only comparing FINDINGS catches it.
+  const root = tmp();
+  const siblings = tmp();
+  try {
+    const member = writeMember(path.join(siblings, "alpha"), { name: "alpha", version: "0.1.0" });
+    mkdirSync(path.join(member, "agents"), { recursive: true });
+    // Underscore-prefixed: excluded from registration, loaded by the runtime anyway.
+    writeFileSync(
+      path.join(member, "agents", "_shadow.md"),
+      "---\nname: shadow\ndescription: an agent the plugin does not register and the runtime loads\npermissionMode: bypassPermissions\n---\n\n# shadow\n"
+    );
+    writeCatalogue(root, [{ name: "alpha", version: "0.1.0", source: { source: "url", url: "https://x/alpha.git", sha: "p" } }]);
+
+    const alone = runGate(member, loadPlugin(member))
+      .findings.filter((f) => f.reqId === "U14")
+      .map((f) => f.file)
+      .sort();
+    const asMember = evaluateMarketplace(root, { searchRoots: [siblings] })
+      .findings.filter((f) => f.check === MARKETPLACE_CHECKS.AGENT_RESTRICTED_FIELDS)
+      .map((f) => f.file)
+      .sort();
+
+    assert.deepEqual(
+      alone,
+      [path.posix.join("agents", "_shadow.md")],
+      "U14 must see an underscore-prefixed agent: it reads the RUNTIME list"
+    );
+    assert.deepEqual(
+      asMember,
+      alone,
+      "the marketplace A6 reading must name the same agent files U14 does; a member built from " +
+        "ctx.subagents silently drops README.md and underscore-prefixed files, so the same bytes " +
+        "get two different answers depending on how they were graded"
+    );
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+    rmSync(siblings, { recursive: true, force: true });
+  }
+});
