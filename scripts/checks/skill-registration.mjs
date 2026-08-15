@@ -67,7 +67,9 @@ export function resolveRegistrationSource(ctx) {
       if (set.size > 0) return set;
     }
   } catch {
-    /* absent or malformed -> fall through (R-REG-5: never throw) */
+    /* absent or malformed -> fall through (R-REG-5: never throw). U17 (catalogue-manifest-shape) owns
+       the case this declines: a present-but-unparseable manifest used to produce a finding from NOBODY,
+       because marketplace scope also declines a catalogue it cannot read (ADR 0052). */
   }
   // Rung 3: no enumerating manifest
   return null;

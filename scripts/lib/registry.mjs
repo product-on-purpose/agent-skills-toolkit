@@ -24,6 +24,7 @@ import * as skillRegistration from "../checks/skill-registration.mjs";
 import * as agentRestrictedFields from "../checks/agent-restricted-fields.mjs";
 import * as agentsDirRegisterable from "../checks/agents-dir-registerable.mjs";
 import * as metadataPlacement from "../checks/metadata-placement.mjs";
+import * as catalogueManifestShape from "../checks/catalogue-manifest-shape.mjs";
 import * as libraryRegression from "../checks/library-regression.mjs";
 import * as deprecation from "../checks/deprecation.mjs";
 import * as componentsMirror from "../checks/components-mirror.mjs";
@@ -42,7 +43,7 @@ export const CHECKS = [
   descriptionScore, referenceLinks, instructionBudget, manifestDrift,
   agentTargets, prefix, componentsIndex, componentsMirror, chainContract, commandContract, workflowSkills,
   perTargetPresence,
-  versionMatch, mermaidValid, mcpValid, skillRegistration, agentRestrictedFields, agentsDirRegisterable, metadataPlacement,
+  versionMatch, mermaidValid, mcpValid, skillRegistration, agentRestrictedFields, agentsDirRegisterable, metadataPlacement, catalogueManifestShape,
   libraryRegression, deprecation,
   hookDocumentation, selfHosting, releaseNotes, indexDrift, docsFrontmatter, folderReadme, sourceDoc, docsPresence,
 ];
