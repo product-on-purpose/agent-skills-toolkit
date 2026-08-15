@@ -1,10 +1,10 @@
 // what-it-is:   the plugin loader
-// what-it-does: builds the check context (root, library, skills, subagents, agentDocs, commands, manifests) that every check reads
+// what-it-does: builds the check context (root, library, skills, subagents, agentDocs, commands, workflows, manifests) that every check reads
 // why:          loading once into a shared context keeps each check synchronous and free of its own I/O setup
 // used-by:      imported by scripts/check.mjs, tier-report.mjs, evaluate.mjs, and the unit tests
 import { readFileSync, existsSync, statSync } from "node:fs";
 import path from "node:path";
-import { readJsonSafe, fileExists, listSkillDirs, listAgentFiles, listRuntimeAgentDocs, listCommandFiles } from "./fs-utils.mjs";
+import { readJsonSafe, fileExists, listSkillDirs, listAgentFiles, listRuntimeAgentDocs, listCommandFiles, listWorkflowFiles } from "./fs-utils.mjs";
 import { parseFrontmatter } from "./frontmatter.mjs";
 
 const isDir = (p) => existsSync(p) && statSync(p).isDirectory();
@@ -76,6 +76,13 @@ export function loadPlugin(root) {
   // plugin SHIPS must read this list, not `subagents`.
   const agentDocs = listRuntimeAgentDocs(root).map((f) => loadSubagent(f));
   const commands = listCommandFiles(root).map((f) => loadCommand(f));
+  // Workflows are a first-class Convergent component (Standard sec 3.4) that the loader never knew
+  // about, so `S7` read `ctx.workflows` and always got `undefined`: a command declaring
+  // `maps-to: <a real workflow>` was reported as resolving to nothing, which is a gate finding making
+  // a FALSE statement about the consumer's filesystem. `loadSubagent` is reused for the shape, and the
+  // name is the FILENAME basename, not a frontmatter field - workflows in the wild carry `title`, and
+  // the basename is what both `maps-to` and the Standard's `_workflows/<name>.md` refer to.
+  const workflows = listWorkflowFiles(root).map((f) => loadSubagent(f));
 
   const claude = readJsonSafe(path.join(root, ".claude-plugin", "plugin.json"));
   const codex = readJsonSafe(path.join(root, ".codex-plugin", "plugin.json"));
@@ -91,5 +98,5 @@ export function loadPlugin(root) {
   // Present + valid JSON but no usable mcpServers object => malformed (mcp-valid fails closed).
   const mcpMalformed = mcpPresent && !mcp.parseError && mcpMap === null;
 
-  return { root, library, agentsMdPath, skills, subagents, agentDocs, commands, claudeManifest: claude.data, codexManifest: codex.data, mcpServers, mcpPath, mcpParseError, mcpMalformed };
+  return { root, library, agentsMdPath, skills, subagents, agentDocs, commands, workflows, claudeManifest: claude.data, codexManifest: codex.data, mcpServers, mcpPath, mcpParseError, mcpMalformed };
 }

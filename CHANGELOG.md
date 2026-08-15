@@ -9,6 +9,18 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Added
+
+- **Workflows are a loaded component, and the components mirror finally covers them (ADR 0047).** A workflow is a first-class Convergent component in the Standard (sec 3.4), with a defined location and format, and the loader never knew about it. `loadPlugin()` built skills, subagents, agent docs, commands and MCP servers, and no workflows.
+
+  **The visible consequence was a gate finding that stated something untrue about your filesystem.** `S7` (`command-contract`) read `ctx.workflows`, which was always `undefined`, so a command declaring `maps-to: <a real workflow>` was reported as *"maps-to X but no skill or workflow by that name exists on disk"* against a repository containing `_workflows/X.md`. The remediation it implies - delete the mapping, or rename the workflow into a skill - is destructive advice from a wrong premise. The source comment said `ctx.workflows arrives in a later phase`; it had not arrived for as long as the field had been read.
+
+  `_workflows/*.md` is now loaded once, in the loader, excluding a folder `README.md` and `_`-prefixed control files. `S5` and `S4` are repointed at it, replacing two more private readings of the same directory - the repository had **three** different ideas of what a workflow file is, and they had already drifted (`S5`'s private reader included `README.md`). Building the list can only WITHDRAW a finding, so it ships with no migration window and moved nothing on any family member.
+
+  **`S3` (`components-index`) gains the workflow half of the mirror**, both directions, so a plugin can no longer ship nine workflows, declare none, and be told nothing. This one can only ADD findings, so it is a subrule tightening and every finding carries its own migration metadata: **introduced at Standard 0.14, gate-failing at 0.15.** Measured both ways - without the window it takes `thinking-framework-skills` from Convergent to Universal on 9 new errors; with it, the same 9 findings resolve to warnings, land in Standard debt, and **no verdict moves**.
+
+  Two second-order facts for anyone fixing a plugin against this: a `_workflows/` directory holding only a `README.md` no longer counts as "chaining is in use" for `S4`, which is the better answer; and in `pm-skills` the command names and workflow names do not correspond, so `commands/workflow-design-sprint.md` would declare `maps-to: design-sprint`. Building the list does not make those commands pass - it makes them able to.
+
 ### Changed
 
 - **`U5` (description-score) now DECLINES to score a description whose language it cannot read, instead of failing it (ADR 0049).** `U5` awards 0.35 of a 1.00 score for matching an English trigger-phrase pattern, against a 0.70 threshold. A description that pattern cannot match therefore caps at **0.65 and cannot pass at any quality.** On a 349-skill French corpus the pattern fired on **0 of 346** parseable descriptions while **341 of them carried an explicit French trigger clause.** The finding `U5` emitted - "state what it does AND when to use it, with concrete trigger keywords" - was false of every clause of descriptions that did exactly that, in French.

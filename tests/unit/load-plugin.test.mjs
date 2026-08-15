@@ -2,6 +2,8 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { mkdtempSync, mkdirSync, writeFileSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
 import { loadPlugin, loadSkill } from "../../scripts/lib/load-plugin.mjs";
 
 const FIXTURES = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../fixtures");
@@ -57,4 +59,56 @@ test("loads commands from commands/*.md into ctx.commands", () => {
 test("ctx.commands is empty when no commands/ dir exists", () => {
   const ctx = loadPlugin(path.join(FIXTURES, "golden/minimal-skill"));
   assert.deepEqual(ctx.commands, []);
+});
+
+// --- ADR 0047: ctx.workflows -------------------------------------------------------------------
+
+test("ADR 0047: ctx.workflows excludes README.md and _-prefixed files, and includes everything else", () => {
+  const dir = mkdtempSync(path.join(tmpdir(), "askit-workflows-"));
+  try {
+    mkdirSync(path.join(dir, "_workflows"), { recursive: true });
+    for (const [name, body] of [
+      ["real-arc.md", "---\ntitle: Real\nsteps:\n  - one\n---\n"],
+      ["another.md", "---\ntitle: Another\n---\n"],
+      ["README.md", "---\ntitle: Workflows\n---\n"],
+      ["_control.md", "---\ntitle: Control\n---\n"],
+      ["notes.txt", "not markdown"],
+    ]) writeFileSync(path.join(dir, "_workflows", name), body);
+
+    const names = loadPlugin(dir).workflows.map((w) => w.name).sort();
+    assert.deepEqual(names, ["another", "real-arc"]);
+
+    // The README exclusion is correct HERE and would be wrong in agents/: no runtime scans
+    // _workflows/, so a folder guide there creates no phantom. listRuntimeAgentDocs excludes
+    // nothing for exactly the opposite reason (ADR 0046). The two must not be "harmonised".
+    assert.ok(!names.includes("README"), "a folder guide is not a workflow");
+    assert.ok(!names.includes("_control"), "an underscore control file is not a workflow");
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test("ADR 0047: a plugin with no _workflows/ yields [], never undefined", () => {
+  const dir = mkdtempSync(path.join(tmpdir(), "askit-workflows-none-"));
+  try {
+    // undefined is what S7 read for the whole life of the field, and `(undefined || []).map` hides it
+    // silently. An empty array makes "no workflows" and "the loader forgot" different states.
+    assert.deepEqual(loadPlugin(dir).workflows, []);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test("ADR 0047: a workflow's name is the FILENAME, not a frontmatter field", () => {
+  const dir = mkdtempSync(path.join(tmpdir(), "askit-workflows-name-"));
+  try {
+    mkdirSync(path.join(dir, "_workflows"), { recursive: true });
+    // Workflows in the wild carry `title`, not `name`, and `maps-to` plus the Standard's
+    // `_workflows/<name>.md` both refer to the basename. Taking the frontmatter would make a
+    // command's maps-to resolve against a value the Standard never points at.
+    writeFileSync(path.join(dir, "_workflows", "design-sprint.md"), "---\ntitle: Design Sprint\nname: something-else\n---\n");
+    assert.deepEqual(loadPlugin(dir).workflows.map((w) => w.name), ["design-sprint"]);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
 });

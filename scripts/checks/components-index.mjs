@@ -6,6 +6,26 @@ import { finding, SEVERITY } from "../lib/findings.mjs";
 
 export const meta = { id: "components-index", tier: "convergent", reqId: "S3", since: "0.x", provenance: "house" };
 
+/**
+ * The workflow half of the components mirror is a NEW SUBRULE under an existing reqId, so it needs
+ * finding-level migration metadata of its own (ADR 0044 point 4, ADR 0047). `S3`'s `meta.since` is
+ * `0.x` - it describes when the CHECK appeared and says nothing about when a rule inside it did - so
+ * without this the subrule would arrive with no window at all and cost a live family member a tier
+ * on the day it landed. Measured, not assumed: unwindowed it took `thinking-framework-skills` from
+ * Convergent to Universal on 9 new errors; windowed it moves no verdict at all.
+ *
+ * The `reason` is ACTIVATION-NEUTRAL by construction: it states what the migration is ABOUT and never
+ * claims a cap is currently in force, because under `--strict` the pin is undefined, nothing binds,
+ * and the finding is a live error while this metadata is still visible in `--json`. The run-specific
+ * `migrationNotice` is what describes an ACTIVE cap. Round 17 of the v1.13.0 review caught the first
+ * draft of exactly this text asserting otherwise.
+ */
+const WORKFLOW_MIRROR_MIGRATION = {
+  capAt: "warn",
+  until: "0.15",
+  reason: "the workflow half of the components mirror is introduced at Standard 0.14 and gates at 0.15",
+};
+
 export function check(ctx) {
   const lib = ctx.library?.data;
   if (!lib) return [];
@@ -79,6 +99,29 @@ export function check(ctx) {
   for (const c of (ctx.commands || [])) {
     if (!declaredCommandNames.has(c.name)) {
       out.push(finding(meta.id, SEVERITY.ERROR, `commands/${c.name}.md exists on disk but is not declared in library.json components.commands.`, { file: "library.json", reqId: meta.reqId }));
+    }
+  }
+  // Workflows: the bidirectional mirror, same shape as skills/subagents/commands above, but every
+  // finding carries the migration window (ADR 0047). Workflows were the only Convergent component
+  // with no mirror between manifest and disk, so a plugin could ship nine and declare none and be
+  // told nothing - the `U13` argument (a component on disk but unregistered ships invisibly) applied
+  // to a component type that was simply forgotten.
+  const declaredWorkflows = Array.isArray(components.workflows) ? components.workflows : [];
+  const onDiskWorkflowNames = new Set((ctx.workflows || []).map((w) => w.name));
+  const declaredWorkflowNames = new Set();
+  for (const c of declaredWorkflows) {
+    if (!c || typeof c.name !== "string") {
+      out.push(finding(meta.id, SEVERITY.ERROR, "library.json components.workflows entry is missing required string \"name\".", { file: "library.json", reqId: meta.reqId, migration: WORKFLOW_MIRROR_MIGRATION }));
+      continue;
+    }
+    declaredWorkflowNames.add(c.name);
+    if (!onDiskWorkflowNames.has(c.name)) {
+      out.push(finding(meta.id, SEVERITY.ERROR, `library.json components.workflows declares "${c.name}" but it is not on disk under _workflows/.`, { file: "library.json", reqId: meta.reqId, migration: WORKFLOW_MIRROR_MIGRATION }));
+    }
+  }
+  for (const w of (ctx.workflows || [])) {
+    if (!declaredWorkflowNames.has(w.name)) {
+      out.push(finding(meta.id, SEVERITY.ERROR, `_workflows/${w.name}.md exists on disk but is not declared in library.json components.workflows.`, { file: "library.json", reqId: meta.reqId, migration: WORKFLOW_MIRROR_MIGRATION }));
     }
   }
   const declaredMcp = Array.isArray(components.mcpServers) ? components.mcpServers : [];

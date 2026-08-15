@@ -31,3 +31,38 @@ test("command-no-description: a command with a resolving maps-to but no descript
   // maps-to resolves to cd-skill, so no maps-to finding should fire - the description branch is isolated.
   assert.ok(!r.some((f) => /maps-to/.test(f.message)));
 });
+
+// --- ADR 0047: ctx.workflows is built, so maps-to can resolve to a real workflow -----------------
+
+test("ADR 0047: maps-to naming a real _workflows/<name>.md resolves, and used to be reported unresolved", () => {
+  // The defect this fixes is not a missing feature, it is a gate finding that states something UNTRUE
+  // about the consumer's filesystem: "maps-to X but no skill or workflow by that name exists on disk",
+  // against a repository containing _workflows/X.md. The remediation it implies - delete the mapping,
+  // or rename the workflow into a skill - is destructive advice from a wrong premise.
+  const ctx = {
+    root: "/x",
+    skills: [],
+    workflows: [{ name: "fx-arc", frontmatter: { title: "The fx arc" } }],
+    commands: [{ name: "fx-run", frontmatter: { description: "run the arc", "maps-to": "fx-arc" } }],
+  };
+  assert.deepEqual(check(ctx), [], "a command mapping to a workflow on disk must produce no finding");
+
+  // and the negative control: a maps-to naming nothing is still reported.
+  const missing = { ...ctx, commands: [{ name: "fx-run", frontmatter: { description: "d", "maps-to": "nope" } }] };
+  const f = check(missing);
+  assert.equal(f.length, 1);
+  assert.match(f[0].message, /no skill or workflow by that name exists on disk/);
+});
+
+test("ADR 0047: a workflow name never masks the skill namespace, and both resolve", () => {
+  const ctx = {
+    root: "/x",
+    skills: [{ name: "fx-demo" }],
+    workflows: [{ name: "fx-arc", frontmatter: {} }],
+    commands: [
+      { name: "a", frontmatter: { description: "d", "maps-to": "fx-demo" } },
+      { name: "b", frontmatter: { description: "d", "maps-to": "fx-arc" } },
+    ],
+  };
+  assert.deepEqual(check(ctx), []);
+});

@@ -172,7 +172,7 @@ Each component spec gives: purpose, required structure, fields, per-agent format
 ### 3.4 Workflow (Convergent)
 - **Purpose:** an ordered arc chaining multiple skills toward an outcome.
 - **Format:** `_workflows/<name>.md` defining ordered steps, the skill invoked at each step, inputs/outputs handed between steps, and exit criteria.
-- **Rules:** every skill referenced MUST exist; every chaining step MUST be permitted by a chain contract (3.6); a workflow SHOULD declare which agent targets it supports.
+- **Rules:** every skill referenced MUST exist; every chaining step MUST be permitted by a chain contract (3.6); a workflow SHOULD declare which agent targets it supports. A workflow file MUST be mirrored in the components index: every `_workflows/<name>.md` on disk MUST be declared in `library.json` `components.workflows`, and every declared workflow MUST exist on disk (`S3`, `components-index`; the same bidirectional mirror sec 5.1 requires of skills, subagents and commands). A workflow on disk but undeclared ships invisibly to installers; a declared workflow with no file cannot be delivered. **Introduced at Standard 0.14 and, per sec 7.7, held at `warn` until it becomes a gate-failing `error` at 0.15** (ADR 0047). A folder `README.md` and `_`-prefixed control files under `_workflows/` are not workflows and are excluded from the mirror.
 
 ### 3.5 Hook (Advanced)
 - **Purpose:** event-driven enforcement or context injection.

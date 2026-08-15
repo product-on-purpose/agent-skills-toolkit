@@ -60,9 +60,12 @@ function parseChainDeclaration(declared) {
 export function check(ctx) {
   const out = [];
   const contractPath = path.join(ctx.root, "agents", "_chain-permitted.yaml");
-  const workflowsDir = path.join(ctx.root, "_workflows");
   const hasContract = isFile(contractPath);
-  const hasWorkflows = isDir(workflowsDir);
+  // ADR 0047: one reading of `_workflows/`, in the loader, rather than three in three checks. This is
+  // behaviour-preserving except in one case, where the new answer is the better one: a `_workflows/`
+  // directory holding ONLY a README.md is no longer "chaining is in use", because it declares no
+  // workflow at all.
+  const hasWorkflows = (ctx.workflows || []).length > 0;
 
   const components = [...(ctx.skills || []), ...(ctx.subagents || [])];
   // A component "declares an invocation" via `chain:` (Standard sec 3.6, 3.8), read from

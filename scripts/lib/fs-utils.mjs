@@ -140,6 +140,27 @@ export function listCommandFiles(root) {
     .filter((p) => fileExists(p));
 }
 
+/**
+ * Absolute paths of `_workflows/*.md`, excluding a folder `README.md` and `_`-prefixed control files.
+ * Mirrors listCommandFiles.
+ *
+ * The README exclusion is correct HERE and would be wrong in agents/, and the two must be read
+ * together or the next reviewer will "harmonise" them (ADR 0047, ADR 0046). No runtime scans
+ * `_workflows/` - it is a Standard construct that only this toolkit reads - so a folder guide there
+ * creates no phantom anywhere and excluding it is a naming convention. In `agents/` the identical
+ * exclusion hides a file the VENDOR loads, which is why listRuntimeAgentDocs above excludes nothing.
+ * The difference is not style; it is whose discovery rules apply.
+ */
+export function listWorkflowFiles(root) {
+  const workflowsRoot = path.join(root, "_workflows");
+  if (!existsSync(workflowsRoot) || !statSync(workflowsRoot).isDirectory()) return [];
+  return readdirSync(workflowsRoot)
+    .filter((name) => name.endsWith(".md") && !name.startsWith("_") && name !== "README.md")
+    .map((name) => path.join(workflowsRoot, name))
+    // fileExists guards against a directory named "<x>.md" (mirrors listAgentFiles).
+    .filter((p) => fileExists(p));
+}
+
 /** Recursively list file paths under dir (absolute). [] if dir missing. */
 export function walkFiles(dir) {
   if (!existsSync(dir)) return [];
