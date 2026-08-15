@@ -97,3 +97,28 @@ Found by round 7 of the v1.13.0 adversarial review. Zero family verdicts moved.
 - `tests/unit/agent-restricted-fields.test.mjs` - the check's own coverage, including the cross-scope parity assertion.
 
 Grep anchor: `PLUGIN_AGENT_UNSUPPORTED_FIELDS` in `scripts/lib/vendor-agent-fields.mjs`.
+
+## Correction, 2026-08-14: sharing the field list did not deliver the guarantee
+
+**The decision above is unchanged and is not amended.** This note records that its implementation
+diverged from it a release later, and what now enforces it.
+
+Sharing `vendor-agent-fields.mjs` between the two scopes was necessary and **not sufficient**. The
+scopes also have to apply the shared list to the **same agents**, and they did not: v1.13.0's round-1
+review moved `U14` to `ctx.agentDocs` (what a runtime loads) and left `evaluate-marketplace.mjs`
+building each member from `ctx.subagents` (what a plugin registers). The registration list excludes
+`README.md` and underscore-prefixed files, so from v1.13.0 as published, **the same plugin took a `U14`
+error when graded alone and no finding at all when graded as a catalogue member** - the exact outcome
+the sentence above forbids.
+
+The "cross-scope parity assertion" this section already claimed compares **field lists**, and a field
+list is identical on both sides of this defect. Two other tests were equally blind, each correctly:
+the `A6` unit test hand-builds its `members` array so it never reaches the real member build, and
+`marketplace-scope.test.mjs`'s verdict-parity test compares tier, errors, warns and exit code, while
+`A6` is a scope-local `warn` carrying `reqId: null` that never enters a verdict.
+
+Fixed by giving the member both lists under their true names (`subagents` and `agentDocs`, mirroring
+the loader) and pointing `agentRestrictedFields` at `agentDocs`. The enforcement is an **end-to-end**
+parity test in `tests/unit/marketplace-scope.test.mjs`: one fixture directory graded both ways, with
+the restricted-field **findings** compared. It was proved capable of failing against both halves of the
+fix independently. See ADR 0046 for the analysis, which is the same defect one layer over.
