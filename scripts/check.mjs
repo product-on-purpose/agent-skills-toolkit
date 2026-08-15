@@ -21,6 +21,10 @@ import { TIER_ORDER, tierForReq, ceilingIndex } from "./lib/tier.mjs";
 import { compareStandard } from "./lib/standard-version.mjs";
 import { normalizeArgPath } from "./lib/fs-utils.mjs";
 import { renderSarif } from "./lib/sarif-render.mjs";
+// The one check-specific import this module makes. U5 is the only check that can DECLINE to judge its
+// subject (ADR 0049), and a decline that prints identically to a pass is the defect the decline was
+// introduced to avoid. If a second check ever declines, generalise this into the registry.
+import { notScoredCount } from "./checks/description-score.mjs";
 
 /** Filter error severity by declared-tier ceiling. Exported for unit testing. */
 export function gateExitFromFindings(findings, declaredTier) {
@@ -67,7 +71,16 @@ export function runGate(root, ctx = loadPlugin(root), { strict = false, mode, pr
  * Pure serialization; exported for unit testing.
  */
 export function buildJsonReport(root, ctx, r) {
-  return { ...r, tierReport: computeTierReport(root, ctx, r.findings) };
+  // `descriptionsNotScored` is PRESENTATION, computed here rather than in runGate() and therefore
+  // provably outside the verdict path - the same layering as sectionFindings() below. U5 declines to
+  // score a description whose language its lexicons cannot read (ADR 0049), which withdraws a finding
+  // rather than adding one, so a consumer counting U5 findings to track description quality would see
+  // the number fall with no quality change. Emitting the decline count is what makes that legible.
+  return {
+    ...r,
+    descriptionsNotScored: notScoredCount(ctx),
+    tierReport: computeTierReport(root, ctx, r.findings),
+  };
 }
 
 /**
@@ -296,6 +309,13 @@ if (process.argv[1]?.endsWith("check.mjs")) {
   }
   console.log(`\n${humanLine(computeTierReport(root, ctx, r.findings))}`);
   console.log(`\n${r.errorCount} error(s), ${r.warnCount} warning(s).`);
+  // A decline is not a pass, and it must not read like one (ADR 0049).
+  const notScored = notScoredCount(ctx);
+  if (notScored > 0) {
+    console.log(
+      `${notScored} description(s) NOT SCORED: U5 reads English and declines rather than failing what it cannot read (Standard sec 8.1).`
+    );
+  }
   const debt = standardDebtLine(r.findings, ctx?.library?.data?.tier);
   if (debt) console.log(debt);
   process.exit(r.exitCode);
