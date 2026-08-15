@@ -24,10 +24,11 @@ const REPO_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..
 const FIXTURES = path.join(REPO_ROOT, "tests/fixtures");
 const f = (severity, reqId, extra = {}) => ({ check: "x", severity, message: "m", file: null, reqId, ...extra });
 
-test("SINCE_BY_REQ covers every spine reqId; the ADR 0024 checks are 0.10, U13 is 0.12, U14 is 0.13, U15 is 0.14, the rest baseline", () => {
-  assert.equal(Object.keys(SINCE_BY_REQ).length, 32);
+test("SINCE_BY_REQ covers every spine reqId; the ADR 0024 checks are 0.10, U13 is 0.12, U14 is 0.13, U15 and U16 are 0.14, the rest baseline", () => {
+  assert.equal(Object.keys(SINCE_BY_REQ).length, 33);
   assert.equal(SINCE_BY_REQ["U14"], "0.13", "U14 (agent-restricted-fields) should be 0.13 (ADR 0045)");
   assert.equal(SINCE_BY_REQ["U15"], "0.14", "U15 (agents-dir-registerable) should be 0.14 (ADR 0046)");
+  assert.equal(SINCE_BY_REQ["U16"], "0.14", "U16 (metadata-placement) should be 0.14 (ADR 0050)");
   for (const r of ["U12", "G7", "G8", "G9", "G10"]) assert.equal(SINCE_BY_REQ[r], "0.10", `${r} should be 0.10`);
   assert.equal(SINCE_BY_REQ["U13"], "0.12", "U13 (skill-registration) should be 0.12 (ADR 0035)");
   for (const r of ["U1", "U8", "S1", "G1", "G6"]) assert.equal(SINCE_BY_REQ[r], "0.x", `${r} should be baseline`);

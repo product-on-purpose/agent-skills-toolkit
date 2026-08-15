@@ -11,6 +11,20 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- **The frontmatter vocabulary is OPEN, stated as a rule, and `U16` (`metadata-placement`) checks PLACEMENT instead. Spine 32 to 33 (ADR 0050).** Standard sec 3.8 listed the keys each component type carries and never said what an unknown key is; `U3` validated `name` and `description` and nothing else. So every other key was unconstrained in both directions: an author could add anything, and could put a Standard key anywhere.
+
+  **Strictness was measured and rejected.** Across **2342 skills in thirteen sources** (seven pinned corpora plus all six family members), **44.9 percent** carry a top-level key the Standard does not name and **58.2 percent** carry an unnamed `metadata.*` key. Three family members sit at 100 percent on one axis or the other. The most common unnamed keys are entirely ordinary: `compatibility` (971), `metadata.author` (1158), `metadata.tags` (1154). And sec 3.7's own opening calls the agentskills.io `metadata` map **arbitrary**, so rejecting unknown keys inside it would put this Standard in contradiction with the spec it profiles. Sec 3.8 now says the vocabulary is open **as a rule**, because silence reads as an unfinished thought and invites the same proposal again.
+
+  **The inverse condition is 0.9 percent and every instance is real.** `U16` reports a key sec 3.7 places under `metadata` that is declared at the **top level**, where nothing reads it. The live case: **all six shipped `critique-skills` skills declare `version` at the top level with no `metadata` block at all.** Sec 3.7 says `version` is REQUIRED on every component at every tier; nothing in the spine read `metadata.version`, so that member neither satisfied the rule nor was told, and graded **Convergent with 0 errors**. This is `U14`'s defect class one layer over: the author wrote a declaration, it is not where anything reads, and nothing says so.
+
+  Two messages, because two situations: a key **only** at the top level is silently lost and the message names its destination; a key in **both** places is shadowed by the nested copy, which is read, and the top-level one is dead weight that can drift from it. `Object.hasOwn`, never a nullish test, so an explicit top-level `version: null` is still reported.
+
+  **`U16` is `house` provenance and is therefore OFF under `plain-plugin`**, the honest third-party grading mode - sec 3.7's placement is this Standard's convention, not a vendor's. `U15` is `vendor-cited` and stays on, which is exactly the difference between a portable fact and a house rule. The `plain-plugin` invariant test enforces that the off-set equals the house-provenance set, and it caught the omission before this shipped.
+
+  Measured on the family: **6 findings on `critique-skills`, held at `warn` by its 0.12 pin against the 0.14 introduction, Standard debt 1 to 7, and no verdict moves.** It gets a real bill of six one-line edits when it re-pins, which is the correct outcome.
+
+  **A gap stays open knowingly:** nothing yet catches `version` being **absent** entirely, which sec 3.7 also requires. That check would fire on every component of every plugin that never adopted the convention, and it is deliberately not bundled here.
+
 - **`U15` (`agents-dir-registerable`), spine 31 to 32: every `.md` under `agents/` must be a registered subagent (ADR 0046).** Claude Code discovers subagents by scanning `agents/` for `*.md` and registers **every file it finds**. A probe recorded in `folder-readme.mjs` proved it: a directory holding `real-agent.md`, `README.md`, `_README.md` and `README.txt` registered **three** subagents - `real-agent`, `README` and `_README`. The underscore prefix protects nothing; only the non-`.md` extension is skipped.
 
   Four Silver checks (`S2` prefix, `S3` components-index, `S4` chain-contract, `S8` components-mirror) read the plugin's REGISTRATION list, which excludes those files. **A fixture plugin earns Convergent with 0 errors while shipping `agents/_shadow.md` and `agents/README.md`** - an unprefixed name, no manifest entry, `version: 9.9.9`, `status: deprecated` - and no check reads either one.
