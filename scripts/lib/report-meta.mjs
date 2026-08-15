@@ -3,7 +3,7 @@
 // why:          keeps human-facing remediation prose out of the deterministic check modules (the gate stays a thin linter, ADR 0028); one table the MD and HTML renderers share so they never diverge
 // used-by:      scripts/lib/report-render.mjs
 //
-// One entry per reqId currently in the spine (U1-U9, U11-U14, S1-S8, G1-G10). The registry-coverage
+// One entry per reqId currently in the spine (U1-U9, U11-U15, S1-S8, G1-G10). The registry-coverage
 // test in tests/unit/report-render.test.mjs fails CI if a future spine addition forgets its row, so a
 // new check cannot ship with a blank "why". The `why` strings for U5/U7/G2/G3/G5 are lifted from the
 // editorial sample's blockquotes; the rest are authored from each check's purpose and Standard clause.
@@ -73,6 +73,10 @@ export const REPORT_META = Object.freeze({
     why: "Claude Code refuses hooks, mcpServers and permissionMode on a plugin-shipped agent for security reasons, so an agent declaring one has configured something the runtime will not honour - and nothing tells the author, which is the whole hazard.",
     fixPrompt: "Remove the unsupported field from the agent frontmatter under agents/. If the behaviour is genuinely needed, move it to a surface the runtime supports for plugins (a hook file, an MCP server declaration, or the consuming project's own settings) rather than the agent. Then run node scripts/check.mjs and confirm U14 passes.",
     effort: "~5 min",
+  },
+  U15: {
+    why: "Claude Code scans agents/ for *.md and registers every file it finds, so a file the plugin excludes from its own registration is still a live subagent - with whatever name and frontmatter it happens to carry - and it escapes every check that reads the registration list.",
+    fixPrompt: "For a folder README under agents/, move the documentation to AGENTS.md or the root README component table. For any other unregistered file, either rename it to a prefixed subagent and declare it in library.json components.subagents, or move it out of agents/. Then run node scripts/check.mjs and confirm U15 passes.",
   },
   S1: {
     why: "Without a declared agent-targets list the library does not say which agents it converges across, so the Convergent guarantees (matching manifests, per-target presence) have nothing to check against.",

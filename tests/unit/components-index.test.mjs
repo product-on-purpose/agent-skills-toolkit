@@ -137,3 +137,40 @@ test("ADR 0047: the workflow mirror is a WARN below 0.15 and a gate-failing erro
   assert.equal(due.ceiling, null, "nothing binds any more");
   assert.equal(gatingFindings([due]).length, 1);
 });
+
+// --- ADR 0046 point 5: S3 stops claiming a declared, on-disk agent file is absent ------------------
+
+test("ADR 0046: a DECLARED, on-disk underscore-prefixed agent is not reported as missing", () => {
+  // The second, opposite defect the E42 measurement found and nobody had filed. Before this, the gate
+  // rewarded CONCEALING an unregistered agent file (silence) and punished DECLARING it (a false claim
+  // that the file is not on disk). Correcting it can only remove a finding, so it needs no window.
+  const ctx = {
+    root: "/x",
+    library: { data: { components: { subagents: [{ name: "_shadow" }] } } },
+    skills: [], commands: [], mcpServers: [], workflows: [],
+    subagents: [],                                   // registration list EXCLUDES it
+    agentDocs: [{ name: "_shadow" }],                // the runtime loads it
+  };
+  const missing = check(ctx).filter((f) => /is not on disk under agents\//.test(f.message));
+  assert.deepEqual(missing, [], "the file IS on disk; the gate must not say otherwise");
+});
+
+test("ADR 0046: the opposite direction is UNCHANGED and still reads the registration list", () => {
+  // Deliberate asymmetry. This direction is the tightening and U15 owns it; widening it here would
+  // tell the author to declare agents/README.md as a subagent, creating the phantom. A test pins the
+  // asymmetry so a future reviewer cannot "fix" it as an oversight.
+  const ctx = {
+    root: "/x",
+    library: { data: { components: { subagents: [] } } },
+    skills: [], commands: [], mcpServers: [], workflows: [],
+    subagents: [{ name: "registered" }],
+    agentDocs: [{ name: "registered" }, { name: "README" }],
+  };
+  const undeclared = check(ctx).filter((f) => /exists on disk but is not declared/.test(f.message));
+  assert.equal(undeclared.length, 1, "only the REGISTERED agent drives this direction");
+  assert.match(undeclared[0].message, /agents\/registered\.md/);
+  assert.ok(
+    !undeclared.some((f) => /README/.test(f.message)),
+    "S3 must never demand that a folder guide be declared as a subagent"
+  );
+});

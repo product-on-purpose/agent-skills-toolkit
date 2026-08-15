@@ -43,6 +43,12 @@ const INVENTORY_SKIP = new Set([
 // already skips README.md and _-prefixed files, which is exactly the mismatch that hid this. The
 // toolkit's idea of what counts as an agent is not the runtime's, and the runtime wins. Anything a
 // folder guide would say about agents/ belongs in AGENTS.md or the root README's component table.
+//
+// THE EXEMPTION AND `U15` ARE TWO HALVES OF ONE RULE (ADR 0046), and neither is complete alone. This
+// exemption stopped G8 CAUSING phantoms by requiring a README in agents/. It did nothing about the ones
+// already shipped: both this repository and critique-skills had one, and nothing detected it.
+// `agents-dir-registerable` (U15) is the detecting half. Read them together, or removing either looks
+// safe.
 const FIXED_ROOTS = [
   "scripts", "scripts/checks", "scripts/generators", "scripts/lib",
   "templates", "evals", ".github/workflows", "site/scripts", "hooks",

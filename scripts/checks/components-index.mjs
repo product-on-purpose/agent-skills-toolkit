@@ -66,7 +66,19 @@ export function check(ctx) {
     }
   }
   const declaredSubagents = Array.isArray(components.subagents) ? components.subagents : [];
-  const onDiskSubagentNames = new Set((ctx.subagents || []).map((s) => s.name));
+  // agentDocs, not subagents, and ONLY on this side of the mirror (ADR 0046 point 5). This direction
+  // asks "is the declared file on disk", so it must test the actual filesystem: an author who honestly
+  // declares agents/_shadow.md was told `declares "_shadow" but it is not on disk under agents/` about
+  // a file that IS on disk. That is not a missing rule, it is a published finding stating a falsehood,
+  // and correcting it can only ever REMOVE a finding, so it needs no migration window.
+  //
+  // The OPPOSITE direction below - "on disk but not declared" - deliberately still reads `subagents`.
+  // That direction is a TIGHTENING, and U15 owns it: once U15 gates, no conforming plugin can have an
+  // unregistered agents/*.md at all, so the two lists coincide and this check is complete without being
+  // widened. Widening it instead would tell the author to declare agents/README.md as a subagent, which
+  // creates the phantom the 2026-08-06 G8 exemption exists to prevent. The asymmetry is deliberate;
+  // without this comment it reads as an oversight and gets "fixed".
+  const onDiskSubagentNames = new Set((ctx.agentDocs ?? ctx.subagents ?? []).map((s) => s.name));
   const declaredSubagentNames = new Set();
   for (const c of declaredSubagents) {
     if (!c || typeof c.name !== "string") {

@@ -11,6 +11,26 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- **`U15` (`agents-dir-registerable`), spine 31 to 32: every `.md` under `agents/` must be a registered subagent (ADR 0046).** Claude Code discovers subagents by scanning `agents/` for `*.md` and registers **every file it finds**. A probe recorded in `folder-readme.mjs` proved it: a directory holding `real-agent.md`, `README.md`, `_README.md` and `README.txt` registered **three** subagents - `real-agent`, `README` and `_README`. The underscore prefix protects nothing; only the non-`.md` extension is skipped.
+
+  Four Silver checks (`S2` prefix, `S3` components-index, `S4` chain-contract, `S8` components-mirror) read the plugin's REGISTRATION list, which excludes those files. **A fixture plugin earns Convergent with 0 errors while shipping `agents/_shadow.md` and `agents/README.md`** - an unprefixed name, no manifest entry, `version: 9.9.9`, `status: deprecated` - and no check reads either one.
+
+  **The obvious fix was measured and rejected.** Pointing those four checks at the runtime list works, and against `agents/README.md` it emits *"subagent README must start with the plugin prefix"* and *"declare it in library.json components.subagents"*. **An author who follows either instruction produces the phantom subagent with no name and no description that the 2026-08-06 `G8` exemption exists to stop plugins creating.** A check whose remediation creates the defect is worse than the silence it replaces. There is also a structural objection: `S3` and `S8` are bidirectional mirrors, so widening the disk side redefines what the manifest is a mirror OF, and makes the phantom **legal** in the same stroke.
+
+  `U15` instead makes the two lists provably equal, so the four checks are complete **without being modified**. Its remediation is shape-specific and neither branch says "register it": a folder `README.md` moves out of `agents/`; any other unregistered file either becomes a properly prefixed, declared subagent or moves out. Both branches state the runtime fact, because an author who does not know the file is loaded cannot choose between them. `vendor-cited`, so under ADR 0044's trust step a subject cannot weaken it about itself in `published-verdict` mode.
+
+  **The `G8` exemption and `U15` are two halves of one rule, and the code now says so.** The exemption stopped `G8` CAUSING phantoms; it did nothing about the ones already shipped, and both this repository and `critique-skills` had one.
+
+### Fixed
+
+- **`S3` stopped claiming that a declared, on-disk agent file is not on disk (ADR 0046 point 5).** A second, opposite defect that the `U15` measurement found and nobody had filed. An author who honestly declares `agents/_shadow.md` in `components.subagents` was told `declares "_shadow" but it is not on disk under agents/`. **The file is on disk.** Taken with the bypass above, the gate rewarded **concealing** an unregistered agent file and punished **declaring** it.
+
+  Only the "declared but not on disk" direction is corrected - it asks a question about the filesystem, so it must test the filesystem. The opposite direction deliberately still reads the registration list, because that direction is the tightening and `U15` owns it; widening it would be the rejected design above. A test pins the asymmetry so it is not later "fixed" as an oversight.
+
+  Correcting a false statement can only ever **remove** a finding, so it ships with no migration window.
+
+### Added
+
 - **Workflows are a loaded component, and the components mirror finally covers them (ADR 0047).** A workflow is a first-class Convergent component in the Standard (sec 3.4), with a defined location and format, and the loader never knew about it. `loadPlugin()` built skills, subagents, agent docs, commands and MCP servers, and no workflows.
 
   **The visible consequence was a gate finding that stated something untrue about your filesystem.** `S7` (`command-contract`) read `ctx.workflows`, which was always `undefined`, so a command declaring `maps-to: <a real workflow>` was reported as *"maps-to X but no skill or workflow by that name exists on disk"* against a repository containing `_workflows/X.md`. The remediation it implies - delete the mapping, or rename the workflow into a skill - is destructive advice from a wrong premise. The source comment said `ctx.workflows arrives in a later phase`; it had not arrived for as long as the field had been read.
