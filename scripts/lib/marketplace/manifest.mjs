@@ -118,7 +118,19 @@ export function renamesOf(entry) {
  */
 export function looksLikeMarketplaceOfSkills(data) {
   if (!Array.isArray(data?.plugins)) return false;
-  return data.plugins.some((p) => skillNameFromPath(typeof p?.source === "string" ? p.source : null) != null);
+  return data.plugins.some((p) => underSkills(p?.source));
+}
+
+/**
+ * Does this entry's `source` resolve under `skills/`? The ONE definition of that question.
+ *
+ * Extracted so `U17` (catalogue-manifest-shape) can import it rather than carry a second copy. Two
+ * copies of "does this resolve under skills/" is precisely how the mixed-manifest case became invisible
+ * in the first place: the router and the checker would then be free to disagree about which manifests
+ * are mixed, which is a worse defect than the one U17 exists to report (ADR 0052).
+ */
+export function underSkills(source) {
+  return skillNameFromPath(typeof source === "string" ? source : null) != null;
 }
 
 /**

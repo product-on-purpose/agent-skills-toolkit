@@ -12,7 +12,7 @@ Everything here lives under `scripts/`. The two entrypoints are `scripts/check.m
 
 ## A check module's shape
 
-A conformance check is a small ES module under `scripts/checks/` with exactly two exports: a `meta` object and a synchronous `check(ctx)` function. The contract is uniform across all 33 spine checks. Here is `scripts/checks/library-json.mjs` (the `U1` manifest check), trimmed to its shape:
+A conformance check is a small ES module under `scripts/checks/` with exactly two exports: a `meta` object and a synchronous `check(ctx)` function. The contract is uniform across all 34 spine checks. Here is `scripts/checks/library-json.mjs` (the `U1` manifest check), trimmed to its shape:
 
 ```js
 import { finding, SEVERITY } from "../lib/findings.mjs";
@@ -72,7 +72,7 @@ export const CHECKS = [
   versionMatch, mcpValid,
   libraryRegression, deprecation,
   hookDocumentation, selfHosting, releaseNotes, indexDrift,
-  // ... abridged; see scripts/lib/registry.mjs for the full ordered 33-check list
+  // ... abridged; see scripts/lib/registry.mjs for the full ordered 34-check list
 ];
 
 export function runAllChecks(ctx) {

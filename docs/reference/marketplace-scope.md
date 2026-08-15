@@ -137,7 +137,7 @@ has not reached it yet. Both are one ceiling since Standard 0.13, so both count.
 
 ## The finding classes
 
-All of these are **scope-local**: they carry no `U`/`S`/`G` number, and the 33-check spine every plugin
+All of these are **scope-local**: they carry no `U`/`S`/`G` number, and the 34-check spine every plugin
 is held to does not move. Graduating any of them to a numbered check is a separate decision with its own
 migration window.
 

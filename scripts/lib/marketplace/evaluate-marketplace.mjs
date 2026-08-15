@@ -82,7 +82,16 @@ function shipsOwnComponents(target) {
  *    plugin scope, which is correct: the plugin gate is what should tell it so.
  *
  * A malformed or absent manifest is not this scope's target either - a directory with unreadable JSON
- * is graded as whatever it otherwise is, and the JSON problem surfaces there.
+ * is graded as whatever it otherwise is.
+ *
+ * "AND THE JSON PROBLEM SURFACES THERE" WAS NOT TRUE WHEN IT WAS WRITTEN, and this comment closed with
+ * exactly that claim. `U13` swallows a parse error by design too (R-REG-5), so a present-but-unparseable
+ * manifest produced a finding from NOBODY. `U17` (catalogue-manifest-shape) is what finally makes the
+ * sentence true. Note also the MIXED case: `looksLikeMarketplaceOfSkills` returns true if ANY entry
+ * resolves under `skills/`, so a manifest mixing kinds routes here as false and is claimed entirely by
+ * `U13` - its plugin entries are never collection-graded. Also `U17`'s finding. Neither this function nor
+ * `resolveRegistrationSource` changes: the disjointness rule is correct, and `U17` reports the cases the
+ * partition does not cover rather than extending it to cover them (ADR 0052).
  */
 export function detectMarketplaceScope(target) {
   const m = readMarketplaceManifest(target);

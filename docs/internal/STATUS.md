@@ -15,10 +15,10 @@
 | Version | 1.13.0 (cut 2026-08-13, shipped 2026-08-14) |
 | Declared tier | Advanced (Gold) - `library.json` `tier: advanced` |
 | Standard pin | 0.13 |
-| Spine | 33 checks |
+| Spine | 34 checks |
 | Scopes | 3 (plugin, component, marketplace) |
 | Skills | 24 |
-| Tests | 1181, 0 failures (local suite run 2026-08-14; both halves confirmed by `npm run release-counts` exiting 0) |
+| Tests | 1191, 0 failures (local suite run 2026-08-14; both halves confirmed by `npm run release-counts` exiting 0) |
 | Self-proving | `node scripts/check.mjs .` exits 0 at Advanced, 0 errors, 0 warnings |
 
 ## What is open

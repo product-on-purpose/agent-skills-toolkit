@@ -44,6 +44,6 @@ entry** is a defect and reds, while a member **absent from this machine** is an 
   divergence marker are unconditional report columns precisely so that limit is disclosed rather than
   hidden.
 - **Emit a numbered spine check.** Every finding here carries `reqId: null`. ADR 0039 question 3 chose
-  scope-local findings so the 33-check spine does not move in the release that adds the capability.
+  scope-local findings so the 34-check spine does not move in the release that adds the capability.
 - **Change any existing verdict.** A plugin graded alone grades identically whether or not it is also a
   catalogue member.
