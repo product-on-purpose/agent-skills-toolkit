@@ -6,7 +6,7 @@
 > technical history), and `docs/internal/release-plans/` (the per-release spec + implementation
 > packets). Do not add accretive per-release paragraphs here; append them to those instead.
 >
-> Last updated: 2026-08-13.
+> Last updated: 2026-08-15.
 
 ## Current state
 
@@ -14,13 +14,57 @@
 |---|---|
 | Version | 1.13.0 (cut 2026-08-13, shipped 2026-08-14) |
 | Declared tier | Advanced (Gold) - `library.json` `tier: advanced` |
-| Standard pin | 0.13 |
+| Standard pin | 0.14 |
 | Spine | 34 checks |
 | Scopes | 3 (plugin, component, marketplace) |
 | Skills | 24 |
-| Tests | 1191, 0 failures (local suite run 2026-08-14; both halves confirmed by `npm run release-counts` exiting 0) |
+| Tests | 1193, 0 failures (local suite run 2026-08-15; both halves confirmed by `npm run release-counts` exiting 0) |
 | Self-proving | `node scripts/check.mjs .` exits 0 at Advanced, 0 errors, 0 warnings |
 
+## The v1.14.0 ADR pack: RATIFIED and IMPLEMENTED
+
+Seven decisions (ADRs 0046 to 0052), ratified 2026-08-14, implemented across seven PRs. Every
+recommendation was measured before it was written, and **three of the seven were overturned by that
+measurement.** Spine 31 to 34, Standard 0.13 to 0.14. **No family verdict moved at any step.**
+
+| ADR | Decides | Adds | Landed | Measured family effect |
+|---|---|---|---|---|
+| [0046](decisions/0046-agents-directory-holds-only-registered-subagents.md) | **E42**: `agents/` holds only registered subagents; do NOT widen `S2`/`S4`/`S8` | `U15` | #217 | none |
+| [0047](decisions/0047-workflows-are-a-loaded-component.md) | **E43**: build `ctx.workflows` (bug fix) + `S3` workflow mirror (windowed to 0.15) | - | #216 | 9 warns on `thinking-framework-skills`, no verdict moved |
+| [0048](decisions/0048-a-command-is-not-a-skill-and-is-not-graded-as-one.md) | **commands-as-skills**: no. Sec 3.2's MUST splits into MUST + SHOULD | - | this PR | none |
+| [0049](decisions/0049-u5-abstains-rather-than-failing-what-it-cannot-read.md) | **E14**: `U5` declines below English density 0.10 | - | #215 | none (French corpus 346 findings to 3) |
+| [0050](decisions/0050-frontmatter-vocabulary-is-open-and-placement-is-checked.md) | **frontmatter strictness**: vocabulary stays OPEN; placement is checked | `U16` | #218 | 6 warns on `critique-skills`, no verdict moved |
+| [0051](decisions/0051-no-cross-member-finding-graduates-to-the-spine.md) | **E34**: none graduate; ratifies the unilateral-remedy test | - | this PR | none |
+| [0052](decisions/0052-a-catalogue-manifest-no-scope-can-read-is-a-defect.md) | **E36**: a mixed manifest is itself a defect | `U17` | #219 | none |
+
+**The three overturned recommendations, each recorded in its ADR with the numbers:**
+
+- **E42's own framing was wrong.** Widening the four Silver checks was prototyped and its remediation
+  tells the author to declare `agents/README.md` as a subagent, CREATING the phantom the 2026-08-06 `G8`
+  exemption exists to prevent. One new check making the two lists provably equal shipped instead.
+- **E14's backlog-recommended option (c)** - a language-independent structural signal - fires on **99.9
+  percent** of 2068 descriptions across seven corpora, including 94.4 percent of Anthropic's own. It
+  cannot discriminate and cannot be a scoring component.
+- **Frontmatter strictness** would fail **44.9 percent** of 2342 measured skills, against a `metadata`
+  map the upstream spec calls arbitrary. The Standard now states the openness as a RULE.
+
+**Also found while measuring, and shipped ahead of the pack (#214):** a live regression in ADR 0045's own
+guarantee. The marketplace `A6` reading iterated `ctx.subagents` while `U14` read `ctx.agentDocs`, so the
+same plugin got different answers depending on how it was graded. ADR 0045 shared the FIELD list to
+prevent exactly that; it did not share the AGENT list. ADR 0045 is **not amended** - its decision was
+sound and the implementation diverged a release later - but it carries a dated correction.
+
+**Closed by this pack:** E14, E34, E36, E42, E43.
+
+**Two gaps left open by decision, both recorded in their ADRs:** nothing yet catches a `metadata.version`
+that is ABSENT entirely (that check would fire on every component of every plugin that never adopted the
+convention), and nothing enforces that a command's description agrees with its backing skill's intent
+(a judgment call the deterministic gate does not take, now visible as a SHOULD rather than hidden inside
+an unenforced MUST).
+
+**Before graduating `U17` at 0.15, re-run the manifest census.** It shipped warn-first because a census
+of every real manifest found 7 (6 of-plugins, 1 of-skills, zero mixed, zero malformed): it is preventive,
+not corrective, and gating a check nothing has ever tripped deserves re-examination rather than a default.
 ## What is open
 
 - **ADR 0039 (marketplace-scope evaluation) is IMPLEMENTED** in v1.12.0: a third evaluation scope
@@ -144,11 +188,14 @@ this file); the conclusions are stated here directly.
   **E33** as `U14` with its own ADR 0045 (spine 30 to 31); **E35**'s `gen-index` fix carrying a
   migration; and **E37**, pulled in because it blocks the release-time counts gate. Packet at
   [`release-plans/plan_v1.13.0/RELEASE-PLAN.md`](release-plans/plan_v1.13.0/RELEASE-PLAN.md).
-- **v1.14.0 "current with the vendors":** the ADR pack (commands-as-skills, frontmatter vocabulary
-  strictness, `U5` scope per **E14**) followed by the code batch, plus standing up vendor-watch. It also
-  inherits **E34** (which, if any, cross-member findings belong on the spine) and **E36** (malformed and
-  mixed marketplace manifests), both of which need an ADR nobody has drafted. **Why it moved:** bundling three undrafted ADRs with a Standard bump made
-  v1.13.0 a release-of-releases; the vendor work keeps its own name and its own cut.
+- **v1.14.0 "current with the vendors" (ADR pack SHIPPED, release not yet cut):** the seven-ADR pack is
+  ratified and implemented - see "The v1.14.0 ADR pack" above. Spine 31 to 34, Standard 0.13 to 0.14, and
+  no family verdict moved at any step. **Remaining for this release:** stand up vendor-watch, run
+  [`RELEASE.md`](RELEASE.md) end to end including the Codex round-trip Q-E gate, adversarial review to a
+  clean round or a stated bounded stop, then tag and publish. **The ADR-first order was deliberate and it
+  paid:** measurement overturned three of the seven recommendations before a line of implementation was
+  written, which is exactly the cost bundling undrafted ADRs with a Standard bump imposed on v1.13.0.
+
 - **v1.15.0 "evidence":** fix the measurement instrument (E16, E17, E20, E15), publish the E13
   readings as final, execute the live-hook behavioral evals.
 - **v1.16.0 "graded cohort":** grade an external cohort on portable checks and publish the

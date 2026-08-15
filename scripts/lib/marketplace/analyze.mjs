@@ -32,6 +32,32 @@ export const MARKETPLACE_CHECKS = Object.freeze({
   AGENT_RESTRICTED_FIELDS: "marketplace-agent-restricted-fields",
 });
 
+/**
+ * `reqId: null` on EVERY marketplace finding, and that is a ratified DECISION rather than a default
+ * (ADR 0051). The criterion, should a ninth class ever be proposed:
+ *
+ *   THE UNILATERAL-REMEDY TEST. A marketplace finding may become a numbered spine requirement only if
+ *   the member named in it can resolve it by editing its OWN repository alone, without reference to
+ *   any other member and without editing the catalogue.
+ *
+ * Applied to all eight classes, exactly one passes - and it already graduated, as `U14` in v1.13.0.
+ * Of the rest: `manifest`, `duplicate-name` and `rename-collision` are properties of the CATALOGUE's
+ * own file; `entry-resolvability` of a catalogue ENTRY; `skill-collision` and `command-collision` of a
+ * PAIR of members, where neither is wrong and the Standard names no yielder; and `version-agreement`
+ * is a two-party disagreement between a catalogue pin and a member manifest. The spine is a contract
+ * each PLUGIN is held to individually, and a requirement it cannot discharge alone is not a
+ * requirement, it is a hostage.
+ *
+ * The file each finding names is EVIDENCE of ownership, not formatting: six of the seven point at
+ * `.claude-plugin/marketplace.json` or at a path spanning two members. A finding whose `file` cannot
+ * be a path inside exactly one member's tree has already failed the test.
+ *
+ * ONE THING WOULD REOPEN THIS, and only for two of the seven. The collision classes depend on
+ * component names entering a SHARED POOL, which is a RUNTIME behaviour: if a runtime namespaces
+ * components by plugin they should be RETIRED, not graduated; if the Standard ever names which member
+ * must yield, a member could resolve one alone and they would become eligible. The other five are
+ * unconditional - no vendor change makes a member the owner of a catalogue's file.
+ */
 const mkFinding = (check, severity, message, file) => finding(check, severity, message, { file: file ?? null, reqId: null });
 
 /** Two entries claiming one catalogue name: an installer asking for that name gets an ambiguous answer. */

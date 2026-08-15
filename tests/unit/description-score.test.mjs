@@ -150,3 +150,30 @@ test("ADR 0049: declining WITHDRAWS a finding and can never add one", () => {
     assert.ok(after <= wouldHaveBeen, `declining added a finding for ${JSON.stringify(desc)}`);
   }
 });
+
+// --- ADR 0048: the skills-only scope is a RATIFIED DECISION, not an unfinished loop --------------
+
+test("ADR 0048: a command's description is NEVER scored, however badly it would score", () => {
+  // Without this test the decision lives only in a comment, and `for (const s of ctx.skills)` reads as
+  // the same defect E42 found in the agent checks - so a future reviewer "fixes" it.
+  //
+  // Measured before it was decided: 0 of 14 commands across the reference family satisfy the sec 8.1
+  // bar, INCLUDING this toolkit's own two, whose backing skills of identical name and intent score 1.00.
+  // The entire gap is one literal token - "Use TO audit" is not "Use WHEN". A command is invoked by a
+  // person typing its name, and on Codex no command description exists at all, so on neither runtime
+  // does it perform trigger matching. Applying a trigger-quality bar measures a property it lacks.
+  const weak = "Helps with stuff.";
+  assert.ok(scoreDescription(weak) < 0.7, "the premise: this description would fail the bar");
+
+  const ctx = {
+    root: "/x",
+    skills: [],
+    commands: [
+      { name: "fx-run", frontmatter: { description: weak } },
+      // This repository's own /askit-evaluate description, verbatim. It scores 0.65 and is a good
+      // description; it is short because it is a menu label.
+      { name: "askit-evaluate", frontmatter: { description: "Evaluate a skill or plugin against the Advanced Skill Library Standard and report per-rule findings, the tier, and remediation. Use to audit conformance or see what blocks the next tier." } },
+    ],
+  };
+  assert.deepEqual(check(ctx), [], "U5 scores skills; a command description is a label, not a trigger surface");
+});

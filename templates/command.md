@@ -1,5 +1,5 @@
 ---
-description: REPLACE - what this command does AND when to use it, mirroring the backing skill's triggering intent.
+description: REPLACE - the one-line label a caller sees beside /this-command. State what invoking it does. It is not a trigger surface (Standard sec 3.2), so it does not need use-when phrasing.
 maps-to: REPLACE-backing-skill-name
 metadata:
   version: 0.1.0

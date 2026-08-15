@@ -2,6 +2,35 @@
 
 Curated, user-facing highlights. For the full technical history see [`CHANGELOG.md`](CHANGELOG.md).
 
+## Unreleased - Standard 0.14
+
+**Four things the gate was telling you were not true, and three files it was never reading.**
+
+This release came out of seven decisions written and measured *before* any code. Three of those measurements overturned what the decision was going to be, and the corrections are the most useful part of it.
+
+### Upgrade
+
+**Nothing here takes effect for your plugin until you raise `standard` in your own `library.json`.** If you change nothing, your grade does not change. Adopting **0.14** makes two things effective: `U15` (every `.md` under `agents/` must be a registered subagent) and `U16` (a governance key declared at the top level instead of under `metadata`). Two more are introduced now and become gate-failing at **0.15**: `U17` (a `marketplace.json` no scope can read) and the workflow half of the components mirror.
+
+**If you have no `standard` pin at all, none of this protects you** - an unpinned plugin grades against the current ruleset immediately. Add the line. To price the move before committing: `npx agent-skills-toolkit . --strict` grades you against the newest spine without changing your pin, so every finding that appears only under `--strict` is one adoption would make real.
+
+### The gate was telling you things that were not true
+
+- **"That workflow doesn't exist"** - when it did. A command declaring `maps-to: my-workflow` was reported as resolving to nothing, against a repository containing `_workflows/my-workflow.md`. The loader had never built the workflow list, so the check that reads it always saw an empty one. Fixed, with no migration window: correcting a false statement can only ever withdraw a finding.
+- **"That agent file isn't on disk"** - when it was. If you honestly declared `agents/_helper.md` in your manifest, you were told it was missing. Combined with the next item, the gate was **rewarding you for hiding a file and penalising you for declaring it.**
+- **"Your description doesn't say when to use it"** - to descriptions that said exactly that, in French. The description scorer awards more than a third of its score for matching English trigger phrases, so a description it could not read was **mathematically unable to pass at any quality**. On a 349-skill French corpus it failed all 346 parseable descriptions while 341 of them carried an explicit French trigger clause. It now **declines** to score what it cannot read, and reports the count of declines separately so silence is not mistaken for a pass.
+- **"Your command's description is too weak"** - it would have been, had we shipped what we planned. **0 of 14 commands in our own reference family met the skill description bar, including this toolkit's own two**, whose backing skills of identical intent score a perfect 1.00. A command description is a label beside `/name` typed by a person; it is not a trigger surface, and the Standard now says so.
+
+### Three files the runtime loads and the gate never read
+
+Claude Code registers **every** `.md` under `agents/` - a folder `README.md` becomes a subagent named `README` with no name and no description. A plugin could ship `agents/_worker.md` carrying an unprefixed name, no manifest entry and a stale version, and still earn Silver with zero errors. **`U15` closes that.** The obvious fix was built, measured, and thrown away: it produced remediation telling authors to declare their folder README as a subagent, which creates the exact defect it should prevent.
+
+### What did not change, deliberately
+
+**Your frontmatter can carry whatever keys you like.** We considered restricting the vocabulary and measured it first: **44.9 percent of 2342 skills across thirteen sources** carry a key the Standard does not name, and the upstream spec calls the `metadata` map arbitrary. The Standard now states the openness as a rule so nobody proposes closing it again. What *is* checked is **placement** - a `version` written at the top level instead of under `metadata` is read by nothing, so you have not recorded a version and nothing tells you.
+
+**And a catalogue-level finding will never become a requirement on your plugin.** If two plugins in a marketplace collide on a skill name, neither can fix that alone without knowing who they are catalogued beside. A requirement you cannot discharge by editing your own repository is not a requirement.
+
 ## 1.13.0 - 2026-08-13
 
 **You are now graded against the ruleset you pinned - in both directions.**

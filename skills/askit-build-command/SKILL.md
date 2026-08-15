@@ -16,9 +16,9 @@ Author conformant commands. Two modes: `create` scaffolds a new `commands/<name>
 When the user asks to create, scaffold, or improve a slash command for a skill.
 
 ## create mode
-1. Brief interview: the command name (kebab-case, becomes `/name`), the skill (or workflow) it maps to, optional args, and a description mirroring the backing skill's intent. Skip if provided in context.
+1. Brief interview: the command name (kebab-case, becomes `/name`), the skill (or workflow) it maps to, optional args, and a description: the LABEL a caller sees beside the slash command, stating what invoking it does. It is not a trigger surface, so do not ask for use-when phrasing (Standard sec 3.2). Skip if provided in context.
 2. Copy `templates/command.md` into `commands/<name>.md`.
-3. Fill the frontmatter: `description` (what AND when; Standard sec 8.1); `maps-to` equal to the backing skill or workflow name; optional `argument-hint`/`allowed-tools`/`model`; `metadata.version`. The filename is the command name (no `name` key). Write a body that invokes the backing skill, passing `$ARGUMENTS`.
+3. Fill the frontmatter: `description` (the caller-facing label: what invoking it does, non-empty; Standard sec 3.2 - NOT the sec 8.1 skill bar, which does not apply to commands); `maps-to` equal to the backing skill or workflow name; optional `argument-hint`/`allowed-tools`/`model`; `metadata.version`. The filename is the command name (no `name` key). Write a body that invokes the backing skill, passing `$ARGUMENTS`.
 4. Verify the `maps-to` target exists (a skill in `skills/` or a workflow in `_workflows/`).
 5. Register the command in `library.json` `components.commands` as `{ name, path, version, tier, status }`.
 6. Assess with `node scripts/evaluate.mjs . --json` and iterate until 0 errors (S3 components index + S7 command-contract must be clean).
