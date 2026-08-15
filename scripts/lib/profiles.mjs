@@ -15,7 +15,13 @@
 // not silently change a profile's meaning; the house-provenance.test.mjs invariant keeps this list in
 // lockstep with the per-check provenance so the two never drift.
 const HOUSE_REQIDS = [
-  "U1", "U2", "U5",
+  // U16 (metadata-placement, ADR 0050) is house because sec 3.7's PLACEMENT of the governance keys is
+  // this Standard's convention, not a vendor's - nothing in agentskills.io or Claude Code says a
+  // `version` must live under `metadata`. So outward grading of a stranger's plugin must not apply it,
+  // exactly as it does not apply U5. U15 is NOT here: it rests on Claude Code's own discovery
+  // behaviour, so it is vendor-cited and stays ON under plain-plugin, which is the whole difference
+  // between a portable fact and a house convention.
+  "U1", "U2", "U5", "U16",
   "S1", "S2", "S3", "S4", "S5", "S6", "S7", "S8",
   "G1", "G2", "G3", "G4", "G5", "G6", "G7", "G8", "G9", "G10",
 ];
@@ -39,7 +45,7 @@ export const PROFILES = Object.freeze({
   // name contract (Finding 4 / ADR 0031). Because U4 is "warn" (not "off"), the house-provenance invariant
   // - which checks the OFF-set equals the house-provenance set - is unaffected; U4 remains vendor-cited.
   "plain-plugin": Object.freeze({
-    description: "Portable correctness only: the objective and vendor-grounded universal checks; the askit library-ladder (U1, S1-S8) and Gold (G1-G10) checks off, and name-matches-dir (U4) advisory.",
+    description: "Portable correctness only: the objective and vendor-grounded universal checks; the askit library-ladder (U1, U16, S1-S8) and Gold (G1-G10) checks off, and name-matches-dir (U4) advisory.",
     rules: Object.freeze({ ...offMap(HOUSE_REQIDS), U4: "warn" }),
   }),
   // The opt-in home ADR 0028 named for re-homed house preferences (e.g. a future dash rule). Empty in
