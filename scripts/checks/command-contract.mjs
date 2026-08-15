@@ -11,7 +11,7 @@ export function check(ctx) {
   if (commands.length === 0) return []; // conditional: only fires when commands exist (Standard sec 3.2)
   const out = [];
   const skillNames = new Set((ctx.skills || []).map((s) => s.name));
-  const workflowNames = new Set((ctx.workflows || []).map((w) => w.name)); // ctx.workflows arrives in a later phase
+  const workflowNames = new Set((ctx.workflows || []).map((w) => w.name));
   const known = new Set([...skillNames, ...workflowNames]);
   for (const c of commands) {
     const file = `commands/${c.name}.md`;
