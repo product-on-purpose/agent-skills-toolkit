@@ -11,6 +11,17 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Changed
 
+- **ADR 0048 is AMENDED IN PLACE: its decision stands, its premise was false.** The ADR asserted that a command is not a skill. Claude Code's own documentation says, verbatim: *"Custom commands have been merged into skills. A file at `.claude/commands/deploy.md` and a skill at `.claude/skills/deploy/SKILL.md` both create `/deploy` and work the same way"*, and the plugins reference describes `commands/` as holding *"skills as flat Markdown files"* (both read 2026-08-15).
+
+  **Nothing shipped is reverted and no behaviour changes.** `U5`/`U6`/`U7` staying skills-only is still correct, and so is sec 3.2's demoted SHOULD - but for a better reason. The vendor exposes `disable-model-invocation` and `user-invocable` frontmatter, and a `commands/` file is a skill **whose invocation is user-controlled**: a model never loads it automatically, so its description performs no trigger matching. `STANDARD.md` sec 3.2 and the 0.14 version note carry the corrected justification.
+
+  **The process failure is the part worth recording.** The 2026-08-10 internal audit had already found this and graded `S7` a CONFLICT (conceptual) - that finding is the only reason "commands-as-skills" was on the v1.14.0 list. The ADR answered a **vendor-alignment** question by **measuring description scores** and never opened the audit's evidence. The measurement was sound; it was answering something else.
+
+  **`askit-standards-watch` pins four agentskills.io artifacts and zero vendor pages**, so every vendor claim in this repository - `U14`'s field list, `U15`'s discovery behaviour, this ADR's premise - rests on a person having checked a page once. Vendor-watch is the remaining v1.14.0 workstream and this is its justification. One positive: `U14`'s citation re-verified **verbatim**, including "For security reasons".
+
+  Filed as **E44**, not fixed: if the property that matters is invocation control rather than component type, a `skills/` file declaring `disable-model-invocation: true` has no trigger surface either and `U5` scores it anyway. **Measured first: 0 of 2435 skills across seven pinned corpora and all six family members declare either field.** A check for a population of zero is not warranted; the entry carries its trigger condition.
+
+
 - **Standard 0.13 to 0.14.** The version note records all seven decisions of the v1.14.0 ADR pack (ADRs 0046 to 0052) and, per sec 7.7, which of them a plugin adopts by re-pinning to 0.14 (`U15`, `U16`) and which are held for every pin below 0.15 (`U17`, the workflow mirror). The Universal checks are now `U1-U9`, `U11-U17`; the spine is **34**.
 
 - **Sec 3.2: a command's description MUST is DEMOTED to a SHOULD (ADR 0048), and this is the diff to read if you track the Standard.** The rule said a command's description "MUST match the skill's triggering intent" - unenforceable as written, and **satisfied by 0 of 14 commands in the reference family, this toolkit's own two included.** Those two score 0.65 while their backing skills, of identical name and intent, score **1.00**; the entire gap is one literal token ("Use **to** audit" is not "Use **when**"). It splits into a MUST (non-empty, states what invoking does - enforced by `S7`) and a SHOULD (agrees with the backing skill's intent - real, and not machine-checkable).

@@ -162,6 +162,11 @@ test("ADR 0048: a command's description is NEVER scored, however badly it would 
   // The entire gap is one literal token - "Use TO audit" is not "Use WHEN". A command is invoked by a
   // person typing its name, and on Codex no command description exists at all, so on neither runtime
   // does it perform trigger matching. Applying a trigger-quality bar measures a property it lacks.
+  //
+  // AMENDED 2026-08-15: the REASON is invocation control, not component type. Claude Code states
+  // "Custom commands have been merged into skills" - a command IS a skill, one a model does not load
+  // automatically. The decision is unchanged; ADR 0048 carries the correction, and E44 records that
+  // a skills/ file declaring `disable-model-invocation: true` has the same property (population 0).
   const weak = "Helps with stuff.";
   assert.ok(scoreDescription(weak) < 0.7, "the premise: this description would fail the bar");
 

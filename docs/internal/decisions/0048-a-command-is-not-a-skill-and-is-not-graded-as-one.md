@@ -1,14 +1,50 @@
-# 0048 - A command is not a skill, is not graded as one, and sec 3.2 stops implying it is
+# 0048 - A command's description is not a trigger surface, and sec 3.2 stops implying it is
+
+> **AMENDED IN PLACE 2026-08-15, one day after ratification.** The DECISION below stands unchanged and
+> nothing shipped is being reverted. Its **premise was false and its title was wrong**: this ADR asserted
+> that a command is not a skill, and Claude Code's own documentation says *"Custom commands have been
+> merged into skills."* The filename still carries the old title and is deliberately not renamed, because
+> the number is cited from `STANDARD.md`, `CHANGELOG.md` and four source files. **Read "Correction,
+> 2026-08-15" before anything else in this record.** This follows the ADR 0041 precedent: a decision whose
+> stated mechanism could not be right is amended where it lives rather than quietly superseded.
 
 ## TL;DR
 - **Decision:** No skill requirement is extended to commands. `U5` (description-score), `U6` (reference-links) and `U7` (instruction-budget) keep their skills-only scope. **No new check ships.** What changes is prose: Standard sec 3.2's rule that a command's description "MUST match the skill's triggering intent" is **demoted to a SHOULD**, not deleted, because the obligation is real and is simply not machine-checkable - and this toolkit's own `templates/command.md` and `docs/how-to/build-a-command.md` instruct authors to write a description that its own scorer would fail.
 - **Why:** **0 of 14 commands in the family pass `U5`, including this repository's own two - whose backing skills, of the identical name and intent, score 1.00.** The entire gap is one literal token. `U5` awards 0.35 for matching `use when` / `when the user` / `if the user asks`; a command description that says "Use **to** scaffold a new SKILL.md" scores 0.65 and cannot reach 0.70 without adopting a phrasing that is wrong for a `/`-menu label.
 - **The framing is also answered, and it was already settled.** "Should a command that is really a skill be held to skill requirements?" Standard sec 3.2 already forbids that shape - a command MUST map to exactly one skill or workflow - and `S7` already fails it. Eleven of the family's fourteen commands fail `S7` today for exactly this reason.
 - **A new check was drafted and abandoned on measurement.** A command-shaped description bar passes 14 of 14 real commands and fails only an unreplaced scaffold, and `S7`'s existing `maps-to` branch already catches every unreplaced scaffold, verified on a fixture. A check that fires on nothing the gate does not already report is not worth a Standard bump.
-- **Status:** Accepted (ratified 2026-08-14).
+- **Status:** Accepted (ratified 2026-08-14), **amended 2026-08-15** - see "Correction, 2026-08-15".
 
-- **Date:** 2026-08-14
+- **Date:** 2026-08-14, amended 2026-08-15
 - **Deciders:** maintainer (jprisant), with Claude (Opus 5)
+
+## Correction, 2026-08-15: the premise was false, the decision is not
+
+**This ADR was ratified against a vendor claim nobody tested.** Claude Code's own documentation says, verbatim:
+
+> **"Custom commands have been merged into skills.** A file at `.claude/commands/deploy.md` and a skill at `.claude/skills/deploy/SKILL.md` both create `/deploy` and **work the same way**. Your existing `.claude/commands/` files keep working."
+> ([Extend Claude with skills](https://code.claude.com/docs/en/skills), read 2026-08-15)
+
+And the plugins reference: *"The `commands/` directory holds **skills as flat Markdown files**. Use `skills/` for new plugins."* ([Plugins reference](https://code.claude.com/docs/en/plugins-reference), read 2026-08-15).
+
+**A command IS a skill.** The original title and the "Context" section below both assert otherwise, and they are wrong.
+
+**How it happened, because the process failure matters more than the fact.** The 2026-08-10 internal audit had already found this and graded `S7` a **CONFLICT (conceptual)**: *"Both vendors collapsed the distinction the check certifies."* That finding sat in `_local/audit/2026-08-10_fable/08-first-party-divergence.md` and was the reason "commands-as-skills" was on the v1.14.0 list at all. This ADR answered a question the audit had framed as a **vendor-alignment** question by **measuring description scores instead**, and never opened the audit's evidence. The measurement was sound; it was answering something else.
+
+**Why the DECISION survives anyway, on better ground.** The same vendor page supplies it:
+
+> **`disable-model-invocation: true`**: Only you can invoke the skill... **`user-invocable: false`**: Only Claude can invoke the skill.
+
+A `commands/` file is a skill **whose invocation is user-controlled**: Claude does not load it automatically, so its description is not doing model-facing trigger matching. That is exactly the conclusion this ADR reached, and it is the reason - not "a command is a different kind of thing". Every numbered outcome below stands, and `templates/command.md`, the how-to and the `askit-build-command` guidance are all still correct.
+
+**What the correction changes in the record:**
+- The **title** becomes *"A command's description is not a trigger surface"*. The filename is not renamed (the number is cited in five places).
+- Anywhere below that reasons from "a command is not a skill", read "a command is a skill whose invocation is user-controlled".
+- **`STANDARD.md` sec 3.2 is corrected in the same change**, since it repeated the false premise in normative text.
+
+**The larger finding this exposed, filed rather than decided (E44).** If the property that matters is **invocation control** rather than component type, then a skill in `skills/` declaring `disable-model-invocation: true` also has no trigger surface, and `U5` scores it anyway. **Measured before proposing anything: 0 of 2435 skills across seven pinned corpora and all six family members declare either field.** A check for a population of zero, immediately after `U17` shipped for a population of zero, is not warranted. Filed as **E44** with its trigger condition: revisit when the fields appear in a measured corpus.
+
+**And the real lesson: this repository had the evidence and did not read it.** `askit-standards-watch` pins **four agentskills.io artifacts and zero vendor pages**, so every vendor claim here - `U14`'s field list, `U15`'s discovery behaviour, this ADR's premise - rests on a human having checked a page once and written down the date. Vendor-watch is the remaining v1.14.0 workstream and this is its justification.
 
 ## Builds on
 - **ADR 0033 (recalibrate the `U5` description scorer)** - the calibration this ADR does not touch. ADR 0033 widened the ACTION lexicon and the WHEN variants after "a bare-stem-only list put strong third-party descriptions at exactly 0.65 across four independent corpora". Commands sit at exactly 0.65 for the same structural reason, and this ADR concludes the answer is scope, not another widening.
