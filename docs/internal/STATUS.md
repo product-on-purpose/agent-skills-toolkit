@@ -18,7 +18,7 @@
 | Spine | 34 checks |
 | Scopes | 3 (plugin, component, marketplace) |
 | Skills | 24 |
-| Tests | 1193, 0 failures (local suite run 2026-08-15; both halves confirmed by `npm run release-counts` exiting 0) |
+| Tests | 1209, 0 failures (local suite run 2026-08-15; both halves confirmed by `npm run release-counts` exiting 0) |
 | Self-proving | `node scripts/check.mjs .` exits 0 at Advanced, 0 errors, 0 warnings |
 
 ## The v1.14.0 ADR pack: RATIFIED and IMPLEMENTED
@@ -77,6 +77,31 @@ an unenforced MUST).
 **Before graduating `U17` at 0.15, re-run the manifest census.** It shipped warn-first because a census
 of every real manifest found 7 (6 of-plugins, 1 of-skills, zero mixed, zero malformed): it is preventive,
 not corrective, and gating a check nothing has ever tripped deserves re-examination rather than a default.
+## Vendor-watch is standing (2026-08-15)
+
+This repository asserts vendor behaviour as **fact** - in normative Standard text and in shipped findings.
+`U14` quotes a Claude Code sentence in every finding it emits; `U15` is `vendor-cited` because it rests on
+how the runtime discovers subagents; sec 3.2 explains itself by reference to how commands are invoked.
+**Each of those was a page somebody read once and a date they wrote down.**
+
+**What it cost, before it existed:** ADR 0048 was ratified on 2026-08-14 asserting that a command is not a
+skill. Claude Code says *"Custom commands have been merged into skills."* The 2026-08-10 internal audit had
+**already found this** and graded `S7` a CONFLICT. The evidence existed; nothing was re-reading it.
+
+`docs/internal/vendor-watch/vendor-claims.json` pins six claims across two vendor pages, each carrying what
+depends on it and what to do when it fails. `npm run vendor-watch` re-checks them; a monthly workflow opens
+an issue rather than editing anything; and `RELEASE.md` now gates a tag on a run under 30 days old.
+
+**Two design calls worth knowing.** It pins **claims, not pages** - a page hash would fire on every
+navigation change and be ignored within a month, whereas what this repository depends on is specific
+sentences. And a claim is either a **`quote`** (a sentence that must still appear, checked automatically) or
+a **`probe`** (an empirical behaviour no page states, where the watch reports the AGE and names the
+reproduction and **never claims to have verified it**). `U15`'s discovery behaviour is a probe: it was
+established by installing a plugin and looking at what registered.
+
+**Refusal outranks a clean result.** Exit 2 when a page could not be read, because a watch that passes
+because it could not reach the page is worse than no watch.
+
 ## What is open
 
 - **ADR 0039 (marketplace-scope evaluation) is IMPLEMENTED** in v1.12.0: a third evaluation scope
@@ -202,7 +227,7 @@ this file); the conclusions are stated here directly.
   [`release-plans/plan_v1.13.0/RELEASE-PLAN.md`](release-plans/plan_v1.13.0/RELEASE-PLAN.md).
 - **v1.14.0 "current with the vendors" (ADR pack SHIPPED, release not yet cut):** the seven-ADR pack is
   ratified and implemented - see "The v1.14.0 ADR pack" above. Spine 31 to 34, Standard 0.13 to 0.14, and
-  no family verdict moved at any step. **Remaining for this release:** stand up vendor-watch, run
+  no family verdict moved at any step. **vendor-watch is now standing** (see below). **Remaining for this release:** run
   [`RELEASE.md`](RELEASE.md) end to end including the Codex round-trip Q-E gate, adversarial review to a
   clean round or a stated bounded stop, then tag and publish. **The ADR-first order was deliberate and it
   paid:** measurement overturned three of the seven recommendations before a line of implementation was

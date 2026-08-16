@@ -1,0 +1,101 @@
+{
+  "schema": "askit-vendor-claims/1",
+  "about": "Every VENDOR CLAIM this repository asserts, pinned so it can be re-verified on a schedule instead of by a person remembering. STANDARD.md and several checks cite Claude Code and Codex behaviour as fact; before this file, each of those citations was a page someone read once and a date they wrote down. On 2026-08-15 that cost us a ratified ADR: ADR 0048 was accepted on the premise that a command is not a skill, which Claude Code's own documentation contradicts, and a 2026-08-10 internal audit had already found it. This file is the instrument that makes that failure mode detectable.",
+  "conventions": {
+    "claim": "The verbatim sentence, or the empirically observed behaviour, that this repository depends on. Never a paraphrase: a paraphrase cannot be checked against a page.",
+    "kind": "quote = a sentence that MUST still appear on the named page; the watch checks it automatically. probe = an empirical behaviour that no page states, re-verified by running something; the watch can only report its AGE and name the reproduction, never confirm it.",
+    "dependsOn": "What breaks, or becomes wrong, if this claim stops being true. This is the field that makes a failure actionable rather than interesting.",
+    "verifiedOn": "ISO date the claim was last confirmed against the live source. A quote claim's date is refreshed by a passing watch run; a probe claim's date is refreshed only by a human running the reproduction.",
+    "onChange": "What a maintainer must do when this claim fails. Stated per claim because the answer differs: some changes are green-ward and are a silent re-read, others are a Standard revision needing an ADR and a migration window."
+  },
+  "sources": [
+    {
+      "id": "cc-plugins-reference",
+      "vendor": "claude-code",
+      "url": "https://code.claude.com/docs/en/plugins-reference",
+      "note": "The older docs.claude.com path 301-redirects here. A host move is a documentation edit, not a Standard revision."
+    },
+    {
+      "id": "cc-skills",
+      "vendor": "claude-code",
+      "url": "https://code.claude.com/docs/en/skills",
+      "note": "Covers the commands-into-skills merge and the invocation-control frontmatter."
+    }
+  ],
+  "claims": [
+    {
+      "id": "plugin-agent-unsupported-fields",
+      "kind": "quote",
+      "source": "cc-plugins-reference",
+      "claim": "For security reasons, hooks, mcpServers, and permissionMode are not supported for plugin-shipped agents",
+      "dependsOn": [
+        "U14 (agent-restricted-fields) - the whole check",
+        "the marketplace A6 reading, which imports the same field list",
+        "ADR 0045, and STANDARD.md sec 3.3"
+      ],
+      "verifiedOn": "2026-08-15",
+      "onChange": "ASYMMETRIC (ADR 0045). A field REMOVED from the unsupported list is green-ward - update the constant, bump the read date, note it in CHANGELOG. A field ADDED is red-ward: a new Standard minor with finding-level migration metadata, never a bump of U14's own since."
+    },
+    {
+      "id": "plugin-agent-supported-fields",
+      "kind": "quote",
+      "source": "cc-plugins-reference",
+      "claim": "Plugin agents support",
+      "dependsOn": [
+        "PLUGIN_AGENT_SUPPORTED_FIELDS, quoted in every U14 finding as the remediation"
+      ],
+      "verifiedOn": "2026-08-15",
+      "onChange": "Re-read the field list and update the constant. The list appears in user-facing remediation, so a stale one sends authors to a field the runtime does not accept."
+    },
+    {
+      "id": "commands-merged-into-skills",
+      "kind": "quote",
+      "source": "cc-skills",
+      "claim": "Custom commands have been merged into skills",
+      "dependsOn": [
+        "ADR 0048 (as amended 2026-08-15) and STANDARD.md sec 3.2",
+        "S7 (command-contract), which certifies a per-target command shape"
+      ],
+      "verifiedOn": "2026-08-15",
+      "onChange": "If this is ever REVERSED, sec 3.2's justification returns to component type and ADR 0048's amendment must be revisited. This claim is here because its absence was not noticed for five days after an internal audit found it."
+    },
+    {
+      "id": "invocation-control-frontmatter",
+      "kind": "quote",
+      "source": "cc-skills",
+      "claim": "disable-model-invocation",
+      "dependsOn": [
+        "ADR 0048's corrected reasoning: a command is a skill whose invocation is user-controlled",
+        "backlog E44, which becomes an ADR when this field appears in a measured corpus"
+      ],
+      "verifiedOn": "2026-08-15",
+      "onChange": "If the field is renamed or removed, E44's trigger condition changes and ADR 0048's reasoning needs a new anchor."
+    },
+    {
+      "id": "agents-dir-registers-every-md",
+      "kind": "probe",
+      "source": "cc-plugins-reference",
+      "claim": "Claude Code scans agents/ for *.md and registers EVERY file it finds. A directory holding real-agent.md, README.md, _README.md and README.txt registered three subagents: real-agent, README and _README. The underscore prefix protects nothing; only the non-.md extension was skipped.",
+      "dependsOn": [
+        "U15 (agents-dir-registerable) - the whole check, and its vendor-cited provenance",
+        "the G8 exemption of agents/ from the meaningful-folder README requirement",
+        "ADR 0046, and STANDARD.md sec 3.3"
+      ],
+      "verifiedOn": "2026-08-06",
+      "reproduction": "Install a plugin whose agents/ holds real-agent.md, README.md, _README.md and README.txt; list the registered subagents. Recorded in scripts/checks/folder-readme.mjs.",
+      "onChange": "If the runtime starts EXCLUDING README.md or underscore-prefixed files, U15 loses its vendor grounding and becomes a house convention - which would change its provenance, and with it whether plain-plugin drops it."
+    },
+    {
+      "id": "components-share-one-namespace",
+      "kind": "probe",
+      "source": "cc-plugins-reference",
+      "claim": "Component names from different plugins enter a SHARED POOL on any agent that does not namespace components by plugin, so two members shipping the same skill directory name collide and which one wins is undefined.",
+      "dependsOn": [
+        "ADR 0051's stated reopening condition for marketplace-skill-collision and marketplace-command-collision"
+      ],
+      "verifiedOn": "2026-08-12",
+      "reproduction": "Install two plugins shipping the same skill name and observe which resolves.",
+      "onChange": "If a runtime NAMESPACES components by plugin, the two collision classes should be RETIRED, not graduated - ADR 0051 says so explicitly. This is the one claim whose change makes the gate report LESS, not more."
+    }
+  ]
+}

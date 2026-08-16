@@ -61,6 +61,7 @@
     "evaluate": "node scripts/evaluate.mjs",
     "eval-run": "node scripts/eval-run.mjs",
     "standards-watch": "node scripts/standards-watch.mjs .",
+    "vendor-watch": "node scripts/vendor-watch.mjs .",
     "release-counts": "node scripts/check-release-counts.mjs .",
     "prepublishOnly": "npm test && node scripts/check.mjs"
   },
