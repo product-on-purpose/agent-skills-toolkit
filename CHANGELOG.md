@@ -9,6 +9,24 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Fixed
+
+- **Adversarial review wave 1 found four defects in the checks this release added, and all four are fixed.** The round was pointed at the three new checks and their migration metadata specifically. It cleared what I most wanted attacked - **no defect was found in the `since`/`until` ceiling interaction or the activation-neutral reason strings** - and then found this:
+
+  **`agents/` is scanned RECURSIVELY, and both agent listers were flat.** Claude Code states it verbatim: *"Plugin `agents/` directories are also scanned recursively"*, and *"a file at `agents/review/security.md` in plugin `my-plugin` registers as `my-plugin:review:security`"*. So `agents/review/_shadow.md` was a live subagent that bypassed **both `U15` and `U14`** - the exact bypass ADR 0045 and ADR 0046 exist to close, one directory deeper. Both listers now walk recursively and keep the subpath in the name, because a bare basename would collide `agents/security.md` with `agents/review/security.md`. A filename containing `:` is skipped, because the runtime refuses it and being stricter than the runtime is the opposite failure.
+
+  **The probe was generalised past its evidence.** The recorded experiment tested `README.md` and `_README.md` in a FLAT directory; the invariant drawn from it claimed to describe the whole directory. Recursion and the colon rule are now separate pinned vendor claims rather than an assumption.
+
+  **`U17` dropped source-less catalogue entries before partitioning**, so `[{source:"./skills/a"},{name:"plugin-b"}]` reported nothing while `U13` claimed the manifest and ignored that entry too, and marketplace scope declined the whole file. The entry was examined by **no scope** - precisely the routing hole `U17` exists to close, passing cleanly. An entry with no usable `source` is now a shape error.
+
+  **`U16` told authors to delete a value `S4` was reading.** `S4` resolves `metadata?.chain ?? frontmatter?.chain`, and `??` falls through on `null` - so `metadata: { chain: null }` alongside a top-level `chain` leaves the top-level array LIVE. `U16` called it dead weight; following that advice silently removed chain-contract enforcement. `U16` now ASKS `S4` through one exported resolver instead of duplicating the rule, and the lost-value message says **move it, do not delete it**.
+
+  **vendor-watch could exit 0 having verified nothing.** A probe-only document whose fetch failed, and an empty claims document, both reported success - so the scheduled workflow would open no issue for a run that confirmed nothing. Refusal now keys off **source-level** fetch failures rather than claim verdicts, which is what let a probe hide a failed fetch. A MISSING claim stays exit 1: the page was read and the sentence is gone, which is a finding, not a refusal.
+
+  **Family blast radius: nothing moved**, isolated by measuring with the recursive listers present and absent and verifying which was loaded at each step.
+
+  **Seven mutation checks, and one initially proved nothing** - reported rather than quietly rewritten. The colon-exclusion test used a filesystem fixture named `bad:name.md`, which **cannot exist on Windows**: NTFS reads the colon as the alternate-data-stream separator, so the write SUCCEEDS and the directory ends up holding a file called `bad`. The test was vacuous on the platform `validate-windows` runs. The rule is now an exported predicate tested directly.
+
 ### Added
 
 - **vendor-watch: every vendor claim this repository asserts as fact is now pinned and re-checked on a schedule.** `STANDARD.md` and four checks cite Claude Code behaviour as fact. `U14` quotes a vendor sentence in every finding it emits; `U15` carries `vendor-cited` provenance because it rests on how the runtime discovers subagents; sec 3.2 explains itself by reference to how commands are invoked. **Each of those was a page somebody read once and a date they wrote down.**

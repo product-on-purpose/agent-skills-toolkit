@@ -8,6 +8,8 @@
 // used-by:      scripts/lib/registry.mjs (the CHECKS array); covered by tests/unit/metadata-placement.test.mjs
 import { finding, SEVERITY } from "../lib/findings.mjs";
 import { relPath } from "../lib/fs-utils.mjs";
+// The ONE definition of which chain value is in force, from the check that owns the rule (S4).
+import { topLevelChainIsLive } from "./chain-contract.mjs";
 
 /**
  * `since: "0.14"`, no `migration` metadata: a NEW check, so `since` alone is the window under ADR 0044's
@@ -70,14 +72,25 @@ export function check(ctx) {
     const file = relPath(ctx.root, s.skillMdPath);
     for (const key of SEC_37_KEYS) {
       if (!Object.hasOwn(fm, key)) continue;
-      const shadowed = nested !== null && Object.hasOwn(nested, key);
+      // "Shadowed" means the nested value is the one in force. For most keys that is simply "the nested
+      // key is present" - but `chain` has a real resolver, `S4`'s, and it uses `??`, which falls through
+      // on NULL. So `metadata: { chain: null }` alongside a top-level `chain` leaves the TOP-LEVEL value
+      // live, and calling it dead weight told an author to delete the value S4 reads. Deleting it
+      // silently removes chain-contract enforcement (wave-1 finding, reproduced end to end).
+      //
+      // U16 therefore ASKS S4 rather than duplicating the rule. Two copies of a resolution rule is
+      // exactly how this defect happened, and the same shape as the `underSkills` duplication U17 avoids.
+      const shadowed =
+        key === "chain"
+          ? !topLevelChainIsLive(fm)
+          : nested !== null && Object.hasOwn(nested, key);
       out.push(
         finding(
           meta.id,
           SEVERITY.ERROR,
           shadowed
             ? `frontmatter declares "${key}" at the top level AND under "metadata"; only the nested one is read, so the top-level copy is dead weight that can silently drift from it (Standard sec 3.7).`
-            : `frontmatter declares "${key}" at the top level; Standard sec 3.7 places it under "metadata", so nothing reads it and the declaration is silently lost. Move it to metadata.${key}.`,
+            : `frontmatter declares "${key}" at the top level; Standard sec 3.7 places it under "metadata", so nothing reads it there. Move it to metadata.${key} - do not delete it.`,
           { file, reqId: meta.reqId }
         )
       );

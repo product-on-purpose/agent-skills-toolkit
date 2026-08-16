@@ -4,7 +4,7 @@
 // used-by:      imported by scripts/check.mjs, tier-report.mjs, evaluate.mjs, and the unit tests
 import { readFileSync, existsSync, statSync } from "node:fs";
 import path from "node:path";
-import { readJsonSafe, fileExists, listSkillDirs, listAgentFiles, listRuntimeAgentDocs, listCommandFiles, listWorkflowFiles } from "./fs-utils.mjs";
+import { readJsonSafe, fileExists, listSkillDirs, listAgentFilesNamed, listRuntimeAgentDocsNamed, listCommandFiles, listWorkflowFiles } from "./fs-utils.mjs";
 import { parseFrontmatter } from "./frontmatter.mjs";
 
 const isDir = (p) => existsSync(p) && statSync(p).isDirectory();
@@ -38,15 +38,20 @@ export function loadSkill(dir) {
 }
 
 /** Load one agents/<name>.md into a SubagentInfo (parallel to loadSkill). Read failure becomes a parseError (fail-safe). */
-export function loadSubagent(file) {
+/**
+ * `name` is passed in rather than derived, because a nested agent's identity includes its subpath:
+ * the vendor registers agents/review/security.md as <plugin>:review:security, so a bare basename would
+ * collide it with agents/security.md. Defaults to the basename for the callers that have no subpath.
+ */
+export function loadSubagent(file, name = null) {
   let raw;
   try {
     raw = readFileSync(file, "utf8");
   } catch (e) {
-    return { name: path.basename(file, ".md"), file, raw: null, frontmatter: null, body: "", parseError: e.message };
+    return { name: name ?? path.basename(file, ".md"), file, raw: null, frontmatter: null, body: "", parseError: e.message };
   }
   const { frontmatter, body, parseError } = parseFrontmatter(raw);
-  return { name: path.basename(file, ".md"), file, raw, frontmatter, body, parseError };
+  return { name: name ?? path.basename(file, ".md"), file, raw, frontmatter, body, parseError };
 }
 
 /** Load one commands/<name>.md into a CommandInfo (parallel to loadSubagent). */
@@ -70,11 +75,11 @@ export function loadPlugin(root) {
   const agentsMdPath = fileExists(agentsMd) ? agentsMd : null;
 
   const skills = listSkillDirs(root).map((dir) => loadSkill(dir));
-  const subagents = listAgentFiles(root).map((f) => loadSubagent(f));
+  const subagents = listAgentFilesNamed(root).map(({ file, name }) => loadSubagent(file, name));
   // Everything the RUNTIME loads from agents/, a superset of what the plugin registers: README.md and
   // underscore-prefixed files are excluded from registration and loaded anyway. A check about what a
   // plugin SHIPS must read this list, not `subagents`.
-  const agentDocs = listRuntimeAgentDocs(root).map((f) => loadSubagent(f));
+  const agentDocs = listRuntimeAgentDocsNamed(root).map(({ file, name }) => loadSubagent(file, name));
   const commands = listCommandFiles(root).map((f) => loadCommand(f));
   // Workflows are a first-class Convergent component (Standard sec 3.4) that the loader never knew
   // about, so `S7` read `ctx.workflows` and always got `undefined`: a command declaring

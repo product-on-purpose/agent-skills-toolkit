@@ -137,3 +137,23 @@ test("the migration reason is ACTIVATION-NEUTRAL and never claims a cap is in fo
   assert.equal(f.migration.until, "0.15");
   assert.equal(f.migration.capAt, "warn");
 });
+
+
+// --- wave 1, H1: an entry with no usable `source` is examined by NOBODY ---------------------------
+
+test("W1-H1: an entry with NO source is a shape error, not something to quietly drop", () => {
+  // Found by adversarial review wave 1. The first implementation filtered entries down to those with a
+  // source before partitioning, so a source-less entry vanished: skillEntries 1, otherEntries 0, not
+  // mixed, no finding. U13 claims the manifest (one source resolves under skills/) and ignores that
+  // entry too; marketplace scope declines the whole file. The entry is therefore examined by no scope,
+  // which is EXACTLY the routing hole U17 exists to close - and it passed cleanly.
+  const f = run(JSON.stringify({ name: "c", plugins: [{ name: "skill-a", source: "./skills/a" }, { name: "plugin-b" }] }));
+  assert.equal(f.length, 1, "a source-less entry must be reported");
+  assert.match(f[0].message, /plugin-b|no usable "source"|cannot be routed/i);
+});
+
+test("W1-H1: a source-less entry is reported even in an otherwise pure catalogue", () => {
+  const pure = run(JSON.stringify({ name: "c", plugins: [{ name: "a", source: "../plugin-a" }, { name: "b" }] }));
+  assert.equal(pure.length, 1, "no scope can route an entry with no source, mixed or not");
+});
+

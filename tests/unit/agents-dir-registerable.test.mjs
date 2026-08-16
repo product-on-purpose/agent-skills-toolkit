@@ -11,6 +11,7 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import { check, meta } from "../../scripts/checks/agents-dir-registerable.mjs";
 import { loadPlugin } from "../../scripts/lib/load-plugin.mjs";
+import { isRuntimeAgentFile } from "../../scripts/lib/fs-utils.mjs";
 import { resolveFindings, gatingFindings } from "../../scripts/lib/resolve-config.mjs";
 import { configFrom } from "../../scripts/lib/config.mjs";
 import { provenanceByReq } from "../../scripts/lib/registry.mjs";
@@ -108,3 +109,65 @@ test("U15 is held at warn below 0.14 and gates at 0.14 (ADR 0044's ceiling, no h
     assert.equal(gatingFindings([due]).length, 1);
   } finally { rmSync(dir, { recursive: true, force: true }); }
 });
+
+
+// --- wave 1, H2: plugin agents/ is scanned RECURSIVELY, and the flat listers never saw that --------
+
+/** A plugin whose agents/ holds `files` keyed by RELATIVE path, so nesting is expressible. */
+function withNestedAgents(files) {
+  const dir = mkdtempSync(path.join(tmpdir(), "askit-u15-nested-"));
+  for (const [rel, body] of Object.entries(files)) {
+    const abs = path.join(dir, "agents", ...rel.split("/"));
+    mkdirSync(path.dirname(abs), { recursive: true });
+    writeFileSync(abs, body);
+  }
+  return dir;
+}
+
+test("W1-H2: a NESTED unregistered agent is reported (plugin agents/ is scanned recursively)", () => {
+  // Found by adversarial review wave 1 and confirmed against the vendor, verbatim: "Plugin agents/
+  // directories are also scanned recursively", and "a file at agents/review/security.md in plugin
+  // my-plugin registers as my-plugin:review:security".
+  //
+  // Both listers used a flat readdirSync, so ctx.agentDocs was NOT what the runtime loads - which makes
+  // U15's whole list-equality invariant false, and lets agents/nested/_shadow.md bypass U15 AND U14.
+  // The original probe only ever tested a FLAT directory; the invariant was generalised past its evidence.
+  const dir = withNestedAgents({
+    "fx-worker.md": AGENT("fx-worker"),
+    "review/_shadow.md": AGENT("shadow"),
+  });
+  try {
+    const f = check(loadPlugin(dir));
+    assert.equal(f.length, 1, "a nested unregistered agent is still loaded by the runtime");
+    assert.ok(f[0].file.split(String.fromCharCode(92)).join("/").endsWith("agents/review/_shadow.md"), f[0].file);
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
+test("W1-H2: a nested REGISTERED agent reports nothing, and its scoped name is preserved", () => {
+  const dir = withNestedAgents({ "review/security.md": AGENT("security") });
+  try {
+    const ctx = loadPlugin(dir);
+    // The vendor scopes it as <plugin>:review:security, so the subpath is part of the identity and a
+    // bare basename would collide with a top-level agents/security.md.
+    assert.deepEqual(ctx.agentDocs.map((a) => a.name), ["review/security"]);
+    assert.deepEqual(ctx.subagents.map((a) => a.name), ["review/security"]);
+    assert.deepEqual(check(ctx), []);
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
+test("W1-H2: a filename containing a colon is NOT loaded (the vendor reserves it for scoping)", () => {
+  // Asserted against the PREDICATE, never a filesystem fixture. A file named "bad:name.md" cannot exist
+  // on Windows: NTFS reads the colon as the alternate-data-stream separator, so writeFileSync SUCCEEDS
+  // and the directory ends up holding a file called "bad" with no extension. The fixture version of this
+  // test was therefore VACUOUS on the platform validate-windows runs, and a mutation check caught it -
+  // removing the guard turned no test red.
+  //
+  // The rule is the vendor's: Claude Code "doesn't load a file whose name contains one [:]".
+  assert.equal(isRuntimeAgentFile("worker.md"), true);
+  assert.equal(isRuntimeAgentFile("review-security.md"), true);
+  assert.equal(isRuntimeAgentFile("bad:name.md"), false, "the runtime refuses it, so these listers must too");
+  assert.equal(isRuntimeAgentFile("plugin:scoped:name.md"), false);
+  assert.equal(isRuntimeAgentFile("notes.txt"), false, "only .md is loaded");
+  assert.equal(isRuntimeAgentFile("_chain-permitted.yaml"), false);
+});
+

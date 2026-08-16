@@ -20,6 +20,12 @@
       "vendor": "claude-code",
       "url": "https://code.claude.com/docs/en/skills",
       "note": "Covers the commands-into-skills merge and the invocation-control frontmatter."
+    },
+    {
+      "id": "cc-sub-agents",
+      "vendor": "claude-code",
+      "url": "https://code.claude.com/docs/en/sub-agents",
+      "note": "Subagent discovery: recursion, scoped identifiers, and the colon exclusion. Added 2026-08-15 after review wave 1 found U15 built on a flat-directory assumption nothing was watching."
     }
   ],
   "claims": [
@@ -72,10 +78,35 @@
       "onChange": "If the field is renamed or removed, E44's trigger condition changes and ADR 0048's reasoning needs a new anchor."
     },
     {
+      "id": "agents-scanned-recursively",
+      "kind": "quote",
+      "source": "cc-sub-agents",
+      "claim": "Plugin agents/ directories are also scanned recursively",
+      "dependsOn": [
+        "U15 (agents-dir-registerable) - its list-equality invariant is false if this changes",
+        "U14 (agent-restricted-fields), which reads the same runtime list",
+        "listAgentFiles / listRuntimeAgentDocs in scripts/lib/fs-utils.mjs",
+        "the S3 asymmetry, which relies on U15 owning every excluded file"
+      ],
+      "verifiedOn": "2026-08-15",
+      "onChange": "If discovery stops being recursive, the walk may flatten again - green-ward, a silent re-read. If the SCOPING rule changes, the name derivation must follow, because a nested agent's identity includes its subpath."
+    },
+    {
+      "id": "agent-filename-colon-excluded",
+      "kind": "quote",
+      "source": "cc-sub-agents",
+      "claim": "doesn't load a file whose name contains one",
+      "dependsOn": [
+        "isRuntimeAgentFile in scripts/lib/fs-utils.mjs, which keeps both listers exactly as wide as the runtime"
+      ],
+      "verifiedOn": "2026-08-15",
+      "onChange": "If the runtime starts loading colon-named files, drop the exclusion: being stricter than the runtime is the opposite of the failure these listers prevent."
+    },
+    {
       "id": "agents-dir-registers-every-md",
       "kind": "probe",
       "source": "cc-plugins-reference",
-      "claim": "Claude Code scans agents/ for *.md and registers EVERY file it finds. A directory holding real-agent.md, README.md, _README.md and README.txt registered three subagents: real-agent, README and _README. The underscore prefix protects nothing; only the non-.md extension was skipped.",
+      "claim": "Claude Code scans agents/ for *.md and registers EVERY file it finds. A directory holding real-agent.md, README.md, _README.md and README.txt registered three subagents: real-agent, README and _README. The underscore prefix protects nothing; only the non-.md extension was skipped. NOTE: this probe covered a FLAT directory only. Recursion and the colon exclusion are separate QUOTE claims (agents-scanned-recursively, agent-filename-colon-excluded); generalising this probe past its evidence is what let nested agents bypass U14 and U15 until review wave 1.",
       "dependsOn": [
         "U15 (agents-dir-registerable) - the whole check, and its vendor-cited provenance",
         "the G8 exemption of agents/ from the meaningful-folder README requirement",
