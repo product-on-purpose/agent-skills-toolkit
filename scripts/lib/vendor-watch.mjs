@@ -114,10 +114,18 @@ export function buildReport(pin, pagesById, today) {
     })
   );
   const count = (v) => results.filter((r) => r.verdict === v).length;
+  // SOURCE-level failures, kept SEPARATE from claim verdicts (wave-1 finding). Deriving refusal from
+  // claim verdicts alone let a probe-only document hide a failed fetch, because probe claims are
+  // uncheckable by nature and are excluded from that test. Whether a page was READ is a property of the
+  // source, not of the claims that happen to point at it.
+  const sourcesFailed = (pin.sources ?? [])
+    .filter((src) => (pagesById[src.id] ?? null) === null)
+    .map((src) => src.id);
   return {
     today,
     freshnessDays: FRESHNESS_DAYS,
     results,
+    sourcesFailed,
     summary: {
       total: results.length,
       holds: count(VERDICT.HOLDS),
@@ -137,13 +145,22 @@ export function buildReport(pin, pagesById, today) {
  * could reach are fine, is exactly the "a killed run is a result" mistake this project has already recorded.
  */
 export function exitCodeFor(report) {
-  const fetchFailed = report.results.some(
-    (r) => r.verdict === VERDICT.UNCHECKABLE && r.kind !== "probe"
-  );
-  if (fetchFailed) return 2;
+  // REFUSAL FIRST, and it covers the two ways a run can prove NOTHING.
+  //
+  // (a) a SOURCE could not be read, so every claim pointing at it is unverified. Keyed off the source,
+  //     not off claim verdicts: a probe-only document would otherwise hide a failed fetch, because probe
+  //     claims are uncheckable by nature and are excluded from a verdict-based test (wave-1 finding).
+  // (b) the claims document is EMPTY. A document that claims nothing proves nothing.
+  //
+  // A MISSING claim is NOT a refusal. The page was read and the sentence is gone - that is a finding a
+  // human must act on, which is exit 1. Conflating them would report "could not verify" for the case
+  // where verification succeeded and returned bad news.
+  if ((report.sourcesFailed ?? []).length > 0) return 2;
+  if (report.results.length === 0) return 2;
   if (report.summary.missing > 0 || report.summary.stale > 0) return 1;
   return 0;
 }
+
 
 const ICON = { holds: "ok  ", missing: "GONE", uncheckable: "-   ", stale: "OLD " };
 

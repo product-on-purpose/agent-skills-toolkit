@@ -32,7 +32,8 @@ test("a top-level sec 3.7 key with NO nested copy is reported as silently lost, 
   // metadata block at all, violating a sec 3.7 REQUIRED rule invisibly at Convergent with 0 errors.
   const f = check(ctxOf({ name: "demo", description: "d", version: "0.1.0" }));
   assert.equal(f.length, 1);
-  assert.match(f[0].message, /nothing reads it and the declaration is silently lost/);
+  assert.match(f[0].message, /nothing reads it there/);
+  assert.match(f[0].message, /do not delete it/, "the remediation must say MOVE, never delete");
   assert.match(f[0].message, /Move it to metadata\.version/);
 });
 
@@ -104,3 +105,25 @@ test("U16 is held at warn below 0.14 and gates at 0.14", () => {
   assert.equal(due.ceiling, null);
   assert.equal(gatingFindings([due]).length, 1);
 });
+
+
+// --- wave 1, H3: the shadowed message must not tell an author to delete a LIVE value ---------------
+
+test("W1-H3: a NULLISH nested value means the top-level one is LIVE, and must not be called dead weight", () => {
+  // Found by adversarial review wave 1, and reproduced end to end. S4 resolves the effective chain as
+  // `metadata?.chain ?? frontmatter?.chain`, and `??` falls through on null - so with metadata.chain null
+  // the TOP-LEVEL array is what S4 reads. U16's shadowed message said "only the nested one is read, so
+  // the top-level copy is dead weight", and an author following it would silently remove chain-contract
+  // enforcement. Same false-statement class as the S3 and S7 defects this release already fixed.
+  const f = check(ctxOf({ name: "demo", chain: ["worker"], metadata: { chain: null } }));
+  assert.equal(f.length, 1);
+  assert.doesNotMatch(f[0].message, /dead weight/, "the top-level value is LIVE when the nested one is nullish");
+  assert.match(f[0].message, /Move it to metadata\.chain|move the/i, "tell the author to MOVE it, never to discard it");
+});
+
+test("W1-H3: a genuinely shadowed value (non-nullish nested) still gets the shadowed message", () => {
+  const f = check(ctxOf({ name: "demo", chain: ["worker"], metadata: { chain: ["real"] } }));
+  assert.equal(f.length, 1);
+  assert.match(f[0].message, /top level AND under "metadata"/);
+});
+

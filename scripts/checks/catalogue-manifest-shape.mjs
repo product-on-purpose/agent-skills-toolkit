@@ -96,7 +96,23 @@ export function check(ctx) {
     ];
   }
 
-  const declared = data.plugins.filter((e) => e?.source !== undefined);
+  // An entry with NO usable `source` is a shape error, not something to quietly drop (wave-1 finding).
+  // The first version filtered these out before partitioning, so `[{source:"./skills/a"},{name:"b"}]`
+  // left one skill entry and zero others, was not "mixed", and reported nothing - while `U13` claimed
+  // the manifest (a source resolves under skills/) and ignored that entry too, and marketplace scope
+  // declined the whole file. The entry was examined by NO scope, which is precisely the routing hole
+  // this check exists to close, passing cleanly.
+  const unroutable = data.plugins.filter((e) => typeof e?.source !== "string" && typeof e?.source !== "object");
+  if (unroutable.length > 0) {
+    const names = unroutable.map((e, i) => (typeof e?.name === "string" ? e.name : `plugins[${i}]`));
+    return [
+      report(
+        `${MANIFEST_REL} has ${unroutable.length} entry/entries with no usable "source" (${names.join(", ")}); no scope can route an entry it cannot classify, so nothing examines it. Give every entry a source, or remove it.`
+      ),
+    ];
+  }
+
+  const declared = data.plugins;
   const skillEntries = declared.filter((e) => underSkills(e.source));
   const otherEntries = declared.filter((e) => !underSkills(e.source));
   if (skillEntries.length > 0 && otherEntries.length > 0) {

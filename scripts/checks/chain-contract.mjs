@@ -16,6 +16,25 @@ import { parse as parseYaml } from "yaml";
 
 export const meta = { id: "chain-contract", tier: "convergent", reqId: "S4", since: "0.x", provenance: "house" };
 
+/**
+ * WHICH chain declaration is actually in force. The ONE definition, exported so U16 can ask rather than
+ * assume (wave-1 finding).
+ *
+ * `??` falls through on null AND undefined, so a nullish `metadata.chain` leaves the legacy top-level
+ * value LIVE. U16 duplicated the assumption "nested always wins" and therefore told an author that a
+ * top-level `chain` alongside `metadata: { chain: null }` was dead weight they could delete - and
+ * deleting it silently removes chain-contract enforcement, because this is the value S4 reads. Two
+ * copies of a resolution rule is how that happened; there is now one.
+ */
+export function effectiveChain(frontmatter) {
+  return frontmatter?.metadata?.chain ?? frontmatter?.chain;
+}
+
+/** True when the TOP-LEVEL `chain` is the value in force (the nested one being nullish or absent). */
+export function topLevelChainIsLive(frontmatter) {
+  return frontmatter?.metadata?.chain == null && frontmatter?.chain != null;
+}
+
 // ADR 0041's graduation note USED TO BE BUILT HERE and is now derived by resolveFindings instead.
 // The note is run-specific - it is true only when the migration ceiling actually bound - and this
 // module knows neither the plugin's pin nor whether --strict is on, so a conditional note could not be
@@ -89,7 +108,7 @@ export function check(ctx) {
   // change, so it stays ERROR.
   const declaredChains = components
     .map((c) => {
-      const declared = c.frontmatter?.metadata?.chain ?? c.frontmatter?.chain;
+      const declared = effectiveChain(c.frontmatter);
       return {
         name: c.name,
         chain: parseChainDeclaration(declared),

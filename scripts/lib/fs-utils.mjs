@@ -95,16 +95,93 @@ export function listSkillDirs(root) {
     .filter((dir) => statSync(dir).isDirectory() && fileExists(path.join(dir, "SKILL.md")));
 }
 
-/** Absolute paths of agents/*.md subagent definitions, excluding _-prefixed control files (_chain-permitted.yaml, _pairing.yaml) and a folder README.md (a folder guide is not a component). */
-export function listAgentFiles(root) {
+/**
+ * Every `.md` under `agents/`, at ANY depth, as { file, name } where `name` carries the relative
+ * subpath. The shared walk behind both agent listers.
+ *
+ * RECURSIVE, and that was a wave-1 review finding rather than the original design. Both listers used a
+ * flat `readdirSync`, which made `listRuntimeAgentDocs` NOT what the runtime loads - the exact thing its
+ * own docblock claims. Claude Code states it verbatim: "Plugin `agents/` directories are also scanned
+ * recursively", and "a file at `agents/review/security.md` in plugin `my-plugin` registers as
+ * `my-plugin:review:security`" (read 2026-08-15). So `agents/review/_shadow.md` was a live subagent that
+ * bypassed both `U14` and `U15`.
+ *
+ * The original probe recorded in folder-readme.mjs only ever tested a FLAT directory; the invariant was
+ * generalised past its evidence, and nothing caught it because the tests were written from the same
+ * mental model as the code.
+ *
+ * `name` keeps the subpath (`review/security`, not `security`) because the vendor makes the subfolder
+ * part of the scoped identity. A bare basename would collide `agents/security.md` with
+ * `agents/review/security.md`, which are two different subagents.
+ *
+ * A filename containing `:` is SKIPPED: the vendor reserves the colon for scoped identifiers and "doesn't
+ * load a file whose name contains one". Reporting it would be stricter than the runtime, which is the
+ * opposite of the failure these listers exist to prevent.
+ */
+/**
+ * Is this basename a file the RUNTIME loads from `agents/`?
+ *
+ * Exported as a pure predicate, and that is not tidiness - it is the only way this rule can be tested on
+ * Windows. A fixture named `bad:name.md` cannot exist there: NTFS reads the colon as the alternate-data-
+ * stream separator, so `writeFileSync` SUCCEEDS and the directory ends up containing a file called `bad`
+ * with no extension. A filesystem-fixture test of the colon rule is therefore silently VACUOUS on the
+ * platform our own `validate-windows` job runs, which a mutation check caught: removing the guard turned
+ * no test red.
+ *
+ * The rule itself is the vendor's: Claude Code "doesn't load a file whose name contains one [`:`]", which
+ * it reserves for scoped identifiers. Excluding it keeps these listers exactly as wide as the runtime,
+ * and no wider - being stricter than the runtime is the opposite of the failure they exist to prevent.
+ */
+export function isRuntimeAgentFile(basename) {
+  return basename.endsWith(".md") && !basename.includes(":");
+}
+
+function walkAgentDocs(root) {
   const agentsRoot = path.join(root, "agents");
   if (!existsSync(agentsRoot) || !statSync(agentsRoot).isDirectory()) return [];
-  return readdirSync(agentsRoot)
-    .filter((name) => name.endsWith(".md") && !name.startsWith("_") && name !== "README.md")
-    .map((name) => path.join(agentsRoot, name))
-    // fileExists guards against a *directory* named "<x>.md" (it would pass the name
-    // filter but is not a subagent); mirrors the isDirectory guard in listSkillDirs.
-    .filter((p) => fileExists(p));
+  const out = [];
+  const walk = (dir, prefix) => {
+    for (const entry of readdirSync(dir)) {
+      const abs = path.join(dir, entry);
+      if (existsSync(abs) && statSync(abs).isDirectory()) {
+        walk(abs, prefix ? `${prefix}/${entry}` : entry);
+        continue;
+      }
+      if (!isRuntimeAgentFile(entry)) continue;
+      const stem = entry.slice(0, -3);
+      out.push({ file: abs, name: prefix ? `${prefix}/${stem}` : stem });
+    }
+  };
+  walk(agentsRoot, "");
+  return out;
+}
+
+/**
+ * Subagent definitions the plugin REGISTERS: every `.md` under `agents/` at any depth, excluding
+ * `_`-prefixed control files (`_chain-permitted.yaml`, `_pairing.yaml`) and a folder `README.md`, since
+ * a folder guide is not a component. Exclusion applies to the FILE's own name, so
+ * `agents/review/_shadow.md` is excluded from registration while `agents/review/security.md` is not.
+ */
+export function listAgentFiles(root) {
+  return walkAgentDocs(root)
+    .filter(({ file }) => {
+      const base = path.basename(file);
+      return !base.startsWith("_") && base !== "README.md";
+    })
+    .map(({ file }) => file);
+}
+
+/** The same walk, as { file, name } pairs, so the loader can keep the scoped name. */
+export function listAgentFilesNamed(root) {
+  return walkAgentDocs(root).filter(({ file }) => {
+    const base = path.basename(file);
+    return !base.startsWith("_") && base !== "README.md";
+  });
+}
+
+/** Every runtime-loaded agent doc as { file, name }, excluding nothing the runtime does not exclude. */
+export function listRuntimeAgentDocsNamed(root) {
+  return walkAgentDocs(root);
 }
 
 /** Absolute paths of commands/**
@@ -126,12 +203,7 @@ export function listAgentFiles(root) {
  * release. A fourth caller that reaches for listAgentFiles instead is almost certainly a defect.
  */
 export function listRuntimeAgentDocs(root) {
-  const agentsRoot = path.join(root, "agents");
-  if (!existsSync(agentsRoot) || !statSync(agentsRoot).isDirectory()) return [];
-  return readdirSync(agentsRoot)
-    .filter((name) => name.endsWith(".md"))
-    .map((name) => path.join(agentsRoot, name))
-    .filter((p) => fileExists(p));
+  return listRuntimeAgentDocsNamed(root).map(({ file }) => file);
 }
 
 /*.md definitions, excluding _-prefixed control files and a folder README.md. */

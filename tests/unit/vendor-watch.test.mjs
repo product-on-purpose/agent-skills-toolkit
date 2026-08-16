@@ -180,3 +180,28 @@ for (const rel of ["scripts/lib/vendor-watch.mjs", "scripts/vendor-watch.mjs"]) 
     assert.deepEqual(hits, [], `${rel} would be able to write: ${hits.join(", ")}. Emit to stdout and let a human save it.`);
   });
 }
+
+
+// --- wave 1, M1: a run that verified NOTHING must never exit 0 ------------------------------------
+
+test("W1-M1: a probe-only document whose source failed to fetch must NOT exit 0", () => {
+  // Found by adversarial review wave 1. Probe claims are excluded from the refusal test (they are
+  // uncheckable by nature), which let a report with zero `holds` and a failed fetch report success. The
+  // scheduled workflow would then open no issue for a run that verified nothing - the exact
+  // "a killed run is a result" failure this watcher exists to prevent, wearing the watcher's own badge.
+  const probeOnly = { sources: [{ id: "s", url: "https://x/y" }], claims: [probe()] };
+  const r = buildReport(probeOnly, { s: null }, "2026-08-15");
+  assert.equal(r.summary.holds, 0);
+  assert.notEqual(exitCodeFor(r), 0, "zero verified claims is not success");
+});
+
+test("W1-M1: an EMPTY claims document is an error, not a clean run", () => {
+  assert.notEqual(exitCodeFor(buildReport({ sources: [], claims: [] }, {}, "2026-08-15")), 0);
+});
+
+test("W1-M1: a probe-only document whose source FETCHED FINE still exits 0", () => {
+  // The narrow case that must keep working: nothing failed, the probe is simply unconfirmable by fetch.
+  const probeOnly = { sources: [{ id: "s", url: "https://x/y" }], claims: [probe()] };
+  assert.equal(exitCodeFor(buildReport(probeOnly, { s: "page text" }, "2026-08-15")), 0);
+});
+
