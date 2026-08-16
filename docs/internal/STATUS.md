@@ -56,6 +56,18 @@ sound and the implementation diverged a release later - but it carries a dated c
 
 **Closed by this pack:** E14, E34, E36, E42, E43.
 
+**ADR 0048 was AMENDED IN PLACE on 2026-08-15, one day after ratification, and the process failure is the
+lesson.** Its decision stands and nothing was reverted, but its premise was false: it asserted that a command
+is not a skill, and Claude Code states *"Custom commands have been merged into skills"*. The **2026-08-10
+internal audit had already found this** and graded `S7` a CONFLICT (conceptual) - that finding is the reason
+"commands-as-skills" was on the v1.14.0 list at all. The ADR answered a vendor-alignment question by measuring
+description scores and never opened the audit's evidence. The right reason turns out to be INVOCATION CONTROL:
+a command is a skill a model does not load automatically, so its description performs no trigger matching.
+`STANDARD.md` sec 3.2 and its 0.14 version note carry the correction; **E44** records the larger finding (a
+`skills/` file declaring `disable-model-invocation: true` has the same property, measured population **0 of
+2435**, so no check is warranted yet).
+
+
 **Two gaps left open by decision, both recorded in their ADRs:** nothing yet catches a `metadata.version`
 that is ABSENT entirely (that check would fire on every component of every plugin that never adopted the
 convention), and nothing enforces that a command's description agrees with its backing skill's intent
