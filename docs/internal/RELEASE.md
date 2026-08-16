@@ -18,6 +18,15 @@ A public `0.x` tag ships at every wave boundary (RELEASE-PLAN v0.2 Section 5); `
 - [ ] **Docs site** builds cleanly (Astro Starlight) and the Diataxis quadrants are non-empty.
 - [ ] **All tier-applicable conformance checks green** (`node scripts/check.mjs`).
 - [ ] **No em-dashes / en-dashes** in committed text (author-time hook; house style, retired as a gate check in Standard v0.11).
+- [ ] **`npm run vendor-watch` green, and its run is under 30 days old.** Every vendor claim this repository
+  asserts as fact - `U14`'s refused-field sentence, `U15`'s discovery behaviour, sec 3.2's commands-into-skills
+  premise, ADR 0051's namespacing condition - is pinned in
+  [`vendor-watch/vendor-claims.json`](vendor-watch/vendor-claims.json) and re-checked against the live page.
+  **Exit 1 means a claim is gone or stale; exit 2 is a REFUSAL (a page could not be read) and is never a pass.**
+  Do not re-pin a claim to make the run green: decide what the change means for each dependant first, and a
+  Standard revision needs an ADR with a migration window. This line exists because on 2026-08-15 a ratified ADR
+  (0048) was found to rest on a premise the vendor's own docs contradict, five days after an internal audit had
+  already found it, because nothing was re-reading the page.
 - [ ] **Codex round-trip** run manually for this tag (Q-E gate): `CODEX_REQUIRED=1 npm test`; record the result in the release notes.
 - [ ] **npm publish**, for any release that changes shipped code. The gate is a published package (`agent-skills-toolkit` on npm) as of v1.11.0, and until v1.12.0 this checklist did not mention it at all - so a release could be tagged, GitHub-released and marketplace re-pinned while npm consumers silently stayed on the previous version.
 

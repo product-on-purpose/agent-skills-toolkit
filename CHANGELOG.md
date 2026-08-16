@@ -9,6 +9,24 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Added
+
+- **vendor-watch: every vendor claim this repository asserts as fact is now pinned and re-checked on a schedule.** `STANDARD.md` and four checks cite Claude Code behaviour as fact. `U14` quotes a vendor sentence in every finding it emits; `U15` carries `vendor-cited` provenance because it rests on how the runtime discovers subagents; sec 3.2 explains itself by reference to how commands are invoked. **Each of those was a page somebody read once and a date they wrote down.**
+
+  **What that cost, one day before this shipped:** ADR 0048 was ratified asserting that a command is not a skill, and Claude Code says *"Custom commands have been merged into skills."* A 2026-08-10 internal audit had **already found it** and graded `S7` a conceptual conflict. The evidence existed. Nothing was re-reading it.
+
+  `docs/internal/vendor-watch/vendor-claims.json` pins six claims across two vendor pages, each carrying a `dependsOn` list (what breaks) and an `onChange` instruction (what to do, which differs per claim: `U14`'s is asymmetric because a field REMOVED from the refused list is green-ward while a field ADDED is a Standard revision). `npm run vendor-watch` checks them; `.github/workflows/vendor-watch.yml` runs monthly and **opens an issue rather than editing anything**; and `docs/internal/RELEASE.md` gates a tag on a run under 30 days old.
+
+  **It pins CLAIMS, not pages.** A page hash would fire on every navigation and CSS change and be ignored within a month; what this repository depends on is specific sentences, so those are what is pinned and checked.
+
+  **A claim is a `quote` or a `probe`, and the distinction is honest rather than cosmetic.** A quote must still appear on the page and is checked automatically. A probe is an empirical behaviour **no page states** - `U15`'s "Claude Code registers every `.md` under `agents/`" was established by installing a plugin and looking at what registered - so the watch reports its AGE and names its reproduction and **never claims to have verified it**.
+
+  **Refusal outranks a clean result:** exit 2 when a page could not be read, because a watch that passes because it could not reach the page is worse than no watch. Exit 1 when a claim is gone or has aged past the 30-day window.
+
+  **Write-incapable by construction**, like `standards-watch`: only `readFileSync` is imported and everything goes to stdout, with a test that fails the build if any write API appears in either module. A watcher that can amend the claim it watches turns a governed decision into a silent one - and deciding what a vendor change MEANS is an ADR, not a pin bump a scheduled job performs at 3am.
+
+  Verified against the live pages on 2026-08-15: all four quote claims hold, both probes correctly reported as unconfirmable by fetch. Proved sensitive on all three axes before being trusted - a claim the vendor does not make reports MISSING and exits 1, a 60-day clock shift reports every claim stale and exits 1, and an unreachable source exits 2. One real bug in the matcher was caught by its own test: it folded curly quotes but not straight ones, so a page rendering a sentence with curly quotes would never have matched a claim written with straight ones.
+
 ### Changed
 
 - **ADR 0048 is AMENDED IN PLACE: its decision stands, its premise was false.** The ADR asserted that a command is not a skill. Claude Code's own documentation says, verbatim: *"Custom commands have been merged into skills. A file at `.claude/commands/deploy.md` and a skill at `.claude/skills/deploy/SKILL.md` both create `/deploy` and work the same way"*, and the plugins reference describes `commands/` as holding *"skills as flat Markdown files"* (both read 2026-08-15).

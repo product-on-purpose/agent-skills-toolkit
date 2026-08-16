@@ -1,0 +1,88 @@
+name: vendor-watch
+
+# Re-verify, on a schedule, every VENDOR CLAIM this repository asserts as fact.
+#
+# STANDARD.md and four checks cite Claude Code behaviour, and each citation used to be a page a person
+# read once and a date they wrote down. On 2026-08-15 that cost a ratified ADR: 0048 was accepted on a
+# premise the vendor's own documentation contradicts, and an internal audit had already found it five days
+# earlier. Nothing was checking, so nothing said so.
+#
+# It opens an ISSUE rather than editing anything. The watcher is write-incapable by construction and a
+# test enforces that: deciding what a vendor change MEANS is an ADR, not a pin bump a robot performs at
+# 3am. Exit 1 means a claim is gone or stale; exit 2 means a page could not be read, which is a refusal
+# and never a pass.
+
+on:
+  schedule:
+    # 07:00 UTC on the 1st of each month. Monthly matches the freshness window in the claims document
+    # (30 days), so a claim cannot age out unnoticed between runs.
+    - cron: "0 7 1 * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  watch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22.12.0"
+
+      - name: Run vendor-watch
+        id: watch
+        run: |
+          set +e
+          node scripts/vendor-watch.mjs . > watch-report.txt 2>&1
+          echo "exit=$?" >> "$GITHUB_OUTPUT"
+          cat watch-report.txt
+        # Never fails the job on a finding. A red X on a scheduled run is noise nobody reads; an issue
+        # with the report in it is a thing somebody answers.
+        continue-on-error: true
+
+      - name: Open an issue when a claim is gone, stale, or unreadable
+        if: steps.watch.outputs.exit != '0'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const report = fs.readFileSync('watch-report.txt', 'utf8');
+            const exit = '${{ steps.watch.outputs.exit }}';
+            const refused = exit === '2';
+            const title = refused
+              ? 'vendor-watch REFUSED: a vendor page could not be read'
+              : 'vendor-watch: a pinned vendor claim is gone or stale';
+            const body = [
+              refused
+                ? 'The watch could not reach at least one vendor page, so this run proved **nothing** about the claims on it. That is a refusal, not a pass.'
+                : 'At least one claim this repository asserts as fact is no longer on the page, or has aged past the freshness window.',
+              '',
+              '**Do not update the claims document first.** Decide what the change MEANS for each dependant listed below; a Standard revision needs an ADR and, if it is red-ward, a migration window (ADR 0044).',
+              '',
+              '```',
+              report.trim(),
+              '```',
+              '',
+              `Reproduce locally: \`npm run vendor-watch\` (add \`--json\` for the machine report). Exit code was ${exit}.`,
+            ].join('\n');
+
+            // Reuse the open issue if one exists, so a monthly cadence does not accumulate duplicates.
+            const existing = await github.rest.issues.listForRepo({
+              owner: context.repo.owner, repo: context.repo.repo,
+              state: 'open', labels: 'vendor-watch',
+            });
+            if (existing.data.length > 0) {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner, repo: context.repo.repo,
+                issue_number: existing.data[0].number, body,
+              });
+            } else {
+              await github.rest.issues.create({
+                owner: context.repo.owner, repo: context.repo.repo,
+                title, body, labels: ['vendor-watch'],
+              });
+            }
