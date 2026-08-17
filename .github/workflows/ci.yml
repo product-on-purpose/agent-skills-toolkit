@@ -176,7 +176,7 @@ jobs:
       # reproduces with the identical command a contributor would type locally. Also verified offline
       # and unauthenticated the same way as the claude CLI above.
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v7
         with:
           python-version: "3.12"
 
