@@ -20,11 +20,11 @@
 #
 # USAGE (paste into a workflow job, after checking out the repo you want graded):
 #
-#   - uses: actions/checkout@v4
+#   - uses: actions/checkout@v7
 #
 #   - name: Grade this plugin against the Advanced Skill Library Standard
 #     id: gate
-#     uses: product-on-purpose/agent-skills-toolkit@v1.11.0   # pin a released tag or a commit sha
+#     uses: product-on-purpose/agent-skills-toolkit@v1.14.0   # pin a released tag or a commit sha
 #     with:
 #       path: .
 #       fail-on-error: true

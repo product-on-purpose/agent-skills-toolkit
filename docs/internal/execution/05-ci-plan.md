@@ -101,6 +101,17 @@ All changes land in the R1 v1.7.0 release window unless noted otherwise. They ar
 
 **First-party actions (`actions/*`) stay tag-pinned.** The GitHub-owned `actions/checkout`, `actions/setup-node`, `actions/upload-pages-artifact`, and `actions/deploy-pages` are maintained by GitHub under a transparency commitment that makes tag mutation detectable. For third-party actions from other publishers, SHA-pinning is the standard practice. Dependabot (change 1) will keep the SHA current as new releases ship, so the pin does not become a maintenance burden.
 
+> **CORRECTION, 2026-08-17.** This plan is otherwise frozen at its 2026-07-06 draft, but the last sentence
+> above is the one load-bearing claim in it that shipped and turned out to be half true, so it carries a
+> correction rather than being left to mislead. Dependabot keeps the **SHA** current and does **not** keep
+> the version **comment** current: it rewrites a bare `# vX.Y.Z`, and the format this plan itself specifies
+> two paragraphs down (`# v3 pinned YYYY-MM-DD`) puts trailing prose outside the pattern its comment-updater
+> matches. The SHA therefore advances while the label does not, three times before anyone guarded it
+> (#187, #198, #225). Worse for the second half of the claim: **closing** a Dependabot PR, which is what
+> superseding it by hand to correct that comment requires, stops Dependabot proposing that dependency
+> version at all - so the habit that fixes the label removes the very automation this sentence relies on.
+> Both halves are recorded as **E45** in `docs/internal/backlog/enhancements.md`.
+
 **Exact mechanics.** Run `gh api repos/softprops/action-gh-release/git/refs/tags/v3` (or equivalent) to resolve the current tag to a SHA at the moment the PR is authored. Format: `softprops/action-gh-release@<full-sha> # v3 pinned YYYY-MM-DD`. Add the `github-actions` ecosystem to Dependabot so the pin stays current automatically.
 
 **Rollback.** Revert to `@v3`. Slightly less secure but functionally identical.
