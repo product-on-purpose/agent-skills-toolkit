@@ -212,6 +212,36 @@ That made G8's requirement of a folder README in `agents/` actively harmful: bot
 
 **Worth reading for the lesson:** `docs/internal/release-plans/plan_v1.1.0/P4-folder-readme/SPEC.md` line 194 records that this toolkit already hit this bug once. "Adding `agents/README.md` exposed that the subagent/command enumeration ... treated every `agents/*.md` as a component, so a folder README became a bogus 'README' subagent." It was fixed "at the single enumeration point: `README.md` is excluded from component discovery everywhere." That fixed the **toolkit's** idea of what an agent is and left the **runtime's** untouched, which is the one that ships. **The `commands/` half is now probed and closed, 2026-08-07.** A probe plugin holding `real-command.md`, `README.md` and `_README.md` in `commands/` was loaded with `claude --plugin-dir` and asked to enumerate its slash commands. It returned **`real-command` only**. Same prompt shape that made the `agents/` probe return all three files, so this is a real behavioral difference and not the model self-filtering: **Claude Code excludes `README.md` from command discovery but not from agent discovery.** `commands/` is safe, `agents/` was not, and the enumeration mismatch in `listCommandFiles` is therefore harmless rather than latent. No action needed. Recorded so nobody re-opens this as a theoretical risk.
 
+### E45 - a pinned action's version comment is unchecked, and superseding Dependabot blinds the watcher that would have caught it  [correctness, effort S-M, network-bearing, found triaging Dependabot #224 to #228]
+
+- **Target:** the `uses:` pins across `.github/workflows/*.yml`; a new maintainer-only script under `scripts/`, beside `vendor-watch.mjs` and `release-ready.mjs`. Explicitly **not** `scripts/checks/`, which is the closed spine registry `registry.mjs` imports by name (the same placement reasoning as `release-ready.mjs`, decision 1 of the v1.14.0 cut).
+- **Found by:** triaging Dependabot PRs #224 to #228 on 2026-08-17. Neither half is visible from inside a single PR diff; both needed the repository's PR history read as a series.
+
+**Half one: a SHA pin's comment decays into a lie on every bump, and only a human has ever caught it.**
+
+`codeql.yml` pins all three `codeql-action` steps by SHA with a trailing comment, `# v4.37.6 pinned 2026-08-09`. Dependabot advances the SHA and leaves the comment untouched, because it rewrites a bare `# vX.Y.Z` and this repository's comments carry trailing prose that falls outside the pattern it matches. So the machine-readable half and the human-readable half disagree, and the human-readable half is the only one a reviewer reads.
+
+| Dependabot PR | Superseded by | What the comment said afterwards |
+| --- | --- | --- |
+| #187 | #188 (v4.37.5 re-pin) | stale |
+| #198 | #199 (v4.37.6 re-pin) | stale |
+| #225 | #234 (v4.37.7 re-pin) | stale |
+
+Three occurrences, three catches, all by eye. #199's commit message already diagnosed it in 2026-08-09 ("What Dependabot got wrong is the COMMENT") and the fourth occurrence still arrived. A defect caught three times by a human reading a diff is the repository's standing definition of something that needs a guard, not another correction.
+
+**Half two: the remedy for half one is what blinded Dependabot to `vendor-watch.yml`.**
+
+`vendor-watch.yml` shipped in v1.14.0 pinning `actions/checkout@v4` while the other six workflows had been on `@v7` since #179. Dependabot reported `setup-node` 4 to 7 out of that file (#226) and never reported `checkout` 4 to 7 in the same file. The history is a clean natural experiment: #150 (`setup-node` 5 to 7) was **merged**, #159 (`checkout` 5 to 7) was **closed** in favour of the hand-written #179. Same ecosystem, same version shape, same cross-file conflict shape; the only difference is merged versus closed, and closing a Dependabot PR stops it proposing that dependency version.
+
+So the supersede-by-hand habit that fixes half one buys a correct comment at the price of blinding the watcher to that dependency's next occurrence. #225 was closed on 2026-08-17 for exactly that reason, which means `codeql-action` has now inherited the same blind spot, and `codeql.yml`'s pins are watched by nothing.
+
+**Why one check closes both halves.** A script that resolves every `uses:` pin against the registry it came from can report two facts from one lookup: whether the trailing comment names the version the SHA actually resolves to (half one), and whether the pin is behind the action's current release (half two, and it does not care whether Dependabot is willing to say so). The two halves are the same question asked of the label and of the pin.
+
+- **Design sketch:** parse `uses: <owner>/<repo>@<ref>` out of every workflow; for a 40-hex ref, dereference the annotated tag and match the resolved version against the trailing comment; for a `vN` ref, compare against the latest release. Exit codes should follow `vendor-watch`'s discipline exactly: 1 when a label disagrees or a pin is behind, **2 when a lookup could not be performed**, because an unreachable registry proves nothing and a refusal is never a pass. Same reason `vendor-watch` is write-incapable by construction, this must be too: it reports, a human re-pins.
+- **Why it is not fixed in place, and was not smuggled into the dependency triage:** it needs network access from a check context, an entry in the `scripts/` folder README or G8 fails, and a decision about whether it joins `release-ready`'s exit code or stays advisory. That is release scope with an ADR-sized question in it, not a rider on a version bump.
+- **Cheap partial available today, if the full check is deferred:** add `vendor-watch`-style coverage for nothing at all, and instead simply stop closing Dependabot PRs. Merging #225 and following it with a comment-only correction commit would have kept `codeql-action` visible to Dependabot at the cost of one extra commit. Recorded because it is the zero-code mitigation and nobody had noticed the trade existed.
+- **Status:** backlog (recorded 2026-08-17). Half one corrected for the third time in #234; half two corrected in #235.
+
 ### E44 - `U5` should key off INVOCATION CONTROL, not component type  [design, effort M, ADR-gated, population currently ZERO]
 
 - **Target:** `scripts/checks/description-score.mjs` (`U5`), Standard sec 8.1.

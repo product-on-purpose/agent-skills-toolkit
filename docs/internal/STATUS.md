@@ -6,7 +6,7 @@
 > technical history), and `docs/internal/release-plans/` (the per-release spec + implementation
 > packets). Do not add accretive per-release paragraphs here; append them to those instead.
 >
-> Last updated: 2026-08-15.
+> Last updated: 2026-08-17.
 
 ## Current state
 
@@ -91,8 +91,12 @@ skill. Claude Code says *"Custom commands have been merged into skills."* The 20
 `docs/internal/vendor-watch/vendor-claims.json` pins eight claims (6 quote, 2 probe) across three vendor pages, each carrying what
 depends on it and what to do when it fails. `npm run release-ready` re-checks them **inside `release.yml` and
 `publish-npm.yml`**, so a tag or a publish is blocked by a claim the vendor no longer makes; a monthly
-workflow opens an issue rather than editing anything. Freshness is enforced by that run rather than
-recorded: a claim past the 30-day window is STALE, which is exit 1, which blocks.
+workflow opens an issue rather than editing anything. **Freshness blocks only what age can actually
+prove, and this section said otherwise until 2026-08-17.** A PROBE past the 30-day window is STALE, which
+is exit 1, which blocks, because age is a probe's whole verification. A QUOTE is re-confirmed against the
+live page on every run, so an old reading date is reported as a NOTE and never enters the exit code. The
+first version blocked on both, which would have jammed every release from 2026-09-14 with no remedy but
+hand-editing the dates `RELEASE.md` forbids; corrected in #232 before the tag.
 
 **Two design calls worth knowing.** It pins **claims, not pages** - a page hash would fire on every
 navigation change and be ignored within a month, whereas what this repository depends on is specific
@@ -103,6 +107,15 @@ established by installing a plugin and looking at what registered.
 
 **Refusal outranks a clean result.** Exit 2 when a page could not be read, because a watch that passes
 because it could not reach the page is worse than no watch.
+
+**The issue path is PROVEN in production as of 2026-08-17, having shipped "assumed, not tested."** The
+workflow's only dispatch had exited 0, so the `github-script` step was skipped and wave 2's H4 dedup fix
+was asserted by a unit test reading the workflow file as text. Two deliberate dispatches with
+`--today 2026-10-01`, which ages the two probes out for real against the real pages with nothing faked,
+drove exit 1 into it. Run 1 opened issue #236 and self-provisioned the `vendor-watch` label; run 2
+commented on #236 instead of opening a second. **One issue and one comment from two failing runs** is the
+whole H4 fix, demonstrated. Occasioned by #235 bumping `actions/github-script` v7 to v9, a line no CI
+check on this repository executes. Drill issue closed; no claim is actually stale.
 
 ## Two adversarial review waves, ten findings, all fixed (2026-08-16)
 
@@ -220,6 +233,14 @@ blocked its own first real run** - on 7 failing tests and a stale count that had
     `_workflows/<name>.md` is reported unresolved, and `S3`/`S8` do not inspect workflows at all. An
     unfinished feature rather than a regression: the source comment says "ctx.workflows arrives in a later
     phase". Finishing it means wiring canonical discovery through four checks plus index generation.
+- **E45 (pinned-action labels are unchecked, and superseding Dependabot blinds it) is FILED, and it has a
+  live consequence.** Two halves, one lookup closes both. Dependabot advances a SHA pin and leaves the
+  trailing `# vX.Y.Z pinned <date>` comment behind, so the only half a reviewer reads decays into a lie on
+  every bump: caught three times by eye (#187, #198, #225) and never by a machine. And closing those PRs is
+  what stopped Dependabot reporting `actions/checkout@v4` in `vendor-watch.yml` at all, proven by the
+  #150-merged / #159-closed natural experiment. **The live consequence: #225 was closed on 2026-08-17, so
+  `codeql.yml`'s three pins are now watched by nothing.** Design and exit-code discipline sketched in the
+  backlog entry; it is network-bearing and wants its own decision rather than a rider on a version bump.
 - **Backlog from the competitive-comparison intake, all open:** **E4** (SARIF + GitHub
   annotations), **E9** (provenance as a first-class output contract), **E23** (surface check
   provenance in the report output), **E6** (prompt-injection + curl-pipe-bash content scan),
