@@ -7,6 +7,68 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 `CHANGELOG.md` is the full technical history. A curated, user-facing
 `RELEASE-NOTES.md` is added at Gold (Standard sec 10.6); the two are distinct.
 
+## [Unreleased]
+
+### Changed
+
+- **Every first-party action pin is current, and the last stale one was reported by nobody.** Dependabot
+  raised five version updates (#224 to #228); two were merged as raised, three were superseded by
+  hand-written replacements. `astro` 7.2.0 to 7.2.1 in `site/` (#224) and `actions/setup-python` 5 to 7 in
+  `ci.yml` (#228) merged directly, because `build-site` and `validator-parity` each genuinely execute the
+  line they change. `actions/checkout` 4 to 7, `actions/setup-node` 4 to 7 and `actions/github-script` 7 to
+  9 landed together in `vendor-watch.yml` (#235), which shipped in v1.14.0 already three majors behind the
+  other six workflows.
+
+    **`actions/checkout` was the one nothing reported**, and the repository's own history says why. #150
+    (`setup-node` 5 to 7) was merged; #159 (`checkout` 5 to 7) was closed in favour of the hand-written
+    #179, and closing a Dependabot PR stops it proposing that dependency version. Same ecosystem, same
+    version shape, same cross-file conflict shape as `setup-node`; the only difference is merged versus
+    closed. `vendor-watch.yml` was created after #179, already behind, and nothing has flagged it since.
+    Filed as **E45** with a design sketch for the check that would close it.
+
+    The `github-script` v7 to v9 bump crosses two breaking changes and clears both, which is now written
+    into the workflow rather than left to be rediscovered: `require('@actions/github')` throws under v9
+    because that package became ESM-only (the script's only `require` is `fs`, a node builtin), and
+    `getOctokit` became an injected script parameter, so `const getOctokit = ...` is a `SyntaxError` (the
+    script never declares it).
+
+- **`github/codeql-action` re-pinned to v4.37.7** (`ff2f1c62`, default CodeQL bundle 2.26.2 to 2.26.3),
+  superseding Dependabot #225. The SHA was re-derived independently from the annotated `v4` tag rather than
+  copied from the diff.
+
+### Fixed
+
+- **A SHA pin's version comment had silently disagreed with its SHA for the third release running.**
+  Dependabot advances the pin and leaves `# vX.Y.Z pinned <date>` untouched, because the trailing prose
+  falls outside the pattern its comment-updater matches. So the machine-readable half and the
+  human-readable half disagree, and the human-readable half is the only one a reviewer reads. Caught by eye
+  in #187, #198 and #225; #199's commit message diagnosed the cause on 2026-08-09 and the next occurrence
+  still arrived. Corrected in #234, and the guard for the class is filed as **E45** rather than smuggled
+  into a dependency bump.
+- **`docs/internal/STATUS.md` still described freshness behaviour that #232 removed before the tag.** It
+  read "a claim past the 30-day window is STALE, which is exit 1, which blocks." `evaluateClaim` returns
+  `STALE` for **probes only**; a quote returns `HOLDS` whenever the sentence is confirmed live, carrying
+  `recordIsOld` as a note that never enters the exit code. Six of the eight pinned claims are quotes, so
+  the sentence was wrong about the majority of them. Found by running the watch, not by reading the file.
+- **Folder and usage guidance that had drifted from its readers.** `.github/workflows/README.md` listed
+  `codeql.yml` with no description at all, because its description had been appended to the end of
+  `vendor-watch.yml`'s line; `G8` passed anyway, since it checks that every child is LISTED and not that it
+  is described. `action.yml`'s pasteable USAGE block advertised `actions/checkout@v4` and pinned the
+  example at `agent-skills-toolkit@v1.11.0`, three releases stale, in the repository that grades others on
+  currency.
+
+### Verified
+
+- **The `vendor-watch.yml` issue-opening path is proven in production**, having shipped in v1.14.0 recorded
+  as "assumed, not tested". No CI check on this repository executes it: the workflow runs on a monthly cron
+  and `workflow_dispatch` only, and the step is gated behind `if: steps.watch.outputs.exit != '0'`. Two
+  deliberate dispatches from a throwaway branch, whose only delta was `--today 2026-10-01` (which ages the
+  two probe claims out **for real**, against the live vendor pages, with nothing faked), drove exit 1 into
+  it. Run 1 opened issue #236 and self-provisioned the `vendor-watch` label; run 2 commented on #236 rather
+  than opening a second. **One issue and one comment from two failing runs** is review wave 2's H4 dedup
+  fix demonstrated against GitHub, where before it was asserted only by a unit test reading the workflow
+  file as text.
+
 ## [1.14.0] - 2026-08-16
 
 ### Fixed
