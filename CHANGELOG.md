@@ -7,9 +7,44 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 `CHANGELOG.md` is the full technical history. A curated, user-facing
 `RELEASE-NOTES.md` is added at Gold (Standard sec 10.6); the two are distinct.
 
-## [Unreleased]
+## [1.14.0] - 2026-08-16
 
 ### Fixed
+
+- **The release gate would have jammed on 2026-09-14, and it was caught with four weeks to spare.** Found by
+  computing the date each pinned vendor claim ages out, rather than trusting the design note that said a
+  passing watch run refreshes a quote's date. **It cannot** - the watcher is write-incapable by construction,
+  which is one of its best properties.
+
+    The consequence was concrete. Every quote claim's recorded reading aged past the 30-day window on
+    2026-09-14; a stale claim reported `STALE`, which is exit 1, which `release-ready` treats as blocking. From
+    that morning **no tag and no publish could have been cut** - while every run kept proving all six sentences
+    were still on the vendor's pages. And the only way out was hand-editing the dates, which is precisely what
+    `RELEASE.md` tells a maintainer never to do. **A gate whose sole remedy is the thing the documentation
+    forbids teaches the operator to override it.**
+
+    Freshness is now scoped to what age can actually prove, because the design was conflating two different
+    facts. A **quote** is re-confirmed against the live page on every run, so it never blocks while it holds;
+    an old reading is reported and counted, and stays out of the exit code. A **probe** has no page to check,
+    so its age IS the verification and past the window it still blocks until a human re-runs the reproduction.
+    The watch checks the sentence; only a person checks whether the section around it still means the same
+    thing, and the report now says exactly that.
+
+- **The published tarball no longer ships library code nothing in it can reach.** Found by verifying the
+  package from a consumer's position before tagging: `npm pack` carried `scripts/lib/vendor-watch.mjs` and
+  `scripts/lib/release-ready.mjs` - 16.5 kB whose CLIs are not shipped, imported by nothing a consumer
+  installs. `package.json` ships `scripts/lib/` wholesale and negates maintainer-only modules one at a time,
+  which works exactly as long as somebody remembers the negation; twice nobody did.
+
+    `tests/unit/package-files-reachable.test.mjs` now walks the import graph from every shipped entry point
+    and fails on any `scripts/lib` module the graph never reaches unless it is explicitly excluded - so the
+    CLASS is guarded, not the two instances. The sibling guard for printed remediation commands records why
+    that distinction matters: that defect shipped **twice**, because fixing the first instance is what let the
+    second sit unnoticed. Verified end to end - the tarball installs into a clean directory outside this
+    repository and grades this repository **Advanced, 0/0, all 34 checks**, with both files absent.
+
+    `*.tgz` is now gitignored. The publish flow packs a tarball on both paths, and an untracked 200 kB build
+    artefact is one `git add -A` from being committed.
 
 - **Adversarial review wave 2 found six more, and all six are fixed.** Wave 2 was pointed deliberately AWAY from
   wave 1's target: at the release's OWN records, its published normative text, and the machinery that is supposed
@@ -821,7 +856,8 @@ promoted Standard. Not installable; not self-validating yet (see
 - `.github/workflows/ci.yml` - CI stub that will shell out only to scripts.
 - `skills/`, `scripts/`, `templates/` - placeholders for later phases.
 
-[Unreleased]: https://github.com/product-on-purpose/agent-skills-toolkit/compare/v1.1.0...HEAD
+[Unreleased]: https://github.com/product-on-purpose/agent-skills-toolkit/compare/v1.14.0...HEAD
+[1.14.0]: https://github.com/product-on-purpose/agent-skills-toolkit/compare/v1.13.0...v1.14.0
 [1.1.0]: https://github.com/product-on-purpose/agent-skills-toolkit/compare/v1.0.0...v1.1.0
 [1.0.0]: https://github.com/product-on-purpose/agent-skills-toolkit/releases/tag/v1.0.0
 [0.2.0]: https://github.com/product-on-purpose/agent-skills-toolkit/releases/tag/v0.2.0

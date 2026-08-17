@@ -12,13 +12,13 @@
 
 | Fact | Value |
 |---|---|
-| Version | 1.13.0 (cut 2026-08-13, shipped 2026-08-14) |
+| Version | 1.14.0 (cut 2026-08-16, **SHIPPED 2026-08-17**: tag `57727ab`, GitHub release, npm `latest` with signed Sigstore provenance, registry `agent-plugins` 1.66.0) |
 | Declared tier | Advanced (Gold) - `library.json` `tier: advanced` |
 | Standard pin | 0.14 |
 | Spine | 34 checks |
 | Scopes | 3 (plugin, component, marketplace) |
 | Skills | 24 |
-| Tests | 1245, 0 failures (local suite run 2026-08-16; both halves confirmed by `npm run release-ready` exiting 0) |
+| Tests | 1252, 0 failures (local suite run 2026-08-16; both halves confirmed by `npm run release-ready` exiting 0) |
 | Self-proving | `node scripts/check.mjs .` exits 0 at Advanced, 0 errors, 0 warnings |
 
 ## The v1.14.0 ADR pack: RATIFIED and IMPLEMENTED

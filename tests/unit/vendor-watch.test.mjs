@@ -65,22 +65,59 @@ test("a PROBE claim is never confirmed by a fetch, however much page text it is 
   assert.equal(r.reproduction, "run the probe", "an unconfirmable claim must name how to confirm it");
 });
 
-test("freshness: a claim past the window is STALE even while it still holds", () => {
+test("freshness is PROBE-ONLY: a probe past the window is STALE and blocks", () => {
   assert.equal(daysBetween("2026-08-15", "2026-09-14"), 30);
-  assert.equal(
-    evaluateClaim(quote(), "the pinned sentence", "2026-09-14").verdict,
-    VERDICT.HOLDS,
-    `${FRESHNESS_DAYS} days is inside the window`
-  );
-  assert.equal(evaluateClaim(quote(), "the pinned sentence", "2026-09-15").verdict, VERDICT.STALE, "31 days is outside it");
+  assert.equal(evaluateClaim(probe(), null, "2026-09-14").verdict, VERDICT.UNCHECKABLE, "30 days is inside");
+  assert.equal(evaluateClaim(probe(), null, "2026-09-15").verdict, VERDICT.STALE, "31 days is outside it");
+  // For a probe, age IS the verification: no fetch can confirm it, so an old one must stop the release.
+  const one = { sources: [{ id: "s", url: "x" }], claims: [probe()] };
+  assert.equal(exitCodeFor(buildReport(one, { s: "page" }, "2026-09-15")), 1);
 });
 
-test("an unparseable verifiedOn is STALE, not silently fresh", () => {
+test("a QUOTE confirmed against the live page today HOLDS, however old its recorded reading is", () => {
+  // This replaces a test that asserted the opposite, and the replacement is the fix.
+  //
+  // Returning STALE here was a release-blocker with a calendar date on it: every quote claim's recorded
+  // date would have aged out on 2026-09-14, release-ready treats STALE as exit 1, and from that morning
+  // no tag and no publish could be cut - while every run kept proving the sentences were still on the
+  // page. The only escape is hand-editing the dates, which is exactly what RELEASE.md forbids. A gate
+  // whose sole remedy is the thing the documentation forbids teaches the operator to override it.
+  const r = evaluateClaim(quote({ verifiedOn: "2026-06-01" }), "the pinned sentence", "2026-09-20");
+  assert.equal(r.verdict, VERDICT.HOLDS, "the watch just confirmed it against the live page");
+  assert.equal(r.recordIsOld, true, "and the old human reading must still be VISIBLE, just not blocking");
+  assert.match(r.detail, /confirmed against the live page today/);
+  assert.match(r.detail, /human last read this page 111 days ago/);
+});
+
+test("an old RECORD on a holding quote does not change the exit code", () => {
+  const one = { sources: [{ id: "s", url: "x" }], claims: [quote({ verifiedOn: "2026-06-01" })] };
+  const rep = buildReport(one, { s: "the pinned sentence" }, "2026-09-20");
+  assert.equal(rep.summary.recordsOld, 1, "the fact must be counted");
+  assert.equal(rep.summary.stale, 0, "but it is not staleness");
+  assert.equal(exitCodeFor(rep), 0, "and it must not block a release the watch just verified");
+  assert.match(renderReport(rep), /no human has READ that page in over 30 days/);
+});
+
+test("a quote whose sentence is GONE is still MISSING, whatever its dates say", () => {
+  // The guard on the fix above: relaxing freshness must not relax the thing that actually matters.
+  for (const on of ["2026-06-01", "2026-09-20", "not-a-date"]) {
+    const r = evaluateClaim(quote({ verifiedOn: on }), "a page that no longer says it", "2026-09-20");
+    assert.equal(r.verdict, VERDICT.MISSING, `verifiedOn ${on} must not rescue a vanished sentence`);
+  }
+});
+
+test("an unparseable verifiedOn on a PROBE is STALE, not silently fresh", () => {
   assert.equal(daysBetween("not-a-date", "2026-08-15"), null);
-  assert.equal(
-    evaluateClaim(quote({ verifiedOn: "not-a-date" }), "the pinned sentence", "2026-08-15").verdict,
-    VERDICT.STALE
-  );
+  assert.equal(evaluateClaim(probe({ verifiedOn: "not-a-date" }), null, "2026-08-15").verdict, VERDICT.STALE);
+  // and on a quote it is a visibly-old RECORD rather than a silent pass
+  const q = evaluateClaim(quote({ verifiedOn: "not-a-date" }), "the pinned sentence", "2026-08-15");
+  assert.equal(q.verdict, VERDICT.HOLDS);
+  assert.equal(q.recordIsOld, true);
+  assert.match(q.detail, /unparseable date/);
+});
+
+test("FRESHNESS_DAYS is the window both kinds are measured against", () => {
+  assert.equal(FRESHNESS_DAYS, 30);
 });
 
 // --- matching --------------------------------------------------------------------------------------
