@@ -12,7 +12,7 @@
 
 | Fact | Value |
 |---|---|
-| Version | 1.14.0 (cut 2026-08-16; tag and npm publish withheld pending sign-off) |
+| Version | 1.14.0 (cut 2026-08-16, **SHIPPED 2026-08-17**: tag `57727ab`, GitHub release, npm `latest` with signed Sigstore provenance, registry `agent-plugins` 1.66.0) |
 | Declared tier | Advanced (Gold) - `library.json` `tier: advanced` |
 | Standard pin | 0.14 |
 | Spine | 34 checks |

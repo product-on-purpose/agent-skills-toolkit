@@ -82,10 +82,41 @@ Wave 2's six, in one line each:
 - Docs site: **86 pages**, every internal link resolves, route parity holds against the committed baseline.
 - Reference family: six members graded before and after every change. **No verdict moved at any step.**
 
-## Not done at cut time, and deliberately
+## Withheld at cut time, shipped the next day
 
-**The tag, the GitHub release and the npm publish are withheld pending maintainer sign-off.** This packet
-records a release that is *prepared*, not shipped. Until the tag exists, npm serves 1.13.0 and consumers
-are on Standard 0.13.
+At cut time on 2026-08-16 the tag, the GitHub release, the npm publish and the registry re-pin were all
+**withheld pending maintainer sign-off**, and this packet recorded a release that was prepared rather than
+shipped. That is kept rather than rewritten, because the gap is where two more defects were found.
 
-The `agent-plugins` registry re-pin also waits for the tag.
+**Sign-off came on 2026-08-17 and all four completed:**
+
+| Step | Result |
+| --- | --- |
+| Tag | `v1.14.0` -> `57727ab`, annotated, on `90ceea8` |
+| GitHub release | published, not a draft |
+| npm | `agent-skills-toolkit@1.14.0`, dist-tag `latest`, **signed provenance** in the Sigstore transparency log (logIndex 2495425850) |
+| Registry | `agent-plugins` 1.66.0 @ `716e842`, pinned `1.14.0 @ 90ceea8e`, `strict: true` |
+
+**What the withheld window bought.** Two defects that neither adversarial review wave could have found,
+both fixed IN 1.14.0 rather than in a 1.14.1:
+
+1. **The tarball shipped 16.5 kB of unreachable library code.** Found by installing the packed tarball into
+   a clean directory outside this repository and grading with it - which an in-repo test structurally cannot
+   do, because in-repo everything is present. Guarded by `tests/unit/package-files-reachable.test.mjs`.
+2. **The release gate would have jammed on 2026-09-14.** Every quote claim's recorded reading aged past the
+   30-day window and returned `STALE`, which `release-ready` treats as blocking - while every run kept
+   confirming the sentences were still on the vendor's pages. Its only remedy was hand-editing the dates,
+   which `RELEASE.md` forbids. Freshness is now probe-only.
+
+**Verified after shipping, from the live registry:** the published package installs into a clean directory
+outside this repository, `npx` reports 1.14.0, it grades this repository **Advanced 0/0 with all 34 checks**
+including `U15`, `U16` and `U17`, and all three maintainer-only libraries are correctly absent.
+
+**`release-ready` proved itself in production**, not only locally: it ran on the GitHub runner during the
+real tag push, with all four gates green including a live `vendor-watch` fetch of the vendor's pages.
+
+## Live operational horizon
+
+**2026-09-05** and **2026-09-11**: the two PROBE claims age past the freshness window and will block every
+release until a human re-runs their reproductions. That is the design working - a probe has no page to
+check, so its age IS its verification. Quote claims never block while they hold on the live page.
