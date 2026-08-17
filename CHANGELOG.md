@@ -7,7 +7,7 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 `CHANGELOG.md` is the full technical history. A curated, user-facing
 `RELEASE-NOTES.md` is added at Gold (Standard sec 10.6); the two are distinct.
 
-## [Unreleased]
+## [1.14.0] - 2026-08-16
 
 ### Fixed
 
@@ -821,7 +821,8 @@ promoted Standard. Not installable; not self-validating yet (see
 - `.github/workflows/ci.yml` - CI stub that will shell out only to scripts.
 - `skills/`, `scripts/`, `templates/` - placeholders for later phases.
 
-[Unreleased]: https://github.com/product-on-purpose/agent-skills-toolkit/compare/v1.1.0...HEAD
+[Unreleased]: https://github.com/product-on-purpose/agent-skills-toolkit/compare/v1.14.0...HEAD
+[1.14.0]: https://github.com/product-on-purpose/agent-skills-toolkit/compare/v1.13.0...v1.14.0
 [1.1.0]: https://github.com/product-on-purpose/agent-skills-toolkit/compare/v1.0.0...v1.1.0
 [1.0.0]: https://github.com/product-on-purpose/agent-skills-toolkit/releases/tag/v1.0.0
 [0.2.0]: https://github.com/product-on-purpose/agent-skills-toolkit/releases/tag/v0.2.0

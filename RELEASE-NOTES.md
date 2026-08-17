@@ -2,7 +2,7 @@
 
 Curated, user-facing highlights. For the full technical history see [`CHANGELOG.md`](CHANGELOG.md).
 
-## Unreleased - Standard 0.14
+## 1.14.0 - 2026-08-16
 
 **Four things the gate was telling you were not true, and three files it was never reading.**
 
@@ -30,6 +30,53 @@ Claude Code registers **every** `.md` under `agents/` - a folder `README.md` bec
 **Your frontmatter can carry whatever keys you like.** We considered restricting the vocabulary and measured it first: **44.9 percent of 2342 skills across thirteen sources** carry a key the Standard does not name, and the upstream spec calls the `metadata` map arbitrary. The Standard now states the openness as a rule so nobody proposes closing it again. What *is* checked is **placement** - a `version` written at the top level instead of under `metadata` is read by nothing, so you have not recorded a version and nothing tells you.
 
 **And a catalogue-level finding will never become a requirement on your plugin.** If two plugins in a marketplace collide on a skill name, neither can fix that alone without knowing who they are catalogued beside. A requirement you cannot discharge by editing your own repository is not a requirement.
+
+### Verified before shipping
+
+- **Codex round-trip (Q-E gate):** `CODEX_REQUIRED=1 npm test` passed against the real `codex` CLI (`codex-cli 0.144.5`). The emitted
+  `.codex-plugin/plugin.json` was **ingested**, not merely listed: the skills it points at were discovered by
+  Codex itself. Listing is not ingestion, and a test that only checks the manifest parses has caught nothing.
+- **Conformance gate:** Advanced, 0 errors, 0 warnings, self-validated with the same portable command a
+  contributor runs.
+- **Docs site:** 86 pages built, every internal link resolves, route parity against the committed baseline holds.
+- **Suite:** 1245 tests, 0 failures, on Windows and Linux across Node 22.12.0 and 24.
+- **Reference family:** six members graded before and after every change. **No verdict moved.**
+
+### Why you can trust this next month, not just today
+
+This Standard states things about Claude Code as **fact**. A check refuses certain fields on plugin-shipped
+agents because the vendor says they are not supported. Another grades every `.md` under `agents/` because
+that is what the runtime registers. Section 3.2 explains itself by how commands are invoked.
+
+**Every one of those was a page somebody read once and a date they wrote down.** One day before this release,
+that cost us a ratified decision: it asserted a premise the vendor's own documentation contradicts, and an
+internal audit had already found it five days earlier. The evidence existed. Nothing was re-reading it.
+
+Those claims are now **pinned as sentences and re-checked against the live pages**, monthly and at every
+release. If a sentence this toolkit depends on disappears from a vendor's docs, an issue opens saying which
+checks rest on it and what to do; a release stops. The watcher **cannot edit what it watches** - deciding what
+a vendor change means is a decision a person makes, not a robot's 3am commit.
+
+**For anyone weighing this toolkit against alternatives:** the practical difference is not that we read the
+documentation carefully. It is that the reading has an expiry date the build enforces. A grading tool whose
+rules quietly rest on last year's vendor behaviour still runs, still prints a grade, and is still wrong.
+
+### Two adversarial review waves, ten findings, all fixed before shipping
+
+Wave 1 went deep on the new checks. Wave 2 was pointed deliberately **away** from that target - at this
+release's own records, its published text, and the machinery that is supposed to catch drift - because a
+second look aimed where the first one looked finds the same things. It found six, all one shape: **something
+that reads as checked and is not.**
+
+The Standard contradicted itself across three sections, so a command could conform to and violate the same
+document. The README drift guard covered four of five front-door claims, so the fifth drifted a full version
+with the whole suite green. Two pinned vendor claims were single words and could never have failed. The
+monthly watcher deduplicated on a label nobody had created. And the release-blocking checks were a list a
+human ticked, one of which no automation had ever run.
+
+Every fix is a guard rather than a correction, so none of the six can recur silently. `npm run release-ready`
+now replaces that checklist with one exit code, and **it blocked its own first run** - on seven failing tests
+and a stale count that had not yet reached CI.
 
 ## 1.13.0 - 2026-08-13
 
