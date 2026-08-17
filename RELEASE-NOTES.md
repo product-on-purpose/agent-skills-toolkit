@@ -39,7 +39,7 @@ Claude Code registers **every** `.md` under `agents/` - a folder `README.md` bec
 - **Conformance gate:** Advanced, 0 errors, 0 warnings, self-validated with the same portable command a
   contributor runs.
 - **Docs site:** 86 pages built, every internal link resolves, route parity against the committed baseline holds.
-- **Suite:** 1245 tests, 0 failures, on Windows and Linux across Node 22.12.0 and 24.
+- **Suite:** 1248 tests, 0 failures, on Windows and Linux across Node 22.12.0 and 24.
 - **Reference family:** six members graded before and after every change. **No verdict moved.**
 
 ### Why you can trust this next month, not just today

@@ -16,3 +16,8 @@ _agent-context/
 node_modules/
 npm-debug.log*
 .DS_Store
+
+# npm pack artefacts. RELEASE.md's publish step packs a tarball to preview what ships, and
+# publish-npm.yml packs one on both paths. An untracked .tgz in the tree is a 200 kB build
+# artefact one `git add -A` away from being committed.
+*.tgz

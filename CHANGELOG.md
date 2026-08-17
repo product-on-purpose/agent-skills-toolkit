@@ -11,6 +11,22 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 
+- **The published tarball no longer ships library code nothing in it can reach.** Found by verifying the
+  package from a consumer's position before tagging: `npm pack` carried `scripts/lib/vendor-watch.mjs` and
+  `scripts/lib/release-ready.mjs` - 16.5 kB whose CLIs are not shipped, imported by nothing a consumer
+  installs. `package.json` ships `scripts/lib/` wholesale and negates maintainer-only modules one at a time,
+  which works exactly as long as somebody remembers the negation; twice nobody did.
+
+    `tests/unit/package-files-reachable.test.mjs` now walks the import graph from every shipped entry point
+    and fails on any `scripts/lib` module the graph never reaches unless it is explicitly excluded - so the
+    CLASS is guarded, not the two instances. The sibling guard for printed remediation commands records why
+    that distinction matters: that defect shipped **twice**, because fixing the first instance is what let the
+    second sit unnoticed. Verified end to end - the tarball installs into a clean directory outside this
+    repository and grades this repository **Advanced, 0/0, all 34 checks**, with both files absent.
+
+    `*.tgz` is now gitignored. The publish flow packs a tarball on both paths, and an untracked 200 kB build
+    artefact is one `git add -A` from being committed.
+
 - **Adversarial review wave 2 found six more, and all six are fixed.** Wave 2 was pointed deliberately AWAY from
   wave 1's target: at the release's OWN records, its published normative text, and the machinery that is supposed
   to catch drift. Every finding is a case of something that reads as checked and is not.

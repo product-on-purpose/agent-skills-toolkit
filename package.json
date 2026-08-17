@@ -52,6 +52,8 @@
     "!scripts/lib/eval-run-aggregate.mjs",
     "!scripts/lib/stated-counts.mjs",
     "!scripts/lib/standards-watch.mjs",
+    "!scripts/lib/vendor-watch.mjs",
+    "!scripts/lib/release-ready.mjs",
     "STANDARD.md"
   ],
   "scripts": {
