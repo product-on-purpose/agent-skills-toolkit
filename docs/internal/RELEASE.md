@@ -18,15 +18,27 @@ A public `0.x` tag ships at every wave boundary (RELEASE-PLAN v0.2 Section 5); `
 - [ ] **Docs site** builds cleanly (Astro Starlight) and the Diataxis quadrants are non-empty.
 - [ ] **All tier-applicable conformance checks green** (`node scripts/check.mjs`).
 - [ ] **No em-dashes / en-dashes** in committed text (author-time hook; house style, retired as a gate check in Standard v0.11).
-- [ ] **`npm run vendor-watch` green, and its run is under 30 days old.** Every vendor claim this repository
-  asserts as fact - `U14`'s refused-field sentence, `U15`'s discovery behaviour, sec 3.2's commands-into-skills
-  premise, ADR 0051's namespacing condition - is pinned in
-  [`vendor-watch/vendor-claims.json`](vendor-watch/vendor-claims.json) and re-checked against the live page.
+- [ ] **`npm run release-ready` exits 0.** One command, four release-blocking gates: the conformance gate, the
+  README drift guard, the release-count guard, and `vendor-watch`. **It runs automatically in `release.yml` on
+  the pushed tag and in `publish-npm.yml` on the candidate tree**, so ticking this box locally is a convenience,
+  not the enforcement - which is the point. Until review wave 2 of v1.14.0 these were four checklist lines a
+  human ticked, and the vendor-watch line in particular had never been run by any workflow.
+
+  Every vendor claim this repository asserts as fact - `U14`'s refused-field sentence, `U15`'s discovery
+  behaviour, sec 3.2's commands-into-skills premise, ADR 0051's namespacing condition - is pinned in
+  [`vendor-claims.json`](vendor-watch/vendor-claims.json) and re-checked against the live page by that run.
   **Exit 1 means a claim is gone or stale; exit 2 is a REFUSAL (a page could not be read) and is never a pass.**
-  Do not re-pin a claim to make the run green: decide what the change means for each dependant first, and a
-  Standard revision needs an ADR with a migration window. This line exists because on 2026-08-15 a ratified ADR
-  (0048) was found to rest on a premise the vendor's own docs contradict, five days after an internal audit had
-  already found it, because nothing was re-reading the page.
+  Freshness is enforced by the same run rather than recorded: a claim past the 30-day window reports STALE,
+  which is exit 1, which blocks. Do not re-pin a claim to make the run green - decide what the change means for
+  each dependant first, and a Standard revision needs an ADR with a migration window.
+
+  **The one override, and its limit.** `--allow-vendor-unreachable "<reason>"` excuses exit 2 only, because a
+  vendor's outage is not a fact about this repository and a release with no remedy for someone else's downtime
+  is a trap. It does **not** excuse exit 1 at any level and no reason string makes it: overriding a gone-or-stale
+  claim publishes the falsehood the watch exists to catch. If you use it, put the reason in the release notes.
+
+  This line exists because on 2026-08-15 a ratified ADR (0048) was found to rest on a premise the vendor's own
+  docs contradict, five days after an internal audit had already found it, because nothing was re-reading the page.
 - [ ] **Codex round-trip** run manually for this tag (Q-E gate): `CODEX_REQUIRED=1 npm test`; record the result in the release notes.
 - [ ] **npm publish**, for any release that changes shipped code. The gate is a published package (`agent-skills-toolkit` on npm) as of v1.11.0, and until v1.12.0 this checklist did not mention it at all - so a release could be tagged, GitHub-released and marketplace re-pinned while npm consumers silently stayed on the previous version.
 

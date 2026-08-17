@@ -205,3 +205,133 @@ test("W1-M1: a probe-only document whose source FETCHED FINE still exits 0", () 
   assert.equal(exitCodeFor(buildReport(probeOnly, { s: "page text" }, "2026-08-15")), 0);
 });
 
+/* ----------------------------------------------------------------------
+ * wave 2, H3: EVERY PINNED QUOTE MUST BE MEANING-BEARING.
+ *
+ * The watch matches by substring, so a claim pinned as a bare identifier can never fail. Two shipped that
+ * way: `Plugin agents support` and `disable-model-invocation`. A page reading "the disable-model-invocation
+ * field was removed in v2.2" still CONTAINS `disable-model-invocation`, so the watch would have reported
+ * `holds` for a field that no longer exists - and the watcher's whole value is that it fails when the thing
+ * it guards changes.
+ *
+ * The fix is not "write longer claims and remember to keep doing that". It is a REVERSAL table: for every
+ * quote claim, a page text that retains the claim's distinctive tokens and says the OPPOSITE, which the
+ * watch must report MISSING. The coverage test below makes the table mandatory, so a fragment cannot be
+ * added later without someone failing to write a reversal it survives.
+ * ---------------------------------------------------------------------- */
+
+/** id -> a page saying the opposite while keeping the claim's own vocabulary. */
+const MEANING_REVERSALS = Object.freeze({
+  "plugin-agent-unsupported-fields":
+    "As of v2.3, hooks, mcpServers, and permissionMode are supported for plugin-shipped agents.",
+  "plugin-agent-supported-fields":
+    "Plugin agents support name and description frontmatter fields; every other field was removed.",
+  "commands-merged-into-skills":
+    "Custom commands have been split back out of skills and are a separate component type again.",
+  // The strongest shape a reversal can take: identical vocabulary, inverted polarity. Written this way
+  // after the honesty test below rejected a first attempt ("the field was removed") that shared only two
+  // content words with the claim and so demonstrated vocabulary drift rather than meaning drift.
+  "invocation-control-frontmatter":
+    "Add disable-model-invocation: true to allow Claude to keep triggering it automatically.",
+  "agents-scanned-recursively":
+    "Plugin agents/ directories are no longer scanned recursively; only top-level files are registered.",
+  "agent-filename-colon-excluded":
+    "Claude Code loads a file whose name contains one and logs a warning to the debug log.",
+});
+
+test("W2-H3: every quote claim has a reversal recorded, so no fragment can be added unnoticed", () => {
+  const d = JSON.parse(readFileSync(CLAIMS, "utf8"));
+  const quotes = d.claims.filter((c) => c.kind === "quote").map((c) => c.id);
+  for (const id of quotes) {
+    assert.ok(
+      MEANING_REVERSALS[id],
+      `${id} has no meaning-reversal case. Write a page text that keeps this claim's words and reverses ` +
+        `its meaning, and confirm the watch reports it MISSING. A claim nobody can show failing is not a check.`
+    );
+  }
+  // and the table must not accumulate entries for claims that no longer exist
+  for (const id of Object.keys(MEANING_REVERSALS)) {
+    assert.ok(quotes.includes(id), `MEANING_REVERSALS names ${id}, which is not a quote claim in the pin`);
+  }
+});
+
+test("W2-H3: every shipped quote claim FAILS against a page that reverses it", () => {
+  const d = JSON.parse(readFileSync(CLAIMS, "utf8"));
+  for (const c of d.claims.filter((x) => x.kind === "quote")) {
+    const reversed = MEANING_REVERSALS[c.id];
+    const r = evaluateClaim(c, reversed, c.verifiedOn);
+    assert.equal(
+      r.verdict,
+      VERDICT.MISSING,
+      `${c.id} still "holds" against a page that says the opposite. Its pinned text is a fragment the ` +
+        `reversal happens to contain; pin the whole sentence.`
+    );
+    // and the report built from it must actually make a human look
+    const one = { sources: [{ id: c.source, url: "https://x/y" }], claims: [c] };
+    assert.equal(exitCodeFor(buildReport(one, { [c.source]: reversed }, c.verifiedOn)), 1);
+  }
+});
+
+test("W2-H3: every shipped quote claim is a SENTENCE, not an identifier or a noun phrase", () => {
+  // A cheap structural backstop under the reversal table. The table proves each claim is meaning-bearing;
+  // this catches the shape at a glance, and gives a new claim's author the rule before they hit the table.
+  const d = JSON.parse(readFileSync(CLAIMS, "utf8"));
+  for (const c of d.claims.filter((x) => x.kind === "quote")) {
+    const words = c.claim.trim().split(/\s+/).length;
+    assert.ok(words >= 6, `${c.id}: a quote claim must be a full sentence; "${c.claim}" is ${words} word(s)`);
+  }
+});
+
+test("W2-H4: the scheduled watcher deduplicates on something that exists", () => {
+  // The workflow claimed to "reuse the open issue so a monthly cadence does not accumulate duplicates",
+  // and implemented that by filtering open issues on the label `vendor-watch` - which had never been
+  // provisioned on this repository. A label filter naming a nonexistent label matches nothing, so every
+  // month would have opened a fresh issue. The comment described the intent; nothing implemented it.
+  const wf = readFileSync(path.join(REPO, ".github/workflows/vendor-watch.yml"), "utf8");
+  assert.match(wf, /askit:vendor-watch/, "the dedup marker must be written into the issue body");
+  assert.doesNotMatch(
+    wf,
+    /listForRepo,?\s*\{[^}]*labels:/,
+    "dedup must not depend on a label: the label can be absent, renamed, or stripped during triage"
+  );
+  // and two runs must not be able to race the lookup
+  assert.match(wf, /^concurrency:/m, "a manual dispatch during the scheduled run would double-open");
+});
+
+test("W2: the prose describing the pin counts what the pin actually holds", () => {
+  // Review wave 2, records drift. CHANGELOG.md and STATUS.md both said the pin holds "six claims across two
+  // vendor pages" while it held eight across three, because the sentence was written when it was true and
+  // the pin grew twice afterwards. Every other number this repository publishes is generated or checked;
+  // this one was prose, so it rotted in the release notes a consumer reads FIRST.
+  const d = JSON.parse(readFileSync(CLAIMS, "utf8"));
+  const WORD = ["zero", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine", "ten"];
+  const expected = { claims: d.claims.length, sources: d.sources.length };
+  const RE = /pins (\w+) claims[^.]*? across (\w+) vendor pages/g;
+  for (const rel of ["CHANGELOG.md", "docs/internal/STATUS.md"]) {
+    const text = readFileSync(path.join(REPO, rel), "utf8");
+    let saw = 0;
+    for (const m of text.matchAll(RE)) {
+      saw += 1;
+      const num = (w) => (WORD.includes(w) ? WORD.indexOf(w) : Number(w));
+      assert.equal(num(m[1]), expected.claims, `${rel}: says "${m[1]}" claims; the pin holds ${expected.claims}`);
+      assert.equal(num(m[2]), expected.sources, `${rel}: says "${m[2]}" pages; the pin names ${expected.sources}`);
+    }
+    assert.ok(saw > 0, `${rel}: the sentence this guard is anchored to is gone; update the guard, do not drop it`);
+  }
+});
+
+test("W2-H3: the reversal cases are honest - each really does retain the claim's own vocabulary", () => {
+  // Guards the TEST, not the code. A reversal that shares no words with its claim would pass trivially and
+  // prove nothing, which is how three mutation proofs in this release proved nothing before being caught.
+  const d = JSON.parse(readFileSync(CLAIMS, "utf8"));
+  const words = (s) => new Set(normalizeForMatch(s).split(/[^a-z0-9-]+/).filter((w) => w.length > 3));
+  for (const c of d.claims.filter((x) => x.kind === "quote")) {
+    const shared = [...words(c.claim)].filter((w) => words(MEANING_REVERSALS[c.id]).has(w));
+    assert.ok(
+      shared.length >= 3,
+      `${c.id}: its reversal shares only ${shared.length} content word(s) with the claim, so it does not ` +
+        `demonstrate that the claim discriminates by MEANING rather than by vocabulary`
+    );
+  }
+});
+

@@ -23,6 +23,14 @@ permissions:
   contents: read
   issues: write
 
+# Two runs of this workflow must never overlap. A manual dispatch during the monthly run would otherwise
+# race the dedup lookup: both jobs would find no open issue and both would open one. `cancel-in-progress`
+# is deliberately FALSE - the running job is the one already holding the fetch results, and cancelling it
+# to start a fresh fetch would throw away a completed verification to redo it (review wave 2, H4).
+concurrency:
+  group: vendor-watch
+  cancel-in-progress: false
+
 jobs:
   watch:
     runs-on: ubuntu-latest
@@ -56,7 +64,15 @@ jobs:
             const title = refused
               ? 'vendor-watch REFUSED: a vendor page could not be read'
               : 'vendor-watch: a pinned vendor claim is gone or stale';
+            // The dedup key. A stable marker in the BODY, not the label: review wave 2 found the label
+            // `vendor-watch` had never been provisioned on this repository, and the lookup below filtered
+            // on it. A label filter naming a label that does not exist matches nothing, so every monthly
+            // run would have opened a NEW issue and the "reuse the open issue" comment would have been
+            // describing behaviour the workflow did not have. A marker in the body cannot be missing,
+            // because the same step that looks for it is the step that writes it.
+            const MARKER = '<!-- askit:vendor-watch -->';
             const body = [
+              MARKER,
               refused
                 ? 'The watch could not reach at least one vendor page, so this run proved **nothing** about the claims on it. That is a refusal, not a pass.'
                 : 'At least one claim this repository asserts as fact is no longer on the page, or has aged past the freshness window.',
@@ -70,19 +86,42 @@ jobs:
               `Reproduce locally: \`npm run vendor-watch\` (add \`--json\` for the machine report). Exit code was ${exit}.`,
             ].join('\n');
 
+            // Provision the label if it is absent, so the issue is still FILTERABLE by humans. Best-effort
+            // and never fatal: labelling is a convenience, and the marker above is what correctness rests
+            // on. A repository whose token cannot create labels must still get its issue.
+            try {
+              await github.rest.issues.getLabel({
+                owner: context.repo.owner, repo: context.repo.repo, name: 'vendor-watch',
+              });
+            } catch {
+              try {
+                await github.rest.issues.createLabel({
+                  owner: context.repo.owner, repo: context.repo.repo,
+                  name: 'vendor-watch', color: 'b60205',
+                  description: 'A pinned vendor claim is gone, stale, or could not be read',
+                });
+              } catch (e) {
+                core.warning(`could not provision the vendor-watch label: ${e.message}`);
+              }
+            }
+
             // Reuse the open issue if one exists, so a monthly cadence does not accumulate duplicates.
-            const existing = await github.rest.issues.listForRepo({
-              owner: context.repo.owner, repo: context.repo.repo,
-              state: 'open', labels: 'vendor-watch',
+            // Paginated and matched on the MARKER, so it works on the very first run, before any label
+            // exists, and keeps working if someone strips the label off the issue while triaging it.
+            const open = await github.paginate(github.rest.issues.listForRepo, {
+              owner: context.repo.owner, repo: context.repo.repo, state: 'open', per_page: 100,
             });
-            if (existing.data.length > 0) {
+            const existing = open.find((i) => !i.pull_request && (i.body ?? '').includes(MARKER));
+            if (existing) {
               await github.rest.issues.createComment({
                 owner: context.repo.owner, repo: context.repo.repo,
-                issue_number: existing.data[0].number, body,
+                issue_number: existing.number, body,
               });
+              core.notice(`vendor-watch: commented on the open issue #${existing.number}`);
             } else {
-              await github.rest.issues.create({
+              const created = await github.rest.issues.create({
                 owner: context.repo.owner, repo: context.repo.repo,
                 title, body, labels: ['vendor-watch'],
               });
+              core.notice(`vendor-watch: opened issue #${created.data.number}`);
             }
