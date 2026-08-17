@@ -35,9 +35,17 @@ jobs:
   watch:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      # Keep these in step with the other six workflows, all of which are on v7. This file was added in
+      # v1.14.0 already three majors behind, and Dependabot does not report the drift: it stopped proposing
+      # `actions/checkout` at v7 when PR #159 was closed in favour of the hand-written #179, so nothing has
+      # flagged this pin since. Whoever edits this job is the only check on it.
+      - uses: actions/checkout@v7
 
-      - uses: actions/setup-node@v4
+      # setup-node v5 added automatic caching whenever `packageManager` is set in package.json (this
+      # repository does not set it) and v6 narrowed that to npm; v7 is an ESM rewrite. None of it reaches
+      # this job, which installs nothing: scripts/vendor-watch.mjs imports only node builtins and two local
+      # modules, so there is no node_modules for a cache to hold.
+      - uses: actions/setup-node@v7
         with:
           node-version: "22.12.0"
 
@@ -52,9 +60,17 @@ jobs:
         # with the report in it is a thing somebody answers.
         continue-on-error: true
 
+      # github-script v9 carries two breaking changes and this script clears both, but only just, so the
+      # constraint is written down rather than rediscovered. v9 upgraded @actions/github to v9, which is
+      # ESM-only, so `require('@actions/github')` now throws at runtime; the `require('fs')` below is a NODE
+      # BUILTIN and is untouched by that. v9 also injects `getOctokit` as a script parameter, which makes
+      # `const getOctokit = ...` a SyntaxError; this script never declares it. Anything added here must
+      # reach for the injected `github`, `context` and `core` and never require the toolkit packages.
+      # v8 moved the runtime to node24, so a self-hosted runner would need >= v2.327.1; this job is
+      # ubuntu-latest and hosted.
       - name: Open an issue when a claim is gone, stale, or unreadable
         if: steps.watch.outputs.exit != '0'
-        uses: actions/github-script@v7
+        uses: actions/github-script@v9
         with:
           script: |
             const fs = require('fs');
