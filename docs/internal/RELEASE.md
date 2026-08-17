@@ -4,7 +4,7 @@
 
 ## How releases work here
 
-A public `0.x` tag ships at every wave boundary (RELEASE-PLAN v0.2 Section 5); `v1.0.0` is the Gold capstone. Each tag is a real, gate-green release. The release-readiness gate (`scripts/checks/release-ready.mjs`, built incrementally Wave A -> E) is a hard precondition: a release cannot be tagged until it passes.
+A public `0.x` tag ships at every wave boundary (RELEASE-PLAN v0.2 Section 5); `v1.0.0` is the Gold capstone. Each tag is a real, gate-green release. The release-readiness gate (`scripts/release-ready.mjs`, landed in v1.14.0; `scripts/checks/` is reserved for Standard spine checks) is a hard precondition: a release cannot be tagged until it passes.
 
 ## Checklist (each item is a gated check, not a reminder)
 

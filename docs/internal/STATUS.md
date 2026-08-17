@@ -12,7 +12,7 @@
 
 | Fact | Value |
 |---|---|
-| Version | 1.13.0 (cut 2026-08-13, shipped 2026-08-14) |
+| Version | 1.14.0 (cut 2026-08-16; tag and npm publish withheld pending sign-off) |
 | Declared tier | Advanced (Gold) - `library.json` `tier: advanced` |
 | Standard pin | 0.14 |
 | Spine | 34 checks |
