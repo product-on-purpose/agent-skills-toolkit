@@ -11,6 +11,25 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 
+- **The release gate would have jammed on 2026-09-14, and it was caught with four weeks to spare.** Found by
+  computing the date each pinned vendor claim ages out, rather than trusting the design note that said a
+  passing watch run refreshes a quote's date. **It cannot** - the watcher is write-incapable by construction,
+  which is one of its best properties.
+
+    The consequence was concrete. Every quote claim's recorded reading aged past the 30-day window on
+    2026-09-14; a stale claim reported `STALE`, which is exit 1, which `release-ready` treats as blocking. From
+    that morning **no tag and no publish could have been cut** - while every run kept proving all six sentences
+    were still on the vendor's pages. And the only way out was hand-editing the dates, which is precisely what
+    `RELEASE.md` tells a maintainer never to do. **A gate whose sole remedy is the thing the documentation
+    forbids teaches the operator to override it.**
+
+    Freshness is now scoped to what age can actually prove, because the design was conflating two different
+    facts. A **quote** is re-confirmed against the live page on every run, so it never blocks while it holds;
+    an old reading is reported and counted, and stays out of the exit code. A **probe** has no page to check,
+    so its age IS the verification and past the window it still blocks until a human re-runs the reproduction.
+    The watch checks the sentence; only a person checks whether the section around it still means the same
+    thing, and the report now says exactly that.
+
 - **The published tarball no longer ships library code nothing in it can reach.** Found by verifying the
   package from a consumer's position before tagging: `npm pack` carried `scripts/lib/vendor-watch.mjs` and
   `scripts/lib/release-ready.mjs` - 16.5 kB whose CLIs are not shipped, imported by nothing a consumer

@@ -12,7 +12,7 @@
 | Skills | 24 | 24 |
 | Evaluation scopes | 3 | 3 |
 | Declared tier | Advanced (Gold) | Advanced (Gold), self-validated 0 errors / 0 warnings |
-| Suite | 1102 | **1248**, 0 failures |
+| Suite | 1102 | **1252**, 0 failures |
 
 Twelve commits on `main` since `v1.13.0`, eleven of them implementation PRs (#214 to #223) plus the
 wave-2 fix PR (#229).
@@ -77,7 +77,7 @@ Wave 2's six, in one line each:
 
 - `node scripts/release-ready.mjs` exits **0**: all four gates pass.
 - Conformance gate: **Advanced, 0 errors, 0 warnings.**
-- Suite: **1248 tests, 0 failures.**
+- Suite: **1252 tests, 0 failures.**
 - Codex round-trip (Q-E gate): **passed** against `codex-cli 0.144.5`, skills **ingested**, not merely listed.
 - Docs site: **86 pages**, every internal link resolves, route parity holds against the committed baseline.
 - Reference family: six members graded before and after every change. **No verdict moved at any step.**

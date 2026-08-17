@@ -19,7 +19,16 @@ export const VERDICT = Object.freeze({
   STALE: "stale",
 });
 
-/** A claim older than this wants re-verification even when it still holds. */
+/**
+ * How old a claim's RECORDED reading may be.
+ *
+ * It means different things for the two claim kinds, and conflating them was a defect with a dated fuse.
+ *
+ * - For a PROBE, this is the whole verification. No page states the behaviour, so age is the only signal
+ *   there is, and past the window the claim BLOCKS until a human re-runs the reproduction.
+ * - For a QUOTE, the watch re-confirms the sentence against the live page on every single run. A hand-
+ *   written date cannot make a live confirmation stale, so an old date is a NOTE, never a verdict.
+ */
 export const FRESHNESS_DAYS = 30;
 
 // Punctuation a docs pipeline rewrites without changing meaning: curly quotes, and the two long dashes.
@@ -98,9 +107,24 @@ export function evaluateClaim(claim, pageText, today) {
   if (!found) {
     return { ...base, verdict: VERDICT.MISSING, detail: "the pinned sentence is no longer on the page" };
   }
-  return stale
-    ? { ...base, verdict: VERDICT.STALE, detail: `holds, but last verified ${age} days ago` }
-    : { ...base, verdict: VERDICT.HOLDS, detail: `holds (verified ${age} days ago)` };
+
+  // A quote confirmed against the LIVE page a moment ago is HOLDS, whatever `verifiedOn` says.
+  //
+  // The first version returned STALE here, and that was a release-blocker with a calendar date on it. Every
+  // quote claim's recorded date would have aged past the window on 2026-09-14, and `release-ready` treats
+  // STALE as exit 1, so from that morning no tag and no publish could be cut - while every run kept proving
+  // the sentences were all still on the page. Worse, the only way out is to hand-edit the dates, which is
+  // precisely what RELEASE.md tells a maintainer never to do ("do not re-pin a claim to make the run green").
+  // A gate whose sole remedy is the thing the documentation forbids teaches the operator to override it.
+  //
+  // So the two facts are reported separately, because they ARE separate: the watch verifies the SENTENCE,
+  // and only a person verifies the CONTEXT around it. `recordAge` carries the second one as a note.
+  const detail = stale
+    ? `holds (confirmed against the live page today); a human last read this page ${
+        age === null ? "on an unparseable date" : `${age} days ago`
+      }`
+    : `holds (confirmed today; page last read ${age} days ago)`;
+  return { ...base, verdict: VERDICT.HOLDS, detail, recordIsOld: stale };
 }
 
 /** Evaluate every claim. `pagesById` maps source id to fetched text, or to null where a fetch failed. */
@@ -131,7 +155,11 @@ export function buildReport(pin, pagesById, today) {
       holds: count(VERDICT.HOLDS),
       missing: count(VERDICT.MISSING),
       uncheckable: count(VERDICT.UNCHECKABLE),
+      // STALE is now PROBE-ONLY: it is the only kind whose age is its whole verification.
       stale: count(VERDICT.STALE),
+      // Quote claims that hold but whose recorded human reading is older than the window. Reported so the
+      // fact is visible and actionable, and deliberately NOT part of the exit code.
+      recordsOld: results.filter((r) => r.recordIsOld).length,
     },
   };
 }
@@ -182,6 +210,15 @@ export function renderReport(report) {
   const s = report.summary;
   out.push("");
   out.push(`${s.total} claims: ${s.holds} hold, ${s.missing} MISSING, ${s.stale} stale, ${s.uncheckable} unchecked.`);
+  if (s.recordsOld > 0) {
+    out.push("");
+    out.push(
+      `${s.recordsOld} claim(s) still hold on the live page, but no human has READ that page in over ` +
+        `${report.freshnessDays} days. Not a failure and deliberately not part of the exit code: the watch ` +
+        `checks the sentence, and only a person checks whether the section around it still means the same ` +
+        `thing. Re-read, then refresh verifiedOn as a record of the reading - never to make a run green.`
+    );
+  }
   if (s.missing > 0) {
     out.push("");
     out.push("A MISSING claim means this repository asserts something the vendor no longer says.");

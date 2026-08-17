@@ -28,8 +28,18 @@ A public `0.x` tag ships at every wave boundary (RELEASE-PLAN v0.2 Section 5); `
   behaviour, sec 3.2's commands-into-skills premise, ADR 0051's namespacing condition - is pinned in
   [`vendor-claims.json`](vendor-watch/vendor-claims.json) and re-checked against the live page by that run.
   **Exit 1 means a claim is gone or stale; exit 2 is a REFUSAL (a page could not be read) and is never a pass.**
-  Freshness is enforced by the same run rather than recorded: a claim past the 30-day window reports STALE,
-  which is exit 1, which blocks. Do not re-pin a claim to make the run green - decide what the change means for
+  **Freshness is scoped to what age can actually prove.** A QUOTE is re-confirmed against the live page on
+  every run, so it never blocks while it holds; if nobody has READ that page in 30 days the run says so and
+  carries on, because the watch checks the sentence and only a person checks whether the section around it
+  still means the same thing. A PROBE has no page to check, so its age IS the verification and past 30 days it
+  blocks until someone re-runs the reproduction.
+
+  The earlier design blocked on a stale quote too, which was a release-blocker with a calendar date on it:
+  every quote's recorded reading would have aged out on 2026-09-14 and no tag could have been cut from that
+  morning, while every run kept proving the sentences were still there. Its only remedy was hand-editing the
+  dates - the thing the next sentence forbids. Caught before the v1.14.0 tag.
+
+  Do not re-pin a claim to make the run green - decide what the change means for
   each dependant first, and a Standard revision needs an ADR with a migration window.
 
   **The one override, and its limit.** `--allow-vendor-unreachable "<reason>"` excuses exit 2 only, because a
