@@ -2,11 +2,12 @@
   "schema": "askit-vendor-claims/1",
   "about": "Every VENDOR CLAIM this repository asserts, pinned so it can be re-verified on a schedule instead of by a person remembering. STANDARD.md and several checks cite Claude Code and Codex behaviour as fact; before this file, each of those citations was a page someone read once and a date they wrote down. On 2026-08-15 that cost us a ratified ADR: ADR 0048 was accepted on the premise that a command is not a skill, which Claude Code's own documentation contradicts, and a 2026-08-10 internal audit had already found it. This file is the instrument that makes that failure mode detectable.",
   "conventions": {
-    "claim": "The verbatim sentence, or the empirically observed behaviour, that this repository depends on. Never a paraphrase: a paraphrase cannot be checked against a page.",
+    "claim": "The verbatim sentence, or the empirically observed behaviour, that this repository depends on. Never a paraphrase: a paraphrase cannot be checked against a page. A quote claim MUST be a COMPLETE SEMANTIC SENTENCE, not an identifier or a noun phrase. Review wave 2 found two claims pinned as bare tokens ('Plugin agents support', 'disable-model-invocation'): a page saying the field was REMOVED still contains the token, so the watch would report holds while the thing it guards had been deleted. tests/unit/vendor-watch.test.mjs now requires every quote claim to survive a MEANING REVERSAL that retains its distinctive tokens, so a new fragment cannot be added without the test noticing.",
     "kind": "quote = a sentence that MUST still appear on the named page; the watch checks it automatically. probe = an empirical behaviour that no page states, re-verified by running something; the watch can only report its AGE and name the reproduction, never confirm it.",
     "dependsOn": "What breaks, or becomes wrong, if this claim stops being true. This is the field that makes a failure actionable rather than interesting.",
-    "verifiedOn": "ISO date the claim was last confirmed against the live source. A quote claim's date is refreshed by a passing watch run; a probe claim's date is refreshed only by a human running the reproduction.",
-    "onChange": "What a maintainer must do when this claim fails. Stated per claim because the answer differs: some changes are green-ward and are a silent re-read, others are a Standard revision needing an ADR and a migration window."
+    "verifiedOn": "ISO date a HUMAN last read this source in context. It is not the date the sentence was last machine-confirmed - the watch re-confirms every quote claim against the live page on every run, and is write-incapable, so it can never refresh this field. The two facts are different and were once conflated: for a QUOTE this date is advisory and a stale one is reported without blocking, because the watch checks the sentence and only a person checks whether the section around it still means the same thing. For a PROBE it is the whole verification, since no fetch can confirm the behaviour, so past the 30-day window it BLOCKS until someone re-runs the reproduction. Refresh it as a record of a reading, never to make a run green.",
+    "onChange": "What a maintainer must do when this claim fails. Stated per claim because the answer differs: some changes are green-ward and are a silent re-read, others are a Standard revision needing an ADR and a migration window.",
+    "antecedent": "OPTIONAL. Present only when the pinned sentence contains a pronoun or reference whose meaning is fixed by neighbouring text that is deliberately NOT pinned. It records what the reference points to and why the surrounding sentence was left out, so a reader is never asked to trust that a dangling 'one' means what the check assumes."
   },
   "sources": [
     {
@@ -46,11 +47,11 @@
       "id": "plugin-agent-supported-fields",
       "kind": "quote",
       "source": "cc-plugins-reference",
-      "claim": "Plugin agents support",
+      "claim": "Plugin agents support name, description, model, effort, maxTurns, tools, disallowedTools, skills, memory, background, and isolation frontmatter fields.",
       "dependsOn": [
         "PLUGIN_AGENT_SUPPORTED_FIELDS, quoted in every U14 finding as the remediation"
       ],
-      "verifiedOn": "2026-08-15",
+      "verifiedOn": "2026-08-16",
       "onChange": "Re-read the field list and update the constant. The list appears in user-facing remediation, so a stale one sends authors to a field the runtime does not accept."
     },
     {
@@ -69,12 +70,12 @@
       "id": "invocation-control-frontmatter",
       "kind": "quote",
       "source": "cc-skills",
-      "claim": "disable-model-invocation",
+      "claim": "Add disable-model-invocation: true to prevent Claude from triggering it automatically.",
       "dependsOn": [
         "ADR 0048's corrected reasoning: a command is a skill whose invocation is user-controlled",
         "backlog E44, which becomes an ADR when this field appears in a measured corpus"
       ],
-      "verifiedOn": "2026-08-15",
+      "verifiedOn": "2026-08-16",
       "onChange": "If the field is renamed or removed, E44's trigger condition changes and ADR 0048's reasoning needs a new anchor."
     },
     {
@@ -95,11 +96,12 @@
       "id": "agent-filename-colon-excluded",
       "kind": "quote",
       "source": "cc-sub-agents",
-      "claim": "doesn't load a file whose name contains one",
+      "claim": "Claude Code doesn't load a file whose name contains one and logs an error to the debug log.",
       "dependsOn": [
         "isRuntimeAgentFile in scripts/lib/fs-utils.mjs, which keeps both listers exactly as wide as the runtime"
       ],
-      "verifiedOn": "2026-08-15",
+      "antecedent": "The 'one' is a colon, established by the preceding sentence: names can't contain ':', which is reserved for plugin-scoped identifiers. That sentence is not pinned because it carries a markdown link whose URL would fire on a docs reorganisation, which is noise rather than a change to the behaviour this repository depends on.",
+      "verifiedOn": "2026-08-16",
       "onChange": "If the runtime starts loading colon-named files, drop the exclusion: being stricter than the runtime is the opposite of the failure these listers prevent."
     },
     {

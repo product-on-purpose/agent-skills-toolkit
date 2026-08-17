@@ -7,9 +7,92 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 `CHANGELOG.md` is the full technical history. A curated, user-facing
 `RELEASE-NOTES.md` is added at Gold (Standard sec 10.6); the two are distinct.
 
-## [Unreleased]
+## [1.14.0] - 2026-08-16
 
 ### Fixed
+
+- **The release gate would have jammed on 2026-09-14, and it was caught with four weeks to spare.** Found by
+  computing the date each pinned vendor claim ages out, rather than trusting the design note that said a
+  passing watch run refreshes a quote's date. **It cannot** - the watcher is write-incapable by construction,
+  which is one of its best properties.
+
+    The consequence was concrete. Every quote claim's recorded reading aged past the 30-day window on
+    2026-09-14; a stale claim reported `STALE`, which is exit 1, which `release-ready` treats as blocking. From
+    that morning **no tag and no publish could have been cut** - while every run kept proving all six sentences
+    were still on the vendor's pages. And the only way out was hand-editing the dates, which is precisely what
+    `RELEASE.md` tells a maintainer never to do. **A gate whose sole remedy is the thing the documentation
+    forbids teaches the operator to override it.**
+
+    Freshness is now scoped to what age can actually prove, because the design was conflating two different
+    facts. A **quote** is re-confirmed against the live page on every run, so it never blocks while it holds;
+    an old reading is reported and counted, and stays out of the exit code. A **probe** has no page to check,
+    so its age IS the verification and past the window it still blocks until a human re-runs the reproduction.
+    The watch checks the sentence; only a person checks whether the section around it still means the same
+    thing, and the report now says exactly that.
+
+- **The published tarball no longer ships library code nothing in it can reach.** Found by verifying the
+  package from a consumer's position before tagging: `npm pack` carried `scripts/lib/vendor-watch.mjs` and
+  `scripts/lib/release-ready.mjs` - 16.5 kB whose CLIs are not shipped, imported by nothing a consumer
+  installs. `package.json` ships `scripts/lib/` wholesale and negates maintainer-only modules one at a time,
+  which works exactly as long as somebody remembers the negation; twice nobody did.
+
+    `tests/unit/package-files-reachable.test.mjs` now walks the import graph from every shipped entry point
+    and fails on any `scripts/lib` module the graph never reaches unless it is explicitly excluded - so the
+    CLASS is guarded, not the two instances. The sibling guard for printed remediation commands records why
+    that distinction matters: that defect shipped **twice**, because fixing the first instance is what let the
+    second sit unnoticed. Verified end to end - the tarball installs into a clean directory outside this
+    repository and grades this repository **Advanced, 0/0, all 34 checks**, with both files absent.
+
+    `*.tgz` is now gitignored. The publish flow packs a tarball on both paths, and an untracked 200 kB build
+    artefact is one `git add -A` from being committed.
+
+- **Adversarial review wave 2 found six more, and all six are fixed.** Wave 2 was pointed deliberately AWAY from
+  wave 1's target: at the release's OWN records, its published normative text, and the machinery that is supposed
+  to catch drift. Every finding is a case of something that reads as checked and is not.
+
+    **The Standard contradicted itself, in the shipped text.** Fixing ADR 0048 left sec 3.8 asserting that every
+    component's `description` MUST satisfy the sec 8.1 discoverability bar, while sec 3.2 makes it a SHOULD for
+    commands and sec 8.1 scopes itself to skills. A command could conform to and violate the same document. Sec 3.8
+    now scopes the bar to skills and states the command exception where the contract is stated, and
+    `tests/unit/standard-self-consistency.test.mjs` holds the three sections in agreement - along with the present-tense
+    spine counts, the non-rewriting of historical version notes, and `STANDARD.md`'s version against `library.json`.
+    Every other number this repository publishes was machine-checked; the normative text a consumer actually diffs
+    was not.
+
+    **The README claimed the wrong Standard.** Status said `v1.13.0` uses Standard `0.13` while `library.json`,
+    `INDEX.md`, `manifest.generated.json`, `STATUS.md` and `STANDARD.md` all said `0.14`. `check-readme-version.mjs`
+    validated the version, the tier, the skill count and the spine size - four of the five front-door claims - so it
+    passed, and a false public claim about which ruleset this plugin adopts would have shipped in the npm tarball.
+    **A partial drift guard is worse than none: because it exists and passes, nobody re-reads the part it skips.**
+    The pin is corrected and the guard now covers it.
+
+    **Two pinned vendor claims could not fail.** `vendor-watch` matches by substring, and two claims were pinned as
+    bare tokens (`Plugin agents support`, `disable-model-invocation`). A page reading *"the `disable-model-invocation`
+    field was removed"* still contains the token, so the watch would have reported `holds` for a field that no longer
+    existed. All six quote claims are now complete sentences, re-verified against the live pages, and a **meaning-reversal
+    table** in the test suite pins, for each one, a page that keeps its vocabulary and says the opposite - which the
+    watch must report MISSING. A further test checks the reversals are honest (they must share content words with the
+    claim), and it rejected the first attempt at one. A new fragment claim cannot be added without failing three tests.
+
+    **The monthly watcher would have opened a new issue every month.** It deduplicated by filtering open issues on the
+    label `vendor-watch`, which had never been provisioned on this repository; a label filter naming a nonexistent
+    label matches nothing. The comment described the intent and nothing implemented it. Dedup is now on a stable body
+    marker that cannot be missing, absent, or stripped during triage, the label is provisioned (and self-provisions if
+    absent), and `concurrency` stops a manual dispatch racing the scheduled run.
+
+    **The release-blocking preconditions were a checklist.** `RELEASE.md` asked a human to confirm *"`npm run
+    vendor-watch` green, and its run under 30 days old"* - a line whose entire subject is that people forget to re-read
+    things - and **no workflow ran it**. A tag, a GitHub release and an npm publish could all ship while a sentence this
+    repository asserts as fact had been gone from the vendor's page for a year, with every automated signal green.
+    `npm run release-ready` now runs the conformance gate, the README drift guard, the release-count guard and
+    `vendor-watch`, reports all four, and exits 1; `release.yml` and `publish-npm.yml` both invoke it. Freshness is
+    enforced by the run rather than recorded: a claim past the window is STALE, which is exit 1, which blocks.
+    **The one override covers an unreachable vendor page and nothing else** - a third party's outage is not a fact
+    about this repository, but a gone-or-stale claim is, and no reason string excuses publishing it.
+
+    **The records described a pin that had grown twice.** `CHANGELOG.md` and `STATUS.md` both said the watch pins
+    "six claims across two vendor pages"; it pins eight across three. True when written, and prose, so it rotted in
+    the release notes a consumer reads first. Corrected, and now asserted by a test.
 
 - **Adversarial review wave 1 found four defects in the checks this release added, and all four are fixed.** The round was pointed at the three new checks and their migration metadata specifically. It cleared what I most wanted attacked - **no defect was found in the `since`/`until` ceiling interaction or the activation-neutral reason strings** - and then found this:
 
@@ -33,7 +116,7 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
   **What that cost, one day before this shipped:** ADR 0048 was ratified asserting that a command is not a skill, and Claude Code says *"Custom commands have been merged into skills."* A 2026-08-10 internal audit had **already found it** and graded `S7` a conceptual conflict. The evidence existed. Nothing was re-reading it.
 
-  `docs/internal/vendor-watch/vendor-claims.json` pins six claims across two vendor pages, each carrying a `dependsOn` list (what breaks) and an `onChange` instruction (what to do, which differs per claim: `U14`'s is asymmetric because a field REMOVED from the refused list is green-ward while a field ADDED is a Standard revision). `npm run vendor-watch` checks them; `.github/workflows/vendor-watch.yml` runs monthly and **opens an issue rather than editing anything**; and `docs/internal/RELEASE.md` gates a tag on a run under 30 days old.
+  `docs/internal/vendor-watch/vendor-claims.json` pins eight claims (6 quote, 2 probe) across three vendor pages, each carrying a `dependsOn` list (what breaks) and an `onChange` instruction (what to do, which differs per claim: `U14`'s is asymmetric because a field REMOVED from the refused list is green-ward while a field ADDED is a Standard revision). `npm run vendor-watch` checks them; `.github/workflows/vendor-watch.yml` runs monthly and **opens an issue rather than editing anything**; and `npm run release-ready` **runs it inside `release.yml` and `publish-npm.yml`**, so a tag or a publish is blocked by a claim the vendor no longer makes rather than by someone remembering to look.
 
   **It pins CLAIMS, not pages.** A page hash would fire on every navigation and CSS change and be ignored within a month; what this repository depends on is specific sentences, so those are what is pinned and checked.
 
@@ -773,7 +856,8 @@ promoted Standard. Not installable; not self-validating yet (see
 - `.github/workflows/ci.yml` - CI stub that will shell out only to scripts.
 - `skills/`, `scripts/`, `templates/` - placeholders for later phases.
 
-[Unreleased]: https://github.com/product-on-purpose/agent-skills-toolkit/compare/v1.1.0...HEAD
+[Unreleased]: https://github.com/product-on-purpose/agent-skills-toolkit/compare/v1.14.0...HEAD
+[1.14.0]: https://github.com/product-on-purpose/agent-skills-toolkit/compare/v1.13.0...v1.14.0
 [1.1.0]: https://github.com/product-on-purpose/agent-skills-toolkit/compare/v1.0.0...v1.1.0
 [1.0.0]: https://github.com/product-on-purpose/agent-skills-toolkit/releases/tag/v1.0.0
 [0.2.0]: https://github.com/product-on-purpose/agent-skills-toolkit/releases/tag/v0.2.0

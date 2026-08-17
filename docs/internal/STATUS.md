@@ -12,13 +12,13 @@
 
 | Fact | Value |
 |---|---|
-| Version | 1.13.0 (cut 2026-08-13, shipped 2026-08-14) |
+| Version | 1.14.0 (cut 2026-08-16, **SHIPPED 2026-08-17**: tag `57727ab`, GitHub release, npm `latest` with signed Sigstore provenance, registry `agent-plugins` 1.66.0) |
 | Declared tier | Advanced (Gold) - `library.json` `tier: advanced` |
 | Standard pin | 0.14 |
 | Spine | 34 checks |
 | Scopes | 3 (plugin, component, marketplace) |
 | Skills | 24 |
-| Tests | 1219, 0 failures (local suite run 2026-08-15; both halves confirmed by `npm run release-counts` exiting 0) |
+| Tests | 1252, 0 failures (local suite run 2026-08-16; both halves confirmed by `npm run release-ready` exiting 0) |
 | Self-proving | `node scripts/check.mjs .` exits 0 at Advanced, 0 errors, 0 warnings |
 
 ## The v1.14.0 ADR pack: RATIFIED and IMPLEMENTED
@@ -88,9 +88,11 @@ how the runtime discovers subagents; sec 3.2 explains itself by reference to how
 skill. Claude Code says *"Custom commands have been merged into skills."* The 2026-08-10 internal audit had
 **already found this** and graded `S7` a CONFLICT. The evidence existed; nothing was re-reading it.
 
-`docs/internal/vendor-watch/vendor-claims.json` pins six claims across two vendor pages, each carrying what
-depends on it and what to do when it fails. `npm run vendor-watch` re-checks them; a monthly workflow opens
-an issue rather than editing anything; and `RELEASE.md` now gates a tag on a run under 30 days old.
+`docs/internal/vendor-watch/vendor-claims.json` pins eight claims (6 quote, 2 probe) across three vendor pages, each carrying what
+depends on it and what to do when it fails. `npm run release-ready` re-checks them **inside `release.yml` and
+`publish-npm.yml`**, so a tag or a publish is blocked by a claim the vendor no longer makes; a monthly
+workflow opens an issue rather than editing anything. Freshness is enforced by that run rather than
+recorded: a claim past the 30-day window is STALE, which is exit 1, which blocks.
 
 **Two design calls worth knowing.** It pins **claims, not pages** - a page hash would fire on every
 navigation change and be ignored within a month, whereas what this repository depends on is specific
@@ -101,6 +103,32 @@ established by installing a plugin and looking at what registered.
 
 **Refusal outranks a clean result.** Exit 2 when a page could not be read, because a watch that passes
 because it could not reach the page is worse than no watch.
+
+## Two adversarial review waves, ten findings, all fixed (2026-08-16)
+
+Wave 1 was narrow and deep on the three checks this release adds. Wave 2 was pointed deliberately **away** from
+that target - at the release's own records, its published normative text, and the machinery that is supposed to
+catch drift. The v1.13.0 evidence is why: rounds 2 through 7 sat flat at about five findings each, and round 8,
+reframed, found four HIGHs. **A second wave aimed where the first one looked finds the same things.**
+
+| Wave | Pointed at | Found | Theme |
+| --- | --- | --- | --- |
+| 1 | the new checks (`U15`, `U16`, `U17`) and their libraries | 4 | assumptions the code made that the vendor does not guarantee |
+| 2 | records, normative text, and the drift machinery | 6 | **things that read as checked and are not** |
+
+Wave 2's six share one shape. The shipped Standard contradicted itself across three sections. The README drift
+guard covered four of five front-door claims, so the fifth drifted a full minor and the suite stayed green. Two
+pinned vendor claims were bare tokens and could never fail. The monthly watcher deduplicated on a label nobody
+had created. The release-blocking preconditions were a checklist a human ticked, and the one that mattered most
+had never been run by any workflow. And the prose describing the claims pin counted a version of it from two
+growth steps earlier.
+
+**Every fix is a guard, not a correction.** `standard-self-consistency.test.mjs` holds the Standard's sections in
+agreement; `check-readme-version.mjs` now covers the Standard pin; a **meaning-reversal table** requires every
+pinned vendor claim to demonstrably fail against a page that says the opposite, and a further test requires the
+reversals themselves to be honest; the watcher deduplicates on a marker it writes itself; `npm run release-ready`
+replaces four checklist lines with one exit code that `release.yml` and `publish-npm.yml` both run. **The aggregate
+blocked its own first real run** - on 7 failing tests and a stale count that had not yet reached CI.
 
 ## What is open
 

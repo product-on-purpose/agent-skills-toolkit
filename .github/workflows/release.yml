@@ -37,8 +37,17 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Conformance gate (the prover proves itself at release time)
-        run: node scripts/check.mjs
+      # Runs the conformance gate, the README drift guard, the release-count guard and vendor-watch, and
+      # reports all four before deciding. It replaces four RELEASE.md checklist lines a human ticked, one
+      # of which - "vendor-watch green, and its run under 30 days old" - had never been run by any
+      # workflow, so a tag could publish a claim the vendor's page had stopped making (review wave 2, H2).
+      #
+      # vendor-watch exit 1 (a claim is GONE or STALE) blocks the tag and cannot be overridden here. Exit 2
+      # (a page could not be FETCHED) is a third party's outage; re-run this workflow when it clears, or if
+      # the release genuinely cannot wait, run the aggregate locally with
+      # `--allow-vendor-unreachable "<reason>"` and record that reason in the release notes.
+      - name: Release-ready gates (conformance, README drift, release counts, vendor-watch)
+        run: node scripts/release-ready.mjs
 
       - name: Guard - tag must equal every version-bearing manifest
         run: |

@@ -216,6 +216,15 @@ jobs:
         working-directory: candidate
         run: npm test
 
+      # The same aggregate release.yml runs, on the CANDIDATE's tree, before anything reaches the registry.
+      # It re-runs the conformance gate (so the step below is subsumed and kept only for its named signal),
+      # the README drift guard, the release-count guard and vendor-watch. npm is the one surface a consumer
+      # cannot un-install from, so a claim the vendor has stopped making must not get this far: exit 1 from
+      # vendor-watch blocks the publish and there is no override on this path (review wave 2, H2).
+      - name: Release-ready gates (conformance, README drift, release counts, vendor-watch)
+        working-directory: candidate
+        run: node scripts/release-ready.mjs
+
       - name: Conformance gate (the prover proves itself before it ships)
         working-directory: candidate
         run: node scripts/check.mjs

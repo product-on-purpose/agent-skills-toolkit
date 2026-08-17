@@ -126,6 +126,25 @@ for (const m of statusBody.matchAll(/\b(\d+\.\d+\.\d+)\b/g)) {
   }
 }
 
+// 1b. Every Standard PIN claimed in Status must be the pin library.json actually declares.
+//
+// Added after review wave 2. This guard already validated the version, the tier, the skill count and
+// the spine size, and NOT the Standard pin - so README said "Standard v0.13" while library.json,
+// INDEX.md, manifest.generated.json, STATUS.md and STANDARD.md all said 0.14, and the whole suite
+// passed clean. A false public claim about which ruleset this plugin adopts would have shipped in the
+// npm tarball. A drift guard covering four of five front-door claims READS as complete and is not.
+const libStandard = lib.standard;
+if (typeof libStandard === "string") {
+  for (const sm of statusBody.matchAll(/Standard\s+`?v?(\d+\.\d+)`?/gi)) {
+    if (sm[1] !== libStandard) {
+      const line = statusStartLine + statusBody.slice(0, sm.index).split("\n").length - 1;
+      failures.push(
+        `README.md:${line}  "## Status" claims Standard ${sm[1]} (library.json pins ${libStandard})`
+      );
+    }
+  }
+}
+
 // 2. The Status section's tier claim must match library.json.tier (Finding B, round-3 adversarial
 // review). Only enforced when library.json actually declares a tier; see the "Scope note" above.
 //
