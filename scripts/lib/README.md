@@ -20,6 +20,7 @@ The shared library the checks, generators, and gate import: findings, frontmatte
 - `marketplace/` - the marketplace evaluation scope (ADR 0039): catalogue reading, member resolution, the cross-member analyses, and the collection orchestrator. Kept as a delimited subfolder so it travels as a unit if the Standard and runner relocate.
 - `migrate-report.mjs` - migrateReport(): the migration (gap-by-tier) report object, a staged current-to-target bring-to-conformance plan.
 - `profiles.mjs` - the built-in gate profiles (askit-library, plain-plugin, house-style).
+- `release-ready.mjs` - the deterministic half of release-ready: the gate list, which exit codes block, and the one override (an unreachable vendor page, never a gone-or-stale claim). Pure, so the decision table is testable without a tag or a network.
 - `registry.mjs` - the ordered CHECKS array, runAllChecks(), REQ_IDS, and provenanceByReq().
 - `release-report.mjs` - releaseReport(): the release-readiness report object, a deterministic go / no-go verdict.
 - `report-meta.mjs` - the per-reqId explanation table (why-it-matters, fix prompt, effort) the evaluation report renderer joins at render time.

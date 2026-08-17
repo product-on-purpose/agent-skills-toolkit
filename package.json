@@ -63,6 +63,7 @@
     "standards-watch": "node scripts/standards-watch.mjs .",
     "vendor-watch": "node scripts/vendor-watch.mjs .",
     "release-counts": "node scripts/check-release-counts.mjs .",
+    "release-ready": "node scripts/release-ready.mjs",
     "prepublishOnly": "npm test && node scripts/check.mjs"
   },
   "dependencies": {
