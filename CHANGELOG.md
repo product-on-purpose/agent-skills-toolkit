@@ -50,6 +50,18 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   `STALE` for **probes only**; a quote returns `HOLDS` whenever the sentence is confirmed live, carrying
   `recordIsOld` as a note that never enters the exit code. Six of the eight pinned claims are quotes, so
   the sentence was wrong about the majority of them. Found by running the watch, not by reading the file.
+- **The backlog said three items were open that shipped in v1.11.0, and one of the three is genuinely half
+  done.** `E4` (SARIF plus GitHub annotations) and `E9` (provenance as a machine-readable output contract)
+  both shipped on 2026-08-11 and both still read `Status: backlog`; `docs/internal/STATUS.md` listed all
+  three under "all open". They are now `RESOLVED`, and `E23` (surface check provenance in the report
+  output) is recorded as `PARTIAL` rather than closed: its finding-level half shipped with `E9`, and the
+  half it was filed for did not. **Verified by running the binary, not by reading this file** - on a clean
+  tree `node scripts/check.mjs .` prints a tier and two counts with no provenance anywhere, and
+  `tier-report.mjs` prints the tier line alone, so the passing author this entry was written about still
+  learns nothing about what kind of grade they earned. Reading the v1.11.0 changelog entry alone would have
+  closed all three, since it names `E23` by number. Second such lag on record (`E11` carries the same note
+  from 2026-07-27), and the standing argument for the audit-intake index the 2026-08-10 internal audit
+  asked for.
 - **Folder and usage guidance that had drifted from its readers.** `.github/workflows/README.md` listed
   `codeql.yml` with no description at all, because its description had been appended to the end of
   `vendor-watch.yml`'s line; `G8` passed anyway, since it checks that every child is LISTED and not that it
