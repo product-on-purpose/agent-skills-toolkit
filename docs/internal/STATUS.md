@@ -6,7 +6,7 @@
 > technical history), and `docs/internal/release-plans/` (the per-release spec + implementation
 > packets). Do not add accretive per-release paragraphs here; append them to those instead.
 >
-> Last updated: 2026-08-17.
+> Last updated: 2026-08-18.
 
 ## Current state
 
@@ -241,13 +241,27 @@ blocked its own first real run** - on 7 failing tests and a stale count that had
   #150-merged / #159-closed natural experiment. **The live consequence: #225 was closed on 2026-08-17, so
   `codeql.yml`'s three pins are now watched by nothing.** Design and exit-code discipline sketched in the
   backlog entry; it is network-bearing and wants its own decision rather than a rider on a version bump.
-- **Backlog from the competitive-comparison intake, all open:** **E4** (SARIF + GitHub
-  annotations), **E9** (provenance as a first-class output contract), **E23** (surface check
-  provenance in the report output), **E6** (prompt-injection + curl-pipe-bash content scan),
-  **E2** (deeper MCP secret scanning), **E5** (semver-bump-vs-diff verification), **E7** (eval
-  harness hardening), **E8** (published conformance suite), **E21** (`covers` has no shape for a
-  cross-component eval), **E3** (gate-config follow-ups: autofix, custom profiles, fingerprint
-  suppressions), **E10** (MCP-served-skill validation - watch only, no concrete target yet).
+- **Backlog from the competitive-comparison intake. This line said "all open" until 2026-08-18 and
+  two and a half of the items had shipped seven days after it was written.** **E4** (SARIF + GitHub
+  annotations) and **E9** (provenance as a first-class output contract) are **RESOLVED in v1.11.0**;
+  **E23** (surface check provenance in the report output) is **PARTIAL** - its finding-level half
+  shipped with E9, and the half it was filed for did not, so `node scripts/check.mjs .` on a clean
+  run prints a tier and two counts with no provenance anywhere. Still open: **E6** (prompt-injection
+  + curl-pipe-bash content scan), **E2** (deeper MCP secret scanning), **E5** (semver-bump-vs-diff
+  verification), **E7** (eval harness hardening), **E8** (published conformance suite), **E21**
+  (`covers` has no shape for a cross-component eval), **E3** (gate-config follow-ups: autofix,
+  custom profiles, fingerprint suppressions), **E10** (MCP-served-skill validation - watch only, no
+  concrete target yet).
+
+  **The correction is worth more than the three statuses.** Nothing here is wrong about the code:
+  v1.11.0's `CHANGELOG` entry names E4, E9 and E23 by number and describes what each shipped. What
+  drifted is the two places a reader goes to ask "what is left" - this line and the backlog's own
+  `Status` fields - and neither is checked by anything, in a repository whose front-door version,
+  tier, skill count, spine size and Standard pin are all machine-guarded. **E23 also shows why the
+  CHANGELOG is not a sufficient source:** reading it would have closed all three, and running the two
+  commands is what split E23 in half. This is the second such lag on record (E11 carries the same
+  note from 2026-07-27), and it is the concrete argument for the **audit-intake index** the
+  2026-08-10 internal audit asked for and nobody built.
 
 ## Where this is going
 
