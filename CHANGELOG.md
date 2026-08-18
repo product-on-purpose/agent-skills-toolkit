@@ -50,6 +50,11 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   `STALE` for **probes only**; a quote returns `HOLDS` whenever the sentence is confirmed live, carrying
   `recordIsOld` as a note that never enters the exit code. Six of the eight pinned claims are quotes, so
   the sentence was wrong about the majority of them. Found by running the watch, not by reading the file.
+- **`STATUS.md` described v1.14.0 as "release not yet cut" for a day after it shipped**, carrying a
+  "Remaining for this release" list of steps all completed on 2026-08-17. Corrected while setting v1.15.0's
+  scope, along with the sequencing below it: that section assigned v1.15.0 to the evidence batch while the
+  release record assigned it the two Standard 0.15 graduations, and the two had disagreed since 2026-08-17.
+  v1.15.0 is now the Standard 0.15 cut plus `E45`; the evidence batch is v1.16.0.
 - **The backlog said three items were open that shipped in v1.11.0, and one of the three is genuinely half
   done.** `E4` (SARIF plus GitHub annotations) and `E9` (provenance as a machine-readable output contract)
   both shipped on 2026-08-11 and both still read `Status: backlog`; `docs/internal/STATUS.md` listed all

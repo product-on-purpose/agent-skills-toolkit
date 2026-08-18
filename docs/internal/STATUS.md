@@ -288,17 +288,32 @@ this file); the conclusions are stated here directly.
   **E33** as `U14` with its own ADR 0045 (spine 30 to 31); **E35**'s `gen-index` fix carrying a
   migration; and **E37**, pulled in because it blocks the release-time counts gate. Packet at
   [`release-plans/plan_v1.13.0/RELEASE-PLAN.md`](release-plans/plan_v1.13.0/RELEASE-PLAN.md).
-- **v1.14.0 "current with the vendors" (ADR pack SHIPPED, release not yet cut):** the seven-ADR pack is
-  ratified and implemented - see "The v1.14.0 ADR pack" above. Spine 31 to 34, Standard 0.13 to 0.14, and
-  no family verdict moved at any step. **vendor-watch is now standing** (see below). **Remaining for this release:** run
-  [`RELEASE.md`](RELEASE.md) end to end including the Codex round-trip Q-E gate, adversarial review to a
-  clean round or a stated bounded stop, then tag and publish. **The ADR-first order was deliberate and it
-  paid:** measurement overturned three of the seven recommendations before a line of implementation was
-  written, which is exactly the cost bundling undrafted ADRs with a Standard bump imposed on v1.13.0.
+- **v1.14.0 "current with the vendors" (SHIPPED 2026-08-17):** the seven-ADR pack, ratified and
+  implemented - see "The v1.14.0 ADR pack" above. Spine 31 to 34, Standard 0.13 to 0.14, and no family
+  verdict moved at any step. **vendor-watch is now standing** (see below). Tag `57727ab`, GitHub release
+  published, npm `latest` with signed Sigstore provenance, registry `agent-plugins` 1.66.0. **This entry
+  read "release not yet cut" with a "Remaining for this release" list until 2026-08-18.** **The ADR-first
+  order was deliberate and it paid:** measurement overturned three of the seven recommendations before a
+  line of implementation was written, which is exactly the cost bundling undrafted ADRs with a Standard
+  bump imposed on v1.13.0.
 
-- **v1.15.0 "evidence":** fix the measurement instrument (E16, E17, E20, E15), publish the E13
-  readings as final, execute the live-hook behavioral evals.
-- **v1.16.0 "graded cohort":** grade an external cohort on portable checks and publish the
+- **v1.15.0 "a window that never closes is not a window" (PLANNED 2026-08-18):** **the Standard 0.15 cut.**
+  The two windowed checks graduate from `warn` to gate-failing `error` - `S3`'s workflow mirror
+  (ADR 0047) and `U17` (ADR 0052) - plus **E45** (pinned-action labels are unchecked) with its own ADR.
+  Packet at [`release-plans/plan_v1.15.0/RELEASE-PLAN.md`](release-plans/plan_v1.15.0/RELEASE-PLAN.md).
+  **This line assigned v1.15.0 to the evidence batch until 2026-08-18**, disagreeing with the release
+  record since 2026-08-17; the evidence batch moves to v1.16.0.
+  Three measurements taken before the scope was set, all in the packet: the `U17` census reproduces in
+  every cell (7 manifests, 6 of-plugins, 1 of-skills, **0 mixed, 0 malformed**), **neither check produces
+  a single finding on any family member** so no verdict can move, and **`thinking-framework-skills`
+  remediated its nine undeclared workflows in `fd343dd` on 2026-08-15, one day inside the window ADR 0047
+  created for it** - the first end-to-end observation of a warn-first migration doing its whole job, and
+  the reason to close the window on schedule rather than extend it.
+- **v1.16.0 "evidence":** fix the measurement instrument (E16, E17, E20, E15), publish the E13
+  readings as final, execute the live-hook behavioral evals. **E16 gates the rest** and is a design
+  question, not an implementation task: the same advisory scored 0.42 precision against key 1.0.0 and
+  1.00 against key 1.1.0 with no change to the advisory.
+- **v1.17.0 "graded cohort":** grade an external cohort on portable checks and publish the
   registry page.
 
 **Not on this list:** manage-and-studio (a read-only studio dashboard) is deferred indefinitely -
