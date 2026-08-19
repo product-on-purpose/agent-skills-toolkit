@@ -8,7 +8,9 @@
 // used-by:      `npm test`
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
+import { spawnSync } from "node:child_process";
+import { readFileSync, mkdtempSync, symlinkSync, rmdirSync, unlinkSync } from "node:fs";
+import { tmpdir } from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import {
@@ -331,4 +333,57 @@ test("pinSourceFiles finds this repository's own workflows and action.yml", () =
   const files = pinSourceFiles(REPO_ROOT).map((f) => path.relative(REPO_ROOT, f).replace(/\\/g, "/"));
   assert.ok(files.includes("action.yml"));
   assert.ok(files.some((f) => f.startsWith(".github/workflows/")));
+});
+
+// ---------------------------------------------------------------------------
+// The module-entry guard (review finding F1)
+//
+// A watch that never RAN exits with the same code as a watch that found nothing
+// wrong. Everything above this line tests the checker; these test that the
+// checker is reached at all.
+// ---------------------------------------------------------------------------
+
+/** Remove a link without ever recursing into what it points at. */
+function removeLink(p) {
+  try {
+    rmdirSync(p); // a Windows directory junction
+  } catch {
+    try {
+      unlinkSync(p); // a POSIX symlink to a directory
+    } catch {
+      /* already gone, or never created */
+    }
+  }
+}
+
+test("the CLI RUNS when it is invoked through a symlinked checkout", (t) => {
+  // F1. The guard compared a realpath-resolved `import.meta.url` against an UNRESOLVED `argv[1]`: Node's
+  // loader canonicalises the first and nobody touches the second, so through a junction or symlink the two
+  // never matched. `main()` did not run, the process printed NOTHING and exited 0, and `release-ready`
+  // recorded `ok action-pins (exit 0)` over zero pins. macOS `/tmp`, container mounts and symlinked CI
+  // workspaces all arrive by this path, and nothing else runs this check, so the no-op is caught nowhere.
+  //
+  // SPAWNED rather than imported, deliberately: the defect is in the entry guard, and only an invocation
+  // exercises it. A nonexistent root keeps the test offline and instant, and makes the assertion sharp -
+  // the run must REFUSE, and a refusal is proof that `main()` was reached.
+  const dir = mkdtempSync(path.join(tmpdir(), "askit-entry-guard-"));
+  const link = path.join(dir, "checkout");
+  try {
+    symlinkSync(REPO_ROOT, link, "junction");
+  } catch {
+    removeLink(link);
+    rmdirSync(dir);
+    t.skip("this platform will not create a link without elevation");
+    return;
+  }
+  try {
+    const cli = path.join(link, "scripts", "action-pin-watch.mjs");
+    const r = spawnSync(process.execPath, [cli, path.join(dir, "no-such-root")], { encoding: "utf8" });
+    const out = `${r.stdout ?? ""}${r.stderr ?? ""}`;
+    assert.match(out, /REFUSED/, `invoked through a link the CLI said nothing; it printed ${JSON.stringify(out)}`);
+    assert.equal(r.status, 2, "a run that proved nothing about any pin must never exit 0");
+  } finally {
+    removeLink(link);
+    rmdirSync(dir);
+  }
 });

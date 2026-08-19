@@ -119,6 +119,41 @@ rewritten to look as though this was always the plan.
 
 ### Fixed
 
+- **Two release gates could report success while checking nothing** (review findings `F1` and `F2`; see
+  [`review-findings.md`](docs/internal/release-plans/plan_v1.15.0/review-findings.md)). Both were found by a
+  repository-reading review of this release's own code, both were reproduced by hand before being fixed, and
+  both are the exact failure this repository grades other libraries on: **a guard whose passing verdict means
+  nothing.**
+
+  **`F1` - a symlinked or junctioned checkout turned `action-pin-watch` into a silent no-op.** Its
+  module-entry guard compared a realpath-resolved `import.meta.url` against an unresolved `argv[1]`. Node's
+  loader canonicalises the first and nothing touches the second, so through a link the two never matched:
+  `main()` did not run, the process printed nothing and exited 0, and `release-ready` recorded
+  `ok action-pins (exit 0)` over **zero pins**. macOS `/tmp`, container mounts and symlinked CI workspaces
+  all arrive by that path, and nothing else runs this check, so the no-op was caught nowhere. Fixed with the
+  suffix fallback both siblings already used. The regression test **spawns** the CLI through a real link,
+  because only an invocation exercises an entry guard.
+
+- **`F2` - a gate that could not be SPAWNED certified the release.** `gateBlocks` consulted a per-gate
+  `blocksOn` list and treated every code outside it as a pass, so `runGate`'s `127` sentinel - the code
+  meaning the process never started or was killed - read as success on both network-bound gates. An OOM kill
+  or a runner eviction would have shipped a release nothing had checked.
+
+  **`blocksOn` is removed rather than patched.** It read as a filter but held `[1, 2]`, an enumeration of the
+  codes those gates were already known to produce; the 1-versus-2 distinction it appeared to carry is carried
+  entirely by `overridableCodes`. Any correct version of `gateBlocks` collapses to "non-zero blocks", which
+  is the rule ADR 0053 had already chosen for `action-pins`: an outcome that must not block is expressed as
+  **exit 0 by the gate itself**, never filtered out downstream. Leaving the field as inert documentation
+  would have been a trap, since a future `blocksOn: [1]` would read as "exit 2 passes here" and not mean it.
+  The sentinel is now a named `SPAWN_FAILED` export shared by both halves, and a spawn failure prints **what
+  happened** instead of the reason the gate exists - a `BLOCK` row reading *"a SHA pin's comment is the only
+  half a reviewer reads"* describes a defect nobody looked for.
+
+  **Its regression test was vacuous and is replaced.** It asserted the spawn sentinel against `readme-drift`,
+  the one gate with no `blocksOn`, where the default rule already applied - green while covering neither gate
+  the bug could reach. Both are now named explicitly, at `127` **and** `3`, along with an assertion that no
+  override reason excuses a gate that never ran.
+
 - **The seed plugin would have been born on the old ruleset.** `templates/seed-plugin/library.json` still
   pinned 0.14, which silently opts every freshly scaffolded plugin out of every check introduced since its
   pin. Caught by its own guard, whose comment had predicted exactly this: *"This invariant fails on the next
@@ -226,6 +261,14 @@ rewritten to look as though this was always the plan.
   and the check read only whichever the registry listed first. **That is the failure mode this repository
   grades other tools on.** Corrected: this repository has zero label defects. Full record in ADR 0053.
 - **The suite reported 1,281 passing and zero failures while every one of those defects was live.**
+
+- **The choice of review instrument decided the result, and that is the sharpest lesson of this release.**
+  The same code, on the same day, reviewed twice: a reviewer reading the session **transcript** returned four
+  findings, and a reviewer reading the **repository** returned **fifteen**, eight blocking, including the two
+  above. A transcript reviewer cannot construct an input nobody tried, and neither `F1` nor `F2` is visible
+  without trying one - a linked checkout, and an exit code no gate documents. Recorded with reproductions in
+  [`review-findings.md`](docs/internal/release-plans/plan_v1.15.0/review-findings.md), which stays the live
+  open-versus-closed ledger until the tag.
 
 ### Discovered
 

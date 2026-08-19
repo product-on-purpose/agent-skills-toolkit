@@ -154,7 +154,21 @@ async function main() {
   process.exit(exit);
 }
 
-if (process.argv[1] && fileURLToPath(import.meta.url) === path.resolve(process.argv[1])) {
+// The path comparison alone is NOT sufficient, and assuming it was is review finding F1. Node's loader
+// canonicalises `import.meta.url` through symlinks, while `argv[1]` stays exactly the string that was
+// typed, so through a junction or a symlinked checkout the two never matched: `main()` did not run, the
+// process printed nothing and exited 0, and `release-ready` recorded `ok action-pins (exit 0)` over zero
+// pins. A watch that never ran is indistinguishable from one that found nothing wrong, which is the exact
+// failure this repository grades other libraries on. The suffix fallback is the form both siblings already
+// use - `scripts/release-ready.mjs` and `scripts/vendor-watch.mjs` - and it cannot fire for the test file
+// (`...action-pin-watch.test.mjs` does not end with `action-pin-watch.mjs`) nor for the deterministic half,
+// which never loads this module when it is run directly.
+const invokedDirectly =
+  Boolean(process.argv[1]) &&
+  (fileURLToPath(import.meta.url) === path.resolve(process.argv[1]) ||
+    process.argv[1].endsWith("action-pin-watch.mjs"));
+
+if (invokedDirectly) {
   main().catch((err) => {
     // A refusal, not a crash and never a pass: the run proved nothing about any pin.
     process.stdout.write(`action-pin-watch REFUSED: ${err.message}\n`);

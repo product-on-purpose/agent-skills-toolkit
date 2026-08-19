@@ -15,7 +15,7 @@
 import { spawnSync } from "node:child_process";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { GATES, summarize, exitCodeFor, renderSummary } from "./lib/release-ready.mjs";
+import { GATES, SPAWN_FAILED, summarize, exitCodeFor, renderSummary } from "./lib/release-ready.mjs";
 
 const REPO = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 
@@ -56,8 +56,10 @@ function runGate(gate) {
     console.log("");
   }
   // A gate that could not be SPAWNED is not a pass. `status` is null when the process died on a signal or
-  // failed to start, and Number(null) is 0 - which would have read as success.
-  return { id: gate.id, code: r.status === null ? 127 : r.status };
+  // failed to start, and Number(null) is 0 - which would have read as success. The sentinel is imported
+  // rather than written here as a literal: mapping the failure was only ever half the job, and the other
+  // half - the deciding half - ignored it until review finding F2.
+  return { id: gate.id, code: r.status === null ? SPAWN_FAILED : r.status };
 }
 
 export function main(argv = process.argv.slice(2)) {

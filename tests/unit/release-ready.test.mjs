@@ -66,16 +66,56 @@ test("the override is scoped to vendor-watch: it cannot excuse the conformance g
   assert.equal(overrideApplies(gate("conformance"), 1, "please"), false);
 });
 
-test("a gate with no blocksOn list blocks on ANY non-zero code", () => {
-  assert.equal(gateBlocks(gate("conformance"), 0), false);
-  for (const code of [1, 2, 3, 127]) assert.equal(gateBlocks(gate("conformance"), code), true);
+test("EVERY gate blocks on ANY non-zero code, including codes no gate documents", () => {
+  // F2. This ran only against `conformance` before, the gate with no `blocksOn` list, so it proved the
+  // default branch and nothing else. Every gate is asserted now, because the defect was that the two gates
+  // with a list took the OTHER branch.
+  for (const g of GATES) {
+    assert.equal(gateBlocks(g, 0), false, `${g.id} must pass on 0`);
+    for (const code of [1, 2, 3, 42, 127]) {
+      assert.equal(gateBlocks(g, code), true, `${g.id} must block on exit ${code}`);
+    }
+  }
 });
 
-test("a gate that could not be spawned is NOT a pass", () => {
-  // spawnSync returns status null when the process dies on a signal or never starts, and Number(null) is 0.
-  // The CLI maps that to 127; this asserts 127 blocks, so the mapping cannot be quietly changed to 0.
-  const s = summarize(withCode("readme-drift", 127));
-  assert.equal(s.ok, false);
+test("a gate that could not be SPAWNED is not a pass - on the two gates that needed it", () => {
+  // F2, the finding this replaces a vacuous test for. `runGate` maps spawnSync's null status to 127: the
+  // process died on a signal or never started, and Number(null) is 0, which would have read as success.
+  //
+  // The old version asserted this with `withCode("readme-drift", 127)` - the ONE gate with no `blocksOn`
+  // list, where the default `code !== 0` rule already applied. It was green while covering neither gate
+  // that could actually be reached by the bug. Both network-bound gates are named explicitly here so the
+  // test cannot drift back into proving the branch that was never broken.
+  for (const id of ["vendor-watch", "action-pins"]) {
+    for (const code of [127, 3]) {
+      const s = summarize(withCode(id, code));
+      assert.equal(s.ok, false, `${id} exit ${code} certified a release nothing checked`);
+      assert.equal(exitCodeFor(s), 1);
+    }
+  }
+});
+
+test("no override reason excuses a gate that never ran", () => {
+  // The override exists for somebody else's outage, which is a fact about a gate that RAN and could not
+  // reach a third party. A gate that failed to spawn proved nothing at all, so there is no reason string
+  // that makes shipping past it acceptable. Without this, an operator excusing a vendor 503 would also
+  // wave through a gate killed by an OOM.
+  for (const id of ["vendor-watch", "action-pins"]) {
+    assert.equal(overrideApplies(gate(id), 127, "vendor 503 all morning"), false);
+    const s = summarize(withCode(id, 127), { overrideReason: "vendor 503 all morning" });
+    assert.equal(s.ok, false);
+  }
+});
+
+test("the report says a gate could not be SPAWNED, instead of printing why that gate exists", () => {
+  // Output that misdescribes its own decision is the defect class this aggregate was built to remove, and
+  // the renderer already carries that rule for the override line. A BLOCK row at 127 printing "a SHA pin's
+  // comment is the only half a reviewer reads" tells the operator a pin label is wrong. Nothing was read.
+  const out = renderSummary(summarize(withCode("action-pins", 127)));
+  assert.match(out, /BLOCK\s+action-pins\s+\(exit 127\)/);
+  assert.match(out, /could not be run/i);
+  assert.doesNotMatch(out, /a SHA pin's comment is the only half/);
+  assert.match(out, /NOT releasable/);
 });
 
 test("an UNKNOWN gate id in the results blocks rather than being ignored", () => {

@@ -159,6 +159,19 @@ failures while every defect above was live.**
 - `scripts/lib/action-pin-watch.mjs` - **new**, the deterministic half. Exports `VERDICT`, `parsePins`, `classifyRef`, `versionInComment`, `majorOf`, `evaluatePin`, `buildReport`, `exitCodeFor` and `renderReport`. It imports **nothing**, which a test asserts directly rather than by listing banned APIs. `buildReport` takes a **function** from pin to resolution rather than a by-action map, because currency is a fact about an action while a SHA resolves per ref, and a map cannot express both without the pure module learning how the caller batched its lookups.
 - `scripts/action-pin-watch.mjs` - **new**, the CLI, which owns all I/O. `pinSourceFiles` collects the workflow YAML plus `action.yml`. One registry lookup per distinct action, carrying every SHA that action is pinned at, so a three-step CodeQL job costs one call rather than three. Reads `GITHUB_TOKEN` or `GH_TOKEN` when present; an unauthenticated 60-per-hour rate limit surfaces as an error string, becomes `UNRESOLVED`, and exits 2, because **a rate limit is not a verdict**.
 - `scripts/lib/release-ready.mjs` - the `action-pins` entry in `GATES`, with `blocksOn: [1, 2]` and `overridableCodes: [2]`. No change to `gateBlocks` or `overrideApplies`; the split is expressed in the watch's own exit codes, so the gate list needed no new concept.
+
+  > **Correction, 2026-08-19.** `blocksOn` no longer exists, and `gateBlocks` did change. Review finding
+  > `F2` showed the field read as a filter while holding an enumeration: `[1, 2]` was simply every non-zero
+  > code these gates were known to produce, so every code *outside* it - including the `SPAWN_FAILED`
+  > sentinel meaning the gate never started - fell through as a pass. `gateBlocks` is now "any non-zero
+  > blocks" for every gate, and the field is removed rather than left as inert documentation.
+  >
+  > **The decision this ADR records is unaffected, and in fact this is what enforced it.** The split between
+  > a label defect and a BEHIND pin was always carried by the watch's own exit codes - BEHIND exits 0 - and
+  > the overridable half is still carried by `overridableCodes: [2]`. What is corrected is the sentence
+  > above claiming the gate list needed no new concept: it needed one fewer. The rule that replaced
+  > `blocksOn` is this ADR's own rule, applied consistently - **an outcome that must not block is expressed
+  > as exit 0 by the gate itself, never filtered out downstream.**
 - `.github/workflows/release.yml` - the one real label corrected, SHA untouched.
 - `package.json` - the `action-pin-watch` script, and `!scripts/lib/action-pin-watch.mjs` in `files`, because the lib is maintainer-only and `scripts/lib/` ships wholesale. Omitting that negation ships bytes the tarball cannot reach, which is the defect the v1.14.0 withheld window caught and `tests/unit/package-files-reachable.test.mjs` now guards. **That guard caught this one before a human did.**
 - `scripts/README.md`, `scripts/lib/README.md` - the new entries, plus the two garbled `standards-watch.mjs` inventory lines repaired.
