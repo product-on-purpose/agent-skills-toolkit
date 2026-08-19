@@ -228,7 +228,9 @@ test("R4: a job that runs the aggregate outlives EVERY gate timing out inside it
   // The job budget is NOT spent on gates alone, and the first version of this assertion pretended it was -
   // third-round review, S3. Before `release-ready.mjs` starts, `publish-npm.yml:prepare` runs a
   // `fetch-depth: 0` checkout, setup-node, four verifier scripts, a second checkout, `npm ci` and the full
-  // suite (1342 tests, over a minute locally and more on a hosted runner). Comparing the job cap against
+  // suite (over a thousand tests, more than a minute locally and more again on a hosted runner - the exact
+  // count is deliberately not quoted here, because quoting one was itself a fourth-round finding the moment
+  // the same commit changed it). Comparing the job cap against
   // the gate total alone left that entire preamble unbudgeted, so the correlated case could still cancel
   // the job before `renderSummary` printed - losing the exact diagnostic this arithmetic exists to keep.
   const PREAMBLE_ALLOWANCE_MS = 20 * 60_000;

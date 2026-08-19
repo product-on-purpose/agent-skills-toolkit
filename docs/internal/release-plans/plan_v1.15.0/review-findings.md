@@ -5,13 +5,16 @@ title: "v1.15.0 review findings - open, and blocking the tag"
 # v1.15.0 review findings
 
 > **Status, 2026-08-19: ALL FIFTEEN FINDINGS ARE CLOSED**, each with a dated note under its own text -
-> and so are the FIVE further findings a review of that fix code returned, and the SIX a third round
-> returned over those. Each round has its own dated section at the end of this file. Rounds went 15/8
-> blocking, then 5/2, then 6/0 - **the count is not falling but the severity is**, and every round so far
-> has found defects in the previous round's fix code.
-> This file no longer holds the tag. **Acceptance criterion 6 - a second adversarial wave - remains open** 
-> and is not satisfied by these fixes, by the review that produced these findings, or by any self-review. See the closure ledger below; each closed finding
-> carries a dated note under its own text.
+> and so are the FIVE a review of that fix code returned, the SIX a third round returned over those, and the
+> SEVEN a fourth returned again. Each round has its own dated section at the end of this file. Rounds went
+> **15/8 blocking, then 5/2, then 6/0, then 7/0** - the count is flat but the severity floor is reached, and
+> every round found defects in the previous round's fix code. The fourth round's `T1` removes the class they
+> kept finding, by deciding to stop guessing at all.
+>
+> **This file no longer holds the tag.** Every finding carries a dated closure note under its own text, and
+> the ledger below tracks them. **Acceptance criterion 6 - a second adversarial wave - remains open**, and
+> is not satisfied by these fixes, by the reviews that produced these findings, or by any self-review.
+>
 > Source: a max-effort repository code review over `v1.14.0..HEAD` (905 lines of code across 13 files),
 > run 2026-08-19. **Fifteen findings.** Two were independently re-reproduced by hand before this file was
 > written; the rest carry the reviewer's own verification notes.
@@ -475,7 +478,8 @@ cancels it.
 > **AMENDED 2026-08-19.** The numbers chosen here were internally inconsistent, found as `R4` below: a
 > 10-minute gate timeout under a 20-minute job meant ONE hung gate worked as designed and TWO did not -
 > the job died before `renderSummary` could print the very diagnostic `F2` exists to produce. Corrected
-> to a 5-minute gate under 30-minute jobs, with the arithmetic now asserted by a test instead of chosen
+> to a 5-minute gate under 30-minute jobs (**later 50**, once `S3` budgeted the preamble those jobs also
+> spend), with the arithmetic now asserted by a test instead of chosen
 > by hand.
 > three red, and dropping the abort signal turns one red.
 
@@ -692,7 +696,6 @@ case. One root cause, three outlets: SHA pins, the `other` branch `F7` added, an
 > resolutions while the stale case still reports `LABEL_DISAGREES`.
 >
 > Mutation-proved in BOTH directions, which is what shows neither half is redundant: reverting to
-
 > last-token turns the mirror-shape test red, reverting to first-token turns the Dependabot test red.
 >
 > **AMENDED 2026-08-19, third round.** The forward-marker half of this rule was itself too loose and is
@@ -746,11 +749,11 @@ a network blackhole hangs both network-bound gates, 5 gates x 10 minutes exceeds
 is cancelled before `renderSummary` runs - so the operator gets a bare job cancellation instead of "this
 gate could not be RUN".
 
-> **CLOSED 2026-08-19.** Five-minute gates under thirty-minute jobs, on the two jobs that actually run the
+> **CLOSED 2026-08-19.** Five-minute gates under thirty-minute jobs (**superseded: the fourth round raised
+> those jobs to FIFTY**, see `S3` and `T6`), on the two jobs that actually run the
 > aggregate (`publish`, which runs no gates, stays at 20). **The arithmetic is now a test rather than a
 > choice**: both workflows are parsed and each aggregate-running job must satisfy
 > `timeout-minutes * 60000 > GATES.length * GATE_TIMEOUT_MS`. That turns the reviewer's hand calculation
-
 > into a guard, so the two numbers cannot drift apart again.
 >
 > **AMENDED 2026-08-19, third round.** Two corrections, `S2` and `S3` below. The 5-minute gate timeout was
@@ -921,3 +924,138 @@ lets a defect through silently.
 
 **A fourth round over this diff is owed on the same rule.** And acceptance criterion 6 is untouched by all
 of it: Codex adversarial wave 2 has still never run.
+
+---
+
+# Fourth round, 2026-08-19: the decision to stop guessing
+
+> **Status: all seven CLOSED.** A repository-reading review over `877764b..HEAD`. Two medium, five low,
+> **none blocking**. Five of the seven were introduced by the third round's own fixes and records.
+
+## T1 - MEDIUM. The fourth consecutive wrong answer from one function, and the last
+
+**`scripts/lib/action-pin-watch.mjs`**
+
+`S1`'s tight-transition rule fell back to a supersession filter that only looked BEHIND a token, so a
+supersession word written AFTER the old version did not drop it. Reproduced:
+
+```
+"v3.0.0 superseded, now v4.0.0"        -> claim=v3.0.0   (should be v4.0.0)
+"v1.0.0 was replaced, now v2.0.0"      -> claim=v1.0.0   (should be v2.0.0)
+```
+
+A correct pin, `LABEL_DISAGREES`, exit 1, non-overridable. **The fourth shape in four rounds:**
+
+| round | rule | the input that broke it |
+| --- | --- | --- |
+| `F4` | first token | `bumped from v4.37.6 to v4.37.7` |
+| `R1` | last token | `v4.1.1 pinned 2026-08-16; replaces v3.0.0` |
+| `S1` | last token after any forward marker | `v4.37.7 ... (needed to keep node 22, was v4.36.0)` |
+| `T1` | tight transition, else first non-superseded | `v3.0.0 superseded, now v4.0.0` |
+
+> **CLOSED 2026-08-19, by changing the design rather than the heuristic.** Four failures on one function
+> is not bad luck; it is evidence that deciding which version a sentence of English means is unbounded,
+> and that every new marker word invites a new counterexample - `was replaced` marks the version before it
+> as old, `was pinned yesterday` does not.
+>
+> **The tool now declines to guess.** One token is the claim. A TIGHT transition names the claim. Anything
+> else with several tokens is **`LABEL_AMBIGUOUS`: advisory, blocks nothing**, and asks the author to name
+> one version. The supersession heuristic is DELETED rather than extended, because a heuristic that no
+> longer decides anything is the `blocksOn` trap this repository already removed once.
+>
+> **The asymmetry is what settles it.** A wrongly guessed claim blocks a correct pin at a code no reason
+> string can override. An unparsed prose comment costs one advisory line, on a shape no automated bumper
+> writes. Those costs are not comparable, and after four demonstrated failures the honest capability claim
+> is that this tool reads unambiguous labels and says so when a label is not one.
+>
+> **It does not become a guard that cannot fail, and that objection is answered in code rather than in
+> prose.** An ambiguous row is counted, prints its own `ambi` symbol, and **suppresses the sentence that
+> would otherwise claim every label was checked** - the run reports that it did not check every pin. And
+> the tight-transition shapes still resolve, so `bumped from A to B` against an unmoved SHA still blocks.
+>
+> ADR 0053 needs no correction: its label rule is unchanged for every comment that names one version.
+> This adds a disposition for comments that rule never contemplated.
+
+## T2 - MEDIUM. The round-3 amendments corrupted the file they were recording in
+
+**this file**
+
+Two amendments were anchored MID-SENTENCE, so each split a sentence with a blank line - terminating the
+blockquote - and left an orphaned fragment followed by a restarted quote. **This is the `S5` class, in the
+same commit that fixed `S5`.**
+
+> **CLOSED 2026-08-19.** Both sites rejoined. **The root cause is a process one and it is fixed as a
+> process:** four prose defects in two rounds (`S5`, `T2`, `T6`, `T7`) all came from anchor-based
+> insertion into prose that was never re-read. Anchors now land on the LAST COMPLETE LINE of a paragraph,
+> never a fragment, and every prose script prints its modified regions so they are read rather than
+> assumed. That is why this closure note can say the repair was verified by looking at it.
+
+## T3 - The layering guard did not budget the overrun it exists to prevent
+
+**`tests/unit/release-ready.test.mjs`**
+
+`S2`'s guard asserted only `GATE_TIMEOUT_MS > RUN_DEADLINE_MS`. The deadline is checked BEFORE a request,
+so the run can exceed it by one whole request. Today's margin holds, but raising `FETCH_TIMEOUT_MS` to 60s
+would have re-created the harness kill **with the test still green** - the under-budgeted-arithmetic
+defect `S3` had just fixed one file over.
+
+> **CLOSED 2026-08-19.** The inequality now budgets the overrun explicitly:
+> `GATE_TIMEOUT_MS > RUN_DEADLINE_MS + FETCH_TIMEOUT_MS * (FETCH_RETRIES + 1) + FETCH_RETRY_DELAY_MS`.
+> Mutation-proved with the reviewer's own scenario: raising `FETCH_TIMEOUT_MS` to 90s now turns it red.
+
+## T4 - A deadline throw discarded tags already found
+
+**`scripts/action-pin-watch.mjs`**
+
+`out.resolvedBySha` was assigned after the page loop, inside the `try`, so a deadline throwing on page 3
+dropped a sha matched on page 1 - and that pin was reported `UNRESOLVED`, a refusal about a question
+already answered. The `RUN_DEADLINE_MS` docblock promises the run reports what it has.
+
+> **CLOSED 2026-08-19.** Published from a `finally`, with `found` hoisted so it is in scope. `resolveAction`
+> is now exported and takes an injectable fetch, so this is covered by a REAL test - a sha matched on page
+> one survives a deadline that expires before page two - rather than by reading the code. A fix with no
+> test is what this repository grades others on.
+
+## T5 - The deadline docblock asserted an exit code the tag path does not produce
+
+**`scripts/action-pin-watch.mjs`**
+
+Both the docblock and the `main()` comment said that past the deadline "every unresolved pin reports
+UNRESOLVED, and the exit code is 2". True for SHA pins only: `evaluatePin` maps an error on a tag ref to
+OK with `currencyUnknown`, so a deadline expiring after the two SHA-pinned actions resolve leaves a run
+that skipped every remaining currency lookup and exits **0**.
+
+> **CLOSED 2026-08-19 by fixing the COMMENTS, not the behaviour.** Error-on-a-tag-ref becoming
+> currency-not-checked is `F6` and `F7`'s deliberate design - the ref itself answers the label question -
+> and a deadline is just another error arriving at that path. Reverting it would reopen `F6`. Both comments
+> now state the split exactly, and name the `Currency was NOT checked for N pin(s)` line as what surfaces
+> the skip.
+
+## T6 and T7 - Two numbers falsified by the commit that wrote them
+
+The `R4` closure note still said "thirty-minute jobs" after the same round raised them to fifty, and the
+preamble comment cited a test count the same commit changed.
+
+> **CLOSED 2026-08-19.** `T6` is AMENDED rather than rewritten, per this file's own rule, and now names
+> the supersession. `T7` stops quoting a count at all: quoting one was itself a finding the moment the
+> same commit moved it, so the comment describes the magnitude and leaves the exact number to the suite.
+
+## Where the rounds stand now
+
+| Round | Scope | Findings | Blocking |
+| --- | --- | --- | --- |
+| 1 | the release | 15 | 8 |
+| 2 | the fixes for those 15 | 5 | 2 |
+| 3 | the fixes for those 5 | 6 | 0 |
+| 4 | the fixes for those 6 | 7 | 0 |
+
+**Two rounds running with zero blocking findings.** The count is flat; the severity floor has been reached.
+More importantly, `T1` removes the entire class the rounds kept finding - **there is no guess left to be
+wrong about** - and `T2` fixes the process that produced four of the record defects rather than the
+records themselves.
+
+**A fifth round is worth running as confirmation. It is not worth blocking the tag on**, and anything
+non-blocking it returns belongs in v1.15.1 or in wave 2's scope rather than in another round of this.
+**That is a recommendation to the maintainer, not a decision taken here.**
+
+**Acceptance criterion 6 is untouched by all four rounds.** Codex adversarial wave 2 has still never run.

@@ -24,7 +24,16 @@ import {
   exitCodeFor,
   renderReport,
 } from "../../scripts/lib/action-pin-watch.mjs";
-import { pinSourceFiles, getJson, FETCH_TIMEOUT_MS, EXIT_MISCONFIGURED, RUN_DEADLINE_MS } from "../../scripts/action-pin-watch.mjs";
+import {
+  pinSourceFiles,
+  getJson,
+  FETCH_TIMEOUT_MS,
+  FETCH_RETRIES,
+  FETCH_RETRY_DELAY_MS,
+  EXIT_MISCONFIGURED,
+  RUN_DEADLINE_MS,
+  resolveAction,
+} from "../../scripts/action-pin-watch.mjs";
 import { GATES, GATE_TIMEOUT_MS, summarize, gateBlocks, overrideApplies } from "../../scripts/lib/release-ready.mjs";
 
 const SELF = fileURLToPath(import.meta.url);
@@ -456,65 +465,67 @@ test("F4: a version needs no `v`, and the `v` may be capital", () => {
 
 // --- R1: the last-token rule was wrong in the mirror case ------------------
 
-test("R1: a comment that names the CURRENT version first and a superseded one after", () => {
-  // Fix-code review, 2026-08-19. `F4` replaced a first-token rule that misread `from A to B`; the
-  // replacement misread the mirror shape just as badly, and produced a FALSE FINDING at exit 1 - the code
-  // no reason string can override - on a pin whose comment OPENS with the correct version.
-  //
-  // Position does not determine the claim. `from A to B` puts it last, `B ... replaces A` puts it first.
-  // Any purely positional rule is wrong half the time, which is why this one reads the words between.
-  assert.equal(versionInComment("v4.1.1 pinned 2026-08-16; replaces v3.0.0"), "v4.1.1");
-  assert.equal(versionInComment("v4.2.0 pinned 2026-08-16, was v3.9.0"), "v4.2.0");
-  assert.equal(versionInComment("v2.0.0 (supersedes v1.9.9)"), "v2.0.0");
-  assert.equal(versionInComment("v5.0.0 pinned today, previously v4.0.0"), "v5.0.0");
+// --- T1: four rounds of guessing, and the decision to stop -----------------
+//
+// F4 took the FIRST token and misread `bumped from A to B`. R1 took the LAST and misread
+// `B ... replaces A`. S1 honoured any forward marker and misread `B (needed to keep node 22, was A)`.
+// T1 added a supersession filter that only looked BEHIND a token and misread `A superseded, now B`.
+// Every one produced a FALSE LABEL_DISAGREES at exit 1 - the code no reason string can override -
+// against a correct pin.
+//
+// So the rule stopped guessing. One token is the claim; a TIGHT transition names the claim; anything
+// else with several tokens is LABEL_AMBIGUOUS, ADVISORY, and blocks nothing. The costs are not
+// symmetric: a wrong guess blocks a correct pin non-overridably, while an unparsed prose comment costs
+// one advisory line on a shape no automated bumper writes.
+
+test("T1: a comment with several versions and no unambiguous claim is ADVISORY, never a block", () => {
+  // Each of these was mis-claimed by one of the four rules above, and each blocked a correct pin.
+  const resolution = { resolvedVersions: ["v4.0.0"] };
+  for (const comment of [
+    "v4.1.1 pinned 2026-08-16; replaces v3.0.0",          // R1 claimed v3.0.0
+    "v4.2.0 pinned 2026-08-16, was v3.9.0",               // R1 claimed v3.9.0
+    "v4.37.7 pinned 2026-08-16 (needed to keep node 22, was v4.36.0)", // S1 claimed v4.36.0
+    "v2.0.0 pinned; do not downgrade to v1.9.9",           // S1 claimed v1.9.9
+    "v3.0.0 superseded, now v4.0.0",                       // T1 claimed v3.0.0
+    "v1.0.0 was replaced, now v2.0.0",                     // T1 claimed v1.0.0
+  ]) {
+    assert.equal(versionInComment(comment), null, `still guessing a claim from ${JSON.stringify(comment)}`);
+    const r = evaluatePin(shaPin(comment), resolution);
+    assert.equal(r.verdict, VERDICT.LABEL_AMBIGUOUS, `${comment} must not block`);
+  }
 });
 
-test("R1: the forward shapes the last-token rule was built for still read correctly", () => {
-  // Both directions have to hold at once, which is the whole difficulty.
+test("T1: an ambiguous label blocks NOTHING, and the report refuses to call the run clean", () => {
+  // The obvious objection to an advisory verdict is that it becomes a guard that cannot fail. It is
+  // answered by making the row loud rather than by making it block: it is counted, it prints its own
+  // symbol, and it suppresses the sentence that would otherwise claim every label was checked.
+  const report = reportOf([[shaPin("v3.0.0 superseded, now v4.0.0"), { resolvedVersions: ["v4.0.0"] }]]);
+  assert.equal(report.counts.ambiguous, 1);
+  assert.equal(exitCodeFor(report), 0, "advisory means advisory");
+  const out = renderReport(report);
+  assert.match(out, /1 ambiguous \(advisory\)/);
+  assert.match(out, /did not check every pin/);
+  assert.doesNotMatch(out, /Every label is accurate/, "it must not claim coverage it declined to provide");
+});
+
+test("T1: the TIGHT transition shapes are still read, so real drift is still caught", () => {
+  // This is what keeps the check a check. Dependabot and Renovate write exactly these, so the drift the
+  // whole guard exists to catch still reaches a verdict rather than an advisory shrug.
   assert.equal(versionInComment("bumped from v4.37.6 to v4.37.7"), "v4.37.7");
   assert.equal(versionInComment("renovate: from v2 to v3.0.2"), "v3.0.2");
   assert.equal(versionInComment("was v3, now v4 pinned 2026-08-16"), "v4");
   assert.equal(versionInComment("v3.0.0 -> v4.0.0"), "v4.0.0");
-  assert.equal(versionInComment("upgrade to v4.1.1 from v3.0.0"), "v4.1.1");
+  // ...and a tight transition against a SHA that never moved is still a blocking disagreement.
+  const stale = evaluatePin(shaPin("bumped from v4.37.6 to v4.37.7"), { resolvedVersions: ["v4.37.6"] });
+  assert.equal(stale.verdict, VERDICT.LABEL_DISAGREES);
 });
 
-test("R1: a contradicting label on a tag ref is still caught, so the fix did not just make it permissive", () => {
-  assert.equal(evaluatePin(tagPin("v4.1.1", "v7.0.0 pinned 2026-01-01"), {}).verdict, VERDICT.LABEL_CONTRADICTS_REF);
-  assert.equal(evaluatePin(tagPin("v4", "v7.0.0"), {}).verdict, VERDICT.LABEL_CONTRADICTS_REF);
+test("T1: a single-token comment is untouched by any of this", () => {
+  // Every real pin in this repository. The design change must not cost the ordinary case anything.
+  assert.equal(versionInComment("v4.37.7 pinned 2026-08-16"), "v4.37.7");
+  assert.equal(evaluatePin(shaPin("v4.37.7 pinned 2026-08-16"), { resolvedVersions: ["v4.37.7"] }).verdict, VERDICT.OK);
+  assert.equal(evaluatePin(shaPin("v4.37.6 pinned 2026-08-16"), { resolvedVersions: ["v4.37.7"] }).verdict, VERDICT.LABEL_DISAGREES);
 });
-
-test("S1: an incidental `to` in prose does not outrank an explicit supersession marker", () => {
-  // Third-round review, 2026-08-19. R1's forward-marker rule short-circuited the supersession rule: it took
-  // the first token after the LAST `to`/`now`/`->` anywhere in the comment and returned before the
-  // supersession filter ever ran. So any ordinary English `to` beat a `was` sitting directly in front of the
-  // old version - reintroducing the very false-LABEL_DISAGREES class R1 was written to remove, at exit 1.
-  //
-  // The rule that fixes it: a forward marker only counts when it forms a TIGHT transition, meaning the text
-  // between two version tokens is the marker and punctuation and nothing else. A real transition is written
-  // tightly (`from A to B`); prose that happens to mention an old version is not.
-  assert.equal(versionInComment("v4.37.7 pinned 2026-08-16 (needed to keep node 22, was v4.36.0)"), "v4.37.7");
-  assert.equal(versionInComment("v2.0.0 pinned; do not downgrade to v1.9.9"), "v2.0.0");
-  assert.equal(versionInComment("v4.37.7 pinned 2026-08-16; see #123 for how to migrate from v3.0.0"), "v4.37.7");
-});
-
-test("S1: and the tight transition shapes still win, so the fix did not just delete rule 1", () => {
-  assert.equal(versionInComment("bumped from v4.37.6 to v4.37.7"), "v4.37.7");
-  assert.equal(versionInComment("renovate: from v2 to v3.0.2"), "v3.0.2");
-  assert.equal(versionInComment("was v3, now v4 pinned 2026-08-16"), "v4");
-  assert.equal(versionInComment("v3.0.0 -> v4.0.0"), "v4.0.0");
-  assert.equal(versionInComment("upgrade to v4.1.1 from v3.0.0"), "v4.1.1");
-});
-
-test("S4: the ambiguity note says which token was read and why, not a position it no longer uses", () => {
-  // Third-round review. The string still read "the last is read as the claim" while the code reported the
-  // FIRST - output misdescribing its own decision, which is the class this repository names as a defect.
-  const r = evaluatePin(shaPin("v4.1.1 pinned 2026-08-16; replaces v3.0.0"), { resolvedVersions: ["v9.0.0"] });
-  assert.equal(r.verdict, VERDICT.LABEL_DISAGREES);
-  assert.ok(r.detail.includes("v4.1.1") && r.detail.includes("v3.0.0"), "both tokens are still listed");
-  assert.doesNotMatch(r.detail, /the last is read as the claim/, "it must not name a rule the code does not use");
-  assert.match(r.detail, /read as the claim/, "it must still say which one it read");
-});
-
 test("R1: THE INVARIANT - the claim is computed without ever looking at what the ref resolves to", () => {
   // The obvious repair for this finding is to prefer whichever token happens to match the resolved tags.
   // That is the trap `F3` was: a rule that picks the matching answer can never disagree, so it would pass
@@ -772,12 +783,44 @@ test("S2: the watch bounds its OWN run, below the harness timeout that would oth
   // exists for, arrived as a non-overridable block. A tool that runs out of its OWN time must report a
   // refusal (exit 2, overridable); the harness timeout is the backstop for a wedged process, so it has to
   // sit ABOVE the tool's own deadline or it fires first and the distinction is lost.
+  // T3, fourth round: the first version of this compared the two constants directly and left the OVERRUN
+  // unbudgeted - the same under-budgeted-arithmetic defect S3 had just fixed one file over. The deadline is
+  // checked BEFORE a request, so the run can exceed it by one whole request. Today the margin happens to
+  // hold, but raising FETCH_TIMEOUT_MS to 60s would re-create the harness kill with the test still green.
+  const overrunMs = FETCH_TIMEOUT_MS * (FETCH_RETRIES + 1) + FETCH_RETRY_DELAY_MS;
   assert.ok(RUN_DEADLINE_MS > 0);
   assert.ok(
-    GATE_TIMEOUT_MS > RUN_DEADLINE_MS,
-    `the harness timeout (${GATE_TIMEOUT_MS}ms) must outlast the watch's own deadline (${RUN_DEADLINE_MS}ms), ` +
-      `or an outage is killed rather than refused, and a kill cannot be overridden`
+    GATE_TIMEOUT_MS > RUN_DEADLINE_MS + overrunMs,
+    `the harness timeout (${GATE_TIMEOUT_MS}ms) must outlast the watch's own deadline (${RUN_DEADLINE_MS}ms) ` +
+      `PLUS the one in-flight request it can overrun by (${overrunMs}ms), or an outage is killed rather than ` +
+      `refused - and a kill cannot be overridden`
   );
+});
+
+test("T4: a deadline expiring mid-loop KEEPS the tags already found", async () => {
+  // Fourth round. `out.resolvedBySha` was assigned after the page loop, inside the `try`, so a deadline
+  // throwing on page 3 discarded a sha matched on page 1 - and the pin was then reported UNRESOLVED, a
+  // refusal about a question that had already been answered. The `RUN_DEADLINE_MS` docblock promises the run
+  // "reports what it has"; for the in-flight action it reported nothing.
+  const sha = "a".repeat(40);
+  let call = 0;
+  const fetchImpl = async () => {
+    call += 1;
+    const body =
+      call === 1
+        ? { tag_name: "v4.37.7" } // releases/latest
+        : [{ name: "v4.37.7", commit: { sha } }]; // page 1 carries the wanted sha
+    return { ok: true, status: 200, statusText: "OK", json: async () => body };
+  };
+  // A deadline already in the past when page 2 would be requested: page 1 has been recorded by then.
+  const deadlineAt = Date.now() + 40;
+  const out = await resolveAction("o/a", new Set([sha]), deadlineAt, { fetchImpl });
+  await new Promise((r) => setTimeout(r, 60));
+  const after = await resolveAction("o/a", new Set([sha]), Date.now() - 1, { fetchImpl });
+
+  assert.deepEqual(out.resolvedBySha[sha], ["v4.37.7"], "a sha matched before the deadline must survive it");
+  assert.deepEqual(after.resolvedBySha, {}, "an action never reached contributes nothing, and says so");
+  assert.match(after.error ?? "", /budget/);
 });
 
 test("F10: every request carries an abort signal, so a hung connection cannot hang the gate", async () => {

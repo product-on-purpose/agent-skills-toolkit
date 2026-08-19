@@ -28,6 +28,12 @@ export const VERDICT = Object.freeze({
    * disagree - which is precisely the drift this check exists to catch. See `evaluatePin`.
    */
   LABEL_FLOATS: "LABEL_FLOATS",
+  /**
+   * A SHA pin whose comment names several versions with no unambiguous claim among them. ADVISORY, never
+   * blocking: guessing which one is meant produced a false blocking finding in four consecutive review
+   * rounds, and the run says so instead of guessing a fifth time. See `versionInComment`.
+   */
+  LABEL_AMBIGUOUS: "LABEL_AMBIGUOUS",
   /** A tag pin whose comment names a different MAJOR than the ref. BLOCKING: it contradicts the ref. */
   LABEL_CONTRADICTS_REF: "LABEL_CONTRADICTS_REF",
   /** The pin is behind the action's current major. ADVISORY, never blocking. See `exitCodeFor`. */
@@ -105,8 +111,10 @@ export function versionsInComment(comment) {
  */
 const TIGHT_TRANSITION = /^[\s,;:()[\]-]*(?:to|now|->|=>)[\s,;:()[\]-]*$/i;
 
-/** `from`, `was`, `replaces`, `supersedes`, `previously`: what follows one of these is the OLD version. */
-const SUPERSEDED_BY_PREFIX = /\b(?:from|was|replaces|replacing|supersedes|superseding|previously)\b[\s,;:(-]*$/i;
+// A supersession-marker heuristic used to live here, reading the words in front of each token. It is
+// deleted rather than extended, and the four rounds behind that decision are recorded on `versionInComment`.
+// Keeping a heuristic that no longer decides anything would be the `blocksOn` trap this repository already
+// removed once: data that looks load-bearing and is not.
 
 /**
  * The version a comment CLAIMS, or null when it names none.
@@ -119,11 +127,12 @@ const SUPERSEDED_BY_PREFIX = /\b(?:from|was|replaces|replacing|supersedes|supers
  * correct version. `from A to B` puts the claim last; `B ... replaces A` puts it first. Any purely
  * positional rule is wrong half the time, so this one reads the words between the versions:
  *
- * 1. A TIGHT transition (`from A to B`, `was A, now B`, `A -> B`) names what the pin is at now - take the
- *    second token of the last such pair. Tightness is load-bearing: an untethered `to` anywhere in the
- *    comment used to win, which is how the third review round found this rule reintroducing R1's own bug.
- * 2. Otherwise drop every token a SUPERSESSION marker introduces, and take the first survivor.
- * 3. If that leaves nothing, fall back to the last token rather than guess.
+ * 1. ONE token: that is the claim. Every real pin in this repository, and full checking applies.
+ * 2. A TIGHT transition (`from A to B`, `was A, now B`, `A -> B`) - the gap between two tokens is a marker
+ *    and punctuation and nothing else: the second token is the claim. These are the shapes Dependabot and
+ *    Renovate actually write, so the drift this check exists to catch is still caught.
+ * 3. **Anything else with more than one token: NO CLAIM IS GUESSED.** The pin reports `LABEL_AMBIGUOUS`,
+ *    which is ADVISORY and blocks nothing, and asks the author to name one version.
  *
  * **THE LOAD-BEARING INVARIANT: the claim is computed from the COMMENT ALONE and never consults what the
  * ref resolves to.** The obvious repair for the mirror shape is to prefer whichever token happens to match
@@ -131,8 +140,30 @@ const SUPERSEDED_BY_PREFIX = /\b(?:from|was|replaces|replacing|supersedes|supers
  * disagree, so it would pass a comment saying "bumped to v4.37.7" against a SHA that never moved off
  * v4.37.6: the precise Dependabot drift this entire check exists to catch. A test locks the invariant.
  *
- * A comment naming two versions still gets NO verdict of its own. When a label genuinely disagrees,
- * `evaluatePin` lists every token it found, which shows a human the ambiguity without a second verdict.
+ * **WHY GUESSING WAS ABANDONED, and it is the most expensive lesson in this release.** Four consecutive
+ * review rounds found this one function wrong, each time on a shape the previous fix had not imagined:
+ *
+ * | round | rule | the input that broke it |
+ * | --- | --- | --- |
+ * | `F4` | first token | `bumped from v4.37.6 to v4.37.7` |
+ * | `R1` | last token | `v4.1.1 pinned 2026-08-16; replaces v3.0.0` |
+ * | `S1` | last token after any forward marker | `v4.37.7 ... (needed to keep node 22, was v4.36.0)` |
+ * | `T1` | tight transition, else first non-superseded | `v3.0.0 superseded, now v4.0.0` |
+ *
+ * Every one of those produced a FALSE `LABEL_DISAGREES` at exit 1 - the code no reason string can override -
+ * against a correct pin. Four failures on one function is not bad luck; it is evidence that reading which
+ * version a sentence of English means is unbounded, and that each new marker word invites a new
+ * counterexample (`was replaced` marks the version before it as old, `was pinned yesterday` does not).
+ *
+ * **The costs are not symmetric, which is what settles it.** A wrongly guessed claim blocks a correct pin
+ * at a non-overridable code. An unparsed prose comment costs one advisory line, on a shape no automated
+ * bumper writes. So the honest capability claim is that this tool reads unambiguous labels and says so when
+ * a label is not one.
+ *
+ * **THE LOAD-BEARING INVARIANT SURVIVES: the claim is computed from the COMMENT ALONE and never consults
+ * what the ref resolves to.** Resolving the ambiguity by preferring whichever token happens to match a
+ * resolved tag is the trap `F3` was - a rule that picks the matching answer can never disagree, so it would
+ * pass `bumped to v4.37.7` against a SHA that never moved off v4.37.6. A test locks it.
  */
 export function versionInComment(comment) {
   if (typeof comment !== "string") return null;
@@ -146,12 +177,15 @@ export function versionInComment(comment) {
     const gap = comment.slice(tokens[i - 1].at + tokens[i - 1].text.length, tokens[i].at);
     if (TIGHT_TRANSITION.test(gap)) transitioned = tokens[i].text;
   }
-  if (transitioned !== null) return transitioned;
+  // null here means AMBIGUOUS, not absent. `parsePins` distinguishes the two, because "this comment names
+  // no version" and "this comment names several and I will not guess which" are different facts about a pin
+  // and deserve different verdicts.
+  return transitioned;
+}
 
-  const survivors = tokens.filter((t) => !SUPERSEDED_BY_PREFIX.test(comment.slice(0, t.at)));
-  if (survivors.length > 0) return survivors[0].text;
-
-  return tokens[tokens.length - 1].text;
+/** True when a comment names several versions and none of them can be read as THE claim. See above. */
+export function claimIsAmbiguous(comment) {
+  return versionsInComment(comment).length > 1 && versionInComment(comment) === null;
 }
 
 /**
@@ -250,6 +284,7 @@ export function parsePins(text, file) {
       refKind: classifyRef(ref),
       comment: comment ? comment.trim() : null,
       claimed: versionInComment(comment ?? null),
+      claimAmbiguous: claimIsAmbiguous(comment ?? null),
     });
   }
   return out;
@@ -300,6 +335,15 @@ export function evaluatePin(pin, resolution) {
       };
     }
     const names = resolved.join(", ");
+    // Ambiguity is reported BEFORE the missing-label check, because "names several and I will not guess"
+    // is a different fact from "names none" and the author needs to be told which one they wrote.
+    if (pin.claimAmbiguous) {
+      return {
+        verdict: VERDICT.LABEL_AMBIGUOUS,
+        detail: `the comment names ${versionsInComment(pin.comment).join(" and ")} with no unambiguous claim among them, so this pin was NOT checked; write one version (it resolves to ${names})`,
+        currencyUnknown: true,
+      };
+    }
     if (!pin.claimed) {
       return {
         verdict: VERDICT.LABEL_MISSING,
@@ -442,6 +486,7 @@ export function buildReport(pins, resolveFor, { sources = null } = {}) {
       labelDisagrees: count(VERDICT.LABEL_DISAGREES),
       labelMissing: count(VERDICT.LABEL_MISSING),
       labelFloats: count(VERDICT.LABEL_FLOATS),
+      ambiguous: count(VERDICT.LABEL_AMBIGUOUS),
       labelContradicts: count(VERDICT.LABEL_CONTRADICTS_REF),
       behind: count(VERDICT.BEHIND),
       unresolved: count(VERDICT.UNRESOLVED),
@@ -491,6 +536,7 @@ const SYMBOL = {
   [VERDICT.LABEL_MISSING]: "FAIL",
   [VERDICT.LABEL_FLOATS]: "FAIL",
   [VERDICT.LABEL_CONTRADICTS_REF]: "FAIL",
+  [VERDICT.LABEL_AMBIGUOUS]: "ambi",
   [VERDICT.BEHIND]: "note",
   [VERDICT.UNRESOLVED]: "REFU",
 };
@@ -507,7 +553,7 @@ export function renderReport(report) {
   lines.push("");
   lines.push(
     `${c.total} pins${c.sources === null ? "" : ` read from ${c.sources} file(s)`}: ${c.ok} ok, ` +
-      `${labelProblems(c)} label problem(s), ${c.behind} behind (advisory), ${c.unresolved} unresolved.`
+      `${labelProblems(c)} label problem(s), ${c.ambiguous} ambiguous (advisory), ${c.behind} behind (advisory), ${c.unresolved} unresolved.`
   );
   const exit = exitCodeFor(report);
   if (exit === 1) {
@@ -516,10 +562,24 @@ export function renderReport(report) {
     );
   } else if (exit === 2) {
     lines.push("REFUSAL: a pin could not be resolved. This is never a pass - fix the lookup, then re-run.");
-  } else if (c.behind > 0) {
-    lines.push("Every label is accurate. The 'behind' rows above are advisory and block nothing.");
   } else {
-    lines.push("Every label is accurate.");
+    // "Every label is accurate" is a claim about every pin, so it may only be printed when every pin was
+    // actually read. An AMBIGUOUS row is a pin this run declined to judge; letting that sentence stand over
+    // one would be the report misdescribing its own coverage, which is the class this whole file guards.
+    const caveats = [];
+    if (c.ambiguous > 0) {
+      caveats.push(
+        `${c.ambiguous} comment(s) name more than one version with no unambiguous claim, so those pins were NOT checked`
+      );
+    }
+    if (c.behind > 0) caveats.push("the 'behind' rows above are advisory and block nothing");
+    lines.push(
+      c.ambiguous > 0
+        ? `No label disagrees with its ref, but this run did not check every pin: ${caveats.join("; ")}.`
+        : caveats.length > 0
+          ? `Every label is accurate. ${caveats[0][0].toUpperCase()}${caveats[0].slice(1)}.`
+          : "Every label is accurate."
+    );
   }
   // Never claim currency that was not checked. The first version printed "every pin is on its action's
   // current major" after a lookup failure, asserting the exact fact it had just failed to establish.
