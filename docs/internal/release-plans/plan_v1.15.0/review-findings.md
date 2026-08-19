@@ -26,6 +26,21 @@ that is worth recording as its own lesson.
 **Should fix before tag:** F9, F10, F11, F13, F14
 **Should fix, not blocking:** F12, F15
 
+## Closure ledger
+
+Findings are annotated in place as they close, never rewritten: the finding is the evidence of what was
+wrong, and a finding edited to describe its own fix stops being that.
+
+| Finding | State | Closed by |
+| --- | --- | --- |
+| F1 - a link makes the gate a silent no-op | **CLOSED** 2026-08-19 | entry-guard fallback + a spawned-through-a-link regression test |
+| F2 - an unspawnable gate reads as a PASS | **CLOSED** 2026-08-19 | `blocksOn` removed, `gateBlocks` collapses to non-zero, `SPAWN_FAILED` shared, vacuous test replaced |
+| F3 to F8 - the `action-pin-watch` correctness cluster | OPEN, blocking | - |
+| F9, F10, F11, F13, F14 | OPEN, should fix before tag | - |
+| F12, F15 | OPEN, not blocking | - |
+
+**Six blocking findings remain. The tag is still held.**
+
 ---
 
 ## F1 - BLOCKING. A symlink or junction turns the whole gate into a silent no-op
@@ -55,6 +70,19 @@ exit=0
 `scripts/vendor-watch.mjs:108` ORs in the same fallback. Nothing else runs this check, so a no-op is caught
 nowhere.
 
+> **CLOSED 2026-08-19.** Fixed with the sibling form. Both hand reproductions were re-run against the fix:
+> through the junction a bad root now REFUSES at exit 2, and a real root scans every pin. Realpath-resolving
+> both sides was considered and rejected - it adds a throwing call at module top level, which runs on every
+> import of the CLI's exports, for no gain over the form already shipped twice in this repository.
+>
+> **The regression test SPAWNS the CLI through a real link** (`fs.symlinkSync(..., "junction")`, which needs
+> no elevation on Windows and degrades to a directory symlink on POSIX) against a nonexistent root, so it is
+> offline and instant, and the refusal is itself the proof that `main()` was reached. Mutation-proved:
+> dropping the fallback turns exactly that one test red.
+>
+> **Class closed, not just the instance.** `grep -rn "import.meta.url" scripts/` confirms this was the only
+> entry guard of this shape; the remaining uses take `dirname` for a repository root and are unaffected.
+
 ## F2 - BLOCKING. A gate that could not be spawned reads as a PASS
 
 **`scripts/lib/release-ready.mjs:67`**
@@ -79,6 +107,34 @@ every npm publish, so an OOM kill or runner eviction certifies a release nothing
 **And its regression test is vacuous:** it uses `withCode('readme-drift', 127)` - the one gate with no
 `blocksOn`, where the default `code !== 0` rule still applies - so it is green while covering neither gate
 that needs it. Exit code 3 behaves identically.
+
+> **CLOSED 2026-08-19.** `blocksOn` is **removed**, not patched, and `gateBlocks` collapses to
+> `code !== 0` for every gate.
+>
+> **Why removal was the only correct fix.** The field held `[1, 2]` on both gates that declared it, which is
+> precisely the set of non-zero codes those gates were known to produce - an enumeration wearing the costume
+> of a filter. The 1-versus-2 distinction it appeared to carry is carried entirely by `overridableCodes`.
+> So there is no version of `gateBlocks` in which `blocksOn` still drives blocking and 127 blocks too; every
+> fix collapses to non-zero-blocks. Keeping the field as inert documentation would have left a trap: a
+> future `blocksOn: [1]` would read as "exit 2 passes on this gate" and silently not mean it.
+>
+> **ADR 0053's decision is untouched** and is in fact the rule that replaced the field - an outcome that must
+> not block is expressed as **exit 0 by the gate itself** (which is why BEHIND exits 0), never filtered out
+> downstream. ADR 0053's implementation-sites line said "No change to `gateBlocks`" and now carries a dated
+> correction rather than a rewrite.
+>
+> **Two things the finding implied and did not state, both now covered.** The sentinel is a named
+> `SPAWN_FAILED` export shared by both halves, so the CLI that produces it and the module that judges it
+> cannot drift apart; and a spawn failure prints what actually happened instead of the gate's rationale,
+> because a `BLOCK` row reading *"a SHA pin's comment is the only half a reviewer reads"* describes a defect
+> nobody looked for - the misdescribes-its-own-decision class this same renderer already guards for the
+> override line.
+>
+> **The replacement test names both gates that needed it, at 127 and at 3**, and adds the assertion that no
+> override reason excuses a gate that never ran. That last one was reachable-but-unreached before:
+> `overrideApplies` was already correct about 127, but `gateBlocks` never classified the row as blocking, so
+> the override was never consulted. Mutation-proved in two directions - restoring the filter turns four
+> tests red, removing the spawn-failure render branch turns exactly one red.
 
 ## F3 - BLOCKING. A bare major label can never disagree, in the format our own runbook prescribes
 

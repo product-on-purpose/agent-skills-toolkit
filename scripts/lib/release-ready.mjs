@@ -12,10 +12,30 @@
 // That is what lets the whole decision table - including the override - be tested without a network or a tag.
 
 /**
+ * The exit code the CLI reports for a gate that could not be SPAWNED - the process never started, or died
+ * on a signal. `spawnSync` returns a null status for both, and `Number(null)` is 0, so without a sentinel
+ * a gate that never ran would report the code meaning "clean".
+ *
+ * Named here rather than written as a literal in the CLI because it is a CONTRACT between the two halves:
+ * the CLI decides when a gate could not be run, and this half decides what that means. Review finding F2
+ * was that the second half had no opinion at all.
+ */
+export const SPAWN_FAILED = 127;
+
+/**
  * The gates, in the order a human would want to see them fail.
  *
- * `blocksOn` is a list of exit codes that BLOCK, rather than "non-zero blocks", because vendor-watch's two
- * failure codes mean different things and one of them is overridable while the other is not.
+ * ANY non-zero exit blocks. There is no per-gate list of blocking codes, and there was one until review
+ * finding F2: `blocksOn: [1, 2]` on the two network-bound gates read as a filter but was really just an
+ * enumeration of the codes those gates were known to produce, so every OTHER non-zero code - including the
+ * SPAWN_FAILED sentinel - fell through it as a pass. A gate killed by an OOM or evicted with the runner
+ * certified a release nothing had checked.
+ *
+ * The rule that replaced it is the one ADR 0053 already decided for `action-pins`: an outcome that must
+ * not block is expressed as EXIT 0 by the gate itself, never filtered out here. That is why a pin merely
+ * BEHIND its action's current release exits 0 rather than being excluded downstream. `overridableCodes`
+ * is untouched and still carries the whole 1-versus-2 distinction, which is what `blocksOn` only appeared
+ * to carry.
  */
 export const GATES = Object.freeze([
   Object.freeze({
@@ -38,7 +58,6 @@ export const GATES = Object.freeze([
     argv: ["scripts/vendor-watch.mjs", "."],
     why: "every vendor sentence this repository asserts as fact must still be on the vendor's page today",
     // 1 = a claim is GONE or STALE. 2 = a page could not be READ, so the run proved nothing about it.
-    blocksOn: [1, 2],
     overridableCodes: [2],
   }),
   Object.freeze({
@@ -52,7 +71,6 @@ export const GATES = Object.freeze([
     // it and exits 0, because that is news about somebody else's release cadence rather than a defect here,
     // and blocking on it would let an upstream release stop a tag for a fact that is only worth knowing.
     // That split is ADR 0053's central decision and it is why this gate is not a copy of `vendor-watch`.
-    blocksOn: [1, 2],
     // The SAME `--allow-vendor-unreachable <reason>` excuses this refusal, deliberately and not by
     // accident: a GitHub API outage is the same category of fact as a documentation-host outage - somebody
     // else's downtime, for which a release with no remedy is a trap. It excuses code 2 ONLY, so no reason
@@ -62,9 +80,17 @@ export const GATES = Object.freeze([
   }),
 ]);
 
-/** What an exit code means for one gate. `blocksOn` defaults to "anything non-zero". */
+/**
+ * What an exit code means for one gate: anything non-zero blocks, for every gate.
+ *
+ * The `gate` parameter is kept because the question is per-gate even where today's answer is uniform, and
+ * because `overrideApplies` next door genuinely does differ by gate. What it must NOT do again is consult
+ * a per-gate list of blocking codes: a code absent from such a list is not a pass, it is a code nobody
+ * anticipated, and the only safe reading of an unanticipated exit from a release gate is that the release
+ * is not proven. See SPAWN_FAILED and review finding F2.
+ */
 export function gateBlocks(gate, code) {
-  return Array.isArray(gate.blocksOn) ? gate.blocksOn.includes(code) : code !== 0;
+  return code !== 0;
 }
 
 /**
@@ -116,7 +142,18 @@ export function renderSummary(summary) {
   for (const r of rows) {
     const icon = { pass: "ok      ", BLOCK: "BLOCK   ", overridden: "override", unknown: "UNKNOWN " }[r.status];
     out.push(`${icon} ${r.id}  (exit ${r.code})`);
-    if (r.status !== "pass" && r.why) out.push(`         ${r.why}`);
+    if (r.status === "pass") continue;
+    // A gate that could not be RUN gets its own sentence rather than the reason the gate exists. Every
+    // `why` above is phrased as the significance of a defect, so printing one under a spawn failure tells
+    // the operator a pin label is wrong or a vendor claim is gone. Neither was looked at. This is the same
+    // rule the override block below already follows: output that misdescribes its own decision is the
+    // defect class this aggregate replaced a checklist line to remove.
+    if (r.code === SPAWN_FAILED) {
+      out.push(`         this gate could not be RUN: the process never started, or was killed.`);
+      out.push(`         Nothing was checked, so nothing is proven. Fix the runner and re-run.`);
+    } else if (r.why) {
+      out.push(`         ${r.why}`);
+    }
   }
   out.push("");
   // Report the override on what it DID, never on what was asked for. Printing "OVERRIDE IN EFFECT" above a

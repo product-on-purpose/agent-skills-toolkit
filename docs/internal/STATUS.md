@@ -18,7 +18,7 @@
 | Spine | 34 checks |
 | Scopes | 3 (plugin, component, marketplace) |
 | Skills | **26** |
-| Tests | 1292, 0 failures (local suite run 2026-08-18; both halves confirmed by `npm run release-ready` exiting 0) |
+| Tests | 1295, 0 failures (local suite run 2026-08-19; both halves confirmed by `npm run release-ready` exiting 0) |
 | Self-proving | `node scripts/check.mjs .` exits 0 at Advanced, 0 errors, 0 warnings |
 
 ## v1.15.0 is PREPARED and WITHHELD (2026-08-18)
@@ -79,18 +79,20 @@ path is now demonstrated against the real historical `codeql-action` case instea
 
 **The suite reported 1,281 passing and zero failures while every one of those defects was live.**
 
-### FIFTEEN OPEN REVIEW FINDINGS BLOCK THE TAG (2026-08-19)
+### THIRTEEN REVIEW FINDINGS OPEN, SIX OF THEM BLOCKING, AND THE TAG IS HELD (2026-08-19)
 
 A max-effort repository code review over `v1.14.0..HEAD` returned **fifteen findings**, eight of them
-blocking. Full detail with reproductions:
+blocking. **`F1` and `F2` are now CLOSED; six blocking findings remain and the tag is still held.** Full
+detail with reproductions, and a closure ledger:
 [`release-plans/plan_v1.15.0/review-findings.md`](release-plans/plan_v1.15.0/review-findings.md).
-**The tag must not be cut until the blocking findings are closed.**
 
-The two worst share one shape: **a gate reporting success while checking nothing.** A symlinked or
-junctioned checkout makes `action-pin-watch` never run its main function - it prints nothing, exits 0, and
-`release-ready` records `ok action-pins (exit 0)` on zero pins. And `gateBlocks` treats the exit-127
+The two worst shared one shape: **a gate reporting success while checking nothing.** A symlinked or
+junctioned checkout made `action-pin-watch` never run its main function - it printed nothing, exited 0, and
+`release-ready` recorded `ok action-pins (exit 0)` on zero pins. And `gateBlocks` treated the exit-127
 sentinel, the code meaning a gate could not be SPAWNED, as a pass for both network-bound gates. Both were
-independently re-reproduced by hand before being written down.
+independently re-reproduced by hand before being written down, **and both reproductions were re-run against
+the fixes.** Each fix is mutation-proved, and `F2` removed `blocksOn` outright rather than patching it,
+because the field read as a filter while holding an enumeration - ADR 0053 carries a dated correction.
 
 **One finding is the review-the-fixes pattern exactly.** Wave 1 correctly fixed a multi-tag FALSE POSITIVE
 by making the label rule permissive; the side effect was never weighed, and a bare `# v3` label is now
