@@ -79,7 +79,7 @@ path is now demonstrated against the real historical `codeql-action` case instea
 
 **The suite reported 1,281 passing and zero failures while every one of those defects was live.**
 
-### THIRTEEN OPEN REVIEW FINDINGS STILL BLOCK THE TAG (2026-08-19)
+### THIRTEEN REVIEW FINDINGS OPEN, SIX OF THEM BLOCKING, AND THE TAG IS HELD (2026-08-19)
 
 A max-effort repository code review over `v1.14.0..HEAD` returned **fifteen findings**, eight of them
 blocking. **`F1` and `F2` are now CLOSED; six blocking findings remain and the tag is still held.** Full
