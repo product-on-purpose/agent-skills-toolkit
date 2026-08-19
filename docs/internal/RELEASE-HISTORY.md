@@ -32,6 +32,8 @@ The toolkit is a quality bar for AI skill libraries: it grades a plugin Bronze, 
 | v1.12.0 | 2026-08-12 | Marketplace scope: grading a catalogue, not one plugin at a time | 30 / 0.12 |
 | v1.12.1 | 2026-08-12 | The round that reviewed the fixes: four defects found in the previous round's fix code | 30 / 0.12 |
 | v1.13.0 | 2026-08-13 | The contract you adopted: one post-resolution ceiling over `since` and `until`, config provenance, and two graduations that could not previously fire | 31 / 0.13 |
+| v1.14.0 | 2026-08-16 | Four things the gate was telling you were not true, and three files it was never reading | 34 / 0.14 |
+| v1.15.0 | 2026-08-18 | Two migration windows close on schedule, one because its subject did the work | 34 / 0.15 |
 
 ("Spine" = the number of checks the gate runs. "Standard" = the version of the written specification. They were stable at 29 / 0.11 from v1.2.0 through v1.5.x; **v1.6.0 grew them to 30 / 0.12** - the first new requirement since v1.1.0, shipped under a warn-first burndown so no existing plugin newly fails.)
 
@@ -175,3 +177,51 @@ The v1.6.0 headline (the manifest-vs-disk drift check) and the report glossary +
 4. **Carried:** corpus batch 3, a Gemini emitter, and the remainder of the competitive gap-analysis backlog. (The marketplace-scope evaluation mode carried here since v1.6.0 **shipped in v1.12.0**; E4, E9 and E23 shipped in v1.11.0.)
 5. **Next, and it is a Standard cut:** v1.13.0 "the contract you adopted" carries the Standard 0.13 bump. It replaces the pin-downgrade pre-pass and ADR 0041's unconditional cap with **one post-resolution Standard ceiling** over `since` and `until` (ADR 0044), which also closes **E26** (the pin downgrade is overridable by a consumer's own config) and **E38** (a subject's own config can lower an objective finding and still publish green), the latter by introducing grader-owned versus subject-owned config provenance. Riding that ceiling: `U13`'s warn-to-error graduation, ADR 0041's chain-migration cap graduation, and **E33** as the new `U14` check with its own ADR 0045 (spine 30 to 31). It also lands **E35** (the `gen-index` self-validation line, with a migration) and **E37** (the shell-probe timing budget, pulled in because it blocks the release-time counts gate).
 6. **Then v1.14.0 "current with the vendors":** the ADR pack (commands-as-skills, frontmatter vocabulary strictness, `U5` scope per **E14**), the code batch, and standing up vendor-watch, plus the two items that need an undrafted ADR - **E34** (which cross-member findings belong on the spine at all) and **E36** (malformed and mixed marketplace manifests). *Why it moved:* bundling three undrafted ADRs with a Standard bump made v1.13.0 a release-of-releases. "Evidence" shifts to v1.15.0 and "graded cohort" to v1.16.0.
+
+
+### v1.14.0 - four things the gate was telling you were not true (2026-08-16)
+**What:** seven decisions written and MEASURED before any code, three new checks for files the runtime
+loads and the gate had never read, four false reports closed, and the first watch this repository has ever
+had on the vendor behaviour it asserts as fact.
+
+**Value, plainly:** a grading tool's worst failure is not missing a defect. It is **reporting one that is
+not there** - because the author who trusts it changes correct code, and the author who does not trust it
+stops reading. This release closed four of those, then closed the reason none of them had been caught.
+
+**Value, for engineers:** three of the seven decisions were **overturned by their own measurement before
+ratification** - a proposed frontmatter strictness rule would have failed 44.9 percent of 2342 measured
+skills, and a proposed language-independent description signal fired on 99.9 percent of 2068 descriptions
+including 94.4 percent of Anthropic's own. The vendor-claims document now pins eight sentences and
+behaviours across three vendor pages, re-checked on every release and monthly by a workflow that opens an
+issue and never edits anything. One release-readiness command replaced four checklist lines a human ticked
+with a single exit code that CI runs - and **it blocked its own first real run.**
+
+**What the withheld window bought:** the tag was held for a day pending sign-off, and two more defects
+surfaced in that gap that neither adversarial review wave could have found - the npm tarball shipped 16.5 kB
+of library code nothing in it could reach, and the release gate would have jammed on 2026-09-14 with no
+remedy but hand-editing the dates the release process forbids.
+
+### v1.15.0 - two windows close, one because its subject did the work (2026-08-18)
+**What:** the Standard 0.15 cut. Two requirements that shipped as warnings in 0.14 with a stated deadline
+became gate-failing errors, and a fifth release gate started checking the version labels on this
+repository's own pinned GitHub Actions.
+
+**Value, plainly:** a migration window is a promise that something becomes required **on a date**. If the
+window's evidence is re-examined at the boundary and the answer is always "nobody is affected, extend it",
+it was never a window - it is a permanent exemption paid in instalments. Both windows closed on schedule,
+and **nothing changes for any plugin that does not raise its own pin.**
+
+**Value, for engineers:** neither graduation needed a line of code. The migration metadata capping both
+checks at a warning was already committed, and the post-resolution ceiling resolves it against the
+consumer's own pin - which was the explicit promise made when they shipped. The best evidence in the
+release is that **the mechanism demonstrably worked**: the one plugin that would have lost a tier to the
+workflow mirror declared its nine workflows one day after the decision was published, inside the window
+that decision created. That is a warn-first migration observed doing its whole job, end to end, for the
+first time here.
+
+**The uncomfortable half, recorded rather than smoothed:** the catalogue-manifest check graduated against a
+census that **still finds zero instances** of the defect it prevents. It graduated anyway, because nothing
+schedules the corpus growth that would change that answer, so "wait for evidence" would have meant "never
+gates", decided quietly. And the new action-pin gate's first reported defect turned out to be **its own
+false positive against this repository's own file** - the exact failure mode the previous release was named
+for. Adversarial review caught it, and the release records say so plainly.
