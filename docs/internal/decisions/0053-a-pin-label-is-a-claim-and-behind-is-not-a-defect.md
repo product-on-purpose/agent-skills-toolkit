@@ -4,9 +4,10 @@
 
 - **E45 ships as `action-pin-watch`**, a maintainer-only script beside `vendor-watch` and `release-ready`, resolving every `uses:` pin across the workflows and `action.yml` against the GitHub registry.
 - **The rule: a SHA ref MUST carry a comment naming the version it resolves to; a major-tag ref needs none.** This codifies existing practice exactly rather than inventing a convention: all 8 SHA pins already carry comments and all 21 tag pins already do not.
-- **The exit codes SPLIT, and that is this ADR's central decision.** A **label problem** exits 1 and **blocks a release**. A pin merely **BEHIND** its action's current release exits 0 and blocks nothing. A **lookup that could not be performed** exits 2 and is never a pass.
+- **The exit codes SPLIT, and that is this ADR's central decision.** A **label problem** exits 1 and **blocks a release**, and nothing can override it. A **lookup that could not be performed** exits 2, blocks, and is overridable for an outage. A pin merely **BEHIND** its action's current release exits 0 and blocks nothing.
+- **A known defect outranks uncertainty: exit 1 beats exit 2.** This was inverted in the first draft and **review wave 1 proved the inversion reachable** - see "What review wave 1 corrected" below. It is not a detail; it is the difference between this ADR's central safety claim being true and being false.
 - **Why the split:** a wrong label is a defect in THIS repository, fixable unilaterally, and shipping it means every reviewer reads a false line. A pin being behind is news about somebody else's release cadence, and blocking on it would let an upstream release stop a tag here for a fact that is only worth knowing. `vendor-watch` does not carry that failure mode and this must not import it.
-- **Measured before ratification:** the sketch was run as a throwaway probe on 2026-08-18 across 29 pins and 8 actions and found **one real label disagreement**, `release.yml:91` commenting `# v3` on a SHA that resolves to `v3.0.2`. Both the failing path (exit 1) and the refusal path (exit 2) are demonstrated, not asserted.
+- **Measured before ratification, and one of those measurements was wrong.** The sketch was probed on 2026-08-18 across 29 pins and 8 actions. It reported one label disagreement; **that was a FALSE POSITIVE and the check, not the repository, was at fault.** Corrected: **this repository has zero label defects.** Both the failing path (exit 1) and the refusal path (exit 2) are nevertheless demonstrated against live registry data, using the real historical `codeql-action` defect this item was filed from.
 - **The zero-code alternative is dispositioned, not ignored:** stop closing Dependabot PRs. It is cheaper and it is kept as standing guidance; it does not replace the check, because it depends on a human choosing correctly every time and that is what failed three times.
 - **Status:** Accepted (ratified 2026-08-18).
 
@@ -74,11 +75,13 @@ Measured before choosing: all 8 SHA pins already carry comments and all 21 tag p
 
 **2. The exit-code split, and it is the reason this is not a copy of `vendor-watch`.**
 
-| Condition | Exit | Blocks a release |
-| --- | --- | --- |
-| a label disagrees, is missing, or contradicts its ref | **1** | **yes** |
-| a lookup could not be performed | **2** | **yes**, and overridable for code 2 only |
-| a pin is BEHIND its action's current release | **0** | **no**, reported and advisory |
+| Condition | Exit | Blocks a release | Overridable |
+| --- | --- | --- | --- |
+| a label disagrees, is missing, or contradicts its ref | **1** | **yes** | **never** |
+| a lookup could not be performed | **2** | **yes** | yes, for a stated outage |
+| a pin is BEHIND its action's current release | **0** | **no**, reported and advisory | n/a |
+
+**Exit 1 outranks exit 2 when both are present**, which is the opposite of `vendor-watch`'s "a refusal is never a pass" ordering, and the difference is deliberate rather than an oversight. That rule is right about a run which proved NOTHING and wrong about a run which proved a DEFECT. A run holding one confirmed bad label and one unrelated timeout has not failed to establish anything: it established a defect, and reporting the weaker, overridable code would let an outage excuse the defect.
 
 A wrong label is **a defect in this repository's own file**, remediable by its owner alone, and shipping it means a reviewer reads something untrue about this repository's supply chain. A behind pin is **a fact about somebody else's release**. Blocking on the second would import a failure mode `vendor-watch` does not have.
 
@@ -97,6 +100,59 @@ A wrong label is **a defect in this repository's own file**, remediable by its o
 - **No monthly schedule is added here, deliberately.** The check runs at release time. Putting it on the monthly watcher is real and separate work.
 - **A `BEHIND` finding is only as good as somebody reading it.** The split buys safety at the price of a signal that gates nothing, and that is the recognised trade. **The reopening condition:** if a pin is ever found to have sat behind long enough to matter, and the advisory line was printed and ignored on every release in between, that is the evidence for promoting `BEHIND` to blocking, and it should be taken as such rather than argued about again from first principles.
 - **Found while implementing, and fixed here because the file was being edited anyway:** `scripts/README.md` and `scripts/lib/README.md` both listed `standards-watch.mjs` with **no description at all**, its text having been appended to the neighbouring `vendor-watch.mjs` entry. `G8` passed both, correctly, because it checks that every child is LISTED and not that it is described. **This is the second and third instance of that exact defect**, after `.github/workflows/README.md` in #238. Tightening `G8` remains out of scope (it moves verdicts for every plugin that has ever passed it, so it is an ADR with a migration window under ADR 0044), but three instances is now the evidence for opening that ADR rather than a hypothetical.
+
+## What review wave 1 corrected, 2026-08-19
+
+Ten findings, five HIGH, all fixed before this ADR was merged. **The decision above is unchanged in its
+shape; two of its factual claims were false and one of its rules was inverted.** Recorded in full because a
+decision record that hides what its own review caught is worth less than one that does not.
+
+**The two claims that were false when written.**
+
+1. **"No reason string can ever wave through a label that disagrees" was FALSE**, and reachably so. With the
+   first draft's ordering (a refusal outranking a label problem), one wrong label plus one unrelated `503`
+   collapsed the run to exit 2 - and `release-ready` makes exit 2 overridable. So
+   `--allow-vendor-unreachable "GitHub API outage"` marked the gate `overridden` and the release
+   `releasable` with a proven bad label in it. **The safety property this ADR is named for did not hold.**
+   Fixed by inverting the precedence, with an integration test that drives the real gate table rather than
+   the watch alone, because the watch's own unit test passed throughout.
+
+2. **"One real label disagreement" was a FALSE POSITIVE, and it was this repository's own file.** A single
+   commit routinely carries more than one tag; measured live, `softprops/action-gh-release` carries
+   `v3.0.2` and `v3` on one commit, `v2.6.2` and `v2` on another, and `v1` and `v0.1.15` on a third. The
+   check read only the FIRST tag the registry happened to list, so `release.yml`'s `# v3` was reported as
+   disagreeing with a ref that resolves to `v3.0.2` - **when `v3` is also a tag on that exact commit and
+   the label was correct all along.** The verdict depended on GitHub's response ordering, which nobody
+   controls.
+
+   **This is the failure mode this repository grades other tools on**, stated in the v1.14.0 thesis: a
+   grading tool's worst failure is not missing a defect, it is reporting one that is not there, because the
+   author who trusts it changes correct code. It did exactly that, and the correct code it changed was
+   ours. `release.yml`'s label was nevertheless left at the more specific `v3.0.2` - **as hardening, not as
+   a fix**: `v3` is a MOVING tag that can migrate off this commit and silently make the label false,
+   whereas `v3.0.2` cannot.
+
+   Corrected result: **this repository has zero label defects**, and the failing path is demonstrated
+   against the real historical `codeql-action` case instead (`# v4.37.6` on a SHA resolving to `v4.37.7`),
+   which is the defect E45 was actually filed from.
+
+**The rest, in one line each.** A `uses:` line inside a `run: |` block scalar was parsed as a pin, producing
+a false finding against a structurally correct workflow; a quoted `uses: "owner/repo@ref"` was silently
+missed, so a repository whose only wrong label was quoted exited 0; an UPPERCASE 40-hex ref fell through to
+the branch where no label contract applies, so a real SHA pin with a wrong label passed; a failed lookup on
+a tag ref printed *"is self-describing and current"*, asserting the exact fact it had just failed to
+establish; a SHA pin could never be reported `BEHIND` at all, which is precisely where staleness matters
+most; an unreadable or mistyped root reported `0 pins, exit 0`, a clean bill of health for a tree nothing
+had looked at; and a sha whose tag sat past the page cap was reported as *"the registry does not report
+this tag"*, a false statement about the registry.
+
+**And one about the tests themselves, which is the sharpest.** The purity assertion matched only static
+`import` statements, so adding `await import("node:os")` would have left it green - a guard for a claim that
+could not fail. Twice more, a guard in that same file fired on the PROSE EXPLAINING IT: first a
+`child_process` scan matching both modules' own docblocks saying they do not import it, then the repaired
+purity scan matching the words `import(` in its own comment. Comments are now stripped before scanning,
+which closes the class rather than deleting the sentences. **The full suite reported 1,281 passing and zero
+failures while every defect above was live.**
 
 ## Implementation sites
 

@@ -18,8 +18,8 @@ A public `0.x` tag ships at every wave boundary (RELEASE-PLAN v0.2 Section 5); `
 - [ ] **Docs site** builds cleanly (Astro Starlight) and the Diataxis quadrants are non-empty.
 - [ ] **All tier-applicable conformance checks green** (`node scripts/check.mjs`).
 - [ ] **No em-dashes / en-dashes** in committed text (author-time hook; house style, retired as a gate check in Standard v0.11).
-- [ ] **`npm run release-ready` exits 0.** One command, four release-blocking gates: the conformance gate, the
-  README drift guard, the release-count guard, and `vendor-watch`. **It runs automatically in `release.yml` on
+- [ ] **`npm run release-ready` exits 0.** One command, five release-blocking gates: the conformance gate, the
+  README drift guard, the release-count guard, `vendor-watch`, and `action-pin-watch`. **It runs automatically in `release.yml` on
   the pushed tag and in `publish-npm.yml` on the candidate tree**, so ticking this box locally is a convenience,
   not the enforcement - which is the point. Until review wave 2 of v1.14.0 these were four checklist lines a
   human ticked, and the vendor-watch line in particular had never been run by any workflow.
@@ -42,10 +42,17 @@ A public `0.x` tag ships at every wave boundary (RELEASE-PLAN v0.2 Section 5); `
   Do not re-pin a claim to make the run green - decide what the change means for
   each dependant first, and a Standard revision needs an ADR with a migration window.
 
-  **The one override, and its limit.** `--allow-vendor-unreachable "<reason>"` excuses exit 2 only, because a
-  vendor's outage is not a fact about this repository and a release with no remedy for someone else's downtime
-  is a trap. It does **not** excuse exit 1 at any level and no reason string makes it: overriding a gone-or-stale
-  claim publishes the falsehood the watch exists to catch. If you use it, put the reason in the release notes.
+  **The one override, and its limit.** `--allow-vendor-unreachable "<reason>"` excuses exit 2 only, on the two
+  gates that declare it overridable (`vendor-watch` and `action-pin-watch`), because somebody else's outage is
+  not a fact about this repository and a release with no remedy for their downtime is a trap. It does **not**
+  excuse exit 1 on any gate and no reason string makes it: for `vendor-watch` exit 1 means a claim is gone or
+  stale, and for `action-pin-watch` it means a pin's label disagrees with what its ref resolves to. Overriding
+  either publishes the falsehood the gate exists to catch. If you use it, put the reason in the release notes.
+
+  **`action-pin-watch` also reports a pin that is merely BEHIND its action's current release, and that never
+  blocks** (ADR 0053). A wrong label is a defect in this repository; a behind pin is news about somebody else's
+  release cadence, and a gate that fires on an upstream release would stop a tag here for a fact that is only
+  worth knowing.
 
   This line exists because on 2026-08-15 a ratified ADR (0048) was found to rest on a premise the vendor's own
   docs contradict, five days after an internal audit had already found it, because nothing was re-reading the page.

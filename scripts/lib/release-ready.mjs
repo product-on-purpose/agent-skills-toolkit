@@ -70,7 +70,8 @@ export function gateBlocks(gate, code) {
 /**
  * Whether an override may excuse this failure.
  *
- * Only exit 2 of vendor-watch is overridable, and only with a stated reason. The asymmetry is the point:
+ * Only exit 2 is overridable, on the gates that declare it (`vendor-watch` and `action-pins`), and only
+ * with a stated reason. The asymmetry is the point:
  *
  * - exit 2 says the RUNNER could not reach a third party. That is an outage, not a fact about this repository,
  *   and a release with no documented remedy for someone else's downtime is an operational trap.
@@ -126,8 +127,9 @@ export function renderSummary(summary) {
   if (overridden.length > 0) {
     out.push(`OVERRIDE IN EFFECT: ${summary.overrideReason}`);
     out.push(`It excused: ${overridden.map((r) => `${r.id} (exit ${r.code})`).join(", ")}.`);
-    out.push("Recorded here so the release carries its own exception. It covers an unreachable vendor page");
-    out.push("and NOTHING else: a claim that is gone or stale is not overridable at any level.");
+    out.push("Recorded here so the release carries its own exception. It covers UNREACHABILITY only - a vendor");
+    out.push("page or an action registry that could not be READ - and nothing else. A claim that is gone or");
+    out.push("stale, and a pin label that disagrees with its ref, are not overridable at any level.");
     out.push("");
   } else if (summary.overrideReason) {
     out.push(`Override offered and NOT APPLIED: "${summary.overrideReason}"`);

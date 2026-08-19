@@ -1,7 +1,7 @@
 // what-it-is:   the deterministic half of the action-pin watch (E45, ADR 0053)
 // what-it-does: parses every `uses:` pin out of workflow text, compares each pin's human-readable LABEL
-//               against the version its machine-readable REF actually resolves to, and decides one verdict
-//               per pin plus one exit code for the run
+//               against the version(s) its machine-readable REF actually resolves to, and decides one
+//               verdict per pin plus one exit code for the run
 // why:          a SHA pin's trailing `# vX.Y.Z pinned <date>` comment is the only half a reviewer reads, and
 //               Dependabot advances the SHA without touching it, so the two halves silently disagree. Caught
 //               by eye in #187, #198 and #225 and never once by a machine. A defect caught three times by a
@@ -11,36 +11,45 @@
 //
 // PURE BY CONSTRUCTION. This module imports nothing at all: no `node:fs`, no `node:child_process`, no
 // network. Every fact it needs arrives as an argument. That is what lets the whole verdict layer be tested
-// without a network, and it is enforced by the same write-incapability test shape the vendor watch carries,
-// because the two modules exist for the same reason: deciding what a change MEANS is a human's job.
+// without a network, and it is enforced by a test that asserts the empty import list including the dynamic
+// `await import(...)` form, because the first version of that assertion matched only static imports.
 
-/** One verdict per pin. Only two of these can fail a run; see `exitCodeFor`. */
+/** One verdict per pin. Which of these block is decided in `exitCodeFor`, not here. */
 export const VERDICT = Object.freeze({
-  /** The label agrees with what the ref resolves to, or the ref needs no label. */
+  /** The label names a version the ref genuinely resolves to, or the ref needs no label. */
   OK: "OK",
-  /** A SHA pin whose comment names a different version than the SHA resolves to. BLOCKING. */
+  /** A SHA pin whose comment names a version the SHA does NOT resolve to. BLOCKING. */
   LABEL_DISAGREES: "LABEL_DISAGREES",
   /** A SHA pin carrying no version at all. BLOCKING: a bare 40-hex string is unreadable by a human. */
   LABEL_MISSING: "LABEL_MISSING",
   /** A tag pin whose comment names a different MAJOR than the ref. BLOCKING: it contradicts the ref. */
   LABEL_CONTRADICTS_REF: "LABEL_CONTRADICTS_REF",
-  /** The pin is behind the action's current release. ADVISORY, never blocking. See `exitCodeFor`. */
+  /** The pin is behind the action's current major. ADVISORY, never blocking. See `exitCodeFor`. */
   BEHIND: "BEHIND",
-  /** The lookup could not be performed or the ref could not be resolved. REFUSAL, never a pass. */
+  /** The lookup could not be performed, so the label could be neither confirmed nor denied. REFUSAL. */
   UNRESOLVED: "UNRESOLVED",
 });
 
 /**
  * `uses: <owner>/<repo>[/<subpath>]@<ref>` with an optional trailing `# comment`.
  *
- * Anchored to the whole line and tolerant of the two shapes real workflows use (a bare `uses:` key and a
- * `- uses:` list item). It deliberately does NOT match a `uses:` inside a quoted string or a folded block:
- * those are not step definitions, and a parser generous enough to catch them would also catch prose.
+ * The value may be bare, single-quoted or double-quoted - all three are legal YAML, and the first version
+ * of this regex silently missed the quoted forms, so a repository whose only wrong label was quoted exited
+ * 0. The ref character class includes `/`, because `owner/action@feature/foo` is a legal branch ref that
+ * the first version also missed; `@` is what anchors the split, and `@` never appears in an owner name.
  */
-const USES_LINE = /^\s*(?:-\s*)?uses:\s*([A-Za-z0-9._-]+)\/([A-Za-z0-9._/-]+?)@([A-Za-z0-9._-]+)\s*(?:#\s*(.*?))?\s*$/;
+const USES_LINE =
+  /^\s*(?:-\s*)?uses:\s*(["']?)([A-Za-z0-9._-]+)\/([A-Za-z0-9._/-]+?)@([A-Za-z0-9._/-]+)\1\s*(?:#\s*(.*?))?\s*$/;
 
-/** A 40-character lowercase hex string: a full commit SHA, the only ref shape that is opaque to a reader. */
-const SHA_REF = /^[0-9a-f]{40}$/;
+/** A YAML block-scalar introducer: `run: |`, `script: >-`, `body: |2+`. Its payload is not YAML. */
+const BLOCK_SCALAR = /^(\s*)(?:-\s*)?[A-Za-z0-9_.-]+\s*:\s*[|>][+-]?\d*\s*$/;
+
+/**
+ * 40 hex characters, EITHER CASE. Git object ids are case-insensitive and GitHub resolves an uppercase one
+ * to the same commit, so a lowercase-only test let a real SHA pin fall through to the `other` branch and
+ * bypass the label contract entirely - a real full SHA with a wrong label passed at exit 0.
+ */
+const SHA_REF = /^[0-9a-fA-F]{40}$/;
 
 /** A major-only moving tag: `v4`, `v7`. The ref IS the version, so no label is required. */
 const MAJOR_TAG_REF = /^v(\d+)$/;
@@ -72,16 +81,34 @@ export function classifyRef(ref) {
 /**
  * Every `uses:` pin in one file's text, with 1-based line numbers.
  *
- * `file` is carried through rather than resolved here, because this module does no I/O and the caller
- * already knows which path it read.
+ * BLOCK SCALARS ARE SKIPPED, and that is a correctness fix rather than a nicety. A `run: |` step's payload
+ * is shell, not YAML, and a heredoc inside one can contain a line that reads exactly like a `uses:` step.
+ * Parsing it produced a FALSE FINDING against a structurally correct workflow, which is the worst failure
+ * mode this repository recognises: the author who trusts the tool changes correct code.
  */
 export function parsePins(text, file) {
   const out = [];
   const lines = String(text).split(/\r?\n/);
+  let blockIndent = null; // indent of the introducer while inside a block scalar, else null
   for (let i = 0; i < lines.length; i++) {
-    const m = lines[i].match(USES_LINE);
+    const line = lines[i];
+    const indent = line.match(/^\s*/)[0].length;
+
+    if (blockIndent !== null) {
+      // A block scalar's payload is every following line indented deeper than its introducer. A blank
+      // line does not end it; anything at or below the introducer's indent does.
+      if (line.trim() === "" || indent > blockIndent) continue;
+      blockIndent = null;
+    }
+    const bs = line.match(BLOCK_SCALAR);
+    if (bs) {
+      blockIndent = bs[1].length;
+      continue;
+    }
+
+    const m = line.match(USES_LINE);
     if (!m) continue;
-    const [, owner, repoPath, ref, comment] = m;
+    const [, , owner, repoPath, ref, comment] = m;
     out.push({
       file,
       line: i + 1,
@@ -103,38 +130,58 @@ export function parsePins(text, file) {
 /**
  * One pin's verdict, given what the registry said about it.
  *
- * `resolution` is `{ resolvedVersion, latestVersion, error }`. A missing or errored resolution is
- * UNRESOLVED rather than OK, because a lookup that did not happen proves nothing - the same reason the
- * vendor watch treats an unreachable page as a refusal instead of a pass.
+ * `resolution` is `{ resolvedVersions, latestVersion, error }`. `resolvedVersions` is an ARRAY, because one
+ * commit routinely carries more than one tag: measured live on 2026-08-19, `softprops/action-gh-release`
+ * has `v3.0.2` and `v3` on one commit, `v2.6.2` and `v2` on another, and `v1` and `v0.1.15` on a third. The
+ * first version of this function read only the first tag the registry happened to list, which turned a
+ * CORRECT label into a release-blocking FALSE FINDING on response ordering nobody controls - and it did
+ * exactly that to this repository's own `release.yml` pin during review wave 1.
+ * **A label is correct if it names ANY tag the commit carries.**
  *
  * THE RULE, and it is ADR 0053's central decision: a **SHA** ref is opaque to a reader, so its comment MUST
- * name the version it resolves to. A **major tag** ref is self-describing, so it needs no comment; if it
+ * name a version it resolves to. A **major tag** ref is self-describing, so it needs no comment; if it
  * carries one anyway, that comment must not contradict the ref's own major.
  */
 export function evaluatePin(pin, resolution) {
   const err = resolution?.error ?? null;
+  const latest = resolution?.latestVersion ?? null;
+  const resolved = Array.isArray(resolution?.resolvedVersions) ? resolution.resolvedVersions : [];
+
   if (pin.refKind === "sha") {
     if (err) return { verdict: VERDICT.UNRESOLVED, detail: `lookup failed: ${err}` };
-    const resolved = resolution?.resolvedVersion ?? null;
-    if (!resolved) {
+    if (resolved.length === 0) {
       return {
         verdict: VERDICT.UNRESOLVED,
-        detail: "the ref resolves to no tag the registry reports; cannot confirm or deny the label",
+        detail:
+          "no tag the registry reported within the pages searched points at this commit; the label can be neither confirmed nor denied",
       };
     }
+    const names = resolved.join(", ");
     if (!pin.claimed) {
       return {
         verdict: VERDICT.LABEL_MISSING,
-        detail: `resolves to ${resolved} and carries no version comment; a bare 40-hex ref tells a reviewer nothing`,
+        detail: `resolves to ${names} and carries no version comment; a bare 40-hex ref tells a reviewer nothing`,
       };
     }
-    if (pin.claimed !== resolved) {
+    if (!resolved.includes(pin.claimed)) {
       return {
         verdict: VERDICT.LABEL_DISAGREES,
-        detail: `comment says ${pin.claimed}, the ref resolves to ${resolved}`,
+        detail: `comment says ${pin.claimed}, the ref resolves to ${names}`,
       };
     }
-    return { verdict: VERDICT.OK, detail: `label and ref agree on ${resolved}` };
+    // The label is accurate. Currency is a separate, advisory question - and a SHA pin is exactly where
+    // staleness matters most, so the first version returning OK here without ever consulting
+    // `latestVersion` meant a fixed SHA pin could never be reported BEHIND at all.
+    if (latest && majorOf(latest) && majorOf(latest) !== majorOf(pin.claimed)) {
+      return { verdict: VERDICT.BEHIND, detail: `label ${pin.claimed} is accurate; the current release is ${latest}` };
+    }
+    return {
+      verdict: VERDICT.OK,
+      detail: latest
+        ? `label and ref agree on ${pin.claimed} (of ${names}); current release ${latest}`
+        : `label and ref agree on ${pin.claimed} (of ${names}); currency NOT checked`,
+      currencyUnknown: !latest,
+    };
   }
 
   if (pin.refKind === "major-tag") {
@@ -144,19 +191,28 @@ export function evaluatePin(pin, resolution) {
         detail: `ref is ${pin.ref}, comment says ${pin.claimed}`,
       };
     }
-    // Currency is measured only where the lookup succeeded. An errored lookup on a tag ref is NOT a
-    // refusal, because the label question was already answered from the ref alone: there is nothing the
-    // registry could have told us that would change this pin's verdict.
-    if (!err && resolution?.latestVersion) {
-      const latestMajor = majorOf(resolution.latestVersion);
-      if (latestMajor && latestMajor !== majorOf(pin.ref)) {
-        return { verdict: VERDICT.BEHIND, detail: `pinned ${pin.ref}, current release is ${resolution.latestVersion}` };
-      }
+    // A failed lookup on a tag ref is NOT a refusal: the label question is fully answered by the ref
+    // itself, and nothing the registry could have said would change this pin's verdict. But it must not be
+    // reported as CURRENT either - the first version said "is self-describing and current" after a 503,
+    // asserting the exact fact it had just failed to establish.
+    if (err || !latest) {
+      return {
+        verdict: VERDICT.OK,
+        detail: `${pin.ref} is self-describing; currency NOT checked${err ? ` (${err})` : ""}`,
+        currencyUnknown: true,
+      };
     }
-    return { verdict: VERDICT.OK, detail: `${pin.ref} is self-describing and current` };
+    if (majorOf(latest) && majorOf(latest) !== majorOf(pin.ref)) {
+      return { verdict: VERDICT.BEHIND, detail: `pinned ${pin.ref}, current release is ${latest}` };
+    }
+    return { verdict: VERDICT.OK, detail: `${pin.ref} is self-describing and current (${latest})` };
   }
 
-  return { verdict: VERDICT.OK, detail: `ref ${pin.ref} is a full tag or branch; no label contract applies` };
+  return {
+    verdict: VERDICT.OK,
+    detail: `ref ${pin.ref} is a full tag or branch; no label contract applies`,
+    currencyUnknown: true,
+  };
 }
 
 /**
@@ -180,19 +236,29 @@ export function buildReport(pins, resolveFor) {
       labelContradicts: count(VERDICT.LABEL_CONTRADICTS_REF),
       behind: count(VERDICT.BEHIND),
       unresolved: count(VERDICT.UNRESOLVED),
+      currencyUnknown: rows.filter((r) => r.currencyUnknown).length,
     },
   };
 }
 
+/** Every blocking label condition, as one number. */
+export function labelProblems(counts) {
+  return counts.labelDisagrees + counts.labelMissing + counts.labelContradicts;
+}
+
 /**
- * The exit code, and the SPLIT is the decision ADR 0053 exists to record.
+ * The exit code. **The ordering here is a correction review wave 1 forced, and it is worth reading.**
  *
- * **2 (refusal) outranks everything.** A lookup that could not be performed proves nothing, and a run that
- * passes because it could not reach the registry is worse than no run. Same discipline as the vendor watch.
+ * **1 (a label problem) outranks 2 (a refusal).** The first version had it the other way round, on the
+ * reasoning that "a refusal is never a pass". That reasoning is right about a run which proved NOTHING and
+ * wrong about a run which proved a DEFECT. And the difference was reachable, not theoretical:
+ * `release-ready` makes code 2 overridable with `--allow-vendor-unreachable`, so one wrong label plus one
+ * unrelated 503 collapsed to exit 2 and a network reason string waved the wrong label straight through -
+ * directly contradicting ADR 0053's own claim that no reason can excuse a disagreeing label. A known defect
+ * is now reported as a known defect, at an exit code nothing can override.
  *
- * **1 for a LABEL problem only.** A wrong, missing or contradictory label is a defect in THIS repository:
- * its own file says something untrue about its own supply chain, the author can fix it alone, and shipping
- * it means every reviewer reads a misleading line.
+ * **2 for a refusal**, when that is the only thing wrong: a lookup that did not happen proves nothing, and
+ * a run that passes because it could not reach the registry is worse than no run.
  *
  * **BEHIND never affects the exit code.** A pin falling behind is not a defect here; it is news about
  * somebody else's release. Blocking on it would let an upstream release stop this repository's release, on
@@ -200,8 +266,8 @@ export function buildReport(pins, resolveFor) {
  * that failure mode and this must not import it. `BEHIND` is reported loudly and gates nothing.
  */
 export function exitCodeFor(report) {
+  if (labelProblems(report.counts) > 0) return 1;
   if (report.counts.unresolved > 0) return 2;
-  if (report.counts.labelDisagrees + report.counts.labelMissing + report.counts.labelContradicts > 0) return 1;
   return 0;
 }
 
@@ -218,23 +284,33 @@ const SYMBOL = {
 export function renderReport(report) {
   const lines = ["action-pin-watch", ""];
   for (const r of report.rows) {
-    lines.push(`${SYMBOL[r.verdict]} ${r.file}:${r.line}  ${r.action}@${r.ref.slice(0, 12)}${r.ref.length > 12 ? "..." : ""}  [${r.verdict}]`);
+    const shortRef = r.ref.length > 12 ? `${r.ref.slice(0, 12)}...` : r.ref;
+    lines.push(`${SYMBOL[r.verdict]} ${r.file}:${r.line}  ${r.action}@${shortRef}  [${r.verdict}]`);
     lines.push(`     ${r.detail}`);
   }
   const c = report.counts;
   lines.push("");
   lines.push(
-    `${c.total} pins: ${c.ok} ok, ${c.labelDisagrees + c.labelMissing + c.labelContradicts} label problem(s), ${c.behind} behind (advisory), ${c.unresolved} unresolved.`
+    `${c.total} pins: ${c.ok} ok, ${labelProblems(c)} label problem(s), ${c.behind} behind (advisory), ${c.unresolved} unresolved.`
   );
   const exit = exitCodeFor(report);
-  if (exit === 2) {
+  if (exit === 1) {
+    lines.push(
+      "A pin's LABEL disagrees with what its REF resolves to. Correct the comment; do not change the SHA to match the comment."
+    );
+  } else if (exit === 2) {
     lines.push("REFUSAL: a pin could not be resolved. This is never a pass - fix the lookup, then re-run.");
-  } else if (exit === 1) {
-    lines.push("A pin's LABEL disagrees with what its REF resolves to. Correct the comment; do not change the SHA to match the comment.");
   } else if (c.behind > 0) {
-    lines.push("Every label agrees with its ref. The 'behind' rows above are advisory and block nothing.");
+    lines.push("Every label is accurate. The 'behind' rows above are advisory and block nothing.");
   } else {
-    lines.push("Every label agrees with its ref, and every pin is on its action's current major.");
+    lines.push("Every label is accurate.");
+  }
+  // Never claim currency that was not checked. The first version printed "every pin is on its action's
+  // current major" after a lookup failure, asserting the exact fact it had just failed to establish.
+  if (c.currencyUnknown > 0) {
+    lines.push(
+      `Currency was NOT checked for ${c.currencyUnknown} pin(s), so "behind" is not a complete answer for this run.`
+    );
   }
   return lines.join("\n");
 }
