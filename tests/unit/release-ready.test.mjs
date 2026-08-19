@@ -225,7 +225,14 @@ test("R4: a job that runs the aggregate outlives EVERY gate timing out inside it
   //
   // Asserted as arithmetic rather than fixed by hand, so the two numbers cannot drift apart again: the job
   // must outlast every gate hanging at once.
-  const worstCaseMs = GATES.length * GATE_TIMEOUT_MS;
+  // The job budget is NOT spent on gates alone, and the first version of this assertion pretended it was -
+  // third-round review, S3. Before `release-ready.mjs` starts, `publish-npm.yml:prepare` runs a
+  // `fetch-depth: 0` checkout, setup-node, four verifier scripts, a second checkout, `npm ci` and the full
+  // suite (1342 tests, over a minute locally and more on a hosted runner). Comparing the job cap against
+  // the gate total alone left that entire preamble unbudgeted, so the correlated case could still cancel
+  // the job before `renderSummary` printed - losing the exact diagnostic this arithmetic exists to keep.
+  const PREAMBLE_ALLOWANCE_MS = 20 * 60_000;
+  const worstCaseMs = GATES.length * GATE_TIMEOUT_MS + PREAMBLE_ALLOWANCE_MS;
   const dir = path.join(REPO, ".github", "workflows");
   const running = [];
   for (const name of readdirSync(dir).filter((n) => n.endsWith(".yml"))) {
@@ -239,7 +246,8 @@ test("R4: a job that runs the aggregate outlives EVERY gate timing out inside it
       assert.ok(
         job["timeout-minutes"] * 60_000 > worstCaseMs,
         `${name}:${jobId} caps at ${job["timeout-minutes"]}m, but ${GATES.length} gates can hang for ` +
-          `${worstCaseMs / 60_000}m in total, so the job dies before the aggregate can report why`
+          `${(GATES.length * GATE_TIMEOUT_MS) / 60_000}m on top of a ${PREAMBLE_ALLOWANCE_MS / 60_000}m ` +
+          `checkout-install-test preamble, so the job dies before the aggregate can report why`
       );
     }
   }

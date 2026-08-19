@@ -24,8 +24,8 @@ import {
   exitCodeFor,
   renderReport,
 } from "../../scripts/lib/action-pin-watch.mjs";
-import { pinSourceFiles, getJson, FETCH_TIMEOUT_MS, EXIT_MISCONFIGURED } from "../../scripts/action-pin-watch.mjs";
-import { GATES, summarize, gateBlocks, overrideApplies } from "../../scripts/lib/release-ready.mjs";
+import { pinSourceFiles, getJson, FETCH_TIMEOUT_MS, EXIT_MISCONFIGURED, RUN_DEADLINE_MS } from "../../scripts/action-pin-watch.mjs";
+import { GATES, GATE_TIMEOUT_MS, summarize, gateBlocks, overrideApplies } from "../../scripts/lib/release-ready.mjs";
 
 const SELF = fileURLToPath(import.meta.url);
 const REPO_ROOT = path.resolve(path.dirname(SELF), "../..");
@@ -483,19 +483,65 @@ test("R1: a contradicting label on a tag ref is still caught, so the fix did not
   assert.equal(evaluatePin(tagPin("v4", "v7.0.0"), {}).verdict, VERDICT.LABEL_CONTRADICTS_REF);
 });
 
+test("S1: an incidental `to` in prose does not outrank an explicit supersession marker", () => {
+  // Third-round review, 2026-08-19. R1's forward-marker rule short-circuited the supersession rule: it took
+  // the first token after the LAST `to`/`now`/`->` anywhere in the comment and returned before the
+  // supersession filter ever ran. So any ordinary English `to` beat a `was` sitting directly in front of the
+  // old version - reintroducing the very false-LABEL_DISAGREES class R1 was written to remove, at exit 1.
+  //
+  // The rule that fixes it: a forward marker only counts when it forms a TIGHT transition, meaning the text
+  // between two version tokens is the marker and punctuation and nothing else. A real transition is written
+  // tightly (`from A to B`); prose that happens to mention an old version is not.
+  assert.equal(versionInComment("v4.37.7 pinned 2026-08-16 (needed to keep node 22, was v4.36.0)"), "v4.37.7");
+  assert.equal(versionInComment("v2.0.0 pinned; do not downgrade to v1.9.9"), "v2.0.0");
+  assert.equal(versionInComment("v4.37.7 pinned 2026-08-16; see #123 for how to migrate from v3.0.0"), "v4.37.7");
+});
+
+test("S1: and the tight transition shapes still win, so the fix did not just delete rule 1", () => {
+  assert.equal(versionInComment("bumped from v4.37.6 to v4.37.7"), "v4.37.7");
+  assert.equal(versionInComment("renovate: from v2 to v3.0.2"), "v3.0.2");
+  assert.equal(versionInComment("was v3, now v4 pinned 2026-08-16"), "v4");
+  assert.equal(versionInComment("v3.0.0 -> v4.0.0"), "v4.0.0");
+  assert.equal(versionInComment("upgrade to v4.1.1 from v3.0.0"), "v4.1.1");
+});
+
+test("S4: the ambiguity note says which token was read and why, not a position it no longer uses", () => {
+  // Third-round review. The string still read "the last is read as the claim" while the code reported the
+  // FIRST - output misdescribing its own decision, which is the class this repository names as a defect.
+  const r = evaluatePin(shaPin("v4.1.1 pinned 2026-08-16; replaces v3.0.0"), { resolvedVersions: ["v9.0.0"] });
+  assert.equal(r.verdict, VERDICT.LABEL_DISAGREES);
+  assert.ok(r.detail.includes("v4.1.1") && r.detail.includes("v3.0.0"), "both tokens are still listed");
+  assert.doesNotMatch(r.detail, /the last is read as the claim/, "it must not name a rule the code does not use");
+  assert.match(r.detail, /read as the claim/, "it must still say which one it read");
+});
+
 test("R1: THE INVARIANT - the claim is computed without ever looking at what the ref resolves to", () => {
   // The obvious repair for this finding is to prefer whichever token happens to match the resolved tags.
   // That is the trap `F3` was: a rule that picks the matching answer can never disagree, so it would pass
   // a comment saying "bumped to v4.37.7" against a SHA that never moved off v4.37.6 - the exact Dependabot
   // drift this whole check exists to catch. The claim is a fact about the COMMENT alone.
+  // The first version of this test looped over four resolutions and never USED the loop variable - four
+  // identical `parsePins` assertions against a function that takes no resolution at all. It proved nothing,
+  // and it would not have caught the very change it exists to forbid. Third-round review found it, and it
+  // is the same vacuous-test class `F2`'s finding named. The loop now runs each resolution through
+  // `evaluatePin`, which is where a resolution could actually leak into the claim.
   const comment = "bumped from v4.37.6 to v4.37.7";
   assert.equal(versionInComment(comment), "v4.37.7", "the claim does not depend on the resolution");
-  for (const resolvedVersions of [["v4.37.6"], ["v4.37.7"], ["v4.37.6", "v4.37.7"], []]) {
-    assert.equal(parsePins(`      uses: a/b@${"a".repeat(40)} # ${comment}`, "w.yml")[0].claimed, "v4.37.7");
+  for (const resolvedVersions of [["v4.37.6"], ["v4.37.7"], ["v4.37.6", "v4.37.7"], ["v9.9.9"]]) {
+    const r = evaluatePin(shaPin(comment), { resolvedVersions });
+    assert.ok(
+      r.detail.includes("v4.37.7"),
+      `the claim moved to fit the resolution ${JSON.stringify(resolvedVersions)}: ${r.detail}`
+    );
   }
-  // ...and the drift is still reported, which is the point of the invariant.
+  // The empty resolution is deliberately outside that loop: it produces UNRESOLVED, a verdict about the
+  // LOOKUP rather than about the label, so it quotes no claim and asserting one would be asserting nothing.
+  assert.equal(evaluatePin(shaPin(comment), { resolvedVersions: [] }).verdict, VERDICT.UNRESOLVED);
+  // ...and the drift is still reported, which is the point of the invariant: a claim chosen to match would
+  // have turned this exact case green.
   const stale = evaluatePin(shaPin(comment), { resolvedVersions: ["v4.37.6"] });
   assert.equal(stale.verdict, VERDICT.LABEL_DISAGREES);
+  assert.ok(stale.detail.includes("comment says v4.37.7"), "it must report the claim it read, not the match");
 });
 
 // --- R2: the FLOATS escape hatch offered advice that fails the next check ---
@@ -714,6 +760,24 @@ test("F10: a 429 and a 5xx are retried; a 404 is a definitive answer and is not"
   const gone = scriptedFetch([{ status: 404 }]);
   await assert.rejects(() => getJson("https://x/y", { fetchImpl: gone.fetch, delayMs: 0 }), /404/);
   assert.equal(gone.calls.length, 1, "retrying a 404 cannot change the answer, and spends the rate limit");
+});
+
+test("S2: the watch bounds its OWN run, below the harness timeout that would otherwise kill it", () => {
+  // Third-round review. Bounding each REQUEST does not bound the RUN: 1 releases/latest + TAG_PAGE_CAP tag
+  // pages per action, at FETCH_TIMEOUT_MS x two attempts each, is about 4.8 minutes per action, and this
+  // repository pins 8 distinct actions sequentially - a 38-minute worst case under a 5-minute gate timeout.
+  //
+  // The composition is what made it serious. A harness kill sets status null, which maps to SPAWN_FAILED,
+  // which is deliberately NOT overridable - so a slow registry, the exact case `--allow-vendor-unreachable`
+  // exists for, arrived as a non-overridable block. A tool that runs out of its OWN time must report a
+  // refusal (exit 2, overridable); the harness timeout is the backstop for a wedged process, so it has to
+  // sit ABOVE the tool's own deadline or it fires first and the distinction is lost.
+  assert.ok(RUN_DEADLINE_MS > 0);
+  assert.ok(
+    GATE_TIMEOUT_MS > RUN_DEADLINE_MS,
+    `the harness timeout (${GATE_TIMEOUT_MS}ms) must outlast the watch's own deadline (${RUN_DEADLINE_MS}ms), ` +
+      `or an outage is killed rather than refused, and a kill cannot be overridden`
+  );
 });
 
 test("F10: every request carries an abort signal, so a hung connection cannot hang the gate", async () => {
