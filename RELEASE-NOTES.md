@@ -64,6 +64,37 @@ yours.
 This runs on our own workflows. It is not a new requirement laid on your plugin and it adds no check to the
 Standard.
 
+### Also in this release: three skills that keep the toolkit current with the agents
+
+This release was prepared for the two graduations above. While it was held for sign-off, two more pieces
+landed, and they ship here rather than waiting.
+
+**`askit-capability-whats-new`** surveys what the agent platforms shipped since you last looked - Claude
+Code, Cowork, Codex, and the upstream spec - and writes a dated record. It **decides nothing**, and it
+**pins a version rather than a date**, so "everything since 2.1.208" is exact and anyone can re-derive it.
+
+**`askit-capability-gap-analysis`** takes a finding and asks what it means for your capability matrix, the
+Standard, and the components you ship. It **proposes** a matrix update, a backlog entry or an ADR draft,
+and implements none of them.
+
+With the existing `askit-capability-advisor` they form a family sharing one capability matrix, and they
+read as the sequence they are: **what shipped, what it means for us, what we tell an author.**
+
+It is worth saying why this is a periodic human survey and not an automated alarm. Measured while building
+it: one platform moved through **29 versions inside a single changelog window**, and another carried **31
+entries**. An alarm firing weekly on entries that almost never matter teaches its reader to close it
+unread - and then the alarm is worse than nothing, because its existence reads as assurance.
+
+**Nothing here is a new requirement on your plugin.** No check was added, and the spine is unchanged.
+
+### One documentation fix worth calling out
+
+`docs/reference/universal-checks.md`, the Bronze reference page, **had stopped at `U13`** - missing `U14`,
+`U15`, `U16` and `U17` across two releases. The README correctly said 34 checks the whole time, because
+that number is machine-guarded and the table it points at was not. **If you have used that page to
+understand the Universal floor, re-read it**: it now describes every check, including the two graduating
+in this release.
+
 ### What did not change
 
 The spine is still **34 checks**. No check was added, none was removed, and **no member of our reference

@@ -9,6 +9,19 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [1.15.0] - 2026-08-18
+**Standard 0.14 to 0.15.** Two windowed requirements graduate from `warn` to gate-failing `error`, and a
+fifth release gate closes a class of defect this repository had caught three times by eye and never once by
+a machine. **No family verdict moves, and no plugin sees a new gate failure without re-pinning.**
+
+**The scope grew after the release was prepared, and this section says so rather than pretending it did
+not.** The cut commit carried the Standard 0.15 graduations and `action-pin-watch`. While the tag was
+withheld for sign-off, two more bodies of work merged to `main`: the documentation-hygiene fixes below, and
+the three-skill capability family. Both are folded in here rather than deferred, following the v1.14.0
+precedent where the withheld window's own findings shipped in that release instead of a follow-up patch.
+The release-plan packet keeps its original narrower statement of intent and carries a dated note; it is not
+rewritten to look as though this was always the plan.
+
 ### Added
 
 - **Two skills that close the gap no watch can cover, and the ADR behind them.** `askit-capability-whats-new`
@@ -44,40 +57,6 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   that produced these skills rather than written as a placeholder. It is honestly partial: Codex's version
   range was not read end to end, and its pin records `null` rather than a guess, so the next survey has a real
   floor instead of a false one.
-
-### Fixed
-
-- **The capability matrix claimed a version pin and recorded no version.** Its closing section read "the
-  matrix is pinned to specific agent versions" while no version, date or verification note appeared anywhere
-  in the file - **a currency claim with no currency evidence**, the same defect class as a pinned SHA whose
-  comment nobody re-checked. It now carries the agents, versions, dates and method it was confirmed against.
-
-- **The capability matrix did not model Cowork, and two shipped checks already accommodate it.** `U6`
-  (`reference-links`) skips Cowork's `computer:` local-artifact scheme and `U11` (`mcp-valid`) tolerates its
-  managed-connector pattern, so **the gate modelled an agent the matrix did not**. Cowork now has its own
-  section, including the uncomfortable half: a survey of its changelog found **no mention of the `computer:`
-  scheme at all**, so both assumptions currently rest on undocumented behaviour.
-
-### Discovered
-
-- **`E46`: the Standard defines a list-valued `metadata` key that cannot be declared without failing validator
-  parity.** Found by the gating parity harness while authoring these skills, which are **the first components
-  in this library to declare a list-valued `metadata` key** - which is why it had never surfaced.
-
-  Sec 3.7 defines `agent-targets` and types it *(list)*. Declaring it produces a blocking `metadata-parity`
-  MISMATCH (`ours=["claude-code","codex"]` vs `reference="['claude-code', 'codex']"`) in a section with **no
-  documented-exception path**, so a component conforming to sec 3.7 fails a gating harness. Separately, the
-  reference parser rejects YAML **flow** sequences outright (*"Found ugly disallowed JSONesque flow mapping"*),
-  so the compact spelling fails validation while the block spelling passes and then trips parity instead.
-
-  **Both new skills omit `agent-targets` as a workaround, not a fix.** The metadata is genuinely useful for
-  these two and was dropped to keep a gating harness honest rather than because it was wrong. Filed with
-  options and a measure-first instruction rather than a chosen remedy.
-
-## [1.15.0] - 2026-08-18
-**Standard 0.14 to 0.15.** Two windowed requirements graduate from `warn` to gate-failing `error`, and a
-fifth release gate closes a class of defect this repository had caught three times by eye and never once by
-a machine. **No family verdict moves, and no plugin sees a new gate failure without re-pinning.**
 
 ### Changed
 
@@ -190,6 +169,31 @@ a machine. **No family verdict moves, and no plugin sees a new gate failure with
   example at `agent-skills-toolkit@v1.11.0`, three releases stale, in the repository that grades others on
   currency.
 
+- **The capability matrix claimed a version pin and recorded no version.** Its closing section read "the
+  matrix is pinned to specific agent versions" while no version, date or verification note appeared anywhere
+  in the file - **a currency claim with no currency evidence**, the same defect class as a pinned SHA whose
+  comment nobody re-checked. It now carries the agents, versions, dates and method it was confirmed against.
+
+- **The capability matrix did not model Cowork, and two shipped checks already accommodate it.** `U6`
+  (`reference-links`) skips Cowork's `computer:` local-artifact scheme and `U11` (`mcp-valid`) tolerates its
+  managed-connector pattern, so **the gate modelled an agent the matrix did not**. Cowork now has its own
+  section, including the uncomfortable half: a survey of its changelog found **no mention of the `computer:`
+  scheme at all**, so both assumptions currently rest on undocumented behaviour.
+
+- **The public check reference stopped at `U13`, and the narrative history stopped at v1.13.0.**
+  `docs/reference/universal-checks.md` is the Bronze reference a plugin author reads to find out what the
+  Universal floor requires, and its table was missing `U14`, `U15`, `U16` and `U17` - four checks across two
+  releases - while its frontmatter still said "Twelve checks (U1-U9, U11-U13)".
+
+  **Meanwhile `README.md`, `architecture.md` and `frontmatter-taxonomy.md` all correctly said 34 checks**,
+  because `check-readme-version` guards the spine SIZE. So a reader followed an accurate count to a table
+  that ended four checks early, and nothing could notice: **the number was machine-guarded and the content
+  it pointed at was not.** The four rows are written from the registry's own metadata rather than from
+  memory, and the burndown paragraph now names every graduation including the two in this release.
+
+  `docs/internal/RELEASE-HISTORY.md`, which `STATUS.md` designates as the readable through-line, was two
+  releases behind. v1.14.0 and v1.15.0 added, with their timeline rows.
+
 ### Verified
 
 - **Both graduations measured across pins 0.14 / 0.15 / 0.16**, with the 0.14 column unchanged from before
@@ -222,6 +226,22 @@ a machine. **No family verdict moves, and no plugin sees a new gate failure with
   and the check read only whichever the registry listed first. **That is the failure mode this repository
   grades other tools on.** Corrected: this repository has zero label defects. Full record in ADR 0053.
 - **The suite reported 1,281 passing and zero failures while every one of those defects was live.**
+
+### Discovered
+
+- **`E46`: the Standard defines a list-valued `metadata` key that cannot be declared without failing validator
+  parity.** Found by the gating parity harness while authoring these skills, which are **the first components
+  in this library to declare a list-valued `metadata` key** - which is why it had never surfaced.
+
+  Sec 3.7 defines `agent-targets` and types it *(list)*. Declaring it produces a blocking `metadata-parity`
+  MISMATCH (`ours=["claude-code","codex"]` vs `reference="['claude-code', 'codex']"`) in a section with **no
+  documented-exception path**, so a component conforming to sec 3.7 fails a gating harness. Separately, the
+  reference parser rejects YAML **flow** sequences outright (*"Found ugly disallowed JSONesque flow mapping"*),
+  so the compact spelling fails validation while the block spelling passes and then trips parity instead.
+
+  **Both new skills omit `agent-targets` as a workaround, not a fix.** The metadata is genuinely useful for
+  these two and was dropped to keep a gating harness honest rather than because it was wrong. Filed with
+  options and a measure-first instruction rather than a chosen remedy.
 
 ## [1.14.0] - 2026-08-16
 
