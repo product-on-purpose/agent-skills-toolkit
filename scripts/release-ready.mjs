@@ -22,9 +22,12 @@ const REPO = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const USAGE = `Usage: node scripts/release-ready.mjs [options]
 
   --allow-vendor-unreachable <reason>
-                        excuse vendor-watch exit 2 ONLY - a vendor page that could not be FETCHED - and
-                        record the stated reason in the output. Exit 1 (a claim is gone or stale) is never
-                        overridable: overriding it would publish the false claim the watch exists to catch.
+                        excuse exit 2 ONLY, on the gates that declare it overridable (vendor-watch and
+                        action-pins) - something that could not be READ, a vendor page or an action
+                        registry - and record the stated reason in the output. Exit 1 is NEVER overridable
+                        on any gate: for vendor-watch it means a claim is gone or stale, and for
+                        action-pins it means a pin's label disagrees with what its ref resolves to.
+                        Overriding either would ship the false statement the gate exists to catch.
   --json                emit the machine summary instead of the human table
   -h, --help            this message
 
