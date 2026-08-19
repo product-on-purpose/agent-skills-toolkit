@@ -30,6 +30,15 @@ defects were found that neither adversarial review wave could have caught.
 
 **Standard 0.14 to 0.15. Spine stays 34. No check was added or removed, and no family verdict moved.**
 
+**The scope grew after the cut commit, and the tag carries all of it.** The release was prepared for the
+two graduations and `action-pin-watch`. While it was withheld for sign-off, two more bodies of work merged
+to `main` and are folded in rather than deferred: the documentation-hygiene fixes (`universal-checks.md`
+had stopped at `U13`; `RELEASE-HISTORY.md` was two releases behind) and the **three-skill capability
+family** with [ADR 0054](decisions/0054-a-component-records-what-agent-version-it-was-checked-against.md).
+Skills 24 to 26. The deciding argument was ordering: v1.16.0 relocates `vendor-claims.json`, which
+`release-ready` reads as one of its five gates, and rebuilding the machine that certifies releases
+underneath a certified release is the wrong sequence.
+
 | What | Where |
 | --- | --- |
 | The two graduations (`S3` workflow mirror, `U17`) | ADR 0047 correction + ADR 0052 addendum, both dated |

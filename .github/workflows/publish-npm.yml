@@ -221,8 +221,17 @@ jobs:
       # the README drift guard, the release-count guard and vendor-watch. npm is the one surface a consumer
       # cannot un-install from, so a claim the vendor has stopped making must not get this far: exit 1 from
       # vendor-watch blocks the publish and there is no override on this path (review wave 2, H2).
-      - name: Release-ready gates (conformance, README drift, release counts, vendor-watch)
+      # GITHUB_TOKEN is exported deliberately. `action-pin-watch`, the fifth gate, resolves every
+      # `uses:` pin against the GitHub API; unauthenticated that is 60 requests an hour per IP, and a
+      # shared runner's egress IP is shared with every other tenant on it. The check treats a rate limit
+      # as a REFUSAL (exit 2) rather than a pass, which is correct - and would block the very tag this
+      # job exists to certify. Authenticated the limit is 1000/hour. Measured 2026-08-19 by a
+      # throwaway-branch drill: the unauthenticated job PASSED on that runner, so this is a latent risk
+      # rather than a reproduced failure, and the mitigation is free.
+      - name: Release-ready gates (conformance, README drift, release counts, vendor-watch, action-pins)
         working-directory: candidate
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
         run: node scripts/release-ready.mjs
 
       - name: Conformance gate (the prover proves itself before it ships)
