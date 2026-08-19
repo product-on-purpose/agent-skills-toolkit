@@ -17,7 +17,7 @@
 | Standard pin | **0.15** |
 | Spine | 34 checks |
 | Scopes | 3 (plugin, component, marketplace) |
-| Skills | 24 |
+| Skills | **26** (24 + the capability family, merged after the v1.15.0 cut commit) |
 | Tests | 1292, 0 failures (local suite run 2026-08-18; both halves confirmed by `npm run release-ready` exiting 0) |
 | Self-proving | `node scripts/check.mjs .` exits 0 at Advanced, 0 errors, 0 warnings |
 
