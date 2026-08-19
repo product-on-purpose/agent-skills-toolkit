@@ -21,7 +21,7 @@ Most skill collections are a flat, single-agent, ungoverned pile. This is the St
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-Apache--2.0-blue?style=flat-square" alt="License: Apache-2.0"></a>
   <img src="https://img.shields.io/badge/version-1.15.0-blue?style=flat-square" alt="Version 1.15.0">
   <a href="https://product-on-purpose.github.io/agent-skills-toolkit/badges/tier.json"><img src="https://img.shields.io/endpoint?url=https%3A%2F%2Fproduct-on-purpose.github.io%2Fagent-skills-toolkit%2Fbadges%2Ftier.json&style=flat-square" alt="Tier badge, generated in CI at the graded commit sha - click through for the raw JSON (tier, sha, Standard pin, date)"></a>
-  <a href="#the-catalog"><img src="https://img.shields.io/badge/skills-24-brightgreen?style=flat-square" alt="Skills: 24"></a>
+  <a href="#the-catalog"><img src="https://img.shields.io/badge/skills-26-brightgreen?style=flat-square" alt="Skills: 26"></a>
   <img src="https://img.shields.io/badge/checks-34-brightgreen?style=flat-square" alt="Validation checks: 34">
   <a href="https://agentskills.io/specification"><img src="https://img.shields.io/badge/spec-agentskills.io-orange?style=flat-square" alt="Agent Skills Spec"></a>
 </p>
@@ -288,7 +288,7 @@ Invoke `askit-evaluate` (or run `node scripts/check.mjs`) at any point to see th
 
 ## The catalog
 
-**24 skills, 7 subagents, 2 commands** on disk. Skills carry the `askit-` prefix and emit for both agents unless a one-liner notes a Claude-only output; subagents and commands are Claude-only. Full per-component reference lives in [`docs/reference/`](docs/reference/) and on the [live docs site](https://product-on-purpose.github.io/agent-skills-toolkit/); [`INDEX.md`](INDEX.md) is the generated map.
+**26 skills, 7 subagents, 2 commands** on disk. Skills carry the `askit-` prefix and emit for both agents unless a one-liner notes a Claude-only output; subagents and commands are Claude-only. Full per-component reference lives in [`docs/reference/`](docs/reference/) and on the [live docs site](https://product-on-purpose.github.io/agent-skills-toolkit/); [`INDEX.md`](INDEX.md) is the generated map.
 
 ### Authoring (11)
 
@@ -393,7 +393,7 @@ The Claude slash commands that give the core flows an explicit `/command` entry 
 - **Version** - `1.15.0` (Standard `v0.15`).
 - **Tier** - Advanced (Gold), self-validated.
 - **Install** - `product-on-purpose` marketplace (`agent-plugins`).
-- **Components** - 24 skills, 7 subagents, 2 commands.
+- **Components** - 26 skills, 7 subagents, 2 commands.
 - **Validation spine** - 34 checks (`U1-U9`, `U11-U17`, `S1-S8`, `G1-G10`), graded against the Standard version a plugin PINS: a requirement introduced or tightened after your pin is surfaced as Standard debt, never a gate failure, until you adopt it.
 - **Evaluation scopes** - 3: one plugin, one component, or a whole `marketplace.json` catalogue ([marketplace scope](docs/reference/marketplace-scope.md)).
 - **Agents** - Claude Code and Codex; agentskills.io-compatible at Bronze.

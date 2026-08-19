@@ -26,6 +26,8 @@ Reference material: one page per askit-* skill plus the per-tier conformance-che
 - `askit-build-subagent.md` - the "askit build subagent" page.
 - `askit-build-workflow.md` - the "askit build workflow" page.
 - `askit-capability-advisor.md` - the "askit capability advisor" page.
+- `askit-capability-gap-analysis.md` - the gap-analysis skill: what a new agent capability means for the capability matrix, the Standard and every component a plugin ships. Proposes a matrix update, a backlog entry or an ADR draft; implements none of them.
+- `askit-capability-whats-new.md` - the capability survey skill: what the agent platforms shipped since you last looked, diffed forward from a recorded version pin and written up as a dated record. Discovers and documents; decides nothing.
 - `askit-decision.md` - the "askit decision" page.
 - `askit-deprecate.md` - the "askit deprecate" page.
 - `askit-evaluate.md` - the "askit evaluate" page.

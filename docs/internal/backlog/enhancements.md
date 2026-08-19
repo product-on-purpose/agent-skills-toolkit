@@ -212,6 +212,35 @@ That made G8's requirement of a folder README in `agents/` actively harmful: bot
 
 **Worth reading for the lesson:** `docs/internal/release-plans/plan_v1.1.0/P4-folder-readme/SPEC.md` line 194 records that this toolkit already hit this bug once. "Adding `agents/README.md` exposed that the subagent/command enumeration ... treated every `agents/*.md` as a component, so a folder README became a bogus 'README' subagent." It was fixed "at the single enumeration point: `README.md` is excluded from component discovery everywhere." That fixed the **toolkit's** idea of what an agent is and left the **runtime's** untouched, which is the one that ships. **The `commands/` half is now probed and closed, 2026-08-07.** A probe plugin holding `real-command.md`, `README.md` and `_README.md` in `commands/` was loaded with `claude --plugin-dir` and asked to enumerate its slash commands. It returned **`real-command` only**. Same prompt shape that made the `agents/` probe return all three files, so this is a real behavioral difference and not the model self-filtering: **Claude Code excludes `README.md` from command discovery but not from agent discovery.** `commands/` is safe, `agents/` was not, and the enumeration mismatch in `listCommandFiles` is therefore harmless rather than latent. No action needed. Recorded so nobody re-opens this as a theoretical risk.
 
+### E46 - the Standard defines a list-valued `metadata` key that cannot be declared without failing validator parity  [correctness, effort S, found building the capability family]
+
+- **Target:** `scripts/check-parity.mjs` (the `metadata-parity` section), `STANDARD.md` sec 3.7.
+- **Found by:** authoring `askit-capability-whats-new` and `askit-capability-gap-analysis` on 2026-08-18. They are the **first components in this library to declare a list-valued `metadata` key**, which is why this has never surfaced before.
+
+**The contradiction, in two sentences.** `STANDARD.md` sec 3.7 defines `agent-targets` as a conventional `metadata` key and types it **(list)**. Declaring it on a skill makes `npm run check-parity` report a blocking `metadata-parity` MISMATCH, and that section has **no documented-exception path** - so a component conforming to sec 3.7 fails a gating harness.
+
+**The reproduction, verbatim from the run:**
+
+```
+[MISMATCH] skills/askit-capability-whats-new
+  metadata.agent-targets: coerced-non-string - ours=["claude-code","codex"] reference="['claude-code', 'codex']"
+```
+
+Our loader parses the block sequence into an array. The agentskills.io reference parser returns it as a **Python-repr string**. Both readings are defensible; they simply disagree, and `metadata-parity` correctly reports a disagreement it has no way to adjudicate.
+
+**A second, separate finding from the same session, worth recording because it bites first.** The reference parser rejects YAML **flow** sequences in frontmatter outright:
+
+```
+agent-targets: [claude-code, codex]
+               ^ Found ugly disallowed JSONesque flow mapping
+```
+
+Block-sequence form parses cleanly. So a list-valued key written the compact way fails `claude plugin validate --strict` **and** the reference parser, while the block form passes both and then trips `metadata-parity` instead. Neither failure is documented anywhere a plugin author would look.
+
+- **Why this matters beyond this repository:** `agent-targets` is not exotic. It is one of seven keys sec 3.7 names, it is the natural way to declare cross-agent intent, and `askit-capability-advisor` advises authors about agent targeting. **Any plugin author following the Standard hits this.** The toolkit currently avoids it only because no skill happened to declare the key.
+- **Options, none chosen:** (a) teach `metadata-parity` to compare list values structurally, so a coercion difference on a list is not a mismatch - smallest change, but it edits a gating harness to accept a real disagreement; (b) have sec 3.7 state the block-sequence requirement and document the coercion as known, closing the author-facing half without touching the harness; (c) both. **Measure first:** count how many skills across the pinned corpora declare any list-valued `metadata` key before deciding, per the standing rule that a recommendation depending on a population must count it.
+- **Workaround in force today:** both new skills omit `agent-targets`, matching every other skill in this library. **That is a workaround and not a fix** - the metadata is genuinely useful for these two, and it was dropped to keep a gating harness honest rather than because it was wrong.
+- **Status:** OPEN (recorded 2026-08-18).
 ### E45 - a pinned action's version comment is unchecked, and superseding Dependabot blinds the watcher that would have caught it  [correctness, effort S-M, network-bearing, found triaging Dependabot #224 to #228]
 
 - **Target:** the `uses:` pins across `.github/workflows/*.yml`; a new maintainer-only script under `scripts/`, beside `vendor-watch.mjs` and `release-ready.mjs`. Explicitly **not** `scripts/checks/`, which is the closed spine registry `registry.mjs` imports by name (the same placement reasoning as `release-ready.mjs`, decision 1 of the v1.14.0 cut).

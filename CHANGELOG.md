@@ -9,6 +9,71 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Added
+
+- **Two skills that close the gap no watch can cover, and the ADR behind them.** `askit-capability-whats-new`
+  surveys what the agent platforms shipped since this repository last looked; `askit-capability-gap-analysis`
+  decides what a finding means for the capability matrix, the Standard and every component shipped. With the
+  existing `askit-capability-advisor` they form a family sharing one capability matrix: **what shipped ->
+  what it means for us -> what we tell an author.** Skills 24 to 26.
+
+  **Why a third machine, when two watches already exist.** `standards-watch` and `vendor-watch` both ask *did
+  a fact we already depend on stop being true* - regression detection over things already written down.
+  **Neither can see a capability nobody has recorded**, because a capability with no pin has nothing to fail.
+  No extension of either covers it.
+
+  **The survey pins a VERSION, not a date**, because every surface publishes versioned entries, so
+  "everything after `2.1.208`" is exact and re-derivable by anyone. And it is a periodic human survey rather
+  than an automated diff, on measured grounds: one platform moved through 29 versions inside a single
+  changelog window and another carried 31 entries. An alarm firing weekly on entries that almost never matter
+  trains its reader to close it unread, and then the alarm is itself false assurance - the same reasoning
+  that made `vendor-claims.json` pin sentences instead of hashing pages.
+
+- **[ADR 0054](docs/internal/decisions/0054-a-component-records-what-agent-version-it-was-checked-against.md):
+  `metadata.verified-against`**, a conventional sec 3.7 key mapping agent to the agent version a component was
+  last checked against. **Legal today with no Standard change** (the frontmatter vocabulary is open, ADR 0050),
+  optional at every tier, and **deliberately unchecked**: the useful assertion, that somebody actually read the
+  component, is not machine-checkable, and a check for a field nobody populates measures adoption of the check
+  rather than quality.
+
+  **The governing rule is that STALE IS NOT WRONG.** It powers a report saying *where to look*, never what is
+  broken - and **unknown is not stale**, which matters most on the first run, when every component is unknown
+  and a report rendering 35 unknowns as 35 defects would be judged on exactly that run.
+
+- **The first capability survey**, at `docs/internal/capability-surveys/`, recorded from the verification pass
+  that produced these skills rather than written as a placeholder. It is honestly partial: Codex's version
+  range was not read end to end, and its pin records `null` rather than a guess, so the next survey has a real
+  floor instead of a false one.
+
+### Fixed
+
+- **The capability matrix claimed a version pin and recorded no version.** Its closing section read "the
+  matrix is pinned to specific agent versions" while no version, date or verification note appeared anywhere
+  in the file - **a currency claim with no currency evidence**, the same defect class as a pinned SHA whose
+  comment nobody re-checked. It now carries the agents, versions, dates and method it was confirmed against.
+
+- **The capability matrix did not model Cowork, and two shipped checks already accommodate it.** `U6`
+  (`reference-links`) skips Cowork's `computer:` local-artifact scheme and `U11` (`mcp-valid`) tolerates its
+  managed-connector pattern, so **the gate modelled an agent the matrix did not**. Cowork now has its own
+  section, including the uncomfortable half: a survey of its changelog found **no mention of the `computer:`
+  scheme at all**, so both assumptions currently rest on undocumented behaviour.
+
+### Discovered
+
+- **`E46`: the Standard defines a list-valued `metadata` key that cannot be declared without failing validator
+  parity.** Found by the gating parity harness while authoring these skills, which are **the first components
+  in this library to declare a list-valued `metadata` key** - which is why it had never surfaced.
+
+  Sec 3.7 defines `agent-targets` and types it *(list)*. Declaring it produces a blocking `metadata-parity`
+  MISMATCH (`ours=["claude-code","codex"]` vs `reference="['claude-code', 'codex']"`) in a section with **no
+  documented-exception path**, so a component conforming to sec 3.7 fails a gating harness. Separately, the
+  reference parser rejects YAML **flow** sequences outright (*"Found ugly disallowed JSONesque flow mapping"*),
+  so the compact spelling fails validation while the block spelling passes and then trips parity instead.
+
+  **Both new skills omit `agent-targets` as a workaround, not a fix.** The metadata is genuinely useful for
+  these two and was dropped to keep a gating harness honest rather than because it was wrong. Filed with
+  options and a measure-first instruction rather than a chosen remedy.
+
 ## [1.15.0] - 2026-08-18
 **Standard 0.14 to 0.15.** Two windowed requirements graduate from `warn` to gate-failing `error`, and a
 fifth release gate closes a class of defect this repository had caught three times by eye and never once by
