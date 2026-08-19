@@ -124,3 +124,62 @@ Note the reported `due` is **0.15 at pin 0.13**, where both constraints are acti
 - `tests/unit/registry-sync.test.mjs`, `tests/unit/compatibility-matrix.test.mjs` - the count, and a matrix row naming the wrong implementation it kills: reimplementing the `skills/` predicate instead of importing it, which lets `U17` and the scope router disagree about which manifests are mixed.
 
 Grep anchor: `catalogue-manifest-shape` in `scripts/checks/`, and `looksLikeMarketplaceOfSkills` in `scripts/lib/marketplace/manifest.mjs`.
+
+## Graduation decision, 2026-08-18: `U17` gates at 0.15, and the census still argues against it
+
+**The decision above is unchanged.** This section discharges the obligation the Consequences section
+reserved: *"Whether the graduation should happen at all is a decision for 0.15, with evidence. If the
+census still shows zero mixed and zero malformed manifests when 0.15 is cut, gating a check nothing has
+ever tripped is worth re-examining rather than doing by default. Re-run the manifest census before
+graduating."*
+
+**The census was re-run on 2026-08-18, across the same population: the seven pinned corpora, all six
+family members, and the `agent-plugins` registry.**
+
+| | 2026-08-14 | 2026-08-18 |
+| --- | --- | --- |
+| Manifests at `<root>/.claude-plugin/marketplace.json` | 7 | **7** |
+| of-plugins | 6 | **6** |
+| of-skills | 1 | **1** |
+| **mixed** | **0** | **0** |
+| **malformed** | **0** | **0** |
+| entries with no usable source | not measured separately | **0** |
+
+**Unchanged in every cell. `U17` is still preventive, not corrective, and the re-examination this ADR
+asked for is therefore live rather than pro forma.**
+
+**The decision: graduate at 0.15 anyway.** The reasoning is not that the census was ignored, but that the
+alternative is worse than it appears once stated precisely.
+
+**Nothing in any plan schedules corpus growth**, so the census will read the same at 0.16, and the same
+evidence will defeat graduation again, and again. "Extend the window to 0.16" is therefore not a deferral
+with a terminating condition; it is a decision that `U17` never gates, taken without saying so and without
+the ADR such a decision would need. The two coherent options are **graduate at 0.15** or **demote `U17` to
+permanently advisory**, and the second contradicts the warn-first design this ADR ratified.
+
+Between those two:
+
+- **Graduating costs zero on every measured subject.** Zero `U17` findings across all six family members
+  at their own pins, and zero mixed or malformed manifests in the census population.
+- **Extending protects zero subjects**, for the same reason. Nobody is currently holding the warn.
+- **The only party either choice reaches is a future author of a manifest no tool will read**, and for
+  that author `error` is the honest severity. The finding is not a style preference; it is "nothing will
+  ever look at this file you wrote."
+- **The maintainer's own reasoning from 2026-08-14 applies unchanged**: all three checks landed together
+  in 0.14 rather than staging across two minors because **one migration is cheaper for consumers than
+  two**. Creating a second graduation event for `U17` alone would spend exactly what that decision saved.
+
+**One coverage fact the first census did not record, and it is not a defect.** An eighth `marketplace.json`
+exists in the population, inside a release-plan skeleton directory in `pm-skills`. `U17` never sees it,
+because the check reads exactly `<ctx.root>/.claude-plugin/marketplace.json` and nothing else. That is
+correct and intended behaviour. It is recorded here so the number is read as *"7 manifests `U17`
+inspects"* rather than *"7 manifests exist"*, which is a materially different claim.
+
+**The graduation needs no code change, exactly as this ADR predicted.** `until: "0.15"` is already
+committed in the check module and the ADR 0044 ceiling resolves it. Verified 2026-08-18 by building each
+failing shape at four pins: `warn` at 0.13, `warn` at 0.14, **`error` at 0.15**, and `error` immediately
+for a plugin carrying no pin at all. The human obligation was the 0.15 version note, and this section.
+
+**The reopening condition stays exactly as this ADR wrote it**, and is worth restating because it is now
+the only thing that would reverse this: *"If catalogues mixing kinds turn out to be a real pattern in the
+wild rather than a mistake, this decision is the thing to revisit."*

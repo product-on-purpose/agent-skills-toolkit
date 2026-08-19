@@ -390,7 +390,7 @@ The Claude slash commands that give the core flows an explicit `/command` entry 
 
 **`v1.14.0`, Gold grade, installable.** The repository declares `tier: advanced` and self-validates at Advanced in CI: the full gate is green and `tier-report` prints `advanced` with an empty burndown, so the toolkit is a self-proving example of the Standard it defines. Gold check `G1` (hooks) now grades the toolkit's own demonstrative no-dash `PreToolUse` hook; `G6` (deprecation) is still satisfied without exercise, since the toolkit ships no deprecated components yet. The toolkit installs from the `product-on-purpose` marketplace (see [Install](#install)).
 
-- **Version** - `1.14.0` (Standard `v0.14`).
+- **Version** - `1.14.0` (Standard `v0.15`).
 - **Tier** - Advanced (Gold), self-validated.
 - **Install** - `product-on-purpose` marketplace (`agent-plugins`).
 - **Components** - 24 skills, 7 subagents, 2 commands.

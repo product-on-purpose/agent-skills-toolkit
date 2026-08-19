@@ -97,3 +97,45 @@ There is a second-order fact worth recording, because it will surprise the autho
 - `tests/unit/compatibility-matrix.test.mjs` - a row naming the wrong implementation it kills: shipping the `S3` workflow mirror without finding-level migration metadata, which costs a real family member a tier.
 
 Grep anchor: `listWorkflowFiles` in `scripts/lib/fs-utils.mjs`, and `WORKFLOW_MIRROR_MIGRATION` in `scripts/checks/components-index.mjs`.
+
+## Correction, 2026-08-18: the graduation no longer costs `thinking-framework-skills` nine errors
+
+**The decision above is unchanged and is not amended. Nothing is reverted.** This note corrects one
+FORWARD-LOOKING claim in the Consequences section, which said, in the ADR's own words, that a future
+reader deciding whether to graduate the subrule at 0.15 *"needs to know what graduation will do"* and
+then told that reader it costs `thinking-framework-skills` a tier: Convergent to Universal, errors 1 to
+10, `S3` gated errors 0 to 9.
+
+**That is no longer true, and the reason is the best possible one: the member fixed it.**
+
+| | At the sha the family registry graded (`dbe71d8`) | At `thinking-framework-skills` HEAD (`60aa2a0`) |
+| --- | --- | --- |
+| `_workflows/*.md` on disk | 9 | 9 |
+| `library.json` `components.workflows` | **absent** | **9, names matching disk exactly** |
+| `S3` workflow-mirror findings | 9 | **0** |
+
+The commit is **`fd343dd`, 2026-08-15**: *"feat(workflows): declare the nine recipes, and gate the mirror
+locally."* That is **one day after this ADR was ratified**, and inside the window this ADR created.
+
+**Why this correction matters more than its size.** The nine-error figure was recorded here precisely so
+that the 0.15 graduation decision would be made against a real number rather than a guess. Left standing,
+it would have argued for extending the window to protect a member that no longer needs protecting. Read
+correctly, it argues the opposite and is the strongest evidence available: **a member saw a warning,
+understood it, and discharged it before the deadline.** That is the entire designed behaviour of a
+warn-first migration under sec 7.7, observed end to end for the first time in this repository. Extending a
+window whose subject has already discharged it protects nobody and teaches the next member that the date
+is negotiable.
+
+**Measured 2026-08-18 across the whole family, not just this member:** zero `S3` workflow-mirror findings
+and zero `U17` findings at every member's own pin. The graduation cannot move a verdict anywhere.
+
+**What is deliberately NOT corrected.** `docs/internal/STATUS.md`'s v1.14.0 ADR-pack row still records
+*"9 warns on `thinking-framework-skills`, no verdict moved"*. That is a correctly-dated historical
+measurement of what was true on 2026-08-14 and it stays as written. This ADR's claim needed correcting
+because it was written in the future tense about a decision not yet taken; that row was written in the
+past tense about a measurement already taken.
+
+**Reproduction.** Compare `library.json` `components.workflows` against `_workflows/*.md` at both shas,
+then grade the member with the real gate and filter findings to `reqId` `S3`. Do **not** measure this by
+mutating the pin in memory: `INDEX.md` embeds the Standard pin, so a mutated pin fires `G4` and looks like
+a verdict move that has nothing to do with either graduating check.
