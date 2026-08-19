@@ -5,9 +5,10 @@ title: "v1.15.0 review findings - open, and blocking the tag"
 # v1.15.0 review findings
 
 > **Status, 2026-08-19: ALL FIFTEEN FINDINGS ARE CLOSED**, each with a dated note under its own text -
-> and so are the FIVE further findings a review of that fix code returned, recorded in their own dated
-> section at the end of this file. Two of those five were blocking-class, and one was `F3` recurring
-> inside the fix for `F4`.
+> and so are the FIVE further findings a review of that fix code returned, and the SIX a third round
+> returned over those. Each round has its own dated section at the end of this file. Rounds went 15/8
+> blocking, then 5/2, then 6/0 - **the count is not falling but the severity is**, and every round so far
+> has found defects in the previous round's fix code.
 > This file no longer holds the tag. **Acceptance criterion 6 - a second adversarial wave - remains open** 
 > and is not satisfied by these fixes, by the review that produced these findings, or by any self-review. See the closure ledger below; each closed finding
 > carries a dated note under its own text.
@@ -691,6 +692,14 @@ case. One root cause, three outlets: SHA pins, the `other` branch `F7` added, an
 > resolutions while the stale case still reports `LABEL_DISAGREES`.
 >
 > Mutation-proved in BOTH directions, which is what shows neither half is redundant: reverting to
+
+> last-token turns the mirror-shape test red, reverting to first-token turns the Dependabot test red.
+>
+> **AMENDED 2026-08-19, third round.** The forward-marker half of this rule was itself too loose and is
+> corrected as `S1` below: it took the token after the LAST `to`/`now`/`->` ANYWHERE in the comment, so an
+> ordinary English `to` outranked an explicit `was` sitting directly in front of the old version. **This
+> fix reintroduced the very class it was written to remove**, on a third consecutive round. A forward
+> marker now counts only inside a TIGHT transition.
 > last-token turns the mirror-shape test red, reverting to first-token turns the Dependabot test red.
 
 ## R2 - BLOCKING. The floating-label escape hatch advised a label that would then fail
@@ -741,6 +750,14 @@ gate could not be RUN".
 > aggregate (`publish`, which runs no gates, stays at 20). **The arithmetic is now a test rather than a
 > choice**: both workflows are parsed and each aggregate-running job must satisfy
 > `timeout-minutes * 60000 > GATES.length * GATE_TIMEOUT_MS`. That turns the reviewer's hand calculation
+
+> into a guard, so the two numbers cannot drift apart again.
+>
+> **AMENDED 2026-08-19, third round.** Two corrections, `S2` and `S3` below. The 5-minute gate timeout was
+> BELOW `action-pin-watch`'s own 38-minute worst case, so a slow registry got the gate KILLED - and a kill
+> maps to `SPAWN_FAILED`, which is deliberately non-overridable, turning an outage into a hard block. And
+> the arithmetic asserted here budgeted the gates while ignoring the checkout, `npm ci` and full suite that
+> run before them.
 > into a guard, so the two numbers cannot drift apart again.
 
 ## R5 - The self-reference guard required a leading `v`
@@ -768,3 +785,139 @@ time, including this time.**
 
 **And none of this touches acceptance criterion 6.** Codex adversarial wave 2 has still never run, and no
 self-review, no `/code-review` pass and no fix in this file can satisfy it.
+
+---
+
+# Third round, 2026-08-19: reviewing the fix-code fixes
+
+> **Status: all six CLOSED.** A repository-reading review over `3a1afb6..HEAD` - the PR that closed `R1` to
+> `R5`. Run because the second round's own conclusion said one was owed, and because `R1` had just proved
+> the rule applies to this work.
+
+**Severity is falling even though the count is not**: round 1 returned 15 with **8 blocking**, round 2
+returned 5 with **2 blocking-class**, and this round returned 6 with **0 blocking, 2 medium, 4 low**. No
+finding here blocks a correct pin or lets a defect through silently; the two mediums are a false-finding
+shape and a wrong-layer timeout.
+
+## S1 - MEDIUM. The forward-marker rule reintroduced the class R1 removed
+
+**`scripts/lib/action-pin-watch.mjs`**
+
+`R1`'s rule 1 took the first token after the LAST `to`/`now`/`->` anywhere in the comment, and returned
+before the supersession filter ran. Any incidental `to` in ordinary prose therefore beat an explicit
+marker sitting directly in front of the old version. Reproduced against the shipped code:
+
+```
+"v4.37.7 pinned 2026-08-16 (needed to keep node 22, was v4.36.0)"  -> claim=v4.36.0
+"v2.0.0 pinned; do not downgrade to v1.9.9"                        -> claim=v1.9.9
+"v4.37.7 pinned 2026-08-16; see #123 for how to migrate from v3.0.0" -> claim=v3.0.0
+```
+
+Every one is a correct pin reported as `LABEL_DISAGREES` at exit 1. **Third consecutive round in which a
+fix for the comment parser broke the comment parser in a new way.**
+
+> **CLOSED 2026-08-19.** A forward marker counts only inside a **TIGHT transition**: the text between two
+> version tokens must be the marker and punctuation and nothing else. That is the distinction that
+> actually separates the two populations - a real transition is written tightly (`from A to B`, `was A,
+> now B`, `A -> B`), while prose merely mentioning an older version puts words in between. Verified
+> against all eleven shapes now in the test table, both the ones that must transition and the ones that
+> must not. Mutation-proved: dropping the anchors turns two tests red, including `R1`'s own.
+
+## S2 - MEDIUM. The gate timeout sat below the watch's own worst case, turning an outage non-overridable
+
+**`scripts/lib/release-ready.mjs` with `scripts/action-pin-watch.mjs`**
+
+Arithmetic from the watch's own constants, confirmed by running them: 1 `releases/latest` call plus up to
+`TAG_PAGE_CAP` (6) tag pages per action, each at `FETCH_TIMEOUT_MS` x 2 attempts plus the retry delay, is
+**~4.8 minutes per action**; this repository pins **8 distinct actions** sequentially, for a **38-minute**
+worst case against a `GATE_TIMEOUT_MS` of five.
+
+**The composition is what made it serious, and neither half was wrong on its own.** `F10` gave the harness
+a timeout; `F2` made a harness kill non-overridable. Together, a slow registry - the exact case
+`--allow-vendor-unreachable` exists for - arrives as `SPAWN_FAILED`, blocks, and **cannot be overridden**,
+while the operator is told the process "never started, or was killed".
+
+> **CLOSED 2026-08-19.** **A tool that runs out of its OWN time reports a refusal; a harness kill should
+> mean the process is wedged.** The watch now carries `RUN_DEADLINE_MS` (3 minutes) and stops fetching past
+> it, so unreached pins report `UNRESOLVED` and the run exits **2** - overridable with a stated reason,
+> which is what a slow third party deserves.
+>
+> **The deadline is checked before EVERY request, not merely between actions.** Checking only between them
+> would have left the run bounded by the deadline plus one whole action - another 4.8 minutes - which is
+> long enough to be killed anyway, so the fix would not have fixed it. Caught while doing the arithmetic
+> for `S3` rather than by the reviewer.
+>
+> A test locks the layering: `GATE_TIMEOUT_MS > RUN_DEADLINE_MS`, or an outage is killed rather than
+> refused and the distinction is lost again.
+
+## S3 - The R4 arithmetic budgeted the gates and ignored everything before them
+
+**`tests/unit/release-ready.test.mjs`**
+
+`R4`'s guard asserted `job > GATES.length * GATE_TIMEOUT_MS`, but the job budget is not spent on gates
+alone: `publish-npm.yml:prepare` runs a `fetch-depth: 0` checkout, setup-node, four verifier scripts, a
+second checkout, `npm ci` and the full suite before `release-ready.mjs` starts. The correlated case could
+still cancel the job before `renderSummary` printed, losing the diagnostic the arithmetic exists to keep.
+
+> **CLOSED 2026-08-19.** A stated `PREAMBLE_ALLOWANCE_MS` of 20 minutes is added to the worst case, and the
+> two aggregate-running jobs are raised to 50 minutes so the inequality holds with margin. The failure
+> direction was always safe - the release stayed blocked - so only the diagnostic was at risk, and it is
+> the diagnostic this whole line of work exists to protect.
+
+## S4 - The ambiguity note described a rule the code no longer used
+
+**`scripts/lib/action-pin-watch.mjs`**
+
+The detail string still said *"the last is read as the claim"* while reporting the FIRST:
+
+```
+comment says v4.1.1, the ref resolves to v9.0.0 (the comment names v4.1.1 and v3.0.0; the last is
+read as the claim)
+```
+
+Output misdescribing its own decision, which is the defect class this repository grades others on.
+
+> **CLOSED 2026-08-19.** The note names the token that was actually read. There is no fixed position any
+> more, so naming one was guaranteed to be wrong for half the inputs.
+
+## S5 - A CHANGELOG paragraph lost its subject in the R1 edit
+
+**`CHANGELOG.md`**
+
+Removing "claim is now the LAST token," left a dangling `The` followed by a duplicated `the`, so the
+paragraph no longer stated the claim rule before the next paragraph revised it. **This is shipped prose in
+the npm tarball.**
+
+> **CLOSED 2026-08-19.** Sentence repaired and split, so the F4 paragraph states what it fixed and the
+> paragraph after it states how the rule was later corrected.
+
+## S6 - The R1 invariant loop was vacuous
+
+**`tests/unit/action-pin-watch.test.mjs`**
+
+`for (const resolvedVersions of [...])` never used the loop variable: four identical `parsePins`
+assertions against a function that takes no resolution at all. **It would not have caught the change it
+exists to forbid** - the same vacuous-test class `F2`'s finding named, written by the same hand that had
+just fixed `F2`'s.
+
+> **CLOSED 2026-08-19.** The loop runs each resolution through `evaluatePin`, which is where a resolution
+> could actually leak into the claim, and asserts the reported claim never moves to fit. The empty
+> resolution is asserted separately, because it yields `UNRESOLVED` - a verdict about the lookup rather
+> than the label, which quotes no claim, so folding it into the loop would have made the loop vacuous
+> again in a new way.
+
+## Where this leaves the rounds
+
+| Round | Scope | Findings | Blocking |
+| --- | --- | --- | --- |
+| 1 | `v1.14.0..HEAD` (the release) | 15 | 8 |
+| 2 | the fixes for those 15 | 5 | 2 |
+| 3 | the fixes for those 5 | 6 | 0 |
+
+**Three rounds, and every one found defects in the previous round's fix code.** That is not a reason to
+keep going indefinitely; it is the reason the rule says run another round rather than declare done. What
+has changed is severity, which is the signal worth reading: nothing in round 3 blocks a correct pin or
+lets a defect through silently.
+
+**A fourth round over this diff is owed on the same rule.** And acceptance criterion 6 is untouched by all
+of it: Codex adversarial wave 2 has still never run.

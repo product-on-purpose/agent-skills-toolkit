@@ -174,10 +174,11 @@ rewritten to look as though this was always the plan.
   **`F4` - the comment parser blocked correct pins four ways.** It took the FIRST version token, so
   Dependabot's `bumped from v4.37.6 to v4.37.7` read the superseded version as the claim; it required a
   lowercase `v`, so `0.28.0` (what `aquasecurity/trivy-action` ships) and `V4.37.7` returned nothing at all;
-  and it compared raw strings, so `# v4.37.7` disagreed with a registry tag literally named `4.37.7`. The
-  the `v` is optional and case-insensitive, and comparison is normalised on both sides. **A bare number must
-  still carry a dot**, which is what keeps the `2026-08-16` in this repository's own comment format from
-  being read as version 2026.
+  and it compared raw strings, so `# v4.37.7` disagreed with a registry tag literally named `4.37.7`.
+
+  The `v` is now optional and case-insensitive, and comparison is normalised on both sides. **A bare number
+  must still carry a dot**, which is what keeps the `2026-08-16` in this repository's own comment format
+  from being read as version 2026.
 
   **Which token is the claim is decided by the words between the versions, not by position** - and getting
   that wrong twice is the most instructive thing in this release. The first rule took the FIRST token and

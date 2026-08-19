@@ -89,8 +89,21 @@ export function versionsInComment(comment) {
   return [...comment.matchAll(VERSION_TOKEN)].map((m) => m[0]);
 }
 
-/** `to`, `now`, `->`, `=>`: what follows one of these is the version the pin is at NOW. */
-const FORWARD_MARKER = /\b(?:to|now)\b|->|=>/gi;
+/**
+ * A TIGHT transition between two adjacent version tokens: the text between them is a forward marker and
+ * punctuation, and nothing else. ` to `, `, now `, ` -> `.
+ *
+ * "Tight" is the whole correction from the third review round. R1's first rule took the token after the
+ * LAST `to`/`now`/`->` anywhere in the comment, so an ordinary English `to` outranked an explicit `was`
+ * sitting directly in front of the old version: `v4.37.7 pinned 2026-08-16 (needed to keep node 22, was
+ * v4.36.0)` claimed v4.36.0, a false LABEL_DISAGREES at exit 1 on a correct pin. That is the exact class R1
+ * itself was written to remove, reintroduced by R1's own fix.
+ *
+ * The distinction that holds: a real version transition is written TIGHTLY - `from A to B`, `was A, now B`,
+ * `A -> B` - while prose that merely mentions an older version puts words in between. Anchored at both
+ * ends, so it can only ever match a complete gap.
+ */
+const TIGHT_TRANSITION = /^[\s,;:()[\]-]*(?:to|now|->|=>)[\s,;:()[\]-]*$/i;
 
 /** `from`, `was`, `replaces`, `supersedes`, `previously`: what follows one of these is the OLD version. */
 const SUPERSEDED_BY_PREFIX = /\b(?:from|was|replaces|replacing|supersedes|superseding|previously)\b[\s,;:(-]*$/i;
@@ -106,7 +119,9 @@ const SUPERSEDED_BY_PREFIX = /\b(?:from|was|replaces|replacing|supersedes|supers
  * correct version. `from A to B` puts the claim last; `B ... replaces A` puts it first. Any purely
  * positional rule is wrong half the time, so this one reads the words between the versions:
  *
- * 1. A FORWARD marker (`to`, `now`, `->`) names what the pin is at now - take the token after the last one.
+ * 1. A TIGHT transition (`from A to B`, `was A, now B`, `A -> B`) names what the pin is at now - take the
+ *    second token of the last such pair. Tightness is load-bearing: an untethered `to` anywhere in the
+ *    comment used to win, which is how the third review round found this rule reintroducing R1's own bug.
  * 2. Otherwise drop every token a SUPERSESSION marker introduces, and take the first survivor.
  * 3. If that leaves nothing, fall back to the last token rather than guess.
  *
@@ -125,11 +140,13 @@ export function versionInComment(comment) {
   if (tokens.length === 0) return null;
   if (tokens.length === 1) return tokens[0].text;
 
-  const forwards = [...comment.matchAll(FORWARD_MARKER)].map((m) => m.index);
-  if (forwards.length > 0) {
-    const after = tokens.find((t) => t.at > forwards[forwards.length - 1]);
-    if (after) return after.text;
+  // The LAST tight transition wins, so `was v1, now v2, then v3` reads as v3.
+  let transitioned = null;
+  for (let i = 1; i < tokens.length; i += 1) {
+    const gap = comment.slice(tokens[i - 1].at + tokens[i - 1].text.length, tokens[i].at);
+    if (TIGHT_TRANSITION.test(gap)) transitioned = tokens[i].text;
   }
+  if (transitioned !== null) return transitioned;
 
   const survivors = tokens.filter((t) => !SUPERSEDED_BY_PREFIX.test(comment.slice(0, t.at)));
   if (survivors.length > 0) return survivors[0].text;
@@ -296,7 +313,12 @@ export function evaluatePin(pin, resolution) {
       // When the comment named more than one version, say so. Dependabot writes `from X to Y` and the
       // claim is Y; if Y is wrong, a human wants to see both tokens rather than be told about one.
       const all = versionsInComment(pin.comment);
-      const ambiguity = all.length > 1 ? ` (the comment names ${all.join(" and ")}; the last is read as the claim)` : "";
+      // Name the token that WAS read, rather than a position. There is no fixed position any more: the
+      // claim is whichever token the transition and supersession markers select, so a sentence saying "the
+      // last is read as the claim" described a rule the code had stopped using - output misdescribing its
+      // own decision, which is the defect class this repository grades others on. Third-round review, S4.
+      const ambiguity =
+        all.length > 1 ? ` (the comment names ${all.join(" and ")}; ${pin.claimed} is read as the claim)` : "";
       return {
         verdict: VERDICT.LABEL_DISAGREES,
         detail: `comment says ${pin.claimed}, the ref resolves to ${names}${ambiguity}`,

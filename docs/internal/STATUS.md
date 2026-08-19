@@ -18,7 +18,7 @@
 | Spine | 34 checks |
 | Scopes | 3 (plugin, component, marketplace) |
 | Skills | **26** |
-| Tests | 1342, 0 failures (local suite run 2026-08-19; both halves confirmed by `npm run release-ready` exiting 0) |
+| Tests | 1346, 0 failures (local suite run 2026-08-19; both halves confirmed by `npm run release-ready` exiting 0) |
 | Self-proving | `node scripts/check.mjs .` exits 0 at Advanced, 0 errors, 0 warnings |
 
 ## v1.15.0 is PREPARED and WITHHELD (2026-08-18)
@@ -79,25 +79,43 @@ path is now demonstrated against the real historical `codeql-action` case instea
 
 **The suite reported 1,281 passing and zero failures while every one of those defects was live.**
 
-### ALL FIFTEEN FINDINGS CLOSED, PLUS FIVE MORE FROM REVIEWING THE FIXES; TWO THINGS STILL HOLD THE TAG (2026-08-19)
+### TWENTY-SIX FINDINGS CLOSED ACROSS THREE REVIEW ROUNDS; TWO THINGS STILL HOLD THE TAG (2026-08-19)
 
 A max-effort repository code review over `v1.14.0..HEAD` returned **fifteen findings**, eight of them
 blocking. **All fifteen are now CLOSED**, each carrying a dated note under its own text saying what was
 done and how it was proved, in
 [`release-plans/plan_v1.15.0/review-findings.md`](release-plans/plan_v1.15.0/review-findings.md).
 
-**The fix code was then reviewed, and it returned FIVE more findings - two of them blocking-class.** All
-five are fixed and recorded in a dated "Fix-code review" section of the same file. **One of them was `F3`
-recurring inside the fix for `F4`**: the comment parser was changed from first-token to last-token, which is
-wrong in the mirror shape, and it reported a false disagreement at exit 1 on a correct pin. The claim is now
-decided by the words between the versions, never by position and never by consulting what the ref resolves
-to - because preferring whichever token matches would make the check unable to disagree at all.
+**Then the fix code was reviewed. Twice.** Round 2 returned **five** findings (two blocking-class), round 3
+returned **six** (none blocking). All eleven are fixed, each round in its own dated section of the same file.
+
+| Round | Scope | Findings | Blocking |
+| --- | --- | --- | --- |
+| 1 | the release (`v1.14.0..HEAD`) | 15 | 8 |
+| 2 | the fixes for those 15 | 5 | 2 |
+| 3 | the fixes for those 5 | 6 | 0 |
+
+**Every round has found defects in the previous round's fix code**, which is the standing argument for
+running another rather than declaring done. **The count is not falling; the severity is**, and that is the
+signal worth reading - nothing in round 3 blocks a correct pin or lets a defect through silently.
+
+**The comment parser is the sharpest instance: three consecutive rounds broke it in a new way.** `F4`
+replaced a first-token rule; `R1` found last-token wrong in the mirror shape (`v4.1.1 ...; replaces
+v3.0.0`); `S1` found that `R1`'s forward-marker rule let any incidental `to` in prose outrank an explicit
+`was`. It now honours a marker only inside a **tight** transition, where nothing but punctuation separates
+the two versions. The claim is still computed from the comment alone, never from what the ref resolves to,
+because preferring whichever token matches would make the check unable to disagree at all.
+
+**And `S2` is the best example of two correct decisions composing into a wrong one.** `F10` gave the harness
+a gate timeout; `F2` made a harness kill non-overridable. Together, a slow registry - the exact case the
+override exists for - arrived as a non-overridable block. The watch now bounds its **own** run and reports a
+refusal, so a harness kill again means only that a process is wedged.
 
 **What holds the tag now:** acceptance criterion 6, the second adversarial wave, which has never run and is
 not satisfied by any of these fixes, by the review that produced the findings, or by any self-review. Codex
-credits return **2026-08-20**. Per this repository's own until-a-round-comes-back-clean rule, **one more
-repository-reading review over the fix-of-the-fix diff is also due** - `R1` recurring inside `F4`'s fix is
-the proof that rule applies to this work too.
+credits return **2026-08-20**. Per this repository's own until-a-round-comes-back-clean rule, **a FOURTH
+round over the round-3 diff is also due** - three rounds running, each found defects in the previous one's
+fix code, which is exactly why the rule says run another rather than declare done.
 
 The two worst shared one shape: **a gate reporting success while checking nothing.** A symlinked or
 junctioned checkout made `action-pin-watch` never run its main function - it printed nothing, exited 0, and

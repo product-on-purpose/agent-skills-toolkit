@@ -42,6 +42,29 @@ export const FETCH_TIMEOUT_MS = 20_000;
 export const FETCH_RETRIES = 1;
 export const FETCH_RETRY_DELAY_MS = 750;
 
+/**
+ * How long the whole run may spend on the registry before it stops asking and reports what it has.
+ *
+ * **This exists because bounding each REQUEST does not bound the RUN, and the third review round showed the
+ * gap is not academic.** Per action this watch may make 1 releases/latest call plus `TAG_PAGE_CAP` tag
+ * pages; at `FETCH_TIMEOUT_MS` times two attempts each, that is about 4.8 minutes per action, and this
+ * repository pins 8 distinct actions sequentially - **a 38-minute worst case** against a `GATE_TIMEOUT_MS`
+ * of five.
+ *
+ * **The composition that made it serious.** Being killed by the harness sets `status` to null, which
+ * `release-ready` maps to `SPAWN_FAILED`, and `SPAWN_FAILED` is deliberately NOT in `overridableCodes`. So
+ * a slow third party - precisely what `--allow-vendor-unreachable` exists for - arrived as a
+ * non-overridable block, while the operator was told the process "never started, or was killed". Two
+ * individually correct decisions (F10's harness timeout, F2's non-overridable spawn failure) composed into
+ * a wrong one.
+ *
+ * **A tool that runs out of ITS OWN time reports a refusal; a harness kill should mean the process is
+ * wedged.** Past this deadline the run stops fetching, every unresolved pin reports UNRESOLVED, and the
+ * exit code is 2 - a refusal, overridable with a stated reason, exactly as an outage should be. The harness
+ * timeout stays above this as the backstop it was meant to be.
+ */
+export const RUN_DEADLINE_MS = 3 * 60 * 1000;
+
 /** Retry only what a second attempt could plausibly change. */
 export function isRetryableStatus(status) {
   return status === 429 || (typeof status === "number" && status >= 500);
@@ -160,14 +183,21 @@ export function pinSourceFiles(root) {
  * an error string, becomes UNRESOLVED, and exits 2. On 2026-08-17 a CodeQL run "failed" purely on codeload
  * 429s during a GitHub partial outage and passed on retry.
  */
-async function resolveAction(action, wantedShas) {
+async function resolveAction(action, wantedShas, deadlineAt = Infinity) {
   const token = process.env.GITHUB_TOKEN || process.env.GH_TOKEN || "";
   const headers = {
     accept: "application/vnd.github+json",
     "user-agent": "agent-skills-toolkit-action-pin-watch",
     ...(token ? { authorization: `Bearer ${token}` } : {}),
   };
-  const get = (url) => getJson(url, { headers });
+  // The deadline is checked before EVERY request, not merely between actions. Checking only between them
+  // left the run bounded by `RUN_DEADLINE_MS` plus one whole action - up to another 4.8 minutes - which is
+  // enough to be killed by the harness anyway and so would have left the S2 fix not actually fixing it.
+  // Per-request, the overrun is at most one request.
+  const get = (url) => {
+    if (Date.now() >= deadlineAt) throw new Error(`the run passed its ${RUN_DEADLINE_MS / 1000}s budget`);
+    return getJson(url, { headers });
+  };
 
   const out = { resolvedBySha: {}, latestVersion: null, error: null, pagesExhausted: false };
   try {
@@ -222,9 +252,25 @@ async function main() {
     if (!shasByAction.has(p.action)) shasByAction.set(p.action, new Set());
     if (p.refKind === "sha") shasByAction.get(p.action).add(p.ref);
   }
+  // The run's own deadline. Checked BETWEEN actions rather than inside a request, because each request is
+  // already bounded by `FETCH_TIMEOUT_MS` - what was unbounded is their SUM. Past the deadline the
+  // remaining actions are not attempted and report an error, which makes their pins UNRESOLVED and the run
+  // exit 2: a refusal an operator can override with a stated reason, which is what a slow registry
+  // deserves. Without this the harness killed the process instead, and a harness kill is not overridable.
+  // See RUN_DEADLINE_MS.
+  const deadlineAt = Date.now() + RUN_DEADLINE_MS;
   const resolutionsByAction = {};
   for (const [action, shas] of shasByAction) {
-    resolutionsByAction[action] = await resolveAction(action, shas);
+    if (Date.now() >= deadlineAt) {
+      resolutionsByAction[action] = {
+        resolvedBySha: {},
+        latestVersion: null,
+        pagesExhausted: false,
+        error: `the run passed its ${RUN_DEADLINE_MS / 1000}s budget before reaching this action; nothing was asked about it`,
+      };
+      continue;
+    }
+    resolutionsByAction[action] = await resolveAction(action, shas, deadlineAt);
   }
 
   // The seam: currency is per ACTION, a SHA resolves per REF. One function expresses both, so the
