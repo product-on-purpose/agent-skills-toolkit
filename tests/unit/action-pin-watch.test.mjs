@@ -428,7 +428,10 @@ test("F3: a bare major label on a SHA pin is a defect, because it follows the SH
   for (const specific of ["v3.0.2", "v3.1.0", "v3.5.9"]) {
     const r = evaluatePin(shaPin("v3 pinned 2026-07-26"), { resolvedVersions: [specific, "v3"] });
     assert.equal(r.verdict, VERDICT.LABEL_FLOATS, `# v3 against ${specific} must not pass`);
-    assert.match(r.detail, new RegExp(specific.replace(/\./g, "\\.")), "the detail must name what to write instead");
+    // A plain substring check, not a constructed RegExp. Escaping only `.` out of a string being compiled
+    // into a pattern is the partial-escaping shape CodeQL flags, and correctly: it reads as sanitised while
+    // handling one metacharacter. The assertion never needed a pattern in the first place.
+    assert.ok(r.detail.includes(specific), `the detail must name ${specific}, the version to write instead`);
   }
 });
 
