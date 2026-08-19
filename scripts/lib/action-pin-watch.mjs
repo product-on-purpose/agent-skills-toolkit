@@ -22,6 +22,12 @@ export const VERDICT = Object.freeze({
   LABEL_DISAGREES: "LABEL_DISAGREES",
   /** A SHA pin carrying no version at all. BLOCKING: a bare 40-hex string is unreadable by a human. */
   LABEL_MISSING: "LABEL_MISSING",
+  /**
+   * A SHA pin labelled with a FLOATING tag (`# v3`) while the commit also carries a specific version.
+   * BLOCKING: the label matches today and will keep matching after the SHA advances, so it can never
+   * disagree - which is precisely the drift this check exists to catch. See `evaluatePin`.
+   */
+  LABEL_FLOATS: "LABEL_FLOATS",
   /** A tag pin whose comment names a different MAJOR than the ref. BLOCKING: it contradicts the ref. */
   LABEL_CONTRADICTS_REF: "LABEL_CONTRADICTS_REF",
   /** The pin is behind the action's current major. ADVISORY, never blocking. See `exitCodeFor`. */
@@ -41,8 +47,18 @@ export const VERDICT = Object.freeze({
 const USES_LINE =
   /^\s*(?:-\s*)?uses:\s*(["']?)([A-Za-z0-9._-]+)\/([A-Za-z0-9._/-]+?)@([A-Za-z0-9._/-]+)\1\s*(?:#\s*(.*?))?\s*$/;
 
-/** A YAML block-scalar introducer: `run: |`, `script: >-`, `body: |2+`. Its payload is not YAML. */
-const BLOCK_SCALAR = /^(\s*)(?:-\s*)?[A-Za-z0-9_.-]+\s*:\s*[|>][+-]?\d*\s*$/;
+/**
+ * A YAML block-scalar introducer: `run: |`, `script: >-`, `body: |2+`, `run: | # note`. Its payload is not
+ * YAML, so everything indented under it is skipped.
+ *
+ * The header is `[indentation-indicator][chomping-indicator]` in EITHER ORDER, and a trailing comment is
+ * legal after it. The first version allowed only chomping-then-digits and no comment, so it missed
+ * `run: |2-` and `run: | # trailing comment` - and did not match its own docstring example `body: |2+`
+ * (review finding F5). A missed header means a shell payload gets parsed as YAML, and a `uses:`-shaped line
+ * inside a heredoc becomes a pin that BLOCKS the release: the false-finding failure this file's own
+ * docblock calls the worst outcome it recognises.
+ */
+const BLOCK_SCALAR = /^(\s*)(?:-\s*)?[A-Za-z0-9_.-]+\s*:\s*[|>](?:[+-]?\d+|\d+[+-]?|[+-])?\s*(?:#.*)?$/;
 
 /**
  * 40 hex characters, EITHER CASE. Git object ids are case-insensitive and GitHub resolves an uppercase one
@@ -55,19 +71,69 @@ const SHA_REF = /^[0-9a-fA-F]{40}$/;
 const MAJOR_TAG_REF = /^v(\d+)$/;
 
 /**
- * The first version-looking token in a comment: `v4.37.7`, `v3`, `v2.1.0-rc.1`.
- * Returns null when the comment carries no version, which is a distinct case from carrying a wrong one.
+ * A version-looking token: `v4.37.7`, `v3`, `V4.37.7`, `2.1.0-rc.1`.
+ *
+ * The `v` is OPTIONAL and its case is ignored, because `aquasecurity/trivy-action` ships tags named
+ * `0.28.0`, and a `v`-only pattern returned null for them - reported as `LABEL_MISSING` against a perfectly
+ * good label (review finding F4).
+ *
+ * A BARE number must carry a dot to count, and that requirement is the whole guard against reading a date
+ * as a version: the `2026-08-16` in this repository's own prescribed comment format has no dot in it, so it
+ * can never be read as version 2026.
+ */
+const VERSION_TOKEN = /\b(?:[vV]\d+(?:\.\d+)*|\d+(?:\.\d+)+)(?:-[0-9A-Za-z.-]+)?\b/g;
+
+/** Every version a comment names, in the order it names them. */
+export function versionsInComment(comment) {
+  if (typeof comment !== "string") return [];
+  return [...comment.matchAll(VERSION_TOKEN)].map((m) => m[0]);
+}
+
+/**
+ * The version a comment CLAIMS, which is the LAST one it names, or null when it names none.
+ *
+ * Taking the FIRST blocked correct pins at exit 1, the code no reason string can override. Dependabot
+ * rewrites these comments as `bumped from v4.37.6 to v4.37.7` and Renovate as `from v2 to v3.0.2`, so the
+ * first token is the SUPERSEDED version and the last is the claim. That is expected input rather than an
+ * oddity - the correction in `docs/internal/execution/05-ci-plan.md` records that Dependabot rewrites these
+ * comments, which is the whole reason E45 exists.
+ *
+ * A comment naming two versions deliberately gets NO verdict of its own. Every real producer of that shape
+ * writes the current version last, so last-token reads them correctly; and when a label genuinely
+ * disagrees, `evaluatePin` lists every token it found, which shows a human the ambiguity without a second
+ * verdict to reason about.
  */
 export function versionInComment(comment) {
-  if (typeof comment !== "string") return null;
-  const m = comment.match(/\bv\d+(?:\.\d+)*(?:-[0-9A-Za-z.-]+)?\b/);
-  return m ? m[0] : null;
+  const all = versionsInComment(comment);
+  return all.length > 0 ? all[all.length - 1] : null;
+}
+
+/**
+ * A version with its tag prefix stripped and its case folded, for COMPARISON ONLY.
+ *
+ * Never for display: a detail string must quote what the author actually wrote. `# v4.37.7` against a
+ * registry tag literally named `4.37.7` names the same version, and comparing the raw strings reported it
+ * as a disagreement, blocking a correct pin (review finding F4).
+ */
+export function normalizeVersion(version) {
+  return typeof version === "string" ? version.replace(/^[vV]/, "").toLowerCase() : null;
+}
+
+/**
+ * True when a version names a MOVING pointer rather than a release: `v3`, `v3.1`.
+ *
+ * A floating tag follows its action to every new release commit, so it is not a fact about any particular
+ * commit and cannot serve as a label for one. See `evaluatePin` and review finding F3.
+ */
+export function isFloatingVersion(version) {
+  const n = normalizeVersion(version);
+  return typeof n === "string" && /^\d+(?:\.\d+)?$/.test(n);
 }
 
 /** The major number of a version or tag string, or null when it has none. */
 export function majorOf(version) {
   if (typeof version !== "string") return null;
-  const m = version.match(/^v?(\d+)/);
+  const m = version.match(/^[vV]?(\d+)/);
   return m ? m[1] : null;
 }
 
@@ -147,6 +213,21 @@ export function evaluatePin(pin, resolution) {
   const latest = resolution?.latestVersion ?? null;
   const resolved = Array.isArray(resolution?.resolvedVersions) ? resolution.resolvedVersions : [];
 
+  // CURRENCY IS ONLY COMPARABLE WHEN THE CURRENT RELEASE PARSES AS A VERSION, and review finding F6 was
+  // that "latest exists" had been treated as "currency was checked". `github/codeql-action` names its
+  // releases/latest tag `codeql-bundle-v2.26.3`: `majorOf` returns null, so the BEHIND guard
+  // short-circuited, while `latest` being truthy set `currencyUnknown` FALSE - the report dropped its
+  // "Currency was NOT checked" line, and the major-tag branch printed "is self-describing and current",
+  // asserting the exact fact it had just failed to establish.
+  //
+  // The fix is deliberately NOT to parse harder. `codeql-bundle-v2.26.3` is a different numbering series
+  // from the action's own `v4` tags; extracting a 2 and comparing it to 4 would report a perfectly current
+  // pin as BEHIND, trading a silent gap for a false finding. Not comparable means UNKNOWN, and unknown is
+  // reported as unknown.
+  const latestMajor = majorOf(latest);
+  const currencyComparable = Boolean(latest) && latestMajor !== null;
+  const notComparable = latest && !currencyComparable ? ` (current release ${latest} is not a version number, so it could not be compared)` : "";
+
   if (pin.refKind === "sha") {
     if (err) return { verdict: VERDICT.UNRESOLVED, detail: `lookup failed: ${err}` };
     if (resolved.length === 0) {
@@ -163,24 +244,54 @@ export function evaluatePin(pin, resolution) {
         detail: `resolves to ${names} and carries no version comment; a bare 40-hex ref tells a reviewer nothing`,
       };
     }
-    if (!resolved.includes(pin.claimed)) {
+    // Compared NORMALISED, because `# v4.37.7` and a registry tag named `4.37.7` are the same version and
+    // the raw string comparison reported them as a disagreement (F4). Detail strings keep the raw spelling.
+    const claimedNorm = normalizeVersion(pin.claimed);
+    if (!resolved.map(normalizeVersion).includes(claimedNorm)) {
+      // When the comment named more than one version, say so. Dependabot writes `from X to Y` and the
+      // claim is Y; if Y is wrong, a human wants to see both tokens rather than be told about one.
+      const all = versionsInComment(pin.comment);
+      const ambiguity = all.length > 1 ? ` (the comment names ${all.join(" and ")}; the last is read as the claim)` : "";
       return {
         verdict: VERDICT.LABEL_DISAGREES,
-        detail: `comment says ${pin.claimed}, the ref resolves to ${names}`,
+        detail: `comment says ${pin.claimed}, the ref resolves to ${names}${ambiguity}`,
       };
+    }
+    // THE LABEL MATCHES. That is not yet enough, and review finding F3 is why.
+    //
+    // A floating tag (`v3`, `v3.1`) moves to every new release commit, so `resolved` will contain it again
+    // after the SHA advances and the label can NEVER disagree. The exact Dependabot drift this check was
+    // built for became invisible, in the pin format this repository's own runbook prescribed - and the hole
+    // was opened by a correct wave-1 fix for a multi-tag FALSE POSITIVE whose side effect was never weighed,
+    // then locked in by that fix's own test. Reviewing the fixes, not just the code, is the lesson.
+    //
+    // Order matters: this is checked only AFTER a match. A `# v3` label on a commit tagged v4.0.0 is not
+    // under-specified, it is WRONG, and LABEL_DISAGREES is the more useful thing to say.
+    //
+    // The escape hatch is load-bearing: when the commit carries ONLY floating tags, that label is the best
+    // one available, and demanding a specific version there would block a pin whose author has nothing
+    // better to write - a rule that cannot be satisfied is a false finding with extra steps.
+    if (isFloatingVersion(pin.claimed)) {
+      const specific = resolved.filter((v) => !isFloatingVersion(v));
+      if (specific.length > 0) {
+        return {
+          verdict: VERDICT.LABEL_FLOATS,
+          detail: `comment says ${pin.claimed}, a moving tag that follows this action to every release, so it can never disagree with the SHA; this commit is also tagged ${specific.join(", ")} - name one of those instead`,
+        };
+      }
     }
     // The label is accurate. Currency is a separate, advisory question - and a SHA pin is exactly where
     // staleness matters most, so the first version returning OK here without ever consulting
     // `latestVersion` meant a fixed SHA pin could never be reported BEHIND at all.
-    if (latest && majorOf(latest) && majorOf(latest) !== majorOf(pin.claimed)) {
+    if (currencyComparable && latestMajor !== majorOf(pin.claimed)) {
       return { verdict: VERDICT.BEHIND, detail: `label ${pin.claimed} is accurate; the current release is ${latest}` };
     }
     return {
       verdict: VERDICT.OK,
-      detail: latest
+      detail: currencyComparable
         ? `label and ref agree on ${pin.claimed} (of ${names}); current release ${latest}`
-        : `label and ref agree on ${pin.claimed} (of ${names}); currency NOT checked`,
-      currencyUnknown: !latest,
+        : `label and ref agree on ${pin.claimed} (of ${names}); currency NOT checked${notComparable}`,
+      currencyUnknown: !currencyComparable,
     };
   }
 
@@ -195,24 +306,54 @@ export function evaluatePin(pin, resolution) {
     // itself, and nothing the registry could have said would change this pin's verdict. But it must not be
     // reported as CURRENT either - the first version said "is self-describing and current" after a 503,
     // asserting the exact fact it had just failed to establish.
-    if (err || !latest) {
+    if (err || !currencyComparable) {
       return {
         verdict: VERDICT.OK,
-        detail: `${pin.ref} is self-describing; currency NOT checked${err ? ` (${err})` : ""}`,
+        detail: `${pin.ref} is self-describing; currency NOT checked${err ? ` (${err})` : notComparable}`,
         currencyUnknown: true,
       };
     }
-    if (majorOf(latest) && majorOf(latest) !== majorOf(pin.ref)) {
+    if (latestMajor !== majorOf(pin.ref)) {
       return { verdict: VERDICT.BEHIND, detail: `pinned ${pin.ref}, current release is ${latest}` };
     }
     return { verdict: VERDICT.OK, detail: `${pin.ref} is self-describing and current (${latest})` };
   }
 
-  return {
-    verdict: VERDICT.OK,
-    detail: `ref ${pin.ref} is a full tag or branch; no label contract applies`,
-    currencyUnknown: true,
-  };
+  // `other`: a full tag (`v4.1.1`) or a branch (`main`, `feature/x`).
+  //
+  // This branch returned OK UNCONDITIONALLY, which is review finding F7: a flatly contradicting label
+  // passed at exit 0, while the identical contradiction on a bare major tag raised LABEL_CONTRADICTS_REF
+  // one branch above. It also never read `resolution.error`, so a 404 or a rate limit printed a clean row.
+  //
+  // A FULL TAG IS SELF-DESCRIBING IN EXACTLY THE WAY A MAJOR TAG IS, so it takes the same contract: no
+  // label is required, and one that is present must not contradict the ref's major. The check stays at
+  // MAJOR level for the same reason it does above - `@v4.1.1 # v4.2.0` is a stale comment on a readable
+  // ref, not a claim a reader can be misled by, and blocking it would block a pin that says what it is.
+  const refMajor = majorOf(pin.ref);
+  if (pin.claimed && refMajor !== null && majorOf(pin.claimed) !== refMajor) {
+    return { verdict: VERDICT.LABEL_CONTRADICTS_REF, detail: `ref is ${pin.ref}, comment says ${pin.claimed}` };
+  }
+  if (refMajor === null) {
+    // A branch. Nothing about it is a version, so neither the label nor currency can be judged, and the
+    // report must not imply either was.
+    return {
+      verdict: VERDICT.OK,
+      detail: `ref ${pin.ref} is a branch; no version contract applies and currency cannot be judged`,
+      currencyUnknown: true,
+    };
+  }
+  if (err || !currencyComparable) {
+    return {
+      verdict: VERDICT.OK,
+      detail: `${pin.ref} is a full tag and self-describing; currency NOT checked${err ? ` (${err})` : notComparable}`,
+      currencyUnknown: true,
+    };
+  }
+  // Leaving a full-tag pin permanently uncheckable for currency would be F6's blind spot in a second place.
+  if (latestMajor !== refMajor) {
+    return { verdict: VERDICT.BEHIND, detail: `pinned ${pin.ref}, current release is ${latest}` };
+  }
+  return { verdict: VERDICT.OK, detail: `${pin.ref} is a full tag and current (${latest})` };
 }
 
 /**
@@ -233,6 +374,7 @@ export function buildReport(pins, resolveFor) {
       ok: count(VERDICT.OK),
       labelDisagrees: count(VERDICT.LABEL_DISAGREES),
       labelMissing: count(VERDICT.LABEL_MISSING),
+      labelFloats: count(VERDICT.LABEL_FLOATS),
       labelContradicts: count(VERDICT.LABEL_CONTRADICTS_REF),
       behind: count(VERDICT.BEHIND),
       unresolved: count(VERDICT.UNRESOLVED),
@@ -243,7 +385,7 @@ export function buildReport(pins, resolveFor) {
 
 /** Every blocking label condition, as one number. */
 export function labelProblems(counts) {
-  return counts.labelDisagrees + counts.labelMissing + counts.labelContradicts;
+  return counts.labelDisagrees + counts.labelMissing + counts.labelFloats + counts.labelContradicts;
 }
 
 /**
@@ -275,6 +417,7 @@ const SYMBOL = {
   [VERDICT.OK]: "ok  ",
   [VERDICT.LABEL_DISAGREES]: "FAIL",
   [VERDICT.LABEL_MISSING]: "FAIL",
+  [VERDICT.LABEL_FLOATS]: "FAIL",
   [VERDICT.LABEL_CONTRADICTS_REF]: "FAIL",
   [VERDICT.BEHIND]: "note",
   [VERDICT.UNRESOLVED]: "REFU",
@@ -296,7 +439,7 @@ export function renderReport(report) {
   const exit = exitCodeFor(report);
   if (exit === 1) {
     lines.push(
-      "A pin's LABEL disagrees with what its REF resolves to. Correct the comment; do not change the SHA to match the comment."
+      "A pin's LABEL does not correctly name what its REF resolves to. Correct the comment; do not change the SHA to match the comment. A label naming a floating tag such as `# v3` must be replaced with the specific version that commit carries, or it can never disagree."
     );
   } else if (exit === 2) {
     lines.push("REFUSAL: a pin could not be resolved. This is never a pass - fix the lookup, then re-run.");

@@ -154,6 +154,58 @@ rewritten to look as though this was always the plan.
   the bug could reach. Both are now named explicitly, at `127` **and** `3`, along with an assertion that no
   override reason excuses a gate that never ran.
 
+- **Six correctness defects in `action-pin-watch`, four of which BLOCKED A CORRECT PIN** (review findings
+  `F3` to `F8`). Four blocked at exit 1 or 2, the codes no reason string can override, on input the checker
+  will actually meet; two let a defect through while printing a verdict that read like coverage. **Nothing
+  moved on this repository's own 29 pins except the one honesty fix**, measured before and after rather than
+  reasoned about.
+
+  **`F3` - a floating label could never disagree, and this was a REVERSED DECISION rather than a gap.** A
+  SHA pin commented `# v3` was accepted forever however far the SHA advanced, because a floating major tag
+  moves to every new release commit and so keeps matching. That is the exact Dependabot drift the check was
+  built for, in the pin format this repository's own runbook prescribed. It was opened by a correct wave-1
+  fix for a multi-tag false positive whose side effect was never weighed, and locked in by that fix's own
+  test. **ADR 0053 had already decided this case by name, using this exact example** - *"`# v3` against a
+  SHA resolving to `v3.0.2` is not false, and it names nothing a reviewer can check, which is exactly how
+  the next bump becomes invisible."* The new `LABEL_FLOATS` verdict restores that rule; it blocks at exit 1,
+  unless the commit carries no specific tag at all, in which case the floating label is the best available
+  and passes.
+
+  **`F4` - the comment parser blocked correct pins four ways.** It took the FIRST version token, so
+  Dependabot's `bumped from v4.37.6 to v4.37.7` read the superseded version as the claim; it required a
+  lowercase `v`, so `0.28.0` (what `aquasecurity/trivy-action` ships) and `V4.37.7` returned nothing at all;
+  and it compared raw strings, so `# v4.37.7` disagreed with a registry tag literally named `4.37.7`. The
+  claim is now the LAST token, the `v` is optional and case-insensitive, and comparison is normalised on
+  both sides. **A bare number must still carry a dot**, which is what keeps the `2026-08-16` in this
+  repository's own comment format from being read as version 2026.
+
+  **`F5` - two legal YAML block-scalar headers were missed**, including the file's own docstring example
+  `body: |2+`. A missed header means a shell payload is parsed as YAML, so a `uses:`-shaped line inside a
+  heredoc becomes a pin and blocks the release - the false-finding failure the module's docblock calls the
+  worst outcome it recognises. The header now accepts both indicator orders and a trailing comment.
+
+  **`F6` - a release tag that is not a version number disabled the BEHIND check while asserting currency.**
+  `github/codeql-action` names its latest release `codeql-bundle-v2.26.3`; the major parse returned null, so
+  the comparison short-circuited, while the tag being present suppressed the "currency was NOT checked"
+  line and the report printed *"is self-describing and current"*. **The fix is deliberately not to parse
+  harder**: that bundle number is a different series from the action's `v4` tags, and comparing them would
+  report a current pin as BEHIND, trading a silent gap for a false finding. Not comparable means unknown.
+
+  **`F7` - a full-tag ref passed unconditionally.** `@v4.1.1 # v7.0.0` returned OK at exit 0 while the
+  identical contradiction on `@v4` was caught one branch above, and the branch never read the lookup error,
+  so a 404 printed a clean row. A full tag is self-describing exactly as a major tag is, so it now takes the
+  same contract, at major level. A branch ref judges nothing and says so. This ref kind previously had no
+  test at all.
+
+  **`F8` - following this repository's own runbook produced a pin the checker refuses.** The prescribed
+  command resolves `refs/tags/v3`, which for an **annotated** tag returns the tag *object* sha rather than
+  the commit - verified live: `c1258377…` with `type: "tag"`, where the commit `release.yml` actually pins
+  is `3d0d9888…`. The pin then resolves to nothing and the run refuses at exit 2. The runbook now
+  dereferences, and the checker's behaviour is deliberately unchanged, because refusing a sha it cannot
+  resolve is correct. **This file prescribed a format that defeated the checker and a command the checker
+  refuses, and the checker was written by reading this file** - a runbook is an input to the tools built
+  from it.
+
 - **The seed plugin would have been born on the old ruleset.** `templates/seed-plugin/library.json` still
   pinned 0.14, which silently opts every freshly scaffolded plugin out of every check introduced since its
   pin. Caught by its own guard, whose comment had predicted exactly this: *"This invariant fails on the next

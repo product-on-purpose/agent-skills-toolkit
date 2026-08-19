@@ -114,6 +114,38 @@ All changes land in the R1 v1.7.0 release window unless noted otherwise. They ar
 
 **Exact mechanics.** Run `gh api repos/softprops/action-gh-release/git/refs/tags/v3` (or equivalent) to resolve the current tag to a SHA at the moment the PR is authored. Format: `softprops/action-gh-release@<full-sha> # v3 pinned YYYY-MM-DD`. Add the `github-actions` ecosystem to Dependabot so the pin stays current automatically.
 
+> **CORRECTION, 2026-08-19.** **Both halves of the paragraph above are wrong, and following it produces a
+> pin that `action-pin-watch` refuses.** Review findings `F8` and `F3`. This continues the 2026-08-17
+> correction above: same sentence, same underlying story, one release later.
+>
+> **The command returns the wrong SHA when the tag is ANNOTATED.** `refs/tags/v3` points at a tag *object*,
+> which points at the commit; only a *lightweight* tag points straight at the commit, which is why the
+> command works for some actions and silently returns a different sha for others. Verified live 2026-08-19:
+>
+> ```
+> $ gh api repos/softprops/action-gh-release/git/refs/tags/v3 --jq '{sha: .object.sha, type: .object.type}'
+> {"sha":"c12583777ecdfd3be55c69cf75464299dc01057e","type":"tag"}      <- the TAG OBJECT
+>
+> $ gh api repos/softprops/action-gh-release/commits/v3 --jq .sha
+> 3d0d9888cb7fd7b750713d6e236d1fcb99157228                             <- the COMMIT, and what release.yml pins
+> ```
+>
+> `action-pin-watch` resolves a pin by matching it against the commit each tag points at, so a tag-object
+> sha resolves to nothing and the run REFUSES at exit 2 - blocking a release over a pin created exactly as
+> instructed here. **Use `gh api repos/<owner>/<repo>/commits/<tag> --jq .sha`**, which dereferences. The
+> same dereferencing already appears in `publish-npm.yml`, which uses `git rev-parse "refs/tags/$TAG^{commit}"`
+> for this repository's own tag; the `^{commit}` suffix is the plumbing spelling of the same idea.
+>
+> **The prescribed comment format names a FLOATING tag, which can never disagree.** `# v3` moves with the
+> action to every new release commit, so the label matches after the SHA advances and the drift this whole
+> guard exists to catch stays invisible forever. **Write the specific version the commit carries** -
+> `# v3.0.2 pinned YYYY-MM-DD` - which is what `release.yml` now does. `LABEL_FLOATS` blocks the bare form
+> at exit 1.
+>
+> Note what the combination cost: this file prescribed a format that defeated the checker AND a command that
+> the checker refuses, and the checker was written by reading this file. **A runbook is an input to the
+> tools built from it, and a wrong one propagates into them.**
+
 **Rollback.** Revert to `@v3`. Slightly less secure but functionally identical.
 
 ---
