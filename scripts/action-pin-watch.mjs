@@ -59,9 +59,21 @@ export const FETCH_RETRY_DELAY_MS = 750;
  * a wrong one.
  *
  * **A tool that runs out of ITS OWN time reports a refusal; a harness kill should mean the process is
- * wedged.** Past this deadline the run stops fetching, every unresolved pin reports UNRESOLVED, and the
- * exit code is 2 - a refusal, overridable with a stated reason, exactly as an outage should be. The harness
- * timeout stays above this as the backstop it was meant to be.
+ * wedged.** The harness timeout stays above this as the backstop it was meant to be, with room for the one
+ * in-flight request this deadline can overrun by; a test asserts that inequality.
+ *
+ * **What "reports a refusal" means, precisely, because the first version of this sentence overclaimed
+ * (fourth round, T5).** Past the deadline:
+ *
+ * - **SHA pins** of unreached actions report `UNRESOLVED`, and the run exits **2** - overridable.
+ * - **Tag pins** report OK with `currencyUnknown`, and contribute **nothing** to the exit code. That is not
+ *   an oversight: `F6` and `F7` decided that a lookup failure on a self-describing ref changes no verdict,
+ *   because the ref itself answers the label question. A deadline is just another lookup failure arriving
+ *   at that path, and reverting it would reopen `F6`.
+ *
+ * So a deadline that expires after this repository's two SHA-pinned actions resolve leaves a run that exits
+ * **0** having skipped the remaining currency lookups. The `Currency was NOT checked for N pin(s)` line is
+ * what surfaces that, and it is the reason the renderer refuses to call such a run a clean bill of health.
  */
 export const RUN_DEADLINE_MS = 3 * 60 * 1000;
 
@@ -183,7 +195,7 @@ export function pinSourceFiles(root) {
  * an error string, becomes UNRESOLVED, and exits 2. On 2026-08-17 a CodeQL run "failed" purely on codeload
  * 429s during a GitHub partial outage and passed on retry.
  */
-async function resolveAction(action, wantedShas, deadlineAt = Infinity) {
+export async function resolveAction(action, wantedShas, deadlineAt = Infinity, { fetchImpl } = {}) {
   const token = process.env.GITHUB_TOKEN || process.env.GH_TOKEN || "";
   const headers = {
     accept: "application/vnd.github+json",
@@ -196,10 +208,12 @@ async function resolveAction(action, wantedShas, deadlineAt = Infinity) {
   // Per-request, the overrun is at most one request.
   const get = (url) => {
     if (Date.now() >= deadlineAt) throw new Error(`the run passed its ${RUN_DEADLINE_MS / 1000}s budget`);
-    return getJson(url, { headers });
+    return getJson(url, fetchImpl ? { headers, fetchImpl, delayMs: 0 } : { headers });
   };
 
   const out = { resolvedBySha: {}, latestVersion: null, error: null, pagesExhausted: false };
+  // Hoisted so the `finally` below can still publish whatever was matched before a throw. See T4.
+  const found = new Map();
   try {
     // Current release first: one call, and it answers the currency half for every pin of this action.
     try {
@@ -214,7 +228,6 @@ async function resolveAction(action, wantedShas, deadlineAt = Infinity) {
 
     if (wantedShas.size) {
       const wanted = new Set([...wantedShas].map((s) => s.toLowerCase()));
-      const found = new Map();
       let page = 1;
       for (; page <= TAG_PAGE_CAP; page++) {
         const tags = await get(`${API}/repos/${action}/tags?per_page=100&page=${page}`);
@@ -230,10 +243,16 @@ async function resolveAction(action, wantedShas, deadlineAt = Infinity) {
         if ([...wanted].every((s) => found.has(s))) break;
       }
       out.pagesExhausted = page > TAG_PAGE_CAP && ![...wanted].every((s) => found.has(s));
-      out.resolvedBySha = Object.fromEntries(found);
     }
   } catch (err) {
     out.error = err.message;
+  } finally {
+    // KEEP WHAT WAS ALREADY FOUND, even when the loop threw (fourth round, T4). This assignment used to sit
+    // inside the `try` after the loop, so a deadline expiring on page 3 discarded a sha matched on page 1 -
+    // and the pin was then reported UNRESOLVED, a refusal about a question that had already been answered.
+    // The `RUN_DEADLINE_MS` docblock promises the run "reports what it has"; for the in-flight action it
+    // reported nothing.
+    out.resolvedBySha = Object.fromEntries(found);
   }
   return out;
 }
@@ -252,12 +271,13 @@ async function main() {
     if (!shasByAction.has(p.action)) shasByAction.set(p.action, new Set());
     if (p.refKind === "sha") shasByAction.get(p.action).add(p.ref);
   }
-  // The run's own deadline. Checked BETWEEN actions rather than inside a request, because each request is
-  // already bounded by `FETCH_TIMEOUT_MS` - what was unbounded is their SUM. Past the deadline the
-  // remaining actions are not attempted and report an error, which makes their pins UNRESOLVED and the run
-  // exit 2: a refusal an operator can override with a stated reason, which is what a slow registry
-  // deserves. Without this the harness killed the process instead, and a harness kill is not overridable.
-  // See RUN_DEADLINE_MS.
+  // The run's own deadline. Each request is already bounded by `FETCH_TIMEOUT_MS`; what was unbounded is
+  // their SUM. Past the deadline the remaining actions are not attempted and report an error, which makes
+  // their SHA pins UNRESOLVED and the run exit 2 - a refusal an operator can override with a stated reason,
+  // which is what a slow registry deserves. Tag pins take the F6/F7 path instead and report
+  // currency-not-checked, contributing nothing to the exit code; see RUN_DEADLINE_MS for why that is
+  // deliberate rather than a gap. Without any of this the harness killed the process, and a kill is not
+  // overridable.
   const deadlineAt = Date.now() + RUN_DEADLINE_MS;
   const resolutionsByAction = {};
   for (const [action, shas] of shasByAction) {
