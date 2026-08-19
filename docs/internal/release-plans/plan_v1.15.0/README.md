@@ -15,7 +15,7 @@
 | Declared tier | Advanced (Gold) | Advanced (Gold), self-validated 0 errors / 0 warnings **at its own new 0.15 pin** |
 | Suite | 1252 | **1292**, 0 failures |
 
-Three implementation PRs on `main` since `v1.14.0`: **#242** (the graduations), **#243** (`action-pin-watch`
+Six PRs on `main` since `v1.14.0`, three of them landing after this packet was written (see the scope note above): **#242** (the graduations), **#243** (`action-pin-watch`
 plus the wave-1 fixes), and this packet's own records PR. Two records PRs preceded them: **#239** and
 **#241**.
 
@@ -132,6 +132,18 @@ report this tag"*; and stale four-gate text in four places.
 **prose explaining it**. Comments are now stripped before scanning, which closes the class rather than
 deleting the sentences. **The suite reported 1,281 passing and zero failures while every defect above was
 live.**
+
+## Deferred deliberately, and said out loud rather than left absent
+
+**The two new skills ship without trigger eval sets.** `STANDARD.md` sec 8.3 makes a >= 20-case
+`{query, should_trigger}` set a **SHOULD** at Universal, not a MUST, so their absence is conformant and
+the gate is green - but silence would read as an oversight rather than a decision.
+
+The reason to defer: a trigger eval measures whether a description fires when it should, and these two
+descriptions are brand new with no observed mis-triggering to calibrate against. Writing 40 cases against
+a guess produces a set that passes by construction and proves nothing. **The trigger condition is the
+first observed mis-trigger, or the first time either skill is invoked for the other one's job** - which is
+a real risk, since they are adjacent by design.
 
 ## Verification recorded at cut time
 
