@@ -34,6 +34,7 @@ concurrency:
 jobs:
   watch:
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     steps:
       # Keep these in step with the other six workflows, all of which are on v7. This file was added in
       # v1.14.0 already three majors behind, and Dependabot does not report the drift: it stopped proposing

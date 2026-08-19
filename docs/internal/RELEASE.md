@@ -21,7 +21,20 @@ A public `0.x` tag ships at every wave boundary (RELEASE-PLAN v0.2 Section 5); `
 - [ ] **`npm run release-ready` exits 0.** One command, five release-blocking gates: the conformance gate, the
   README drift guard, the release-count guard, `vendor-watch`, and `action-pin-watch`. **It runs automatically in `release.yml` on
   the pushed tag and in `publish-npm.yml` on the candidate tree**, so ticking this box locally is a convenience,
-  not the enforcement - which is the point. Until review wave 2 of v1.14.0 these were four checklist lines a
+  not the enforcement - which is the point.
+
+  **Running it locally needs a GitHub token.** Use:
+
+  ```
+  GITHUB_TOKEN="$(gh auth token)" node scripts/release-ready.mjs
+  ```
+
+  Without one, `action-pin-watch` resolves roughly eight actions against GitHub's **60-requests-per-hour
+  per-IP** unauthenticated limit, hits a 403, and prints **NOT releasable** for a reason CI will never show
+  you - both release workflows pass a token. **The remedy is the token, not `--allow-vendor-unreachable`.**
+  Reaching for the override here would excuse a refusal that a token makes disappear, and because one
+  reason excuses every overridable gate at once, it would also silently waive any unrelated refusal in the
+  same run. The report says when one reason covered more than one, so read that line if you ever use it. Until review wave 2 of v1.14.0 these were four checklist lines a
   human ticked, and the vendor-watch line in particular had never been run by any workflow.
 
   Every vendor claim this repository asserts as fact - `U14`'s refused-field sentence, `U15`'s discovery

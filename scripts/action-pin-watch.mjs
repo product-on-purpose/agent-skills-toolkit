@@ -25,6 +25,64 @@ const API = "https://api.github.com";
 export const TAG_PAGE_CAP = 6;
 
 /**
+ * How long a single registry request may take, and how many times a transient failure is retried.
+ *
+ * Review finding F10: nothing bounded either. `fetch` has no default timeout, so one hung connection held
+ * the whole gate open with no upper bound; and any single throw from up to 20 sequential calls cascaded to
+ * UNRESOLVED - exit 2, a release refusal - for every pin of that action. That is not hypothetical: the
+ * comment on `resolveAction` records a run that failed purely on codeload 429s during a GitHub partial
+ * outage on 2026-08-17 and passed on retry.
+ *
+ * **Exactly ONE retry.** More is new failure surface rather than more robustness: it multiplies the
+ * rate-limit spend the retry exists to survive, and lengthens the run the timeout exists to bound.
+ */
+export const FETCH_TIMEOUT_MS = 20_000;
+export const FETCH_RETRIES = 1;
+export const FETCH_RETRY_DELAY_MS = 750;
+
+/** Retry only what a second attempt could plausibly change. */
+export function isRetryableStatus(status) {
+  return status === 429 || (typeof status === "number" && status >= 500);
+}
+
+/**
+ * One GET returning parsed JSON, bounded in time and retried once on a transient failure.
+ *
+ * `fetchImpl` and `delayMs` are injectable so the retry policy can be demonstrated offline and instantly.
+ * A guard that has only ever been seen passing is not evidence, and a retry nobody has watched retry is
+ * the same thing.
+ *
+ * A 404 or a 403 is NOT retried: it is a definitive answer, a second attempt cannot change it, and the
+ * attempt spends exactly the rate-limit budget this function exists to protect.
+ */
+export async function getJson(url, opts = {}) {
+  const {
+    headers = {},
+    fetchImpl = fetch,
+    timeoutMs = FETCH_TIMEOUT_MS,
+    retries = FETCH_RETRIES,
+    delayMs = FETCH_RETRY_DELAY_MS,
+  } = opts;
+  let last = null;
+  for (let attempt = 0; attempt <= retries; attempt += 1) {
+    let retryable;
+    try {
+      const res = await fetchImpl(url, { headers, signal: AbortSignal.timeout(timeoutMs) });
+      if (res.ok) return await res.json();
+      last = new Error(`${res.status} ${res.statusText}`);
+      retryable = isRetryableStatus(res.status);
+    } catch (err) {
+      // A network fault, or the timeout firing. Both are transient by nature, so both earn the one retry.
+      last = err;
+      retryable = true;
+    }
+    if (!retryable) break;
+    if (attempt < retries && delayMs > 0) await new Promise((r) => setTimeout(r, delayMs));
+  }
+  throw last;
+}
+
+/**
  * Workflow YAML plus the published composite action, which pins actions of its own.
  *
  * THROWS on a root that does not exist. The first version swallowed every exception from both reads, so a
@@ -87,11 +145,7 @@ async function resolveAction(action, wantedShas) {
     "user-agent": "agent-skills-toolkit-action-pin-watch",
     ...(token ? { authorization: `Bearer ${token}` } : {}),
   };
-  const get = async (url) => {
-    const res = await fetch(url, { headers });
-    if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
-    return res.json();
-  };
+  const get = (url) => getJson(url, { headers });
 
   const out = { resolvedBySha: {}, latestVersion: null, error: null, pagesExhausted: false };
   try {

@@ -4,8 +4,9 @@ title: "v1.15.0 review findings - open, and blocking the tag"
 
 # v1.15.0 review findings
 
-> **Status, 2026-08-19: all eight BLOCKING findings are CLOSED, and four remain open - `F9`, `F10` and
-> `F14` recorded as due before the tag, `F15` not blocking - so the tag is still held.** See the closure ledger below; each closed finding
+> **Status, 2026-08-19: ALL FIFTEEN FINDINGS ARE CLOSED**, each with a dated note under its own text.
+> This file no longer holds the tag. **Acceptance criterion 6 - a second adversarial wave - remains open** 
+> and is not satisfied by these fixes, by the review that produced these findings, or by any self-review. See the closure ledger below; each closed finding
 > carries a dated note under its own text.
 > Source: a max-effort repository code review over `v1.14.0..HEAD` (905 lines of code across 13 files),
 > run 2026-08-19. **Fifteen findings.** Two were independently re-reproduced by hand before this file was
@@ -46,11 +47,14 @@ wrong, and a finding edited to describe its own fix stops being that.
 | F11 - two more ways to look at nothing and report clean | **CLOSED** 2026-08-19 | refuses a root with no pin sources, finds `action.yaml`, and the report states how many files it read |
 | F12 - the write-incapability guard was defeatable | **CLOSED** 2026-08-19 | bracket access and namespace imports caught, scan runs on stripped source, and the guard itself is now tested |
 | F13 - `action.yml` USAGE stale again | **CLOSED** 2026-08-19 | self-referential version guard in `check-readme-version.mjs`, which caught the live drift |
-| F9, F10, F14 | OPEN, should fix before tag | - |
-| F15 | OPEN, not blocking | - |
+| F9 - one override reason excuses every overridable gate | **CLOSED** 2026-08-19 | ADR 0053's reuse decision UPHELD; the untested multi-gate path is tested and the report names when one reason covered several |
+| F10 - nothing bounded how long anything could take | **CLOSED** 2026-08-19 | `timeout-minutes` on all 11 jobs (guarded by a test), a spawn timeout, and a bounded fetch with exactly one retry |
+| F14 - `RELEASE.md` never mentions `GITHUB_TOKEN` | **CLOSED** 2026-08-19 | the exact command in `RELEASE.md` and `scripts/README.md`, saying the remedy is the token and not the override |
+| F15 - the skill's procedure contradicted its own example | **CLOSED** 2026-08-19 | measure renumbered to step 5, route to step 6, example labels follow |
 
-**All eight blocking findings are closed. FOUR findings remain open - `F9`, `F10` and `F14` due before the
-tag, `F15` not blocking - so THE TAG IS STILL HELD.**
+**ALL FIFTEEN FINDINGS ARE CLOSED.** Each carries a dated note under its own text saying what was done
+and how it was proved. **The tag is no longer held by this file** - what remains is acceptance criterion
+6, the second adversarial wave, which nothing in this document can discharge.
 
 ---
 
@@ -372,6 +376,34 @@ the flag is still named `--allow-vendor-unreachable`.
 anyway on the operator-visibility argument, and on the fact that the test helper only ever sets one gate
 non-zero, so the path is untested.
 
+> **CLOSED 2026-08-19, and deliberately NOT by reversing ADR 0053.**
+>
+> This finding's temptation is the exact mistake `F3` turned out to be: undoing a ratified decision as a
+> side effect of a bug fix. ADR 0053 section 3 explicitly considered a second, near-identical flag and
+> **rejected it as proliferation**, on the reasoning that a GitHub API outage and a documentation-host
+> outage are the same category of fact. The finding itself concedes the reuse was documented as deliberate.
+> So the decision stands, no flag is renamed or scoped, and there is no ADR correction here - because
+> nothing was changed that an ADR records.
+>
+> **What was actually wrong was narrower than the framing, and it is fixed.** The ADR's stated safeguard
+> is that `renderSummary` names which gates an override applied to. That safeguard already worked -
+> **and had never been asserted**, because the test helper could only ever set ONE gate non-zero. The
+> multi-gate path is now tested: both network gates at exit 2, one reason, both `overridden`, both named.
+>
+> **One output-only addition.** When a single reason excused more than one refusal, the report now says so
+> in as many words rather than leaving it to be inferred from a list - the operator is told the failures
+> are unrelated and asked to confirm the reason accounts for each. A test asserts the line appears at two
+> and NOT at one, so it cannot become noise on the ordinary single-gate case.
+>
+> **Residual risk accepted and named**, which is the honest close: one reason can still cover two
+> refusals. The operator flow makes both visible before the flag is ever typed - the run fails, the table
+> lists every blocked gate, and only then is the flag added - and `F14`'s fix removes the most likely
+> reason anyone reaches for it by mistake, which was a missing token. The two close as a pair.
+>
+> Also re-asserted now that two gates can fail together: exit 1 still outranks exit 2, so a network reason
+> cannot carry a proven label defect through beside it. Mutation-proved: dropping the multi-excuse notice
+> turns one test red.
+
 ## F10 - No fetch timeout, no retry, and no `timeout-minutes` anywhere
 
 **`scripts/action-pin-watch.mjs:70`**
@@ -383,6 +415,42 @@ that exactly this happened on 2026-08-17 during a GitHub partial outage.
 `spawnSync` in `runGate` has no timeout either, and `publish-npm.yml`'s concurrency group uses
 `cancel-in-progress: false`, so a stuck prepare job blocks every later publish dispatch until a human
 cancels it.
+
+> **CLOSED 2026-08-19.** Four bounds where there were none.
+>
+> **`timeout-minutes` on all 11 jobs across all 6 workflows** - the grep in this finding returned nothing,
+> and it now returns eleven. Generous on purpose: the slowest job observed is about 1m10s and the smallest
+> bound is 15 minutes, because a timeout tight enough to fire on a slow-but-working run would turn
+> somebody else's bad afternoon into a blocked release. **A test asserts every job in every workflow
+> declares one**, so this is a guard rather than a one-time sweep.
+>
+> **A `spawnSync` timeout in `runGate`**, as the exported `GATE_TIMEOUT_MS`. What it composes with is the
+> point: `spawnSync` kills the child, `status` comes back null, the CLI maps null to `SPAWN_FAILED`, and
+> `F2`'s fix makes `SPAWN_FAILED` block. **A gate that ran out of time therefore cannot certify a release,
+> for the same reason a gate that never started cannot** - no new path was needed, and the composition is
+> asserted.
+>
+> **A per-request timeout and exactly ONE retry**, extracted as `getJson` so the policy is injectable and
+> can be demonstrated offline and instantly - a retry nobody has watched retry is the same as a guard
+> nobody has watched fail. A 429 or 5xx is retried; **a 404 is not**, because it is a definitive answer
+> that a second attempt cannot change while spending exactly the rate-limit budget the retry protects.
+> One retry and not more: additional attempts are new failure surface, multiplying the spend the retry
+> exists to survive and lengthening the run the timeout exists to bound.
+>
+> **`cancel-in-progress: false` is KEPT, and now says why.** Cancelling a publish mid-flight is strictly
+> worse than waiting for one: npm publication is not transactional, so a run killed between the registry
+> write and the provenance attestation leaves a version half-shipped that no later run can distinguish
+> from a clean one. The finding's concurrency clause is answered by BOUNDING the job rather than by
+> cancelling the release, and the comment records that reasoning in the file.
+>
+> **Two evidence limits, stated rather than fudged.** `release.yml` and `publish-npm.yml` are never
+> exercised by PR CI, so their edits were verified by parsing every workflow with the repository's own
+> `yaml` dependency and confirming all 11 jobs read back with a numeric `timeout-minutes`; a green PR
+> proves nothing about those two files. And a genuine hang is not reproducible offline, so for the
+> timeout itself the evidence is the code plus a live green run, not a demonstrated firing.
+>
+> Mutation-proved: removing one job's timeout turns the workflow guard red, disabling the retry turns
+> three red, and dropping the abort signal turns one red.
 
 ## F11 - Two more ways to look at nothing and report a clean pass
 
@@ -498,6 +566,22 @@ CI will never show. The final commit of this range added `env: GITHUB_TOKEN` to 
 this - but grep finds **zero** mentions of `GITHUB_TOKEN` or `GH_TOKEN` in `RELEASE.md`, `README.md` or
 `scripts/README.md`. The likely operator response, reaching for `--allow-vendor-unreachable`, lands on F9.
 
+> **CLOSED 2026-08-19.** The finding's own acceptance test was its grep, so that grep is the check: it
+> found **zero** mentions of `GITHUB_TOKEN` across `RELEASE.md`, `README.md` and `scripts/README.md`, and
+> `RELEASE.md` and `scripts/README.md` now carry the exact command:
+>
+> ```
+> GITHUB_TOKEN="$(gh auth token)" node scripts/release-ready.mjs
+> ```
+>
+> with the reason beside it - unauthenticated GitHub allows 60 requests an hour per IP, the failure is an
+> exit-2 refusal, and CI never shows it because both release workflows pass a token.
+>
+> **It says explicitly that the remedy is the token and NOT `--allow-vendor-unreachable`.** That sentence
+> is what closes this finding together with `F9`: the override was the likely operator response to a
+> refusal with no documented cause, and reaching for it would excuse a refusal a token makes disappear
+> while silently waiving anything else refusing in the same run.
+
 ## F15 - The new skill's procedure contradicts its own golden example
 
 **`skills/askit-capability-gap-analysis/SKILL.md:67`**
@@ -507,6 +591,13 @@ you recommend ... count them before writing it down." The shipped golden example
 "Step 4 and 6" first, then "Step 5". An author following the numbers literally does what step 6 forbids.
 
 Fix: renumber (measure as 5, route as 6), or state in step 5 that it cannot complete until step 6 has run.
+
+> **CLOSED 2026-08-19.** Renumbered exactly as the finding prescribes: **measure is now step 5 and route
+> is step 6**, so an author following the numbers literally does what the procedure intends.
+>
+> The golden example needed no behavioural change - it was already right, which is what made the
+> contradiction visible - so only its step labels move, from "Step 4 and 6" to "Steps 4 and 5" and from
+> "Step 5" to "Step 6". The example is evidence that the ORDER was correct and the NUMBERS were not.
 
 ---
 

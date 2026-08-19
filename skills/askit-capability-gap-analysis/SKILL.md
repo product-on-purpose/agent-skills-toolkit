@@ -64,7 +64,13 @@ For each of `skills/`, `agents/`, `commands/`, `_workflows/`, `.claude-plugin/ma
 
 **Use `metadata.verified-against` (ADR 0054) where it is present**, and treat its absence as unknown rather than as current. The staleness report is a list of components whose recorded agent version predates the finding - not a list of components that are wrong.
 
-### 5. Route each conclusion, and never to more than one place
+### 5. Measure before you recommend, or say that you did not
+
+If a recommendation depends on how many components, plugins or skills are affected, **count them before writing it down.** This repository has overturned three of seven ratified recommendations on their own measurements, including one that would have failed 44.9 percent of 2342 measured skills and one that fired on 99.9 percent of 2068 descriptions.
+
+If measuring is not practical, the proposal must say the number is unmeasured. An unmeasured proposal is still useful; an unmeasured proposal presented as measured is not.
+
+### 6. Route each conclusion, and never to more than one place
 
 | Conclusion | Goes to |
 |---|---|
@@ -75,12 +81,6 @@ For each of `skills/`, `agents/`, `commands/`, `_workflows/`, `.claude-plugin/ma
 | real, but nothing to do yet | the backlog, **with the trigger condition that would change the answer** |
 
 That last row is the one people skip, and it is the most valuable. A finding filed as "not yet, because the measured population is zero" with a stated re-measurement trigger is a decision. The same finding filed as "no" is a decision nobody can revisit.
-
-### 6. Measure before you recommend, or say that you did not
-
-If a recommendation depends on how many components, plugins or skills are affected, **count them before writing it down.** This repository has overturned three of seven ratified recommendations on their own measurements, including one that would have failed 44.9 percent of 2342 measured skills and one that fired on 99.9 percent of 2068 descriptions.
-
-If measuring is not practical, the proposal must say the number is unmeasured. An unmeasured proposal is still useful; an unmeasured proposal presented as measured is not.
 
 ### 7. Stop
 

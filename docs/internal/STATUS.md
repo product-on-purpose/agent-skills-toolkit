@@ -18,7 +18,7 @@
 | Spine | 34 checks |
 | Scopes | 3 (plugin, component, marketplace) |
 | Skills | **26** |
-| Tests | 1325, 0 failures (local suite run 2026-08-19; both halves confirmed by `npm run release-ready` exiting 0) |
+| Tests | 1334, 0 failures (local suite run 2026-08-19; both halves confirmed by `npm run release-ready` exiting 0) |
 | Self-proving | `node scripts/check.mjs .` exits 0 at Advanced, 0 errors, 0 warnings |
 
 ## v1.15.0 is PREPARED and WITHHELD (2026-08-18)
@@ -79,13 +79,17 @@ path is now demonstrated against the real historical `codeql-action` case instea
 
 **The suite reported 1,281 passing and zero failures while every one of those defects was live.**
 
-### EVERY BLOCKING REVIEW FINDING IS CLOSED; FOUR REMAIN OPEN AND THE TAG IS STILL HELD (2026-08-19)
+### ALL FIFTEEN REVIEW FINDINGS ARE CLOSED; THE TAG NOW WAITS ONLY ON CRITERION 6 (2026-08-19)
 
 A max-effort repository code review over `v1.14.0..HEAD` returned **fifteen findings**, eight of them
-blocking. **Eleven are now CLOSED, including all eight blocking (`F1` to `F8`), plus `F11`, `F12` and
-`F13`.** Four remain open - `F9`, `F10` and `F14` recorded as due before the tag, `F15` as not blocking -
-so **the tag is still held.** Full detail with reproductions, and a closure ledger:
+blocking. **All fifteen are now CLOSED**, each carrying a dated note under its own text saying what was
+done and how it was proved, in
 [`release-plans/plan_v1.15.0/review-findings.md`](release-plans/plan_v1.15.0/review-findings.md).
+
+**That file no longer holds the tag. Acceptance criterion 6 does** - the second adversarial wave has not
+run, and it is not satisfied by these fixes, by the review that produced the findings, or by any
+self-review. Codex credits return **2026-08-20**. **The fix code itself is also unreviewed**, which is the
+precise class `F3` came from, so a repository-reading review over the fix range is due before the tag.
 
 The two worst shared one shape: **a gate reporting success while checking nothing.** A symlinked or
 junctioned checkout made `action-pin-watch` never run its main function - it printed nothing, exited 0, and

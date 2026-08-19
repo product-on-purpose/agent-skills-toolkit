@@ -100,6 +100,15 @@ on:
 permissions:
   contents: read
 
+# `cancel-in-progress: false` is DELIBERATE and is not the fix for a stuck run. Cancelling a publish
+# mid-flight is strictly worse than waiting for one: npm publication is not transactional, so a run killed
+# between the registry write and the provenance attestation leaves a version half-shipped, and no later run
+# can tell that apart from a clean one. Queueing is the safe failure mode.
+#
+# Review finding F10 pointed out the cost of that choice: a job that HUNG blocked every later dispatch until
+# a human noticed and cancelled it by hand. The answer is to bound the job rather than to cancel the
+# release - every job in this file now declares `timeout-minutes`, and `release-ready` bounds each gate it
+# spawns, so a stuck run now ends by itself and the queue drains.
 concurrency:
   group: publish-npm
   cancel-in-progress: false
@@ -112,6 +121,7 @@ jobs:
   # injection here could not reach npm.
   prepare:
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     permissions:
       contents: read
     # Read the untrusted input exactly once, here, as an environment variable - never again as a raw
@@ -268,6 +278,7 @@ jobs:
     # dry_run's value.
     if: ${{ success() && !inputs.dry_run }}
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     # Configure this environment once in repo Settings -> Environments (name: npm-publish) with a
     # required reviewer. GitHub Actions YAML cannot itself create that rule - naming the environment
     # THE LOAD-BEARING CONTROL IS EXTERNAL TO THIS FILE, and round 3 of the pre-release review is why.

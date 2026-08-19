@@ -8,10 +8,11 @@
 // used-by:      npm test
 import test from "node:test";
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
+import { readFileSync, readdirSync } from "node:fs";
+import { parse as parseYaml } from "yaml";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { GATES, gateBlocks, overrideApplies, summarize, exitCodeFor, renderSummary } from "../../scripts/lib/release-ready.mjs";
+import { GATES, GATE_TIMEOUT_MS, SPAWN_FAILED, gateBlocks, overrideApplies, summarize, exitCodeFor, renderSummary } from "../../scripts/lib/release-ready.mjs";
 
 const REPO = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
 const gate = (id) => GATES.find((g) => g.id === id);
@@ -147,6 +148,72 @@ test("the report leads with what blocks", () => {
   const lines = out.split("\n").filter((l) => /^(ok|BLOCK|override|UNKNOWN)/.test(l));
   assert.match(lines[0], /^BLOCK/);
   assert.match(out, /NOT releasable/);
+});
+
+// --- F9: one reason, more than one refusal --------------------------------
+
+const withCodes = (ids, code) => allPass().map((r) => (ids.includes(r.id) ? { ...r, code } : r));
+
+test("F9: one reason CAN excuse both network gates at once, and the summary names both", () => {
+  // The path the test helper could never reach, because it only ever set ONE gate non-zero. ADR 0053
+  // decided to reuse the single flag deliberately, rejecting a second near-identical one as proliferation,
+  // and its stated safeguard is that the summary names which gates an override actually applied to. That
+  // safeguard was never asserted. It is now.
+  const s = summarize(withCodes(["vendor-watch", "action-pins"], 2), { overrideReason: "GitHub API and the vendor host both 503" });
+  assert.equal(s.ok, true);
+  assert.deepEqual(s.rows.filter((r) => r.status === "overridden").map((r) => r.id).sort(), ["action-pins", "vendor-watch"]);
+  const out = renderSummary(s);
+  assert.ok(out.includes("vendor-watch (exit 2)"), "the summary must name vendor-watch as excused");
+  assert.ok(out.includes("action-pins (exit 2)"), "the summary must name action-pins as excused");
+});
+
+test("F9: excusing MORE THAN ONE refusal says so in as many words", () => {
+  // The residual risk the finding names: an operator reaching for the flag because of a known vendor
+  // outage silently also waives an unrelated action-registry refusal. The operator flow already surfaces
+  // both (the run fails, the table is read, the flag is added), so the remedy is to say plainly that one
+  // reason covered two things rather than to add a second flag ADR 0053 considered and rejected.
+  const two = renderSummary(summarize(withCodes(["vendor-watch", "action-pins"], 2), { overrideReason: "outage" }));
+  assert.match(two, /2 separate refusals/);
+  const one = renderSummary(summarize(withCode("vendor-watch", 2), { overrideReason: "outage" }));
+  assert.doesNotMatch(one, /separate refusals/, "one excused gate must not be described as several");
+});
+
+test("F9: a reason still cannot excuse a LABEL problem sitting beside a refusal", () => {
+  // The wave-1 lesson, re-asserted now that two gates can fail together: exit 1 outranks exit 2, so a
+  // network reason string can never carry a proven defect through with it.
+  const mixed = allPass().map((r) => (r.id === "vendor-watch" ? { ...r, code: 2 } : r.id === "action-pins" ? { ...r, code: 1 } : r));
+  const s = summarize(mixed, { overrideReason: "GitHub API 503" });
+  assert.equal(s.ok, false);
+  assert.equal(s.rows.find((r) => r.id === "action-pins").status, "BLOCK");
+});
+
+// --- F10: nothing bounded how long anything could take ---------------------
+
+test("F10: EVERY job in EVERY workflow declares timeout-minutes", () => {
+  // `grep -rn timeout-minutes .github/workflows/` returned nothing. A hung job is not a theoretical risk
+  // here: `publish-npm.yml` uses `cancel-in-progress: false`, deliberately, so a stuck prepare job blocked
+  // every later publish dispatch until a human noticed and cancelled it. Bounding the job is the fix for
+  // that; auto-cancelling an in-flight publish would be worse than the stuck job.
+  const dir = path.join(REPO, ".github", "workflows");
+  const files = readdirSync(dir).filter((n) => n.endsWith(".yml") || n.endsWith(".yaml"));
+  assert.ok(files.length > 0, "there must be workflows to check");
+  const missing = [];
+  for (const name of files) {
+    const doc = parseYaml(readFileSync(path.join(dir, name), "utf8"));
+    for (const [jobId, job] of Object.entries(doc?.jobs ?? {})) {
+      if (typeof job?.["timeout-minutes"] !== "number") missing.push(`${name}:${jobId}`);
+    }
+  }
+  assert.deepEqual(missing, [], `jobs with no timeout-minutes: ${missing.join(", ")}`);
+});
+
+test("F10: the gate runner declares a spawn timeout, and a timed-out gate BLOCKS", () => {
+  // The composition matters more than the number: spawnSync's timeout kills the child, `status` comes back
+  // null, `runGate` maps null to SPAWN_FAILED, and F2's fix makes SPAWN_FAILED block. A gate that ran out
+  // of time therefore cannot certify a release, for the same reason a gate that never started cannot.
+  assert.equal(typeof GATE_TIMEOUT_MS, "number");
+  assert.ok(GATE_TIMEOUT_MS > 0, "a timeout of zero or less would disable the bound rather than set it");
+  assert.equal(gateBlocks(gate("action-pins"), SPAWN_FAILED), true);
 });
 
 test("BOTH release workflows invoke the aggregate, or it is prose again", () => {

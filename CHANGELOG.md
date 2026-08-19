@@ -239,6 +239,45 @@ rewritten to look as though this was always the plan.
   comment merely mentioning `writeFileSync(` would have failed the guard, which this same file had already
   shipped three times.
 
+- **Nothing bounded how long anything could take** (review finding `F10`). `grep -rn timeout-minutes
+  .github/workflows/` returned **nothing**, `spawnSync` in the gate runner had no timeout, and `fetch` has
+  no default one - so a single hung request held a release gate open with no upper bound, and because
+  `publish-npm.yml` sets `cancel-in-progress: false` deliberately, a stuck job blocked every later publish
+  dispatch until a human noticed. Separately, **any single throw** from up to 20 sequential registry calls
+  cascaded to a release-blocking refusal for every pin of that action - not hypothetical, the CLI's own
+  comment records a run that failed purely on codeload 429s during a GitHub partial outage and passed on
+  retry.
+
+  Now: `timeout-minutes` on **all 11 jobs across all 6 workflows**, with a test asserting every job declares
+  one so it stays a guard rather than a sweep; a spawn timeout whose effect composes with `F2`'s fix for
+  free (killed child, null status, `SPAWN_FAILED`, blocked); and a per-request timeout with **exactly one**
+  retry - a 429 or 5xx is retried, a 404 is not, because a second attempt cannot change a definitive answer
+  while spending exactly the rate-limit budget the retry protects. **`cancel-in-progress: false` is kept**
+  and now records why: npm publication is not transactional, so a run cancelled between the registry write
+  and the provenance attestation leaves a version half-shipped. Bounding the job is the fix; cancelling the
+  release is not.
+
+- **One override reason could excuse every overridable gate at once** (review finding `F9`) - **closed
+  without reversing the decision that caused it.** ADR 0053 explicitly considered a second, near-identical
+  flag and rejected it as proliferation; undoing that as a side effect of a bug fix is the exact mistake
+  `F3` turned out to be, so the flag is neither renamed nor scoped. What was actually wrong was narrower:
+  the ADR's stated safeguard, that the summary names which gates an override applied to, **already worked
+  and had never been asserted**, because the test helper could only ever set one gate non-zero. That path
+  is tested now, and one reason covering more than one refusal is called out in as many words rather than
+  left to be inferred. The residual risk is recorded as accepted rather than quietly resolved.
+
+- **`RELEASE.md` never mentioned `GITHUB_TOKEN`** (review finding `F14`), so a maintainer following the
+  checklist locally hit GitHub's 60-per-hour unauthenticated limit and read **NOT releasable** for a cause
+  CI never shows, both release workflows having a token. The exact command is now in `RELEASE.md` and
+  `scripts/README.md`, saying explicitly that the remedy is the token and **not**
+  `--allow-vendor-unreachable` - which closes it as a pair with `F9`, since that override was the likely
+  wrong turn.
+
+- **A new skill's procedure contradicted its own golden example** (review finding `F15`): step 5 routed the
+  conclusion before step 6 said to measure, so an author following the numbers did what step 6 forbids.
+  Measure is now step 5 and route is step 6. The example needed no behavioural change - it was already
+  right, which is what made the contradiction visible.
+
 - **The seed plugin would have been born on the old ruleset.** `templates/seed-plugin/library.json` still
   pinned 0.14, which silently opts every freshly scaffolded plugin out of every check introduced since its
   pin. Caught by its own guard, whose comment had predicted exactly this: *"This invariant fails on the next
