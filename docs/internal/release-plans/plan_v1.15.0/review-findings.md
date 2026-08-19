@@ -4,7 +4,9 @@ title: "v1.15.0 review findings - open, and blocking the tag"
 
 # v1.15.0 review findings
 
-> **Status: OPEN. The tag must not be cut until the blocking findings below are closed.**
+> **Status, 2026-08-19: all eight BLOCKING findings are CLOSED. Seven remain open, five of them recorded
+> as due before the tag, so the tag is still held.** See the closure ledger below; each closed finding
+> carries a dated note under its own text.
 > Source: a max-effort repository code review over `v1.14.0..HEAD` (905 lines of code across 13 files),
 > run 2026-08-19. **Fifteen findings.** Two were independently re-reproduced by hand before this file was
 > written; the rest carry the reviewer's own verification notes.
@@ -35,11 +37,17 @@ wrong, and a finding edited to describe its own fix stops being that.
 | --- | --- | --- |
 | F1 - a link makes the gate a silent no-op | **CLOSED** 2026-08-19 | entry-guard fallback + a spawned-through-a-link regression test |
 | F2 - an unspawnable gate reads as a PASS | **CLOSED** 2026-08-19 | `blocksOn` removed, `gateBlocks` collapses to non-zero, `SPAWN_FAILED` shared, vacuous test replaced |
-| F3 to F8 - the `action-pin-watch` correctness cluster | OPEN, blocking | - |
+| F3 - a floating label can never disagree | **CLOSED** 2026-08-19 | new `LABEL_FLOATS` verdict, restoring a decision ADR 0053 had already written down |
+| F4 - first-v-token parsing blocks correct pins | **CLOSED** 2026-08-19 | last-token claim, optional and case-insensitive `v`, bare dotted versions, normalised comparison |
+| F5 - two legal block-scalar headers missed | **CLOSED** 2026-08-19 | header regex accepts either indicator order and a trailing comment |
+| F6 - a non-version release tag disabled BEHIND while asserting currency | **CLOSED** 2026-08-19 | comparability computed once; not comparable means UNKNOWN, and it is not parsed harder |
+| F7 - `refKind: other` passed unconditionally | **CLOSED** 2026-08-19 | full tags take the major-tag contract; branches judge nothing and say so; lookup errors read |
+| F8 - our own runbook produces a pin the checker refuses | **CLOSED** 2026-08-19 | `05-ci-plan.md` dereferencing command + specific-version format, verified live |
 | F9, F10, F11, F13, F14 | OPEN, should fix before tag | - |
 | F12, F15 | OPEN, not blocking | - |
 
-**Six blocking findings remain. The tag is still held.**
+**All eight blocking findings are closed. Seven findings remain open, five of them due before the tag, so
+THE TAG IS STILL HELD.**
 
 ---
 
@@ -157,6 +165,33 @@ behaviour, so CI stays green over the hole.
 **This is the "review the fixes, not just the code" pattern**: a wave-1 fix opened a new hole and its own
 test locked it in.
 
+> **CLOSED 2026-08-19.** New verdict **`LABEL_FLOATS`**, blocking at exit 1 - a defect in this repository's
+> own file, so it takes the same non-overridable code as every other label problem.
+>
+> **The finding understates itself, and the correction is worth the extra sentence.** ADR 0053 does not
+> merely fail to anticipate this case; **it decided it, by name, using this exact example.** Its own text
+> reads: *"The strict form was chosen over 'the label must merely not be false' on one live instance:
+> `# v3` against a SHA resolving to `v3.0.2` is not false, and it names nothing a reviewer can check, which
+> is exactly how the next bump becomes invisible."* So this was never a gap in the design. **A ratified
+> decision was reversed by a bug fix, and that fix's own test then asserted the reversal**, which is why CI
+> stayed green over it. `LABEL_FLOATS` does not invent a rule; it restores one that had been written down
+> and then quietly lost. ADR 0053 carries a dated correction saying so.
+>
+> **Ordering is load-bearing and is tested.** The floating check runs only AFTER the label matches. `# v3`
+> against a commit tagged `v4.0.0` is not under-specified, it is wrong, and `LABEL_DISAGREES` is the sharper
+> thing to say.
+>
+> **The escape hatch is load-bearing too.** When a commit carries only floating tags, that label is the best
+> one available; demanding a specific version there would block a pin whose author has nothing better to
+> write, and a rule that cannot be satisfied is a false finding with extra steps.
+>
+> **The wave-1 protection survives.** The `ONE COMMIT, TWO TAGS` test still asserts that a label naming the
+> specific tag among several passes, and that a version on neither is still caught - it was amended, not
+> deleted, and its `# v3` line now asserts `LABEL_FLOATS` with a comment explaining why. Mutation-proved:
+> removing the rule turns three tests red, that test among them.
+>
+> The prescribed `# v3` format in `05-ci-plan.md:115` is corrected as part of F8's closure, in one block.
+
 ## F4 - BLOCKING. `versionInComment` takes the FIRST v-token, and blocks correct pins two ways
 
 **`scripts/lib/action-pin-watch.mjs:63`**
@@ -175,6 +210,30 @@ fails the un-normalized `resolved.includes(pin.claimed)` at line 166.
 
 **`majorOf` already accepts the bare form** (`^v?(\d+)`); `versionInComment` does not.
 
+> **CLOSED 2026-08-19.** All four spellings fixed, and the fix is guarded against its own obvious hazard.
+>
+> **The claim is now the LAST version token**, not the first. Every real producer of a multi-version
+> comment writes the current one last: Dependabot's `bumped from v4.37.6 to v4.37.7`, Renovate's
+> `from v2 to v3.0.2`, and the hand-written `was v3, now v4`. All three are in the test table.
+>
+> **No ambiguity verdict was added, deliberately.** Last-token reads every real shape correctly, so a
+> second verdict would add surface without adding a decision. Instead, when a label genuinely disagrees
+> and the comment held more than one token, the detail names them all - the human sees the ambiguity and
+> decides which half is wrong.
+>
+> **The `v` is optional and case-insensitive**, so `0.28.0` (the spelling `aquasecurity/trivy-action`
+> ships) and `V4.37.7` both parse. **A bare number must carry a dot**, which is the entire guard against
+> the fix's own hazard: the `2026-08-16` in this repository's prescribed comment format has no dot in it,
+> so it can never be read as version 2026. A date and a sha fragment are both in the test table for
+> exactly that reason.
+>
+> **Comparison is normalised on both sides** via `normalizeVersion`, closing the inverse block where a
+> correct `# v4.37.7` failed against a registry tag literally named `4.37.7`. Detail strings keep the raw
+> spelling, because a report must quote what the author actually wrote.
+>
+> Mutation-proved in two directions: restoring first-token turns two tests red, restoring the raw string
+> comparison turns one red.
+
 ## F5 - BLOCKING. The block-scalar regex misses two legal YAML headers
 
 **`scripts/lib/action-pin-watch.mjs:45`**
@@ -185,6 +244,16 @@ release** - the false-finding failure the file's own comment calls the worst out
 
 The regex does not even match its own docstring example `body: |2+`. The test suite covers only plain
 `run: |`.
+
+> **CLOSED 2026-08-19.** The header now accepts an indentation indicator and a chomping indicator **in
+> either order**, plus a trailing comment. The test table is `|`, `|-`, `|2-`, `|-2`, `|2+`, `>-`,
+> `>+3 # c` and `run: | # trailing comment` - including the docstring example that did not match the
+> regex documenting it, which was the finding's punchline.
+>
+> **Two tests, in opposite directions.** One asserts that a `uses:`-shaped line inside each header's
+> payload yields ZERO pins, which is the false-finding class this file's own docblock calls its worst
+> outcome. The other asserts that a real `uses:` step AFTER a block scalar is still parsed - a fix that
+> swallowed the rest of the file would hide real pins, the same defect wearing the other mask.
 
 ## F6 - BLOCKING. `majorOf` returns null for a non-`vN` release tag, disabling BEHIND while asserting currency
 
@@ -200,6 +269,21 @@ Live output today: `ok ... label and ref agree on v4.37.7 (of v4.37.7, v4); curr
 flatly asserting currency against a tag it could not compare, which lines 194-197 and 308-309 say must
 never happen. **If codeql-action ships v5, nothing here will ever report it BEHIND.**
 
+> **CLOSED 2026-08-19.** Comparability is computed once, at the top of `evaluatePin`, and every branch
+> reads it: a latest release that does not parse as a version sets `currencyUnknown` TRUE and says so in
+> the detail, so the report's "Currency was NOT checked" line fires and no branch asserts currency.
+>
+> **The fix is deliberately NOT to parse harder, and that reasoning is the finding's real lesson.**
+> `codeql-bundle-v2.26.3` could be made to yield a 2, but that 2 belongs to a different numbering series
+> from the action's own `v4` tags. Comparing them would report a perfectly current pin as BEHIND -
+> trading a silent gap for a false finding, which is the strictly worse trade for this repository.
+> **Not comparable means unknown, and unknown is reported as unknown.**
+>
+> Measured on this repository's own pins rather than reasoned about: the three codeql rows flip from
+> asserting `current release codeql-bundle-v2.26.3` to `currency NOT checked (... is not a version
+> number, so it could not be compared)`, the summary gains `Currency was NOT checked for 3 pin(s)`, and
+> **nothing else moves** - 29 pins, 29 ok, exit 0, before and after.
+
 ## F7 - BLOCKING. `refKind: "other"` returns OK unconditionally
 
 **`scripts/lib/action-pin-watch.mjs:211`**
@@ -212,6 +296,25 @@ contradicting label passing at exit 0, while the identical contradiction on a ba
 The branch also **never reads `resolution.error`**, so a 404 or rate limit reports OK rather than
 UNRESOLVED. Exact-version tag pinning is the standard output of a Dependabot bump on a tag-pinned repo.
 **No test covers this refKind.**
+
+> **CLOSED 2026-08-19.** A full tag is self-describing in exactly the way a major tag is, so it now takes
+> the same contract: no label required, and a label that is present must not contradict the ref's major.
+> That consistency argument is stated in the code, because it is the reason the rule is not arbitrary.
+>
+> **The contradiction check stays at MAJOR level**, matching the branch above it: `@v4.1.1 # v4.2.0` is a
+> stale comment on a readable ref, not something a reader can be misled by, and blocking it would block a
+> pin that already says what it is.
+>
+> **A branch ref judges nothing and says so** - `majorOf("main")` is null, so no contradiction is
+> possible and currency cannot be assessed; the row reports `currencyUnknown` rather than an unqualified
+> OK.
+>
+> **A lookup error now reports unknown currency rather than a silent OK**, and NOT `UNRESOLVED`: the
+> label question is fully answered by the ref itself, exactly as in the major-tag branch, so a refusal
+> would be the wrong verdict for a question that was never in doubt.
+>
+> **BEHIND now reaches full-tag refs too.** Leaving them permanently uncheckable for currency would have
+> been F6's blind spot in a second place. Five tests cover this refKind, which previously had none.
 
 ## F8 - BLOCKING. Following our own runbook produces a pin that refuses the release
 
@@ -229,6 +332,30 @@ sha never appears in `resolvedBySha`, the pin resolves to `[]`, and `evaluatePin
 
 This file was edited in this range (a correction block inserted directly above the line) without touching
 the command.
+
+> **CLOSED 2026-08-19.** `docs/internal/execution/05-ci-plan.md` carries a dated correction covering both
+> defects in that one sentence - **the command AND the format** - in a single block, continuing the
+> 2026-08-17 correction directly above it rather than stacking an unrelated second one.
+>
+> **Verified live before the correction was written**, which is the acceptance test for a fix whose whole
+> content is a command a human will run:
+>
+> ```
+> $ gh api repos/softprops/action-gh-release/git/refs/tags/v3 --jq '.object'
+> {"sha":"c12583777ecdfd3be55c69cf75464299dc01057e","type":"tag"}   <- the prescribed command: a TAG OBJECT
+> $ gh api repos/softprops/action-gh-release/commits/v3 --jq .sha
+> 3d0d9888cb7fd7b750713d6e236d1fcb99157228                          <- the commit, and what release.yml pins
+> ```
+>
+> **The checker's behaviour is deliberately unchanged.** Refusing a sha it cannot resolve to a commit is
+> correct; the defect was a runbook instructing a human to produce one. The corrected command is
+> `gh api repos/<owner>/<repo>/commits/<tag> --jq .sha`, and `publish-npm.yml` already used the plumbing
+> spelling of the same idea (`git rev-parse refs/tags/$TAG^{commit}`) for this repository's own tag.
+>
+> **The same block fixes F3's format prescription** (`# v3` becomes `# v3.0.2`). Worth recording together:
+> this file prescribed a comment format that defeated the checker and a command the checker refuses, and
+> the checker was written by reading this file. **A runbook is an input to the tools built from it, and a
+> wrong one propagates into them.**
 
 ## F9 - One override reason excuses every overridable gate
 

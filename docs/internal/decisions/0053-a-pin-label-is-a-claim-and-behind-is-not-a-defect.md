@@ -73,6 +73,28 @@ One lookup answers both halves. Resolving a pin against the registry it came fro
 
 Measured before choosing: all 8 SHA pins already carry comments and all 21 tag pins already do not, so this rule describes what the repository already does. **The strict form was chosen over "the label must merely not be false"** on one live instance: `# v3` against a SHA resolving to `v3.0.2` is not false, and it names nothing a reviewer can check, which is exactly how the next bump becomes invisible.
 
+> **CORRECTION, 2026-08-19.** Two rows of the table above were wrong in the shipped code, and the more
+> serious of the two is that **the strict form described in the paragraph immediately above was never
+> actually enforced - and then was silently reversed.**
+>
+> **`LABEL_FLOATS` is added, restoring this ADR's own stated decision** (review finding `F3`). Wave 1
+> correctly fixed a multi-tag FALSE POSITIVE by accepting a label that names *any* tag the commit carries.
+> Its side effect was never weighed: a floating major tag follows the action to every new release commit, so
+> `# v3` matched forever however far the SHA advanced. **That is the exact case this paragraph decided
+> against, by name, using this exact example** - `# v3` against a SHA resolving to `v3.0.2`. A ratified
+> decision was reversed by a bug fix, and the fix's own shipped test then asserted the reversal, so CI
+> stayed green over the hole. A floating label now blocks at exit 1, unless the commit carries no specific
+> tag at all, in which case it is the best label available and passes.
+>
+> **The `full tag or branch` row is wrong** (review finding `F7`). "No label contract applies" meant
+> `@v4.1.1 # v7.0.0` passed at exit 0 while the identical contradiction on `@v4 # v7.0.0` raised
+> `LABEL_CONTRADICTS_REF` one row above. A full tag is self-describing in exactly the way a major tag is, so
+> it now takes the same rule: **if a comment is present it must not contradict the ref's major.** A genuine
+> branch ref still has no contract, because nothing about it is a version. Corrected row:
+>
+> | full tag (`v4.1.1`) | not required | if present, must not contradict the ref's major (`LABEL_CONTRADICTS_REF`) |
+> | branch (`main`) | not required | no version contract applies, and currency cannot be judged |
+
 **2. The exit-code split, and it is the reason this is not a copy of `vendor-watch`.**
 
 | Condition | Exit | Blocks a release | Overridable |

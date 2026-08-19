@@ -187,15 +187,18 @@ test("a SHA pin whose label names the version it resolves to is OK", () => {
   assert.equal(r.verdict, VERDICT.OK);
 });
 
-test("ONE COMMIT, TWO TAGS: a label naming EITHER is correct - the wave-1 false positive", () => {
+test("ONE COMMIT, TWO TAGS: a label naming the SPECIFIC one is correct - the wave-1 false positive", () => {
   // Measured live 2026-08-18: softprops/action-gh-release carries v3.0.2 and v3 on one commit, v1 and
   // v0.1.15 on another. Reading only the FIRST tag the registry listed turned this repository's own
-  // correct `# v3` label into a release-blocking false finding, on response ordering nobody controls.
+  // correct `# v3.0.2` label into a release-blocking false finding, on response ordering nobody controls.
+  // That protection is what this test exists for and it must survive every later change.
   const both = { resolvedVersions: ["v3.0.2", "v3"], latestVersion: "v3.0.2" };
   assert.equal(evaluatePin(shaPin("v3.0.2 pinned 2026-07-26"), both).verdict, VERDICT.OK);
-  assert.equal(evaluatePin(shaPin("v3 pinned 2026-07-26"), both).verdict, VERDICT.OK);
   // ...and a version that is on NEITHER tag is still caught.
   assert.equal(evaluatePin(shaPin("v3.0.1 pinned 2026-07-26"), both).verdict, VERDICT.LABEL_DISAGREES);
+  // The `# v3` spelling was ALSO accepted here until review finding F3, which is a separate defect with
+  // its own test below: a floating tag matches forever, so the label could never disagree.
+  assert.equal(evaluatePin(shaPin("v3 pinned 2026-07-26"), both).verdict, VERDICT.LABEL_FLOATS);
 });
 
 test("the real historical E45 defect: comment v4.37.6 against a SHA resolving to v4.37.7", () => {
@@ -333,6 +336,190 @@ test("pinSourceFiles finds this repository's own workflows and action.yml", () =
   const files = pinSourceFiles(REPO_ROOT).map((f) => path.relative(REPO_ROOT, f).replace(/\\/g, "/"));
   assert.ok(files.includes("action.yml"));
   assert.ok(files.some((f) => f.startsWith(".github/workflows/")));
+});
+
+// ---------------------------------------------------------------------------
+// Review wave 2, findings F3 to F8: the correctness cluster.
+//
+// Every one of these is a way the checker reached the WRONG verdict on input it
+// will actually meet. Four of them blocked a correct pin, which this file's own
+// docblock calls the worst outcome it recognises, and two of them let a defect
+// through while printing a verdict that sounded like coverage.
+// ---------------------------------------------------------------------------
+
+// --- F4: the comment parser -------------------------------------------------
+
+test("F4: the claim is the LAST version in the comment, because Dependabot writes 'from X to Y'", () => {
+  // The pin is CORRECT in every line here and the checker blocked it, at exit 1, which no reason string can
+  // override. Taking the FIRST v-token read the superseded version as the claim. This shape is expected
+  // input: the correction in 05-ci-plan.md records that Dependabot rewrites these comments.
+  assert.equal(versionInComment("bumped from v4.37.6 to v4.37.7"), "v4.37.7");
+  assert.equal(versionInComment("renovate: from v2 to v3.0.2"), "v3.0.2");
+  assert.equal(versionInComment("was v3, now v4 pinned 2026-08-16"), "v4");
+});
+
+test("F4: a version needs no `v`, and the `v` may be capital", () => {
+  // aquasecurity/trivy-action ships tags named `0.28.0`. Both spellings returned null, which is
+  // LABEL_MISSING - a blocking label problem reported against a perfectly good label.
+  assert.equal(versionInComment("0.28.0 pinned 2026-01-01"), "0.28.0");
+  assert.equal(versionInComment("V4.37.7 pinned 2026-08-16"), "V4.37.7");
+});
+
+test("F4: a DATE is not a version, and neither is a sha fragment", () => {
+  // The guard against the fix: accepting a bare `4.37.7` must not start reading `2026-08-16` as v2026.
+  // A bare number is only a version when it carries a dot, which a hyphenated date never does.
+  assert.equal(versionInComment("pinned 2026-08-16"), null);
+  assert.equal(versionInComment("pinned by hand, see ADR 0053"), null);
+  assert.equal(versionInComment("3d0d988 v3.0.2"), "v3.0.2");
+  assert.equal(versionInComment("v4.37.7 pinned 2026-08-16"), "v4.37.7");
+});
+
+test("F4: `v4.37.7` and `4.37.7` are the SAME version on both sides of the comparison", () => {
+  // The inverse block: a correct `# v4.37.7` comment against a registry tag literally named `4.37.7`
+  // failed the raw string comparison and was reported as a disagreement.
+  assert.equal(evaluatePin(shaPin("v0.28.0 pinned 2026-01-01"), { resolvedVersions: ["0.28.0"] }).verdict, VERDICT.OK);
+  assert.equal(evaluatePin(shaPin("0.28.0 pinned 2026-01-01"), { resolvedVersions: ["v0.28.0"] }).verdict, VERDICT.OK);
+  assert.equal(evaluatePin(shaPin("V4.37.7"), { resolvedVersions: ["v4.37.7"] }).verdict, VERDICT.OK);
+});
+
+test("F4: a Dependabot-rewritten comment on a CORRECT pin passes", () => {
+  const r = evaluatePin(shaPin("bumped from v4.37.6 to v4.37.7"), { resolvedVersions: ["v4.37.7", "v4"] });
+  assert.equal(r.verdict, VERDICT.OK);
+});
+
+test("F4: when the label really does disagree, the detail names every version the comment held", () => {
+  // No new verdict for ambiguity - the human sees both tokens and decides. A second verdict here would be
+  // surface for no added decision.
+  const r = evaluatePin(shaPin("bumped from v4.37.6 to v4.37.7"), { resolvedVersions: ["v5.0.0"] });
+  assert.equal(r.verdict, VERDICT.LABEL_DISAGREES);
+  assert.match(r.detail, /v4\.37\.6/);
+  assert.match(r.detail, /v4\.37\.7/);
+});
+
+// --- F5: block-scalar headers ----------------------------------------------
+
+test("F5: every legal block-scalar header is recognised, comment and indentation indicator included", () => {
+  // A header this regex misses is a header whose SHELL PAYLOAD gets parsed as YAML, so a `uses:`-shaped
+  // line inside a heredoc becomes a pin and BLOCKS the release. The file's own docstring example `body: |2+`
+  // did not match the regex that documented it.
+  for (const header of ["run: |", "run: |-", "run: |2-", "run: |-2", "body: |2+", "script: >-", "run: >+3 # c", "run: | # trailing comment"]) {
+    const text = `    ${header}\n      uses: evil/action@${"b".repeat(40)} # v9.9.9\n    name: after`;
+    assert.deepEqual(parsePins(text, "w.yml"), [], `${header} was not recognised as a block scalar`);
+  }
+});
+
+test("F5: a real step AFTER a block scalar is still parsed", () => {
+  // The inverse guard. A block-scalar fix that swallowed the rest of the file would hide real pins, which
+  // is the same defect wearing the other mask.
+  const text = `    run: | # trailing comment\n      echo uses: not/a@pin\n    uses: real/action@v7 # v7`;
+  const pins = parsePins(text, "w.yml");
+  assert.equal(pins.length, 1);
+  assert.equal(pins[0].action, "real/action");
+});
+
+// --- F3: a floating label can never disagree -------------------------------
+
+test("F3: a bare major label on a SHA pin is a defect, because it follows the SHA forever", () => {
+  // The permissive multi-tag rule was a correct wave-1 fix for a false positive whose SIDE EFFECT was never
+  // weighed: a floating major tag is not a fact about the commit, it is a pointer that moves to every new
+  // release commit. `resolved.includes('v3')` therefore stays true however far the SHA advances, so the
+  // exact Dependabot drift this whole check exists to catch became invisible - in the pin format this
+  // repository's own runbook prescribed. Verified at three successive releases.
+  for (const specific of ["v3.0.2", "v3.1.0", "v3.5.9"]) {
+    const r = evaluatePin(shaPin("v3 pinned 2026-07-26"), { resolvedVersions: [specific, "v3"] });
+    assert.equal(r.verdict, VERDICT.LABEL_FLOATS, `# v3 against ${specific} must not pass`);
+    // A plain substring check, not a constructed RegExp. Escaping only `.` out of a string being compiled
+    // into a pattern is the partial-escaping shape CodeQL flags, and correctly: it reads as sanitised while
+    // handling one metacharacter. The assertion never needed a pattern in the first place.
+    assert.ok(r.detail.includes(specific), `the detail must name ${specific}, the version to write instead`);
+  }
+});
+
+test("F3: a floating label is only FLOATS when it matched; otherwise DISAGREES is the sharper verdict", () => {
+  // Ordering matters. `# v3` against a commit tagged v4.0.0 and v4 is not under-specified, it is WRONG,
+  // and saying so is more useful than telling the author their label moves.
+  const r = evaluatePin(shaPin("v3 pinned 2026-07-26"), { resolvedVersions: ["v4.0.0", "v4"] });
+  assert.equal(r.verdict, VERDICT.LABEL_DISAGREES);
+});
+
+test("F3: when a commit carries ONLY a floating tag, that label is the best available and passes", () => {
+  // The escape hatch is load-bearing: some actions publish nothing but major tags, and demanding a specific
+  // version there would block a pin whose author has no better label to write. A rule that cannot be
+  // satisfied is a false finding with extra steps.
+  assert.equal(evaluatePin(shaPin("v3 pinned 2026-07-26"), { resolvedVersions: ["v3"] }).verdict, VERDICT.OK);
+});
+
+test("F3: a floating label BLOCKS at exit 1, the code no reason string can override", () => {
+  // It is a defect in this repository's own file, not somebody else's outage, so it takes the same exit
+  // code as every other label problem. ADR 0053's split decides this.
+  const report = reportOf([[shaPin("v3"), { resolvedVersions: ["v3.0.2", "v3"] }]]);
+  assert.equal(report.counts.labelFloats, 1);
+  assert.equal(exitCodeFor(report), 1);
+  assert.match(renderReport(report), /do not change the SHA to match the comment/i);
+});
+
+// --- F6: a release tag that is not a version number ------------------------
+
+test("F6: an unparseable latest release means currency is UNKNOWN, never 'current'", () => {
+  // github/codeql-action's releases/latest tag is `codeql-bundle-v2.26.3`. `majorOf` returns null for it,
+  // which short-circuited the BEHIND guard - while `latest` being truthy set currencyUnknown FALSE, so the
+  // report dropped its "Currency was NOT checked" line and the major-tag branch printed the ref
+  // "is self-describing and CURRENT", flatly asserting the fact it had just failed to establish.
+  //
+  // The fix is NOT to parse harder. `codeql-bundle-v2.26.3` is a different numbering series from the
+  // action's own v4 tags; extracting a 2 from it and comparing would report a current pin as BEHIND.
+  const bundle = "codeql-bundle-v2.26.3";
+  const sha = evaluatePin(shaPin("v4.37.7"), { resolvedVersions: ["v4.37.7", "v4"], latestVersion: bundle });
+  assert.equal(sha.verdict, VERDICT.OK);
+  assert.equal(sha.currencyUnknown, true);
+
+  const tag = evaluatePin(tagPin("v4", null), { latestVersion: bundle });
+  assert.equal(tag.verdict, VERDICT.OK);
+  assert.equal(tag.currencyUnknown, true);
+  // The false claim was the phrase "is self-describing and current". Naming the release it could not
+  // compare is fine and useful; ASSERTING the pin is current on that basis is the defect.
+  assert.doesNotMatch(tag.detail, /and current\b/, "it must not claim currency it could not compare");
+  assert.match(tag.detail, /currency NOT checked/);
+  assert.match(tag.detail, /not a version number/);
+});
+
+test("F6: an unparseable latest release still reaches the report's 'currency NOT checked' line", () => {
+  const out = renderReport(reportOf([[tagPin("v4", null), { latestVersion: "codeql-bundle-v2.26.3" }]]));
+  assert.match(out, /Currency was NOT checked for 1 pin/);
+});
+
+// --- F7: the `other` ref kind ----------------------------------------------
+
+test("F7: a full-tag ref and a contradicting comment is caught, exactly as a major tag would be", () => {
+  // `refKind: other` returned OK unconditionally, so a flatly contradicting label passed at exit 0 while
+  // the identical contradiction on a bare major tag raised LABEL_CONTRADICTS_REF one branch above. A full
+  // tag is self-describing in the same way, so it takes the same contract.
+  const r = evaluatePin(tagPin("v4.1.1", "v7.0.0 pinned 2026-01-01"), { latestVersion: "v4.2.0" });
+  assert.equal(r.verdict, VERDICT.LABEL_CONTRADICTS_REF);
+});
+
+test("F7: the contradiction is MAJOR-level, so a more precise comment on the same major passes", () => {
+  const r = evaluatePin(tagPin("v4.1.1", "v4.2.0"), { latestVersion: "v4.2.0" });
+  assert.equal(r.verdict, VERDICT.OK);
+});
+
+test("F7: a failed lookup on a full-tag ref reports unknown currency, never a silent OK", () => {
+  // The branch never read `resolution.error`, so a 404 or a rate limit printed a clean row.
+  const r = evaluatePin(tagPin("v4.1.1", null), { error: "403 rate limit exceeded" });
+  assert.equal(r.currencyUnknown, true);
+  assert.match(r.detail, /rate limit/);
+});
+
+test("F7: a full-tag ref behind its action's current major is reported BEHIND", () => {
+  // Leaving `other` currency-blind would be F6's hole in a second place.
+  const r = evaluatePin(tagPin("v4.1.1", null), { latestVersion: "v7.0.1" });
+  assert.equal(r.verdict, VERDICT.BEHIND);
+});
+
+test("F7: a BRANCH ref judges nothing and says so", () => {
+  const r = evaluatePin(tagPin("main", null), { latestVersion: "v7.0.1" });
+  assert.equal(r.verdict, VERDICT.OK);
+  assert.equal(r.currencyUnknown, true);
 });
 
 // ---------------------------------------------------------------------------

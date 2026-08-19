@@ -18,7 +18,7 @@
 | Spine | 34 checks |
 | Scopes | 3 (plugin, component, marketplace) |
 | Skills | **26** |
-| Tests | 1295, 0 failures (local suite run 2026-08-19; both halves confirmed by `npm run release-ready` exiting 0) |
+| Tests | 1314, 0 failures (local suite run 2026-08-19; both halves confirmed by `npm run release-ready` exiting 0) |
 | Self-proving | `node scripts/check.mjs .` exits 0 at Advanced, 0 errors, 0 warnings |
 
 ## v1.15.0 is PREPARED and WITHHELD (2026-08-18)
@@ -79,11 +79,12 @@ path is now demonstrated against the real historical `codeql-action` case instea
 
 **The suite reported 1,281 passing and zero failures while every one of those defects was live.**
 
-### THIRTEEN REVIEW FINDINGS OPEN, SIX OF THEM BLOCKING, AND THE TAG IS HELD (2026-08-19)
+### EVERY BLOCKING REVIEW FINDING IS CLOSED; SEVEN REMAIN OPEN AND THE TAG IS STILL HELD (2026-08-19)
 
 A max-effort repository code review over `v1.14.0..HEAD` returned **fifteen findings**, eight of them
-blocking. **`F1` and `F2` are now CLOSED; six blocking findings remain and the tag is still held.** Full
-detail with reproductions, and a closure ledger:
+blocking. **All eight blocking findings (`F1` to `F8`) are now CLOSED.** Seven remain open - `F9`, `F10`,
+`F11`, `F13` and `F14` recorded as due before the tag, `F12` and `F15` as not blocking - so **the tag is
+still held.** Full detail with reproductions, and a closure ledger:
 [`release-plans/plan_v1.15.0/review-findings.md`](release-plans/plan_v1.15.0/review-findings.md).
 
 The two worst shared one shape: **a gate reporting success while checking nothing.** A symlinked or
@@ -94,11 +95,18 @@ independently re-reproduced by hand before being written down, **and both reprod
 the fixes.** Each fix is mutation-proved, and `F2` removed `blocksOn` outright rather than patching it,
 because the field read as a filter while holding an enumeration - ADR 0053 carries a dated correction.
 
-**One finding is the review-the-fixes pattern exactly.** Wave 1 correctly fixed a multi-tag FALSE POSITIVE
-by making the label rule permissive; the side effect was never weighed, and a bare `# v3` label is now
-accepted forever however far the SHA advances. That is the precise Dependabot drift the check exists to
-catch, in the pin format this repository's own runbook still prescribes, and the shipped test asserts the
-permissive behaviour so CI stays green over the hole.
+**One finding is the review-the-fixes pattern exactly, and it turned out to be sharper than recorded.**
+Wave 1 correctly fixed a multi-tag FALSE POSITIVE by making the label rule permissive; the side effect was
+never weighed, and a bare `# v3` label was then accepted forever however far the SHA advanced - the precise
+Dependabot drift the check exists to catch, in the pin format this repository's own runbook prescribed, with
+the shipped test asserting the permissive behaviour so CI stayed green over the hole.
+
+**What the fix revealed: this was not a gap in the design, it was a reversal of a ratified decision.**
+ADR 0053's own text had already decided this case by name, using this exact example - *"`# v3` against a SHA
+resolving to `v3.0.2` is not false, and it names nothing a reviewer can check, which is exactly how the next
+bump becomes invisible."* A written decision was undone by a bug fix, and that fix's test locked it in. The
+new `LABEL_FLOATS` verdict restores the rule rather than inventing one; ADR 0053 and the runbook both carry
+dated corrections.
 
 **And the instrument determined the result, which is its own lesson.** An earlier attempt used a reviewer
 that reads the session TRANSCRIPT rather than the repository. It returned four findings, all real, none of
