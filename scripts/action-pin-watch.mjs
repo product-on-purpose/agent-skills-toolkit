@@ -29,8 +29,21 @@ export const TAG_PAGE_CAP = 6;
  *
  * THROWS on a root that does not exist. The first version swallowed every exception from both reads, so a
  * typo'd or unreadable path produced `0 pins, exit 0` - a clean bill of health for a tree nothing had
- * looked at. A missing `.github/workflows` or a missing `action.yml` is genuinely fine (a plugin need not
- * ship CI); a missing ROOT is not, and the two are now distinguished instead of collapsed.
+ * looked at.
+ *
+ * AND THROWS ON A ROOT THAT YIELDS NO SOURCES AT ALL (review finding F11). Refusing only a nonexistent
+ * root caught a typo and nothing else: a monorepo subpackage, a mis-set `working-directory`, or a typo
+ * that happens to name a REAL directory each produced `0 pins ... Every label is accurate` at exit 0,
+ * indistinguishable from a genuine clean pass.
+ *
+ * The distinction is precise, and the earlier sentence here said only half of it. A missing
+ * `.github/workflows` is genuinely fine, and so is a missing action manifest, because a plugin need not
+ * ship CI and need not be an action. **BOTH absent** means this tool was pointed somewhere it cannot
+ * answer a question about, and that is a refusal rather than a pass.
+ *
+ * The manifest is looked up under BOTH spellings, because GitHub Actions treats `action.yml` and
+ * `action.yaml` as equally valid - the workflow scan just above already accepted both extensions, and
+ * this lookup did not, so a repository using the second spelling had that file silently excluded.
  */
 export function pinSourceFiles(root) {
   if (!existsSync(root)) throw new Error(`root does not exist: ${root}`);
@@ -41,8 +54,16 @@ export function pinSourceFiles(root) {
       if (name.endsWith(".yml") || name.endsWith(".yaml")) files.push(path.join(wfDir, name));
     }
   }
-  const action = path.join(root, "action.yml");
-  if (existsSync(action)) files.push(action);
+  for (const name of ["action.yml", "action.yaml"]) {
+    const action = path.join(root, name);
+    if (existsSync(action)) files.push(action);
+  }
+  if (files.length === 0) {
+    throw new Error(
+      `no workflow files and no action manifest under ${root}; nothing here could be checked, so this run proves nothing. ` +
+        `Point the watch at a repository root that has .github/workflows or an action.yml`
+    );
+  }
   return files.sort();
 }
 
@@ -148,7 +169,7 @@ async function main() {
     };
   };
 
-  const report = buildReport(pins, resolveFor);
+  const report = buildReport(pins, resolveFor, { sources: files.length });
   const exit = exitCodeFor(report);
   process.stdout.write(json ? `${JSON.stringify({ ...report, exit }, null, 2)}\n` : `${renderReport(report)}\n`);
   process.exit(exit);

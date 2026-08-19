@@ -9,7 +9,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
-import { readFileSync, mkdtempSync, symlinkSync, rmdirSync, unlinkSync } from "node:fs";
+import { readFileSync, writeFileSync, mkdtempSync, symlinkSync, rmdirSync, unlinkSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -55,10 +55,59 @@ function stripComments(src) {
   return src.replace(/\/\*[\s\S]*?\*\//g, "").replace(/^\s*\/\/.*$/gm, "");
 }
 
+/**
+ * Every write API a source reaches, by NAME or by bracket access (review finding F12).
+ *
+ * Two defects, and both are lessons this file already knew and had applied only in the other direction.
+ *
+ * 1. **The scan ran on RAW source.** A comment merely mentioning `writeFileSync(` would have failed it -
+ *    the guard-fires-on-its-own-prose class that `stripComments` exists for and that had already bitten
+ *    this file three times. It is applied here now too.
+ * 2. **`\bapi\s*\(` cannot see `fs["writeFileSync"](p, d)`**, because `"](` is not `(`. Combined with an
+ *    `import * as fs` that the brace-delimited import scan also could not see, a real write could be added
+ *    to either module while both guards stayed green - and the CLI's docblock would still claim
+ *    "WRITE-INCAPABLE BY CONSTRUCTION, and a test enforces it".
+ *
+ * Extracted as a function rather than inlined, so the GUARD itself can be shown catching a defeat. A guard
+ * that has only ever been seen passing is not evidence, which is this file's own opening sentence.
+ */
+function writeCapableHits(source) {
+  const src = stripComments(source);
+  return WRITE_APIS.filter(
+    // The identifiers come from the fixed list above and contain no metacharacters, so composing them is
+    // safe; nothing external reaches this pattern.
+    (api) => new RegExp(`\\b${api}\\s*\\(`).test(src) || new RegExp(`\\[\\s*["'\`]${api}["'\`]\\s*\\]`).test(src)
+  );
+}
+
+/** Any `import * as x from "node:fs"`, which the brace-delimited import scan cannot see. */
+function fsNamespaceImports(source) {
+  return [...stripComments(source).matchAll(/import\s+\*\s+as\s+\w+\s+from\s*["']node:fs(?:\/promises)?["']/g)].map(
+    (m) => m[0]
+  );
+}
+
+test("F12: the write guard catches a BRACKET-ACCESSED write, not merely a named call", () => {
+  assert.deepEqual(writeCapableHits('import * as fs from "node:fs";\nfs["writeFileSync"](p, d);'), ["writeFileSync"]);
+  assert.deepEqual(writeCapableHits("fs['rmSync'](p);"), ["rmSync"]);
+  assert.deepEqual(writeCapableHits("writeFileSync(p, d);"), ["writeFileSync"]);
+});
+
+test("F12: the write guard catches a NAMESPACE import of node:fs, which no brace scan can see", () => {
+  assert.equal(fsNamespaceImports('import * as fs from "node:fs";').length, 1);
+  assert.equal(fsNamespaceImports('import { readFileSync } from "node:fs";').length, 0);
+});
+
+test("F12: the write guard does NOT fire on the prose explaining it", () => {
+  // The inverse class, and the one this file has already shipped three times. Every sentence describing
+  // what these modules must not do contains the very tokens being scanned for.
+  assert.deepEqual(writeCapableHits("// this module never calls writeFileSync(path, data)\nconst x = 1;"), []);
+  assert.deepEqual(writeCapableHits('/* no fs["rmSync"](p) here */\nconst y = 2;'), []);
+});
+
 for (const [label, file] of [["the lib", LIB], ["the CLI", CLI]]) {
   test(`${label} references no filesystem write API (the watch reports; a human re-pins)`, () => {
-    const src = readFileSync(file, "utf8");
-    const hits = WRITE_APIS.filter((api) => new RegExp(`\\b${api}\\s*\\(`).test(src));
+    const hits = writeCapableHits(readFileSync(file, "utf8"));
     assert.deepEqual(hits, [], `${label} would be able to write: ${hits.join(", ")}`);
   });
 
@@ -68,6 +117,9 @@ for (const [label, file] of [["the lib", LIB], ["the CLI", CLI]]) {
       .flatMap((m) => m[1].split(",").map((s) => s.trim()).filter(Boolean));
     const bad = imports.filter((n) => !/^(readFileSync|readdirSync|statSync|existsSync|realpathSync)$/.test(n));
     assert.deepEqual(bad, [], `${label} imports non-read fs API: ${bad.join(", ")}`);
+    // ...and the whole-namespace form, which the scan above is structurally unable to see.
+    const ns = fsNamespaceImports(src);
+    assert.deepEqual(ns, [], `${label} imports node:fs wholesale, so the named-import allowlist proves nothing`);
   });
 
   test(`${label} imports no child_process (no shelling out to a writer, and no gh CLI dependency)`, () => {
@@ -336,6 +388,43 @@ test("pinSourceFiles finds this repository's own workflows and action.yml", () =
   const files = pinSourceFiles(REPO_ROOT).map((f) => path.relative(REPO_ROOT, f).replace(/\\/g, "/"));
   assert.ok(files.includes("action.yml"));
   assert.ok(files.some((f) => f.startsWith(".github/workflows/")));
+});
+
+// --- F11: two more ways to look at nothing and report a clean pass ----------
+
+test("F11: a root that EXISTS but holds no pin sources REFUSES, rather than reporting a clean zero", () => {
+  // The root-exists check caught a typo'd path and nothing else. A monorepo subpackage, a mis-set
+  // working-directory, or a typo that happens to name a REAL directory all yielded
+  // `0 pins ... Every label is accurate` at exit 0 - indistinguishable from a genuine clean pass.
+  //
+  // Note what is NOT being claimed: a missing `.github/workflows`, or a missing action manifest, is
+  // still individually fine, because a plugin need not ship CI. BOTH absent means this tool was pointed
+  // somewhere it cannot answer a question about, which is a refusal.
+  const dir = mkdtempSync(path.join(tmpdir(), "askit-empty-root-"));
+  try {
+    assert.throws(() => pinSourceFiles(dir), /no workflow files and no action manifest/);
+  } finally {
+    rmdirSync(dir);
+  }
+});
+
+test("F11: an action.yaml is found, because GitHub Actions accepts both spellings", () => {
+  // The workflow scan four lines above already accepted both extensions; the manifest lookup did not,
+  // so a repository spelling it `action.yaml` had that file silently excluded from the scan.
+  const dir = mkdtempSync(path.join(tmpdir(), "askit-yaml-root-"));
+  const manifest = path.join(dir, "action.yaml");
+  try {
+    writeFileSync(manifest, "name: t\n", "utf8");
+    assert.deepEqual(pinSourceFiles(dir), [manifest]);
+  } finally {
+    unlinkSync(manifest);
+    rmdirSync(dir);
+  }
+});
+
+test("F11: the report says HOW MANY FILES it read, so looking at nothing cannot render as looking and finding nothing", () => {
+  const out = renderReport(buildReport([], () => ({}), { sources: 7 }));
+  assert.match(out, /read from 7 file/);
 });
 
 // ---------------------------------------------------------------------------

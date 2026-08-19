@@ -364,7 +364,7 @@ export function evaluatePin(pin, resolution) {
  * cannot express both. Passing the seam as a function keeps this module ignorant of how the caller
  * batched its lookups, which is the whole reason it stays pure.
  */
-export function buildReport(pins, resolveFor) {
+export function buildReport(pins, resolveFor, { sources = null } = {}) {
   const rows = pins.map((pin) => ({ ...pin, ...evaluatePin(pin, resolveFor(pin)) }));
   const count = (v) => rows.filter((r) => r.verdict === v).length;
   return {
@@ -379,6 +379,11 @@ export function buildReport(pins, resolveFor) {
       behind: count(VERDICT.BEHIND),
       unresolved: count(VERDICT.UNRESOLVED),
       currencyUnknown: rows.filter((r) => r.currencyUnknown).length,
+      // How many FILES were read to produce the rows above, when the caller knows. `0 pins` is a clean
+      // pass when it comes from files that were read and held none, and a meaningless one when it comes
+      // from a directory the tool should never have been pointed at. Review finding F11: those two
+      // rendered identically, so the report now says which it was.
+      sources: typeof sources === "number" ? sources : null,
     },
   };
 }
@@ -434,7 +439,8 @@ export function renderReport(report) {
   const c = report.counts;
   lines.push("");
   lines.push(
-    `${c.total} pins: ${c.ok} ok, ${labelProblems(c)} label problem(s), ${c.behind} behind (advisory), ${c.unresolved} unresolved.`
+    `${c.total} pins${c.sources === null ? "" : ` read from ${c.sources} file(s)`}: ${c.ok} ok, ` +
+      `${labelProblems(c)} label problem(s), ${c.behind} behind (advisory), ${c.unresolved} unresolved.`
   );
   const exit = exitCodeFor(report);
   if (exit === 1) {

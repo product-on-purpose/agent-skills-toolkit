@@ -4,8 +4,8 @@ title: "v1.15.0 review findings - open, and blocking the tag"
 
 # v1.15.0 review findings
 
-> **Status, 2026-08-19: all eight BLOCKING findings are CLOSED. Seven remain open, five of them recorded
-> as due before the tag, so the tag is still held.** See the closure ledger below; each closed finding
+> **Status, 2026-08-19: all eight BLOCKING findings are CLOSED, and four remain open - `F9`, `F10` and
+> `F14` recorded as due before the tag, `F15` not blocking - so the tag is still held.** See the closure ledger below; each closed finding
 > carries a dated note under its own text.
 > Source: a max-effort repository code review over `v1.14.0..HEAD` (905 lines of code across 13 files),
 > run 2026-08-19. **Fifteen findings.** Two were independently re-reproduced by hand before this file was
@@ -43,11 +43,14 @@ wrong, and a finding edited to describe its own fix stops being that.
 | F6 - a non-version release tag disabled BEHIND while asserting currency | **CLOSED** 2026-08-19 | comparability computed once; not comparable means UNKNOWN, and it is not parsed harder |
 | F7 - `refKind: other` passed unconditionally | **CLOSED** 2026-08-19 | full tags take the major-tag contract; branches judge nothing and say so; lookup errors read |
 | F8 - our own runbook produces a pin the checker refuses | **CLOSED** 2026-08-19 | `05-ci-plan.md` dereferencing command + specific-version format, verified live |
-| F9, F10, F11, F13, F14 | OPEN, should fix before tag | - |
-| F12, F15 | OPEN, not blocking | - |
+| F11 - two more ways to look at nothing and report clean | **CLOSED** 2026-08-19 | refuses a root with no pin sources, finds `action.yaml`, and the report states how many files it read |
+| F12 - the write-incapability guard was defeatable | **CLOSED** 2026-08-19 | bracket access and namespace imports caught, scan runs on stripped source, and the guard itself is now tested |
+| F13 - `action.yml` USAGE stale again | **CLOSED** 2026-08-19 | self-referential version guard in `check-readme-version.mjs`, which caught the live drift |
+| F9, F10, F14 | OPEN, should fix before tag | - |
+| F15 | OPEN, not blocking | - |
 
-**All eight blocking findings are closed. Seven findings remain open, five of them due before the tag, so
-THE TAG IS STILL HELD.**
+**All eight blocking findings are closed. FOUR findings remain open - `F9`, `F10` and `F14` due before the
+tag, `F15` not blocking - so THE TAG IS STILL HELD.**
 
 ---
 
@@ -395,6 +398,24 @@ cancels it.
 Both are indistinguishable from a genuine clean pass, and the docstring's stated fix covers only the
 nonexistent-root case.
 
+> **CLOSED 2026-08-19.** Both halves fixed, plus the reporting gap underneath them.
+>
+> **A root with NO pin sources at all now refuses**, rather than reporting a clean zero. The distinction
+> is precise and the docstring was amended in the same edit rather than left contradicting the code: a
+> missing `.github/workflows` is still fine on its own, and so is a missing action manifest, because a
+> plugin need not ship CI and need not be an action. **Both absent** means the tool was pointed somewhere
+> it cannot answer a question about.
+>
+> **`action.yaml` is looked up alongside `action.yml`**, mirroring the extension check the workflow scan
+> four lines above already performed.
+>
+> **And the report now says how many FILES it read** - `29 pins read from 7 file(s)` - through an optional
+> `sources` argument to `buildReport`. That is the part the finding implies rather than states: the two
+> cases it names were indistinguishable *in the output*, so a count that cannot be confused for a verdict
+> is what removes the ambiguity for every future reader, not just for the two paths fixed here.
+>
+> Mutation-proved: dropping the refusal turns one test red, dropping the `.yaml` spelling turns one red.
+
 ## F12 - The write-incapability guard is defeatable
 
 **`tests/unit/action-pin-watch.test.mjs:59`**
@@ -406,6 +427,21 @@ enforces it" would survive a real write being added.
 
 Secondary: the write-API scan runs on **raw** source rather than `stripComments()` output, so a comment
 merely mentioning `writeFileSync(` would fail it - the inverse false-report class the same file warns about.
+
+> **CLOSED 2026-08-19.** Both defects fixed, and **the guard itself is now tested** rather than only ever
+> being seen to pass - which is this test file's own opening argument, applied to the file.
+>
+> The scan is extracted into `writeCapableHits(source)`, so a defeat can be demonstrated against synthetic
+> source instead of requiring someone to actually add a write to a shipped module. It runs on
+> `stripComments()` output, closing the inverse false-report this file had already shipped three times,
+> and it matches **bracket access** (`fs["writeFileSync"](p, d)`) as well as a named call. A companion
+> `fsNamespaceImports` assertion closes the `import * as fs` half, which no brace-delimited import scan
+> can structurally see - the two defeats had to be used together, and now neither works alone.
+>
+> Mutation-proved in both directions at once: restoring the old raw-source, call-only scan turns two tests
+> red - one because it stops catching the bracket write, one because it starts firing on the prose
+> explaining the guard. That mutation IS this fix's red phase, since the guard and its tests were written
+> together.
 
 ## F13 - `action.yml` USAGE is stale again, one release after it was fixed
 
@@ -419,6 +455,38 @@ currency"* - **and it has drifted again with no guard added.**
 Nothing checks it: `check-readme-version.mjs` reads only README, `verify-tag-matches-manifests.mjs` reads
 only JSON version fields, and `parsePins` skips `#`-prefixed example lines. **A guard is the fix, not
 another manual correction.**
+
+> **CLOSED 2026-08-19.** A guard, as the finding demanded, and **it caught the live drift before the line
+> was touched** - which is the only red phase worth having for a guard against a defect that is already
+> present:
+>
+> ```
+> $ node scripts/check-readme-version.mjs .
+> check-readme-version: front-door claim drift detected
+>   action.yml:27 advertises `agent-skills-toolkit@v1.14.0` while library.json says 1.15.0. ...
+> exit=1
+> ```
+>
+> **Extended `check-readme-version.mjs` rather than adding a check.** It is the same question that script
+> already answers - a front-door claim against the manifest - and its gate is already wired into
+> `release-ready` and `npm test`, so this costs no new file, no registry entry and no G8 inventory churn.
+>
+> **The rule is SELF-REFERENTIAL, not scoped to a hardcoded name.** Any `<owner>/<repo>@vX.Y.Z` in
+> `action.yml` or `action.yaml` whose `<repo>` equals the library's own `name` must equal its own
+> `version`. That states the actual invariant - a manifest advertising its own tag must advertise the
+> right one - and it applies to any plugin the script is pointed at, while a reference to somebody else's
+> project is correctly none of its business. The first draft hardcoded `agent-skills-toolkit`; the fixture
+> that name required then tripped the script's own spine-claim floor, which is what surfaced the better
+> rule. **EVERY occurrence must agree**, matching the all-occurrences rule the count claims already use,
+> because documenting two usages and hand-correcting one is exactly how the stale line survived #238.
+>
+> Matched with a fixed pattern and compared in JavaScript, never by compiling `lib.name` into a regex.
+>
+> **Two things that describe this check were updated with it**, because output that misdescribes its own
+> scope is this repository's named defect class: the gate's `why` string in `scripts/lib/release-ready.mjs`
+> and the `scripts/README.md` inventory entry, which was already two features behind.
+>
+> Mutation-proved: restoring `@v1.14.0` in `action.yml` turns the real-repository test red.
 
 ## F14 - `RELEASE.md` never mentions `GITHUB_TOKEN`
 

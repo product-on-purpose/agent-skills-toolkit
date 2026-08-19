@@ -18,7 +18,7 @@
 | Spine | 34 checks |
 | Scopes | 3 (plugin, component, marketplace) |
 | Skills | **26** |
-| Tests | 1314, 0 failures (local suite run 2026-08-19; both halves confirmed by `npm run release-ready` exiting 0) |
+| Tests | 1325, 0 failures (local suite run 2026-08-19; both halves confirmed by `npm run release-ready` exiting 0) |
 | Self-proving | `node scripts/check.mjs .` exits 0 at Advanced, 0 errors, 0 warnings |
 
 ## v1.15.0 is PREPARED and WITHHELD (2026-08-18)
@@ -79,12 +79,12 @@ path is now demonstrated against the real historical `codeql-action` case instea
 
 **The suite reported 1,281 passing and zero failures while every one of those defects was live.**
 
-### EVERY BLOCKING REVIEW FINDING IS CLOSED; SEVEN REMAIN OPEN AND THE TAG IS STILL HELD (2026-08-19)
+### EVERY BLOCKING REVIEW FINDING IS CLOSED; FOUR REMAIN OPEN AND THE TAG IS STILL HELD (2026-08-19)
 
 A max-effort repository code review over `v1.14.0..HEAD` returned **fifteen findings**, eight of them
-blocking. **All eight blocking findings (`F1` to `F8`) are now CLOSED.** Seven remain open - `F9`, `F10`,
-`F11`, `F13` and `F14` recorded as due before the tag, `F12` and `F15` as not blocking - so **the tag is
-still held.** Full detail with reproductions, and a closure ledger:
+blocking. **Eleven are now CLOSED, including all eight blocking (`F1` to `F8`), plus `F11`, `F12` and
+`F13`.** Four remain open - `F9`, `F10` and `F14` recorded as due before the tag, `F15` as not blocking -
+so **the tag is still held.** Full detail with reproductions, and a closure ledger:
 [`release-plans/plan_v1.15.0/review-findings.md`](release-plans/plan_v1.15.0/review-findings.md).
 
 The two worst shared one shape: **a gate reporting success while checking nothing.** A symlinked or
