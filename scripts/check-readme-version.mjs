@@ -1,7 +1,9 @@
-// what-it-is:   front-door claim drift guard: the README, plus every PRESENT-TENSE spine-size claim
+// what-it-is:   front-door claim drift guard: the README, every PRESENT-TENSE spine-size claim, and the
+//               composite action manifest's own advertised tag
 // what-it-does: reads library.json (version, tier, skill count) and the check registry (spine
-//               size), then fails if the README's version badge, or its `## Status` section's
-//               version / tier / skill-count / spine-size claims, disagrees with any of them
+//               size), then fails if the README's version badge, its `## Status` section's
+//               version / tier / skill-count / spine-size claims, or a self-referencing
+//               `<owner>/<this library>@vX.Y.Z` in action.yml / action.yaml, disagrees with any of them
 // why:          docs/internal/RELEASE.md promises "README Status matches the declared tier +
 //               version (drift = error)". Through v1.10.0 this script covered only the version half
 //               of that promise (badge plus the Status prose); the tier half was never read at all,
@@ -345,6 +347,44 @@ if (lib?.name === "agent-skills-toolkit" && spineClaimFiles.length < 5) {
     `at least 5 present-tense pages state the spine size, so this means the scan stopped seeing them, not that the claims went away. ` +
     `Write a spine claim as "N-check spine", "N spine checks", or "the spine is N checks" so it stays visible to this guard.`
   );
+}
+
+// ---------------------------------------------------------------------------
+// A composite action manifest that advertises its OWN tag (review finding F13).
+//
+// `action.yml` is the file a consumer copies from: its USAGE block names the tag to pin. This
+// repository's went stale at v1.14.0, was hand-corrected in #238 - which CHANGELOG recorded as "three
+// releases stale, in the repository that grades others on currency" - and had drifted AGAIN one release
+// later. Nothing covered it: this script read only README, `verify-tag-matches-manifests` reads only JSON
+// version fields, and `action-pin-watch` skips `#`-prefixed example lines. A third manual correction is
+// not a fix, so this is the guard.
+//
+// The rule is SELF-REFERENTIAL rather than scoped to a hardcoded project name: a manifest that advertises
+// its own tag must advertise the right one. A reference to any OTHER project is somebody else's version
+// and none of this guard's business - holding a plugin to a rule it never agreed to is the same error the
+// spine-claim scope note above avoids.
+//
+// EVERY occurrence must agree, the same rule the counts above use, because documenting two usages and
+// hand-correcting only one is precisely how a stale line survives a fix.
+//
+// Matched with a FIXED pattern and compared in JavaScript, never by compiling `lib.name` into a regex:
+// partially escaping a value into a pattern reads as sanitised while handling one metacharacter.
+const SELF_REF_RE = /([A-Za-z0-9._-]+)\/([A-Za-z0-9._-]+)@v(\d+\.\d+\.\d+)/g;
+for (const manifestName of ["action.yml", "action.yaml"]) {
+  const manifestPath = path.join(dir, manifestName);
+  if (!existsSync(manifestPath)) continue;
+  readFileSync(manifestPath, "utf8")
+    .split(/\r?\n/)
+    .forEach((line, i) => {
+      for (const [, , repo, ver] of line.matchAll(SELF_REF_RE)) {
+        if (repo !== lib?.name || ver === libVersion) continue;
+        failures.push(
+          `${manifestName}:${i + 1} advertises \`${repo}@v${ver}\` while library.json says ${libVersion}. ` +
+          `This manifest is the file a consumer copies from, so a stale tag here hands every user a wrong pin. ` +
+          `Update it to v${libVersion}.`
+        );
+      }
+    });
 }
 
 if (failures.length > 0) {

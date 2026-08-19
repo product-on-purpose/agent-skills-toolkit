@@ -206,6 +206,39 @@ rewritten to look as though this was always the plan.
   refuses, and the checker was written by reading this file** - a runbook is an input to the tools built
   from it.
 
+- **Three more guards that could report clean over something they never checked** (review findings `F11`,
+  `F12`, `F13`).
+
+  **`F13` - `action.yml` advertised a stale tag for the second release running, and nothing checked it.**
+  Its USAGE block still read `@v1.14.0` while every manifest had moved to 1.15.0 - the same line #238 fixed
+  one release earlier, which CHANGELOG recorded as *"three releases stale, in the repository that grades
+  others on currency"*. Nothing covered it: the README guard read only README, the tag guard reads only
+  JSON version fields, and `action-pin-watch` skips `#`-prefixed example lines. **A guard, not a third
+  manual correction**, extended into `check-readme-version.mjs` because it is the same question that script
+  already answers and its gate is already wired into `release-ready`. **The rule is self-referential rather
+  than hardcoded to this project's name**: any `<owner>/<repo>@vX.Y.Z` in `action.yml` or `action.yaml`
+  whose repo is the library's own name must carry the library's own version, so it holds for any plugin
+  while a reference to somebody else's project stays none of its business. It caught the live drift before
+  the line was touched.
+
+  **`F11` - two more ways to look at nothing and report a clean pass.** Refusing only a *nonexistent* root
+  caught a typo and nothing else: a monorepo subpackage, a mis-set `working-directory`, or a typo naming a
+  real directory each produced `0 pins ... Every label is accurate` at exit 0. A root with **no workflows
+  and no action manifest** now refuses; either one absent on its own is still fine, because a plugin need
+  not ship CI and need not be an action. `action.yaml` is now found alongside `action.yml`, matching the
+  extension check the workflow scan already performed. **And the report states how many files it read** -
+  `29 pins read from 7 file(s)` - so "looked at nothing" can never render identically to "looked and found
+  nothing".
+
+  **`F12` - the write-incapability guard was defeatable, and is now tested rather than merely passing.**
+  The CLI's docblock claims *"WRITE-INCAPABLE BY CONSTRUCTION, and a test enforces it"*, but
+  `fs["writeFileSync"](p, d)` plus an `import * as fs` defeated both halves at once: the call scan required
+  the identifier be followed by `(`, and the import scan read only brace-delimited imports. The scan is now
+  extracted so **a defeat can be demonstrated** against synthetic source, matches bracket access, covers
+  namespace imports, and runs on comment-stripped source - closing the inverse false-report class, where a
+  comment merely mentioning `writeFileSync(` would have failed the guard, which this same file had already
+  shipped three times.
+
 - **The seed plugin would have been born on the old ruleset.** `templates/seed-plugin/library.json` still
   pinned 0.14, which silently opts every freshly scaffolded plugin out of every check introduced since its
   pin. Caught by its own guard, whose comment had predicted exactly this: *"This invariant fails on the next

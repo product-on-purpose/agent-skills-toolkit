@@ -46,7 +46,7 @@ export const GATES = Object.freeze([
   Object.freeze({
     id: "readme-drift",
     argv: ["scripts/check-readme-version.mjs", "."],
-    why: "the README is the front door; a stale version, tier, count or Standard pin ships in the npm tarball",
+    why: "the README and action.yml are the front door; a stale version, tier, count, Standard pin or advertised tag ships in the npm tarball",
   }),
   Object.freeze({
     id: "release-counts",

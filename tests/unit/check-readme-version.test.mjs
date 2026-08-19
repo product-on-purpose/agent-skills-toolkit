@@ -436,3 +436,107 @@ test("check-readme-version: exits 1 when the Status section misstates the skill 
     rmSync(dir, { recursive: true, force: true });
   }
 });
+
+// ---------------------------------------------------------------------------
+// A composite action's own USAGE version (review finding F13)
+//
+// `action.yml` advertises the tag a consumer should pin. This repository's went
+// stale, was hand-corrected in #238, and had gone stale AGAIN one release later
+// with nothing checking it. A third manual correction is not a fix; a guard is.
+//
+// The rule is SELF-REFERENTIAL rather than scoped to a hardcoded name: a manifest
+// that advertises its OWN tag must advertise the right one. A reference to some
+// other project is somebody else's version and is none of this guard's business.
+// ---------------------------------------------------------------------------
+
+function mkActionFixture(libVersion, usageRef, { name = 'my-plugin', manifest = 'action.yml' } = {}) {
+  const dir = mkdtempSync(path.join(tmpdir(), 'askit-action-'));
+  writeFileSync(path.join(dir, 'library.json'), JSON.stringify({ name, version: libVersion }), 'utf8');
+  const readme = [
+    '# T',
+    '',
+    '<img src="https://img.shields.io/badge/version-' + libVersion + '-blue" alt="v">',
+    '',
+    '## Status',
+    '',
+    '- **Version** - `' + libVersion + '`.',
+    '',
+  ].join('\n');
+  writeFileSync(path.join(dir, 'README.md'), readme, 'utf8');
+  const manifestText = [
+    'name: t',
+    '# USAGE (paste into a workflow job):',
+    '#   uses: ' + usageRef + '   # pin a released tag or a commit sha',
+    '',
+  ].join('\n');
+  writeFileSync(path.join(dir, manifest), manifestText, 'utf8');
+  return dir;
+}
+
+test('F13: a manifest advertising a STALE version of itself fails, naming the file', () => {
+  const dir = mkActionFixture('1.15.0', 'some-owner/my-plugin@v1.14.0');
+  try {
+    const r = spawnSync(process.execPath, [SCRIPT, dir], { encoding: 'utf8' });
+    assert.equal(r.status, 1, 'a stale self-reference must fail');
+    const out = (r.stdout ?? '') + (r.stderr ?? '');
+    assert.ok(out.includes('action.yml'), 'the failure must name the file to edit');
+    assert.ok(out.includes('1.14.0'), 'it must quote what the manifest says');
+    assert.ok(out.includes('1.15.0'), 'and what it should say');
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test('F13: a manifest advertising its CURRENT version passes', () => {
+  const dir = mkActionFixture('1.15.0', 'some-owner/my-plugin@v1.15.0');
+  try {
+    assert.equal(spawnSync(process.execPath, [SCRIPT, dir], { encoding: 'utf8' }).status, 0);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test('F13: action.yaml is checked too, because GitHub accepts both spellings', () => {
+  const dir = mkActionFixture('1.15.0', 'some-owner/my-plugin@v1.14.0', { manifest: 'action.yaml' });
+  try {
+    const r = spawnSync(process.execPath, [SCRIPT, dir], { encoding: 'utf8' });
+    assert.equal(r.status, 1, 'the .yaml spelling must be checked as well');
+    assert.ok(((r.stdout ?? '') + (r.stderr ?? '')).includes('action.yaml'));
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test('F13: a reference to a DIFFERENT project is not this guard s business', () => {
+  // Requiring somebody else's project to be pinned at OUR version would be nonsense, and inventing a
+  // rule a plugin never agreed to is the error this script's spine-claim scope note already names.
+  const dir = mkActionFixture('9.9.9', 'product-on-purpose/agent-skills-toolkit@v1.14.0');
+  try {
+    assert.equal(spawnSync(process.execPath, [SCRIPT, dir], { encoding: 'utf8' }).status, 0);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test('F13: EVERY occurrence must agree, not merely the first', () => {
+  // The all-occurrences-agree rule this script already applies to counts. A manifest documenting two
+  // usages and correcting only one is exactly how the stale line survived a hand fix.
+  const dir = mkdtempSync(path.join(tmpdir(), 'askit-action-'));
+  try {
+    writeFileSync(path.join(dir, 'library.json'), JSON.stringify({ name: 'my-plugin', version: '1.15.0' }), 'utf8');
+    writeFileSync(
+      path.join(dir, 'README.md'),
+      '# T\n\n<img src="https://img.shields.io/badge/version-1.15.0-blue" alt="v">\n\n## Status\n\n- **Version** - `1.15.0`.\n',
+      'utf8'
+    );
+    writeFileSync(
+      path.join(dir, 'action.yml'),
+      'name: t\n#   uses: o/my-plugin@v1.15.0\n#   uses: o/my-plugin@v1.14.0\n',
+      'utf8'
+    );
+    const r = spawnSync(process.execPath, [SCRIPT, dir], { encoding: 'utf8' });
+    assert.equal(r.status, 1, 'a second, stale occurrence must still fail');
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
