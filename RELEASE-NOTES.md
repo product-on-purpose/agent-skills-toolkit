@@ -2,6 +2,73 @@
 
 Curated, user-facing highlights. For the full technical history see [`CHANGELOG.md`](CHANGELOG.md).
 
+## 1.15.0 - 2026-08-18
+
+**Two migration windows close on schedule, and one of them closed because its subject did the work.**
+
+This is a small release with one large idea in it. In 0.14 two requirements shipped as warnings with a
+stated deadline: adopt them by 0.15. That deadline is now here. **Nothing in this release will change your
+grade unless you raise your own `standard` pin.**
+
+### Upgrade
+
+**Nothing here takes effect for your plugin until you raise `standard` to `0.15` in your own
+`library.json`.** If you change nothing, your grade does not change.
+
+**If you have no `standard` pin at all, none of this protects you** - an unpinned plugin grades against the
+current ruleset immediately, so both requirements below are already errors for you today. Add the line.
+
+Two things become gate-failing errors when you pin `0.15`, both of which have been warnings since 0.14:
+
+1. **Every `_workflows/<name>.md` on disk must be declared in `library.json` `components.workflows`, and
+   every declared workflow must exist on disk** (`S3`). A workflow on disk but undeclared ships invisibly
+   to installers; a declared one with no file cannot be delivered.
+2. **A `.claude-plugin/marketplace.json` that is present must be readable by exactly one scope** (`U17`):
+   it must parse, it must carry a `plugins` array, and its entries must not mix skill sources with plugin
+   sources. A mixed catalogue is claimed entirely by the first reader, so its other half is examined by
+   nothing.
+
+**Price the move before you commit to it.** `npx agent-skills-toolkit . --strict` grades you against the
+newest ruleset without changing your pin, so every finding that appears only under `--strict` is one that
+adoption would make real.
+
+### Why these two closed rather than slipping again
+
+The workflow mirror was windowed for one specific reason, recorded at the time: graduating it immediately
+would have cost a real plugin in our reference family a whole tier, on nine workflows it shipped and did
+not declare. **That plugin declared all nine the day after the decision was published, inside the window
+the decision created.** A warning was raised, understood, and discharged before its deadline. That is the
+entire point of a migration window, and it is the first time we have watched one work end to end.
+
+Extending a window whose subject has already done the work protects nobody, and it teaches the next
+maintainer that the date is negotiable.
+
+The catalogue-manifest check is the harder case, and we are saying so plainly: **a fresh census still finds
+zero instances of either defect** across every plugin corpus we track. It is a preventive rule, not a
+corrective one. We graduated it anyway, because nothing in our plan schedules the corpus growth that would
+change that answer - so "wait for evidence" would have meant "never gates", decided quietly. If catalogues
+that mix entry kinds turn out to be a real pattern rather than a mistake, that is the thing to tell us.
+
+### New: your pinned GitHub Actions are checked
+
+If you pin a GitHub Action by commit SHA, the trailing `# v1.2.3` comment beside it is the only half a
+human ever reads - and the tools that bump the SHA routinely leave that comment behind. We caught it by eye
+three times in this repository and never once by a machine.
+
+`npm run action-pin-watch` now resolves every pin against the registry and reports where the label
+disagrees with what the ref actually points at. It **reports; it never rewrites**, because deciding whether
+the comment or the pin is the wrong half is a judgement call. A pin merely being *behind* the current
+release is reported and **never blocks** - that is news about somebody else's release, not a defect in
+yours.
+
+This runs on our own workflows. It is not a new requirement laid on your plugin and it adds no check to the
+Standard.
+
+### What did not change
+
+The spine is still **34 checks**. No check was added, none was removed, and **no member of our reference
+family changed grade** - measured before and after, at every member's own pin.
+
 ## 1.14.0 - 2026-08-16
 
 **Four things the gate was telling you were not true, and three files it was never reading.**

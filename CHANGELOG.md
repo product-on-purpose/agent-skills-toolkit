@@ -9,7 +9,44 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [1.15.0] - 2026-08-18
+**Standard 0.14 to 0.15.** Two windowed requirements graduate from `warn` to gate-failing `error`, and a
+fifth release gate closes a class of defect this repository had caught three times by eye and never once by
+a machine. **No family verdict moves, and no plugin sees a new gate failure without re-pinning.**
+
 ### Changed
+
+- **The workflow half of the components mirror (`S3`, sec 3.4, ADR 0047) and `U17` (`catalogue-manifest-shape`,
+  sec 12, ADR 0052) are gate-failing errors from Standard 0.15.** Both were introduced at 0.14 carrying a
+  finding-level `migration.until` of `0.15`, so **no check module was edited to graduate them**: the cap
+  expires against the consumer's pin and the ADR 0044 post-resolution ceiling resolves it. That was ADR
+  0052's explicit promise, and this release is the human half of it - the version note - being written down.
+
+  **The graduation was decided on evidence, not on schedule.** ADR 0052 reserved the call rather than
+  booking it: *"gating a check nothing has ever tripped is worth re-examining rather than doing by
+  default."* The census was re-run and is **unchanged in every cell** - 7 manifests, 6 of-plugins,
+  1 of-skills, **0 mixed, 0 malformed**. It graduates anyway, and ADR 0052's dated addendum argues it:
+  nothing schedules corpus growth, so the same evidence would defeat graduation again at 0.16, which makes
+  "extend the window" a decision that `U17` never gates, taken without saying so.
+
+  **The other graduation is evidenced by its own subject.** ADR 0047 windowed the workflow mirror because
+  graduating unwindowed cost `thinking-framework-skills` a tier on nine undeclared workflows. That member
+  declared all nine on **2026-08-15, one day after the ADR was ratified and inside the window it created**.
+  A warn-first migration observed doing its whole job, end to end, for the first time here. ADR 0047's
+  now-falsified cost statement carries a dated correction.
+
+- **A fifth release-blocking gate, `action-pin-watch` (E45, ADR 0053).** It resolves every `uses:` pin
+  across the workflows and `action.yml` against the GitHub registry and reports where a pin's
+  human-readable LABEL disagrees with what its machine-readable REF resolves to. Write-incapable by
+  construction; the deterministic half imports **nothing at all**, so its whole verdict table is testable
+  offline.
+
+  **The exit codes split, and that is the decision.** A label problem exits **1** and blocks, and no reason
+  string can override it. A lookup that could not be performed exits **2**, blocks, and is overridable for a
+  stated outage. A pin merely **BEHIND** its action's current release exits **0** and blocks nothing - that
+  is news about somebody else's release cadence, and a gate that fired on it would stop a tag here for a
+  fact that is only worth knowing.
+
 
 - **Every first-party action pin is current, and the last stale one was reported by nobody.** Dependabot
   raised five version updates (#224 to #228); two were merged as raised, three were superseded by
@@ -37,6 +74,20 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   copied from the diff.
 
 ### Fixed
+
+- **The seed plugin would have been born on the old ruleset.** `templates/seed-plugin/library.json` still
+  pinned 0.14, which silently opts every freshly scaffolded plugin out of every check introduced since its
+  pin. Caught by its own guard, whose comment had predicted exactly this: *"This invariant fails on the next
+  Standard bump that forgets the template."* The seed's own grade is measured unmoved across the bump.
+
+- **Two folder inventories listed `standards-watch.mjs` with no description at all**, its text having been
+  appended to the neighbouring `vendor-watch.mjs` entry. `G8` passed both, correctly, because it checks that
+  every child is LISTED and not that it is described. This is the **second and third instance** of that
+  defect after `.github/workflows/README.md` in the previous release. Both repaired and re-alphabetised.
+
+- **`manifest.generated.json` lagged the Standard pin** after `INDEX.md`, `README.md` and `library.json`
+  were current. Regenerated.
+
 
 - **A SHA pin's version comment had silently disagreed with its SHA for the third release running.**
   Dependabot advances the pin and leaves `# vX.Y.Z pinned <date>` untouched, because the trailing prose
@@ -76,6 +127,16 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Verified
 
+- **Both graduations measured across pins 0.14 / 0.15 / 0.16**, with the 0.14 column unchanged from before
+  the release, which is what proves the graduation did not reach backwards. An unpinned plugin takes the
+  error immediately at every stage - ADR 0044's stated consequence, observed rather than restated.
+- **Zero `S3`-workflow and zero `U17` findings across all six reference-family members** at their own pins,
+  before and after. Neither graduation can move a verdict, because neither check has anything to promote.
+- **The new gate demonstrated failing and refusing, not only passing.** Exit 1 against live registry data
+  using the real historical `codeql-action` defect this item was filed from; exit 2 against a real 404.
+  This repository itself reports **29 pins, 29 ok**.
+
+
 - **The `vendor-watch.yml` issue-opening path is proven in production**, having shipped in v1.14.0 recorded
   as "assumed, not tested". No CI check on this repository executes it: the workflow runs on a monthly cron
   and `workflow_dispatch` only, and the step is gated behind `if: steps.watch.outputs.exit != '0'`. Two
@@ -85,6 +146,17 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   than opening a second. **One issue and one comment from two failing runs** is review wave 2's H4 dedup
   fix demonstrated against GitHub, where before it was asserted only by a unit test reading the workflow
   file as text.
+
+### Review
+
+- **Adversarial wave 1 returned ten findings, five HIGH, all fixed before merge**, and two of them falsified
+  claims ADR 0053 made about itself. Its central safety property - that no reason string can waive a
+  disagreeing label - **did not hold**: with a refusal outranking a label problem, one wrong label plus one
+  unrelated 503 collapsed to the overridable exit code. And the single defect the check reported was a
+  **false positive against this repository's own file**, because one commit routinely carries several tags
+  and the check read only whichever the registry listed first. **That is the failure mode this repository
+  grades other tools on.** Corrected: this repository has zero label defects. Full record in ADR 0053.
+- **The suite reported 1,281 passing and zero failures while every one of those defects was live.**
 
 ## [1.14.0] - 2026-08-16
 

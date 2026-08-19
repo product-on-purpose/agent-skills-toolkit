@@ -12,14 +12,72 @@
 
 | Fact | Value |
 |---|---|
-| Version | 1.14.0 (cut 2026-08-16, **SHIPPED 2026-08-17**: tag `57727ab`, GitHub release, npm `latest` with signed Sigstore provenance, registry `agent-plugins` 1.66.0) |
+| Version | **1.15.0 (PREPARED 2026-08-18, NOT YET TAGGED)** - see "v1.15.0 is prepared and withheld" below. Previous: 1.14.0, shipped 2026-08-17 (tag `57727ab`, npm `latest` with signed Sigstore provenance, registry `agent-plugins` 1.66.0) |
 | Declared tier | Advanced (Gold) - `library.json` `tier: advanced` |
-| Standard pin | 0.14 |
+| Standard pin | **0.15** |
 | Spine | 34 checks |
 | Scopes | 3 (plugin, component, marketplace) |
 | Skills | 24 |
-| Tests | 1292, 0 failures (local suite run 2026-08-19; both halves confirmed by `npm run release-ready` exiting 0) |
+| Tests | 1292, 0 failures (local suite run 2026-08-18; both halves confirmed by `npm run release-ready` exiting 0) |
 | Self-proving | `node scripts/check.mjs .` exits 0 at Advanced, 0 errors, 0 warnings |
+
+## v1.15.0 is PREPARED and WITHHELD (2026-08-18)
+
+Everything is merged to `main`, the gate is green and `npm run release-ready` exits 0 on all five gates.
+**The tag, the GitHub release, the npm publish and the registry re-pin are deliberately not done**, pending
+maintainer sign-off. That is the v1.14.0 pattern repeated on purpose: its withheld window is where two
+defects were found that neither adversarial review wave could have caught.
+
+**Standard 0.14 to 0.15. Spine stays 34. No check was added or removed, and no family verdict moved.**
+
+| What | Where |
+| --- | --- |
+| The two graduations (`S3` workflow mirror, `U17`) | ADR 0047 correction + ADR 0052 addendum, both dated |
+| `action-pin-watch`, the fifth release gate | [ADR 0053](decisions/0053-a-pin-label-is-a-claim-and-behind-is-not-a-defect.md) |
+| Packet | [`release-plans/plan_v1.15.0/`](release-plans/plan_v1.15.0/RELEASE-PLAN.md) |
+
+**The graduations needed no code change**, exactly as ADR 0052 promised: `until: "0.15"` was already
+committed in both check modules and the ADR 0044 ceiling resolves it against the consumer's pin. The human
+obligation was the version note.
+
+**Both were decided on evidence taken before the scope was set.** The `U17` census is **unchanged in every
+cell** (7 manifests, 6 of-plugins, 1 of-skills, **0 mixed, 0 malformed**), which ADR 0052 had made a
+decision input rather than a formality. It graduates anyway, because nothing schedules the corpus growth
+that would ever change that answer, so "extend the window" would have been "never gates" decided quietly.
+
+**The best evidence in the release is the other graduation.** ADR 0047 windowed the workflow mirror because
+graduating it unwindowed cost `thinking-framework-skills` a tier on nine undeclared workflows. **That member
+declared all nine in `fd343dd` on 2026-08-15 - one day after the ADR was ratified, inside the window it
+created.** A warn-first migration observed doing its whole job, end to end, for the first time here. ADR
+0047's forward-looking cost claim is falsified and carries a dated correction; STATUS's own v1.14.0 row is
+deliberately NOT touched, because it is a correctly-dated historical measurement.
+
+### Review wave 1 found ten, five HIGH, and two of them falsified ADR 0053 itself
+
+**The check's central safety property did not hold.** ADR 0053 claimed no reason string could waive a
+disagreeing pin label. With a refusal outranking a label problem, one wrong label plus one unrelated 503
+collapsed to exit 2 - which `release-ready` makes overridable - so a network reason string marked a release
+with a proven bad label **releasable**. Fixed by inverting the precedence: **a known defect outranks
+uncertainty.** Only an integration test through the real gate table catches it; the watch's own unit test
+passed throughout.
+
+**And the single defect the check reported was a FALSE POSITIVE against this repository's own file.** One
+commit routinely carries several tags - `softprops/action-gh-release` carries `v3.0.2` and `v3` on the same
+commit - and the check read only whichever the registry listed first. **That is the failure mode this
+repository grades other tools on**, from the v1.14.0 thesis: the worst failure is not missing a defect, it
+is reporting one that is not there. Corrected: **this repository has zero label defects**, and the failing
+path is now demonstrated against the real historical `codeql-action` case instead.
+
+**The suite reported 1,281 passing and zero failures while every one of those defects was live.**
+
+### What is NOT discharged
+
+**Adversarial review wave 2 did not run.** The Codex runtime returned a usage-limit error before the
+reviewer started, so the run produced nothing. Per the standing rule that a killed run is UNMEASURED and
+never a result, **acceptance criterion 6 of the packet is open**, and no wave-2 finding count should be
+quoted anywhere. A stopgap self-review covered the wave-2 target areas (records, drift machinery,
+forward-in-time, the consumer re-pin path) and found no defect, but a self-review is not an independent
+wave and does not discharge the criterion.
 
 ## The v1.14.0 ADR pack: RATIFIED and IMPLEMENTED
 
@@ -297,7 +355,7 @@ this file); the conclusions are stated here directly.
   line of implementation was written, which is exactly the cost bundling undrafted ADRs with a Standard
   bump imposed on v1.13.0.
 
-- **v1.15.0 "a window that never closes is not a window" (PLANNED 2026-08-18):** **the Standard 0.15 cut.**
+- **v1.15.0 "a window that never closes is not a window" (PREPARED 2026-08-18, NOT YET TAGGED):** **the Standard 0.15 cut.**
   The two windowed checks graduate from `warn` to gate-failing `error` - `S3`'s workflow mirror
   (ADR 0047) and `U17` (ADR 0052) - plus **E45** (pinned-action labels are unchecked) with its own ADR.
   Packet at [`release-plans/plan_v1.15.0/RELEASE-PLAN.md`](release-plans/plan_v1.15.0/RELEASE-PLAN.md).

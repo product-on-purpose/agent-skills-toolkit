@@ -131,7 +131,7 @@ export function parsePins(text, file) {
  * One pin's verdict, given what the registry said about it.
  *
  * `resolution` is `{ resolvedVersions, latestVersion, error }`. `resolvedVersions` is an ARRAY, because one
- * commit routinely carries more than one tag: measured live on 2026-08-19, `softprops/action-gh-release`
+ * commit routinely carries more than one tag: measured live on 2026-08-18, `softprops/action-gh-release`
  * has `v3.0.2` and `v3` on one commit, `v2.6.2` and `v2` on another, and `v1` and `v0.1.15` on a third. The
  * first version of this function read only the first tag the registry happened to list, which turned a
  * CORRECT label into a release-blocking FALSE FINDING on response ordering nobody controls - and it did

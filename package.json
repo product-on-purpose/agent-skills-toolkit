@@ -1,6 +1,6 @@
 {
   "name": "agent-skills-toolkit",
-  "version": "1.14.0",
+  "version": "1.15.0",
   "description": "A deterministic, portable gate that grades an agent skill library (Claude Code and Codex plugins) against the Advanced Skill Library Standard and reports the Bronze/Silver/Gold tier it earns.",
   "license": "Apache-2.0",
   "homepage": "https://product-on-purpose.github.io/agent-skills-toolkit/",
