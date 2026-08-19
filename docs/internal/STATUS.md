@@ -79,6 +79,29 @@ path is now demonstrated against the real historical `codeql-action` case instea
 
 **The suite reported 1,281 passing and zero failures while every one of those defects was live.**
 
+### FIFTEEN OPEN REVIEW FINDINGS BLOCK THE TAG (2026-08-19)
+
+A max-effort repository code review over `v1.14.0..HEAD` returned **fifteen findings**, eight of them
+blocking. Full detail with reproductions:
+[`release-plans/plan_v1.15.0/review-findings.md`](release-plans/plan_v1.15.0/review-findings.md).
+**The tag must not be cut until the blocking findings are closed.**
+
+The two worst share one shape: **a gate reporting success while checking nothing.** A symlinked or
+junctioned checkout makes `action-pin-watch` never run its main function - it prints nothing, exits 0, and
+`release-ready` records `ok action-pins (exit 0)` on zero pins. And `gateBlocks` treats the exit-127
+sentinel, the code meaning a gate could not be SPAWNED, as a pass for both network-bound gates. Both were
+independently re-reproduced by hand before being written down.
+
+**One finding is the review-the-fixes pattern exactly.** Wave 1 correctly fixed a multi-tag FALSE POSITIVE
+by making the label rule permissive; the side effect was never weighed, and a bare `# v3` label is now
+accepted forever however far the SHA advances. That is the precise Dependabot drift the check exists to
+catch, in the pin format this repository's own runbook still prescribes, and the shipped test asserts the
+permissive behaviour so CI stays green over the hole.
+
+**And the instrument determined the result, which is its own lesson.** An earlier attempt used a reviewer
+that reads the session TRANSCRIPT rather than the repository. It returned four findings, all real, none of
+this class. Reading the actual files returned fifteen.
+
 ### What is NOT discharged
 
 **Adversarial review wave 2 did not run.** The Codex runtime returned a usage-limit error before the
