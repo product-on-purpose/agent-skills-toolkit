@@ -150,8 +150,10 @@ a real risk, since they are adjacent by design.
 - `node scripts/release-ready.mjs` exits **0** on all **five** gates: conformance, readme-drift,
   release-counts, vendor-watch, action-pins.
 - Conformance gate: **Advanced, 0 errors, 0 warnings**, at the repository's own **new 0.15 pin**.
-- Suite: **1334 tests, 0 failures**, 1 skipped. **This read 1292 at cut time**; the forty-two added are the `F1` to `F15`
-  regression tests from the post-cut review, which is the only reason this line moved after the cut.
+- Suite: **1342 tests, 0 failures**, 1 skipped. **This read 1292 at cut time**; the fifty added are the `F1` to `F15`
+  and `R1` to `R5`
+  regression tests from the post-cut review and the review of its own fix code, which is the only reason this
+  line moved after the cut.
 - **Criterion 1**, no family verdict moves: all six members at their own pins produce **zero**
   `S3`-workflow and **zero** `U17` findings, before and after.
 - **Criterion 2**, severity across pins **0.14 / 0.15 / 0.16**: `warn` at 0.14 (unchanged, which is what

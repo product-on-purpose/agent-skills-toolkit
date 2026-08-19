@@ -89,23 +89,52 @@ export function versionsInComment(comment) {
   return [...comment.matchAll(VERSION_TOKEN)].map((m) => m[0]);
 }
 
+/** `to`, `now`, `->`, `=>`: what follows one of these is the version the pin is at NOW. */
+const FORWARD_MARKER = /\b(?:to|now)\b|->|=>/gi;
+
+/** `from`, `was`, `replaces`, `supersedes`, `previously`: what follows one of these is the OLD version. */
+const SUPERSEDED_BY_PREFIX = /\b(?:from|was|replaces|replacing|supersedes|superseding|previously)\b[\s,;:(-]*$/i;
+
 /**
- * The version a comment CLAIMS, which is the LAST one it names, or null when it names none.
+ * The version a comment CLAIMS, or null when it names none.
  *
- * Taking the FIRST blocked correct pins at exit 1, the code no reason string can override. Dependabot
- * rewrites these comments as `bumped from v4.37.6 to v4.37.7` and Renovate as `from v2 to v3.0.2`, so the
- * first token is the SUPERSEDED version and the last is the claim. That is expected input rather than an
- * oddity - the correction in `docs/internal/execution/05-ci-plan.md` records that Dependabot rewrites these
- * comments, which is the whole reason E45 exists.
+ * **Position alone cannot decide this, and two review findings in a row proved it.** `F4` replaced a
+ * first-token rule because Dependabot writes `bumped from v4.37.6 to v4.37.7`, where the first token is the
+ * SUPERSEDED version. The fix-code review then found the mirror shape - `v4.1.1 pinned 2026-08-16; replaces
+ * v3.0.0` - where the LAST token is the superseded one, and a last-token rule reported a false
+ * `LABEL_DISAGREES` at exit 1, the code no reason string can override, on a comment that OPENS with the
+ * correct version. `from A to B` puts the claim last; `B ... replaces A` puts it first. Any purely
+ * positional rule is wrong half the time, so this one reads the words between the versions:
  *
- * A comment naming two versions deliberately gets NO verdict of its own. Every real producer of that shape
- * writes the current version last, so last-token reads them correctly; and when a label genuinely
- * disagrees, `evaluatePin` lists every token it found, which shows a human the ambiguity without a second
- * verdict to reason about.
+ * 1. A FORWARD marker (`to`, `now`, `->`) names what the pin is at now - take the token after the last one.
+ * 2. Otherwise drop every token a SUPERSESSION marker introduces, and take the first survivor.
+ * 3. If that leaves nothing, fall back to the last token rather than guess.
+ *
+ * **THE LOAD-BEARING INVARIANT: the claim is computed from the COMMENT ALONE and never consults what the
+ * ref resolves to.** The obvious repair for the mirror shape is to prefer whichever token happens to match
+ * a resolved tag - and that is exactly the trap `F3` was. A rule that picks the matching answer can never
+ * disagree, so it would pass a comment saying "bumped to v4.37.7" against a SHA that never moved off
+ * v4.37.6: the precise Dependabot drift this entire check exists to catch. A test locks the invariant.
+ *
+ * A comment naming two versions still gets NO verdict of its own. When a label genuinely disagrees,
+ * `evaluatePin` lists every token it found, which shows a human the ambiguity without a second verdict.
  */
 export function versionInComment(comment) {
-  const all = versionsInComment(comment);
-  return all.length > 0 ? all[all.length - 1] : null;
+  if (typeof comment !== "string") return null;
+  const tokens = [...comment.matchAll(VERSION_TOKEN)].map((m) => ({ text: m[0], at: m.index }));
+  if (tokens.length === 0) return null;
+  if (tokens.length === 1) return tokens[0].text;
+
+  const forwards = [...comment.matchAll(FORWARD_MARKER)].map((m) => m.index);
+  if (forwards.length > 0) {
+    const after = tokens.find((t) => t.at > forwards[forwards.length - 1]);
+    if (after) return after.text;
+  }
+
+  const survivors = tokens.filter((t) => !SUPERSEDED_BY_PREFIX.test(comment.slice(0, t.at)));
+  if (survivors.length > 0) return survivors[0].text;
+
+  return tokens[tokens.length - 1].text;
 }
 
 /**
@@ -128,6 +157,22 @@ export function normalizeVersion(version) {
 export function isFloatingVersion(version) {
   const n = normalizeVersion(version);
   return typeof n === "string" && /^\d+(?:\.\d+)?$/.test(n);
+}
+
+/**
+ * True when a tag is a version specific enough to serve as a SHA pin's label.
+ *
+ * "Not floating" is not the same question, and treating it as one was a fix-code review finding: `latest`
+ * is not floating by that test, so a commit tagged `v3` and `latest` blocked at exit 1 while the only
+ * label the report offered was `# latest` - which parses to no version at all and is therefore
+ * `LABEL_MISSING`, also exit 1. An author left with no satisfiable label is the "rule that cannot be
+ * satisfied is a false finding with extra steps" trap restated one level down.
+ *
+ * A tag qualifies only if it is a version the comment parser would read back as itself, AND it does not
+ * float. That keeps the advice this module prints to labels that would actually pass.
+ */
+export function isSpecificVersion(tag) {
+  return typeof tag === "string" && versionInComment(tag) === tag && !isFloatingVersion(tag);
 }
 
 /** The major number of a version or tag string, or null when it has none. */
@@ -272,7 +317,7 @@ export function evaluatePin(pin, resolution) {
     // one available, and demanding a specific version there would block a pin whose author has nothing
     // better to write - a rule that cannot be satisfied is a false finding with extra steps.
     if (isFloatingVersion(pin.claimed)) {
-      const specific = resolved.filter((v) => !isFloatingVersion(v));
+      const specific = resolved.filter(isSpecificVersion);
       if (specific.length > 0) {
         return {
           verdict: VERDICT.LABEL_FLOATS,

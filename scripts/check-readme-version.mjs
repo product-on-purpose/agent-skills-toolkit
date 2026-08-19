@@ -369,19 +369,25 @@ if (lib?.name === "agent-skills-toolkit" && spineClaimFiles.length < 5) {
 //
 // Matched with a FIXED pattern and compared in JavaScript, never by compiling `lib.name` into a regex:
 // partially escaping a value into a pattern reads as sanitised while handling one metacharacter.
-const SELF_REF_RE = /([A-Za-z0-9._-]+)\/([A-Za-z0-9._-]+)@v(\d+\.\d+\.\d+)/g;
+// The leading `v` is OPTIONAL, which is the same lesson the pin watch's comment parser learned on the same
+// day: requiring it meant a manifest advertising `@1.15.0` matched nothing and this guard reported clean -
+// the reports-clean-over-nothing class, reintroduced inside the fix for it. A ref that names no version at
+// all (`@main`, a sha) is deliberately not covered: there is no version claim there for a version guard to
+// check. The owner is captured but not compared, and that is a stated trade - flagging a same-named foreign
+// project would need this manifest to reference one, which no real manifest does.
+const SELF_REF_RE = /([A-Za-z0-9._-]+)\/([A-Za-z0-9._-]+)@(v?)(\d+\.\d+\.\d+)/g;
 for (const manifestName of ["action.yml", "action.yaml"]) {
   const manifestPath = path.join(dir, manifestName);
   if (!existsSync(manifestPath)) continue;
   readFileSync(manifestPath, "utf8")
     .split(/\r?\n/)
     .forEach((line, i) => {
-      for (const [, , repo, ver] of line.matchAll(SELF_REF_RE)) {
+      for (const [, , repo, prefix, ver] of line.matchAll(SELF_REF_RE)) {
         if (repo !== lib?.name || ver === libVersion) continue;
         failures.push(
-          `${manifestName}:${i + 1} advertises \`${repo}@v${ver}\` while library.json says ${libVersion}. ` +
+          `${manifestName}:${i + 1} advertises \`${repo}@${prefix}${ver}\` while library.json says ${libVersion}. ` +
           `This manifest is the file a consumer copies from, so a stale tag here hands every user a wrong pin. ` +
-          `Update it to v${libVersion}.`
+          `Update it to ${prefix}${libVersion}.`
         );
       }
     });

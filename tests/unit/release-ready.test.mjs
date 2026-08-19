@@ -216,6 +216,36 @@ test("F10: the gate runner declares a spawn timeout, and a timed-out gate BLOCKS
   assert.equal(gateBlocks(gate("action-pins"), SPAWN_FAILED), true);
 });
 
+test("R4: a job that runs the aggregate outlives EVERY gate timing out inside it", () => {
+  // Fix-code review, 2026-08-19. F10 set a 10-minute gate timeout under 20-minute jobs. One hung gate
+  // worked as designed - killed, status null, SPAWN_FAILED, blocked, diagnostic printed. TWO hung gates did
+  // not: a network blackhole hangs both network-bound gates, the job is cancelled at its own limit before
+  // `renderSummary` ever runs, and the operator gets a bare job cancellation instead of "this gate could
+  // not be RUN". The diagnostic F2 exists to print cannot print in the correlated failure it was built for.
+  //
+  // Asserted as arithmetic rather than fixed by hand, so the two numbers cannot drift apart again: the job
+  // must outlast every gate hanging at once.
+  const worstCaseMs = GATES.length * GATE_TIMEOUT_MS;
+  const dir = path.join(REPO, ".github", "workflows");
+  const running = [];
+  for (const name of readdirSync(dir).filter((n) => n.endsWith(".yml"))) {
+    const text = readFileSync(path.join(dir, name), "utf8");
+    if (!text.includes("scripts/release-ready.mjs")) continue;
+    const doc = parseYaml(text);
+    for (const [jobId, job] of Object.entries(doc?.jobs ?? {})) {
+      const steps = JSON.stringify(job?.steps ?? []);
+      if (!steps.includes("scripts/release-ready.mjs")) continue;
+      running.push(`${name}:${jobId}`);
+      assert.ok(
+        job["timeout-minutes"] * 60_000 > worstCaseMs,
+        `${name}:${jobId} caps at ${job["timeout-minutes"]}m, but ${GATES.length} gates can hang for ` +
+          `${worstCaseMs / 60_000}m in total, so the job dies before the aggregate can report why`
+      );
+    }
+  }
+  assert.ok(running.length >= 2, `expected both release workflows to run the aggregate; found ${running.join(", ")}`);
+});
+
 test("BOTH release workflows invoke the aggregate, or it is prose again", () => {
   // The finding this file answers was not "there is no aggregate" - it was that the release-blocking
   // preconditions lived in a checklist. An aggregate no workflow calls is the same defect in a new file.

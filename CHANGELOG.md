@@ -175,9 +175,21 @@ rewritten to look as though this was always the plan.
   Dependabot's `bumped from v4.37.6 to v4.37.7` read the superseded version as the claim; it required a
   lowercase `v`, so `0.28.0` (what `aquasecurity/trivy-action` ships) and `V4.37.7` returned nothing at all;
   and it compared raw strings, so `# v4.37.7` disagreed with a registry tag literally named `4.37.7`. The
-  claim is now the LAST token, the `v` is optional and case-insensitive, and comparison is normalised on
-  both sides. **A bare number must still carry a dot**, which is what keeps the `2026-08-16` in this
-  repository's own comment format from being read as version 2026.
+  the `v` is optional and case-insensitive, and comparison is normalised on both sides. **A bare number must
+  still carry a dot**, which is what keeps the `2026-08-16` in this repository's own comment format from
+  being read as version 2026.
+
+  **Which token is the claim is decided by the words between the versions, not by position** - and getting
+  that wrong twice is the most instructive thing in this release. The first rule took the FIRST token and
+  misread `bumped from v4.37.6 to v4.37.7`. Its replacement took the LAST token and misread the mirror
+  shape, `v4.1.1 pinned 2026-08-16; replaces v3.0.0`, reporting a false disagreement at exit 1 on a comment
+  that opens with the correct version - **caught by a review of the fix code, not of the original code.** A
+  forward marker (`to`, `now`, `->`) names what the pin is at now; otherwise tokens introduced by a
+  supersession marker (`from`, `was`, `replaces`) are dropped and the first survivor is the claim.
+
+  **The claim is computed from the comment alone and never consults what the ref resolves to**, and a test
+  locks that invariant. Preferring whichever token happens to match would make the check unable to ever
+  disagree - the same defect as `F3`, arrived at from the opposite direction.
 
   **`F5` - two legal YAML block-scalar headers were missed**, including the file's own docstring example
   `body: |2+`. A missed header means a shell payload is parsed as YAML, so a `uses:`-shaped line inside a

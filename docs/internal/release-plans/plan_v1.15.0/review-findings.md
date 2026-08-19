@@ -4,7 +4,10 @@ title: "v1.15.0 review findings - open, and blocking the tag"
 
 # v1.15.0 review findings
 
-> **Status, 2026-08-19: ALL FIFTEEN FINDINGS ARE CLOSED**, each with a dated note under its own text.
+> **Status, 2026-08-19: ALL FIFTEEN FINDINGS ARE CLOSED**, each with a dated note under its own text -
+> and so are the FIVE further findings a review of that fix code returned, recorded in their own dated
+> section at the end of this file. Two of those five were blocking-class, and one was `F3` recurring
+> inside the fix for `F4`.
 > This file no longer holds the tag. **Acceptance criterion 6 - a second adversarial wave - remains open** 
 > and is not satisfied by these fixes, by the review that produced these findings, or by any self-review. See the closure ledger below; each closed finding
 > carries a dated note under its own text.
@@ -96,6 +99,12 @@ nowhere.
 > dropping the fallback turns exactly that one test red.
 >
 > **Class closed, not just the instance.** `grep -rn "import.meta.url" scripts/` confirms this was the only
+
+> entry guard of this shape; the remaining uses take `dirname` for a repository root and are unaffected.
+>
+> **AMENDED 2026-08-19.** The reproduction above still holds, but the code is now **3, not 2**: the
+> fix-code review (`R3`) showed that exit 2 is the OVERRIDABLE code, so an outage reason string could have
+> excused a run pointed at the wrong tree. A misconfiguration now has its own non-overridable code.
 > entry guard of this shape; the remaining uses take `dirname` for a repository root and are unaffected.
 
 ## F2 - BLOCKING. A gate that could not be spawned reads as a PASS
@@ -239,6 +248,15 @@ fails the un-normalized `resolved.includes(pin.claimed)` at line 166.
 > spelling, because a report must quote what the author actually wrote.
 >
 > Mutation-proved in two directions: restoring first-token turns two tests red, restoring the raw string
+
+> comparison turns one red.
+>
+> **AMENDED 2026-08-19, later the same day.** The sentence above claiming *"last-token reads every real
+> shape correctly"* was WRONG, and the fix-code review found it: `v4.1.1 pinned 2026-08-16; replaces
+> v3.0.0` puts the superseded version LAST, so last-token reported a false `LABEL_DISAGREES` at exit 1 on
+> a comment that opens with the correct version. **Position alone cannot decide the claim** - `from A to
+> B` puts it last, `B ... replaces A` puts it first. Recorded as `R1` in the fix-code review section at
+> the end of this file, and fixed by reading the words between the versions rather than their order.
 > comparison turns one red.
 
 ## F5 - BLOCKING. The block-scalar regex misses two legal YAML headers
@@ -450,6 +468,14 @@ cancels it.
 > timeout itself the evidence is the code plus a live green run, not a demonstrated firing.
 >
 > Mutation-proved: removing one job's timeout turns the workflow guard red, disabling the retry turns
+
+> three red, and dropping the abort signal turns one red.
+>
+> **AMENDED 2026-08-19.** The numbers chosen here were internally inconsistent, found as `R4` below: a
+> 10-minute gate timeout under a 20-minute job meant ONE hung gate worked as designed and TWO did not -
+> the job died before `renderSummary` could print the very diagnostic `F2` exists to produce. Corrected
+> to a 5-minute gate under 30-minute jobs, with the arithmetic now asserted by a test instead of chosen
+> by hand.
 > three red, and dropping the abort signal turns one red.
 
 ## F11 - Two more ways to look at nothing and report a clean pass
@@ -483,6 +509,11 @@ nonexistent-root case.
 > is what removes the ambiguity for every future reader, not just for the two paths fixed here.
 >
 > Mutation-proved: dropping the refusal turns one test red, dropping the `.yaml` spelling turns one red.
+
+>
+> **AMENDED 2026-08-19.** That refusal exited **2**, which `action-pins` declares overridable - so the
+> fix for this finding created a way to override it. Corrected as `R3` below: a misconfigured run now
+> exits **3**, outside the override allowlist by construction.
 
 ## F12 - The write-incapability guard is defeatable
 
@@ -549,6 +580,11 @@ another manual correction.**
 > because documenting two usages and hand-correcting one is exactly how the stale line survived #238.
 >
 > Matched with a fixed pattern and compared in JavaScript, never by compiling `lib.name` into a regex.
+
+>
+> **AMENDED 2026-08-19.** The pattern required a leading `v`, so a manifest advertising `@1.15.0` matched
+> nothing and this guard reported clean - the reports-clean-over-nothing class, reintroduced inside the
+> fix for it, on the same day `F4` established that the `v` is optional. Corrected as `R5` below.
 >
 > **Two things that describe this check were updated with it**, because output that misdescribes its own
 > scope is this repository's named defect class: the gate's `why` string in `scripts/lib/release-ready.mjs`
@@ -610,3 +646,125 @@ Fix: renumber (measure as 5, route as 6), or state in step 5 that it cannot comp
   "raise the page cap" remediation when the final partial page lands exactly at the cap
   (`scripts/action-pin-watch.mjs:94`), and ADR 0053 cites `release.yml:91` for a pin this same diff moved
   to line 100.
+
+---
+
+# Fix-code review, 2026-08-19
+
+> **Status: all five CLOSED.** A repository-reading review over `1de984a..HEAD` - the four PRs that closed
+> `F1` to `F15` - because **the code written in response to a review is itself unreviewed**, and in this
+> repository that is repeatedly where the worst defects are. `F3` is the standing proof, and this round
+> produced its exact recurrence.
+
+**Two of the five are blocking-class by this file's own definition** (`R1` and `R2` block a correct pin).
+Both were introduced by fixes in this very set of PRs, one of them by the fix for `F4`.
+
+## R1 - BLOCKING. The last-token rule was wrong in the mirror case
+
+**`scripts/lib/action-pin-watch.mjs`**
+
+`F4` replaced a first-token rule because Dependabot writes `bumped from v4.37.6 to v4.37.7`. The
+replacement misread the mirror shape just as badly. Reproduced by hand before fixing:
+
+```
+ref=v4.1.1   comment="v4.1.1 pinned 2026-08-16; replaces v3.0.0"
+  claimed=v3.0.0  verdict=LABEL_CONTRADICTS_REF      <- FALSE FINDING, exit 1
+ref=v4       comment="v4.2.0 pinned 2026-08-16, was v3.9.0"
+  claimed=v3.9.0  verdict=LABEL_CONTRADICTS_REF      <- FALSE FINDING, exit 1
+```
+
+Exit 1 is the code no reason string can override, and the comment OPENS with the correct version in every
+case. One root cause, three outlets: SHA pins, the `other` branch `F7` added, and the major-tag branch.
+
+> **CLOSED 2026-08-19.** **Position alone cannot decide the claim**: `from A to B` puts it last, `B ...
+> replaces A` puts it first, so any purely positional rule is wrong half the time. The rule now reads the
+> words between the versions - a FORWARD marker (`to`, `now`, `->`) takes the token after it, otherwise
+> tokens introduced by a SUPERSESSION marker (`from`, `was`, `replaces`, `supersedes`, `previously`) are
+> dropped and the first survivor wins.
+>
+> **The reviewer's suggested repair was declined, and the reason is the sharpest thing in this round.**
+> It proposed preferring whichever token matches the ref or a resolved tag. **That is exactly the trap
+> `F3` was**: a rule that picks the matching answer can never disagree, so it would pass a comment saying
+> "bumped to v4.37.7" against a SHA that never moved off v4.37.6 - the precise Dependabot drift this whole
+> check exists to catch. **The claim is computed from the COMMENT ALONE**, that invariant is stated in the
+> docblock, and a test locks it by asserting the same comment yields the same claim against four different
+> resolutions while the stale case still reports `LABEL_DISAGREES`.
+>
+> Mutation-proved in BOTH directions, which is what shows neither half is redundant: reverting to
+> last-token turns the mirror-shape test red, reverting to first-token turns the Dependabot test red.
+
+## R2 - BLOCKING. The floating-label escape hatch advised a label that would then fail
+
+**`scripts/lib/action-pin-watch.mjs`**
+
+`F3`'s escape hatch filtered resolved tags on *not floating*, which counts `latest` as specific. Reproduced:
+
+```
+verdict=LABEL_FLOATS  detail="... this commit is also tagged latest - name one of those instead"
+versionInComment("latest") = null      -> writing `# latest` yields LABEL_MISSING, also exit 1
+```
+
+The author is left with no satisfiable label - the *"a rule that cannot be satisfied is a false finding
+with extra steps"* trap that hatch's own comment names, restated one level down.
+
+> **CLOSED 2026-08-19.** `isSpecificVersion` asks the right question: a tag qualifies only if the comment
+> parser reads it back as itself AND it does not float. The escape hatch fires when no such tag exists even
+> if other tags do, so the advice this module prints can only ever name labels that would pass. Tested in
+> both directions: `[v3, latest]` passes, `[v3, v3.0.2, latest]` blocks and names `v3.0.2` and never
+> `latest`.
+
+## R3 - The misconfiguration refusal landed in the OVERRIDABLE bucket
+
+**`scripts/action-pin-watch.mjs` with `scripts/lib/release-ready.mjs`**
+
+`F11`'s new "pointed at nothing" throw exited 2 like every other throw, and `action-pins` declares
+`overridableCodes: [2]` - so `--allow-vendor-unreachable "GitHub API 503"` would have shipped a release
+whose pin gate was pointed at the wrong directory, while `renderSummary` printed *"It covers
+UNREACHABILITY only ... and nothing else"*.
+
+> **CLOSED 2026-08-19.** **Rewording that sentence would have legitimised the override**, which is the
+> wrong direction; misconfiguration gets its own exit **3** instead. It needs no change to the gate list to
+> be safe: `gateBlocks` blocks on any non-zero (`F2`), and `overridableCodes` is an allowlist that 3 is not
+> in. Both properties are asserted rather than assumed. Accepted costs, stated: the CLI's documented codes
+> become 0/1/2/3, and `F1`'s regression test and closure note move from 2 to 3.
+
+## R4 - The spawn-failure diagnostic could not print in the failure it was built for
+
+**`scripts/lib/release-ready.mjs`**
+
+`F10` set a 10-minute gate timeout under 20-minute jobs. One hung gate worked as designed. **Two did not**:
+a network blackhole hangs both network-bound gates, 5 gates x 10 minutes exceeds the job cap, and the job
+is cancelled before `renderSummary` runs - so the operator gets a bare job cancellation instead of "this
+gate could not be RUN".
+
+> **CLOSED 2026-08-19.** Five-minute gates under thirty-minute jobs, on the two jobs that actually run the
+> aggregate (`publish`, which runs no gates, stays at 20). **The arithmetic is now a test rather than a
+> choice**: both workflows are parsed and each aggregate-running job must satisfy
+> `timeout-minutes * 60000 > GATES.length * GATE_TIMEOUT_MS`. That turns the reviewer's hand calculation
+> into a guard, so the two numbers cannot drift apart again.
+
+## R5 - The self-reference guard required a leading `v`
+
+**`scripts/check-readme-version.mjs`**
+
+`F13`'s pattern required `@vX.Y.Z`, so a manifest advertising `@1.15.0` matched nothing and the guard
+reported clean - **the reports-clean-over-nothing class, reintroduced inside the fix for three instances of
+it**, on the same day `F4` established that the `v` is optional.
+
+> **CLOSED 2026-08-19.** The `v` is optional and the written spelling is echoed back in the message.
+>
+> **Two parts of the finding are DECLINED, with reasons, which is a disposition rather than silence.**
+> The owner is captured but still not compared: flagging a same-named foreign project would require this
+> repository's own manifest to reference one, which is contrived, and the risk is accepted. And `@main` or
+> a sha self-reference stays uncovered because **it makes no version claim** - there is nothing there for a
+> version guard to check.
+
+## What this round does NOT discharge
+
+**One more repository-reading review is due over this R-fix diff before the class is recorded closed.**
+That is this repository's own until-a-round-comes-back-clean rule, and `R1` recurring inside the fix for
+`F4` is the proof it applies here: **the code written in response to a review is itself unreviewed, every
+time, including this time.**
+
+**And none of this touches acceptance criterion 6.** Codex adversarial wave 2 has still never run, and no
+self-review, no `/code-review` pass and no fix in this file can satisfy it.

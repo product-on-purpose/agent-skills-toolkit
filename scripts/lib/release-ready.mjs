@@ -29,16 +29,23 @@ export const SPAWN_FAILED = 127;
  * `publish-npm.yml` sets `cancel-in-progress: false` deliberately - so a stuck gate blocked every later
  * publish dispatch until a human noticed and cancelled it by hand.
  *
- * **The number is generous on purpose.** The slowest gate observed is `action-pins` at a few seconds of
- * live registry calls, and the conformance gate is seconds more; ten minutes is roughly two orders of
- * magnitude of headroom. A timeout tight enough to fire on a slow-but-working run would convert somebody
+ * **The number is generous, and it is also bounded from ABOVE by the job it runs inside.** The slowest gate
+ * observed is `action-pins` at a few seconds of live registry calls, so five minutes is still two orders of
+ * magnitude of headroom - a timeout tight enough to fire on a slow-but-working run would convert somebody
  * else's bad afternoon into a blocked release, which is the trap the override exists to avoid.
+ *
+ * The upper bound is what the fix-code review caught. At ten minutes under a twenty-minute job, ONE hung
+ * gate worked as designed but TWO did not: a network blackhole hangs both network-bound gates, and the job
+ * is cancelled at its own limit before `renderSummary` ever runs. The operator then gets a bare job
+ * cancellation instead of "this gate could not be RUN" - **the diagnostic disappears in exactly the
+ * correlated failure it was built for.** A test now asserts the arithmetic (`jobs > GATES.length * this`)
+ * against both workflows, so the two numbers cannot drift apart again by hand.
  *
  * **What a timeout composes with is the point.** `spawnSync` kills the child, `status` comes back null,
  * the CLI maps null to SPAWN_FAILED, and SPAWN_FAILED blocks. A gate that ran out of time therefore cannot
  * certify a release, for exactly the same reason a gate that never started cannot.
  */
-export const GATE_TIMEOUT_MS = 10 * 60 * 1000;
+export const GATE_TIMEOUT_MS = 5 * 60 * 1000;
 
 /**
  * The gates, in the order a human would want to see them fail.

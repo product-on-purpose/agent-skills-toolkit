@@ -24,7 +24,7 @@ import {
   exitCodeFor,
   renderReport,
 } from "../../scripts/lib/action-pin-watch.mjs";
-import { pinSourceFiles, getJson, FETCH_TIMEOUT_MS } from "../../scripts/action-pin-watch.mjs";
+import { pinSourceFiles, getJson, FETCH_TIMEOUT_MS, EXIT_MISCONFIGURED } from "../../scripts/action-pin-watch.mjs";
 import { GATES, summarize, gateBlocks, overrideApplies } from "../../scripts/lib/release-ready.mjs";
 
 const SELF = fileURLToPath(import.meta.url);
@@ -454,6 +454,67 @@ test("F4: a version needs no `v`, and the `v` may be capital", () => {
   assert.equal(versionInComment("V4.37.7 pinned 2026-08-16"), "V4.37.7");
 });
 
+// --- R1: the last-token rule was wrong in the mirror case ------------------
+
+test("R1: a comment that names the CURRENT version first and a superseded one after", () => {
+  // Fix-code review, 2026-08-19. `F4` replaced a first-token rule that misread `from A to B`; the
+  // replacement misread the mirror shape just as badly, and produced a FALSE FINDING at exit 1 - the code
+  // no reason string can override - on a pin whose comment OPENS with the correct version.
+  //
+  // Position does not determine the claim. `from A to B` puts it last, `B ... replaces A` puts it first.
+  // Any purely positional rule is wrong half the time, which is why this one reads the words between.
+  assert.equal(versionInComment("v4.1.1 pinned 2026-08-16; replaces v3.0.0"), "v4.1.1");
+  assert.equal(versionInComment("v4.2.0 pinned 2026-08-16, was v3.9.0"), "v4.2.0");
+  assert.equal(versionInComment("v2.0.0 (supersedes v1.9.9)"), "v2.0.0");
+  assert.equal(versionInComment("v5.0.0 pinned today, previously v4.0.0"), "v5.0.0");
+});
+
+test("R1: the forward shapes the last-token rule was built for still read correctly", () => {
+  // Both directions have to hold at once, which is the whole difficulty.
+  assert.equal(versionInComment("bumped from v4.37.6 to v4.37.7"), "v4.37.7");
+  assert.equal(versionInComment("renovate: from v2 to v3.0.2"), "v3.0.2");
+  assert.equal(versionInComment("was v3, now v4 pinned 2026-08-16"), "v4");
+  assert.equal(versionInComment("v3.0.0 -> v4.0.0"), "v4.0.0");
+  assert.equal(versionInComment("upgrade to v4.1.1 from v3.0.0"), "v4.1.1");
+});
+
+test("R1: a contradicting label on a tag ref is still caught, so the fix did not just make it permissive", () => {
+  assert.equal(evaluatePin(tagPin("v4.1.1", "v7.0.0 pinned 2026-01-01"), {}).verdict, VERDICT.LABEL_CONTRADICTS_REF);
+  assert.equal(evaluatePin(tagPin("v4", "v7.0.0"), {}).verdict, VERDICT.LABEL_CONTRADICTS_REF);
+});
+
+test("R1: THE INVARIANT - the claim is computed without ever looking at what the ref resolves to", () => {
+  // The obvious repair for this finding is to prefer whichever token happens to match the resolved tags.
+  // That is the trap `F3` was: a rule that picks the matching answer can never disagree, so it would pass
+  // a comment saying "bumped to v4.37.7" against a SHA that never moved off v4.37.6 - the exact Dependabot
+  // drift this whole check exists to catch. The claim is a fact about the COMMENT alone.
+  const comment = "bumped from v4.37.6 to v4.37.7";
+  assert.equal(versionInComment(comment), "v4.37.7", "the claim does not depend on the resolution");
+  for (const resolvedVersions of [["v4.37.6"], ["v4.37.7"], ["v4.37.6", "v4.37.7"], []]) {
+    assert.equal(parsePins(`      uses: a/b@${"a".repeat(40)} # ${comment}`, "w.yml")[0].claimed, "v4.37.7");
+  }
+  // ...and the drift is still reported, which is the point of the invariant.
+  const stale = evaluatePin(shaPin(comment), { resolvedVersions: ["v4.37.6"] });
+  assert.equal(stale.verdict, VERDICT.LABEL_DISAGREES);
+});
+
+// --- R2: the FLOATS escape hatch offered advice that fails the next check ---
+
+test("R2: a tag that is not a usable version is never offered as the label to write instead", () => {
+  // Fix-code review, 2026-08-19. The escape hatch filtered on "not floating", which counts `latest` as a
+  // specific version. A commit tagged v3 and latest blocked at exit 1 while the only label the report
+  // offered was `# latest`, which parses to no version at all and is therefore LABEL_MISSING - also exit 1.
+  // An author left with no satisfiable label is the "rule that cannot be satisfied" this hatch exists to
+  // avoid, restated one level down.
+  const onlyFloatingAndJunk = evaluatePin(shaPin("v3 pinned 2026-07-26"), { resolvedVersions: ["v3", "latest"] });
+  assert.equal(onlyFloatingAndJunk.verdict, VERDICT.OK, "no specific tag exists, so v3 is the best label available");
+
+  const hasSpecific = evaluatePin(shaPin("v3 pinned 2026-07-26"), { resolvedVersions: ["v3", "v3.0.2", "latest"] });
+  assert.equal(hasSpecific.verdict, VERDICT.LABEL_FLOATS);
+  assert.ok(hasSpecific.detail.includes("v3.0.2"), "it must name the specific tag");
+  assert.ok(!hasSpecific.detail.includes("latest"), "it must never advise a label that would then fail");
+});
+
 test("F4: a DATE is not a version, and neither is a sha fragment", () => {
   // The guard against the fix: accepting a bare `4.37.7` must not start reading `2026-08-16` as v2026.
   // A bare number is only a version when it carries a dot, which a hyphenated date never does.
@@ -709,9 +770,40 @@ test("the CLI RUNS when it is invoked through a symlinked checkout", (t) => {
     const r = spawnSync(process.execPath, [cli, path.join(dir, "no-such-root")], { encoding: "utf8" });
     const out = `${r.stdout ?? ""}${r.stderr ?? ""}`;
     assert.match(out, /REFUSED/, `invoked through a link the CLI said nothing; it printed ${JSON.stringify(out)}`);
-    assert.equal(r.status, 2, "a run that proved nothing about any pin must never exit 0");
+    // Exit 3, not 2, since the fix-code review: a root that does not exist is a MISCONFIGURATION, and the
+    // outage override must not be able to excuse one. Any non-zero would prove `main()` ran; the exact
+    // code is asserted so the distinction cannot be lost.
+    assert.equal(r.status, 3, "a run that proved nothing about any pin must never exit 0");
   } finally {
     removeLink(link);
     rmdirSync(dir);
   }
+});
+
+test("R3: being pointed at the wrong tree exits 3, which no reason string can excuse", () => {
+  // Fix-code review, 2026-08-19. F11's new refusal landed on exit 2, which `action-pins` declares
+  // overridable - so `--allow-vendor-unreachable "GitHub API 503"` would have shipped a release whose pin
+  // gate was pointed at a directory with no workflows in it, while the summary printed "It covers
+  // UNREACHABILITY only ... and nothing else". Rewording that sentence would have legitimised the override.
+  //
+  // Exit 3 needs no change to the gate list to be safe: `gateBlocks` blocks on any non-zero, and
+  // `overridableCodes` is an allowlist 3 is not in. Both properties are asserted here rather than assumed.
+  const dir = mkdtempSync(path.join(tmpdir(), "askit-wrong-tree-"));
+  try {
+    const r = spawnSync(process.execPath, [path.join(REPO_ROOT, "scripts", "action-pin-watch.mjs"), dir], {
+      encoding: "utf8",
+    });
+    assert.equal(r.status, EXIT_MISCONFIGURED);
+    assert.match(`${r.stdout ?? ""}${r.stderr ?? ""}`, /no workflow files and no action manifest/);
+  } finally {
+    rmdirSync(dir);
+  }
+
+  const gate = GATES.find((g) => g.id === "action-pins");
+  assert.equal(gateBlocks(gate, EXIT_MISCONFIGURED), true, "a misconfigured run must block");
+  assert.equal(
+    overrideApplies(gate, EXIT_MISCONFIGURED, "GitHub API 503 all morning"),
+    false,
+    "the outage override must not reach a run that was pointed at the wrong tree"
+  );
 });
