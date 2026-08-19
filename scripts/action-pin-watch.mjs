@@ -1,7 +1,9 @@
 #!/usr/bin/env node
 // what-it-is:   the action-pin watch CLI (E45, ADR 0053)
 // what-it-does: reads every workflow file plus action.yml, resolves each pinned action against the GitHub
-//               registry, and hands both to the deterministic checker; prints the report and exits 0/1/2
+//               registry, and hands both to the deterministic checker; prints the report and exits 0/1/2/3
+//               (0 clean, 1 a label defect here, 2 a lookup that could not be performed, 3 pointed at the
+//               wrong tree - and 3 is deliberately outside the outage override, see EXIT_MISCONFIGURED)
 // why:          the machine-readable half of a SHA pin and the human-readable half drift apart on every
 //               Dependabot bump, and only the human-readable half is read. See scripts/lib/action-pin-watch.mjs
 // used-by:      package.json (`npm run action-pin-watch`), scripts/release-ready.mjs; covered by
@@ -83,6 +85,26 @@ export async function getJson(url, opts = {}) {
 }
 
 /**
+ * A run that was pointed at the wrong tree, as distinct from one that could not reach a third party.
+ *
+ * Fix-code review, 2026-08-19. `F11`'s new refusal exited 2 like every other throw, and `action-pins`
+ * declares `overridableCodes: [2]` - so `--allow-vendor-unreachable "GitHub API 503"` would have waved
+ * through a run pointed at a directory with no workflows in it, while the summary printed "It covers
+ * UNREACHABILITY only ... and nothing else". Rewording that sentence to cover misconfiguration would have
+ * legitimised the override; giving misconfiguration its own code removes it instead.
+ *
+ * **Exit 3 is non-overridable by construction, with no change to the gate list**: `gateBlocks` blocks on
+ * any non-zero (F2), and `overridableCodes` is an allowlist that 3 is simply not in.
+ */
+export const EXIT_MISCONFIGURED = 3;
+
+function misconfigured(message) {
+  const err = new Error(message);
+  err.exitCode = EXIT_MISCONFIGURED;
+  return err;
+}
+
+/**
  * Workflow YAML plus the published composite action, which pins actions of its own.
  *
  * THROWS on a root that does not exist. The first version swallowed every exception from both reads, so a
@@ -104,7 +126,7 @@ export async function getJson(url, opts = {}) {
  * this lookup did not, so a repository using the second spelling had that file silently excluded.
  */
 export function pinSourceFiles(root) {
-  if (!existsSync(root)) throw new Error(`root does not exist: ${root}`);
+  if (!existsSync(root)) throw misconfigured(`root does not exist: ${root}`);
   const files = [];
   const wfDir = path.join(root, ".github", "workflows");
   if (existsSync(wfDir)) {
@@ -117,7 +139,7 @@ export function pinSourceFiles(root) {
     if (existsSync(action)) files.push(action);
   }
   if (files.length === 0) {
-    throw new Error(
+    throw misconfigured(
       `no workflow files and no action manifest under ${root}; nothing here could be checked, so this run proves nothing. ` +
         `Point the watch at a repository root that has .github/workflows or an action.yml`
     );
@@ -247,6 +269,7 @@ if (invokedDirectly) {
   main().catch((err) => {
     // A refusal, not a crash and never a pass: the run proved nothing about any pin.
     process.stdout.write(`action-pin-watch REFUSED: ${err.message}\n`);
-    process.exit(2);
+    // A run pointed at the wrong tree exits 3, so the outage override cannot excuse a misconfiguration.
+    process.exit(err?.exitCode ?? 2);
   });
 }

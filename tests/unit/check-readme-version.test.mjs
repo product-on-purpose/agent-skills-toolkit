@@ -487,6 +487,20 @@ test('F13: a manifest advertising a STALE version of itself fails, naming the fi
   }
 });
 
+test('R5: the version needs no leading v here either, as F4 taught the comment parser the same day', () => {
+  // Fix-code review, 2026-08-19. The guard required `@vX.Y.Z`, so a manifest advertising `@1.15.0` matched
+  // nothing and the guard reported clean - the reports-clean-over-nothing class this very PR fixed in three
+  // other places, reintroduced in the fix for one of them.
+  const dir = mkActionFixture('1.15.0', 'some-owner/my-plugin@1.14.0');
+  try {
+    const r = spawnSync(process.execPath, [SCRIPT, dir], { encoding: 'utf8' });
+    assert.equal(r.status, 1, 'a stale self-reference without a v must still fail');
+    assert.ok(((r.stdout ?? '') + (r.stderr ?? '')).includes('1.14.0'));
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
 test('F13: a manifest advertising its CURRENT version passes', () => {
   const dir = mkActionFixture('1.15.0', 'some-owner/my-plugin@v1.15.0');
   try {

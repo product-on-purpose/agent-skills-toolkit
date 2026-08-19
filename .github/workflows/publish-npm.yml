@@ -121,7 +121,7 @@ jobs:
   # injection here could not reach npm.
   prepare:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 30
     permissions:
       contents: read
     # Read the untrusted input exactly once, here, as an environment variable - never again as a raw
