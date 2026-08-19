@@ -9,7 +9,7 @@
 | --- | --- | --- |
 | Standard | 0.14 | **0.15** |
 | Spine | 34 checks | 34 checks |
-| Skills | 24 | 24 |
+| Skills | 24 | **26** |
 | Evaluation scopes | 3 | 3 |
 | Release-blocking gates | 4 | **5** |
 | Declared tier | Advanced (Gold) | Advanced (Gold), self-validated 0 errors / 0 warnings **at its own new 0.15 pin** |
@@ -18,6 +18,22 @@
 Three implementation PRs on `main` since `v1.14.0`: **#242** (the graduations), **#243** (`action-pin-watch`
 plus the wave-1 fixes), and this packet's own records PR. Two records PRs preceded them: **#239** and
 **#241**.
+
+## The scope grew while the tag was withheld, and this section says so
+
+This packet was written for two graduations and one new gate. The tag was then held for sign-off, and two
+further bodies of work merged to `main` before it was cut: the documentation-hygiene fixes, and the
+three-skill capability family (`askit-capability-whats-new`, `askit-capability-gap-analysis`, plus
+[ADR 0054](../../decisions/0054-a-component-records-what-agent-version-it-was-checked-against.md)).
+
+**Both are folded into this release rather than deferred**, following the v1.14.0 precedent where the
+withheld window's own findings shipped in that release instead of a follow-up patch. The decisive reason
+against deferring was ordering rather than preference: the next release relocates `vendor-claims.json`,
+which `release-ready` reads as one of its five gates, and rebuilding the machine that certifies releases
+underneath a release already certified and waiting is the wrong sequence.
+
+[`RELEASE-PLAN.md`](RELEASE-PLAN.md) keeps its original, narrower statement of intent and carries a dated
+note. **It is not rewritten to look as though this was always the plan.**
 
 ## The two graduations, and why each closed
 

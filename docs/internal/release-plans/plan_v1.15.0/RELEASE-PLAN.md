@@ -172,3 +172,25 @@ The three harnesses were written to the session scratchpad rather than to `scrip
 3. **Graduation proof** - build each failing shape in a temp directory with a `library.json` whose `standard` is set to each of 0.13 / 0.14 / 0.15 / absent, and read `effectiveSeverity` out of the real gate so the ADR 0044 ceiling is exercised rather than the check in isolation.
 
 **One harness lesson worth keeping, because the first version of measurement 2 was wrong and looked right.** It graded each member with `ctx.library.data.standard` mutated in memory, and reported that `agent-skills-toolkit` fell from Advanced to Convergent at 0.15. That was a **`G4`** generated-docs error, not `S3` or `U17`: `INDEX.md:7` reads *"Standard 0.14"*, so mutating the pin changed what `INDEX.md` regenerates to and the harness fired a check on its own mutation. The correct instrument asks which members produce the two checks' findings **at their real pin** and only then asks what the pin would do to them. `--strict` is also the wrong instrument here: it passes `pinned = undefined`, which makes **every** version constraint go inert at once, so a member pinned below 0.14 would take `U15`, `U16` and `U17`'s `since` as live errors and overshoot the question.
+
+## Dated note, 2026-08-19: the scope grew after this plan was written
+
+**Nothing above is rewritten.** This plan stated a deliberately narrow intent and its "Out of scope"
+section is left exactly as ratified, because a plan edited to match what happened stops being evidence of
+what was decided.
+
+What happened: the tag was withheld for sign-off, and two further bodies of work merged to `main` before it
+was cut. The documentation-hygiene fixes, and the three-skill capability family with ADR 0054. **Both are
+folded into v1.15.0** rather than deferred.
+
+**The reason is ordering, not preference.** v1.16.0 relocates `vendor-claims.json` into a top-level
+`foundation/` tree, and `release-ready` reads that file as one of its five release-blocking gates.
+Rebuilding the machine that certifies releases underneath a release that is already certified and waiting
+is the wrong sequence. Ship the ready thing first.
+
+Two consequences worth naming. **Acceptance criterion 6 (two adversarial review waves) is still open** -
+wave 2 never ran, the runtime returned a usage-limit error before the reviewer started, and folding more
+work in does not make that criterion any more satisfied. And this plan's "Out of scope" line about
+`E23`'s remaining half still holds; the capability family did not touch it.
+
+What actually shipped is in [`README.md`](README.md), written last, from the code.
