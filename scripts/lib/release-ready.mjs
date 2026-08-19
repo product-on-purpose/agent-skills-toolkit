@@ -23,6 +23,24 @@
 export const SPAWN_FAILED = 127;
 
 /**
+ * How long one gate may run before the CLI kills it (review finding F10).
+ *
+ * Nothing bounded this. `spawnSync` had no timeout, no workflow job declared `timeout-minutes`, and
+ * `publish-npm.yml` sets `cancel-in-progress: false` deliberately - so a stuck gate blocked every later
+ * publish dispatch until a human noticed and cancelled it by hand.
+ *
+ * **The number is generous on purpose.** The slowest gate observed is `action-pins` at a few seconds of
+ * live registry calls, and the conformance gate is seconds more; ten minutes is roughly two orders of
+ * magnitude of headroom. A timeout tight enough to fire on a slow-but-working run would convert somebody
+ * else's bad afternoon into a blocked release, which is the trap the override exists to avoid.
+ *
+ * **What a timeout composes with is the point.** `spawnSync` kills the child, `status` comes back null,
+ * the CLI maps null to SPAWN_FAILED, and SPAWN_FAILED blocks. A gate that ran out of time therefore cannot
+ * certify a release, for exactly the same reason a gate that never started cannot.
+ */
+export const GATE_TIMEOUT_MS = 10 * 60 * 1000;
+
+/**
  * The gates, in the order a human would want to see them fail.
  *
  * ANY non-zero exit blocks. There is no per-gate list of blocking codes, and there was one until review
@@ -164,6 +182,18 @@ export function renderSummary(summary) {
   if (overridden.length > 0) {
     out.push(`OVERRIDE IN EFFECT: ${summary.overrideReason}`);
     out.push(`It excused: ${overridden.map((r) => `${r.id} (exit ${r.code})`).join(", ")}.`);
+    // Review finding F9. ONE flag intentionally serves both network-bound gates - ADR 0053 considered a
+    // second near-identical flag and rejected it as proliferation, on the reasoning that a GitHub API
+    // outage and a documentation-host outage are the same category of fact. The residual risk it named,
+    // and answered with visibility rather than scoping, is that an operator reaching for the flag because
+    // of a KNOWN outage silently also waives an unrelated refusal. So when one reason covered more than
+    // one refusal, the report says so in as many words instead of leaving it to be inferred from a list.
+    if (overridden.length > 1) {
+      out.push(
+        `NOTE: that one reason excused ${overridden.length} separate refusals. They are unrelated failures -`
+      );
+      out.push(`confirm the stated reason genuinely accounts for EACH of them before shipping this release.`);
+    }
     out.push("Recorded here so the release carries its own exception. It covers UNREACHABILITY only - a vendor");
     out.push("page or an action registry that could not be READ - and nothing else. A claim that is gone or");
     out.push("stale, and a pin label that disagrees with its ref, are not overridable at any level.");

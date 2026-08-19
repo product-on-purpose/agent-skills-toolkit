@@ -28,13 +28,13 @@ Connectors, Browser extensions, Scheduled task templates.
 2. **Plugin-distributable?** Yes - the sentence says a plugin may contain them.
 3. **Does anything break or become possible?** **Something becomes possible**, so this one survives.
 
-## Step 4 and 6: assess our components, and count before recommending
+## Steps 4 and 5: assess our components, and count before recommending
 
 26 skills, 7 subagents, 2 commands. **None declares or uses any of the three types**, and the Standard models none of them. So nothing is broken; the question is whether the Standard *should* model them.
 
 The population that would benefit is **unmeasured** - we do not know how many real plugins ship Connectors - and the rubric requires saying so rather than omitting it.
 
-## Step 5: route, and file the honest "not yet"
+## Step 6: route, and file the honest "not yet"
 
 ```markdown
 ### E46 - three Codex plugin component types this Standard does not model  [design, ADR-gated]

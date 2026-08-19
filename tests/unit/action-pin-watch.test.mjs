@@ -24,7 +24,7 @@ import {
   exitCodeFor,
   renderReport,
 } from "../../scripts/lib/action-pin-watch.mjs";
-import { pinSourceFiles } from "../../scripts/action-pin-watch.mjs";
+import { pinSourceFiles, getJson, FETCH_TIMEOUT_MS } from "../../scripts/action-pin-watch.mjs";
 import { GATES, summarize, gateBlocks, overrideApplies } from "../../scripts/lib/release-ready.mjs";
 
 const SELF = fileURLToPath(import.meta.url);
@@ -609,6 +609,58 @@ test("F7: a BRANCH ref judges nothing and says so", () => {
   const r = evaluatePin(tagPin("main", null), { latestVersion: "v7.0.1" });
   assert.equal(r.verdict, VERDICT.OK);
   assert.equal(r.currencyUnknown, true);
+});
+
+// --- F10: nothing bounded a single request, and one throw failed every pin --
+
+/** A fetch stand-in that replays a scripted sequence and records how it was called. */
+function scriptedFetch(steps) {
+  const calls = [];
+  return {
+    calls,
+    fetch: async (url, init) => {
+      calls.push({ url, init });
+      const step = steps[Math.min(calls.length - 1, steps.length - 1)];
+      if (step instanceof Error) throw step;
+      return { ok: step.status < 400, status: step.status, statusText: String(step.status), json: async () => step.body ?? {} };
+    },
+  };
+}
+
+test("F10: a transient failure is retried ONCE and then succeeds", async () => {
+  // The CLI's own comment records the lived event: on 2026-08-17 a run failed purely on codeload 429s
+  // during a GitHub partial outage and passed on retry. Any single throw cascaded to UNRESOLVED - exit 2,
+  // a release refusal - for every pin of that action.
+  const f = scriptedFetch([new Error("ECONNRESET"), { status: 200, body: { ok: true } }]);
+  assert.deepEqual(await getJson("https://x/y", { fetchImpl: f.fetch, delayMs: 0 }), { ok: true });
+  assert.equal(f.calls.length, 2, "exactly one retry");
+});
+
+test("F10: it retries ONCE, not until it works", async () => {
+  // More than one retry is new failure surface, not more robustness: it multiplies the rate-limit spend
+  // that the retry exists to survive, and it lengthens the run that the timeout exists to bound.
+  const f = scriptedFetch([new Error("ECONNRESET")]);
+  await assert.rejects(() => getJson("https://x/y", { fetchImpl: f.fetch, delayMs: 0 }), /ECONNRESET/);
+  assert.equal(f.calls.length, 2, "two attempts total, then it gives up");
+});
+
+test("F10: a 429 and a 5xx are retried; a 404 is a definitive answer and is not", async () => {
+  for (const status of [429, 500, 503]) {
+    const f = scriptedFetch([{ status }, { status: 200 }]);
+    await getJson("https://x/y", { fetchImpl: f.fetch, delayMs: 0 });
+    assert.equal(f.calls.length, 2, `${status} must be retried`);
+  }
+  const gone = scriptedFetch([{ status: 404 }]);
+  await assert.rejects(() => getJson("https://x/y", { fetchImpl: gone.fetch, delayMs: 0 }), /404/);
+  assert.equal(gone.calls.length, 1, "retrying a 404 cannot change the answer, and spends the rate limit");
+});
+
+test("F10: every request carries an abort signal, so a hung connection cannot hang the gate", async () => {
+  const f = scriptedFetch([{ status: 200 }]);
+  await getJson("https://x/y", { fetchImpl: f.fetch, delayMs: 0 });
+  assert.ok(f.calls[0].init?.signal, "no signal means nothing bounds a single request");
+  assert.equal(typeof FETCH_TIMEOUT_MS, "number");
+  assert.ok(FETCH_TIMEOUT_MS > 0);
 });
 
 // ---------------------------------------------------------------------------

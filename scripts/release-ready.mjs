@@ -15,7 +15,7 @@
 import { spawnSync } from "node:child_process";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { GATES, SPAWN_FAILED, summarize, exitCodeFor, renderSummary } from "./lib/release-ready.mjs";
+import { GATES, GATE_TIMEOUT_MS, SPAWN_FAILED, summarize, exitCodeFor, renderSummary } from "./lib/release-ready.mjs";
 
 const REPO = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 
@@ -48,7 +48,13 @@ function parseArgs(argv) {
 
 /** Run one gate as a child node process. Its stdout is echoed so a failure is diagnosable from the CI log. */
 function runGate(gate) {
-  const r = spawnSync(process.execPath, gate.argv, { cwd: REPO, encoding: "utf8" });
+  // BOUNDED (review finding F10). Without a timeout a gate that hung held the whole aggregate open, and
+  // `publish-npm.yml` sets `cancel-in-progress: false` deliberately, so a stuck run blocked every later
+  // publish dispatch until a human cancelled it by hand. The timeout composes with F2's fix rather than
+  // needing its own path: `spawnSync` kills the child, `status` comes back null, the mapping below turns
+  // null into SPAWN_FAILED, and SPAWN_FAILED blocks. A gate that ran out of time cannot certify a release
+  // for the same reason a gate that never started cannot.
+  const r = spawnSync(process.execPath, gate.argv, { cwd: REPO, encoding: "utf8", timeout: GATE_TIMEOUT_MS });
   const text = `${r.stdout ?? ""}${r.stderr ?? ""}`.trimEnd();
   if (text) {
     console.log(`--- ${gate.id} ---`);

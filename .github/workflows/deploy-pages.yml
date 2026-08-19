@@ -100,6 +100,7 @@ concurrency:
 jobs:
   build:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     defaults:
       run:
         working-directory: site
@@ -147,6 +148,7 @@ jobs:
   deploy:
     needs: build
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     # Scoped here rather than workflow-wide, so the build job cannot deploy.
     permissions:
       pages: write
