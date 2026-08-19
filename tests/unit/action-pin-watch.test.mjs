@@ -508,6 +508,50 @@ test("T1: an ambiguous label blocks NOTHING, and the report refuses to call the 
   assert.doesNotMatch(out, /Every label is accurate/, "it must not claim coverage it declined to provide");
 });
 
+test("U1: an ambiguous comment on a TAG ref is reported, not silently passed", () => {
+  // Fifth round, HIGH, and a REGRESSION this commit's predecessor introduced. `claimAmbiguous` was consulted
+  // in the sha branch only, so on a tag ref an ambiguous comment left `claimed === null`, the
+  // LABEL_CONTRADICTS_REF check was skipped, and the pin returned plain OK - uncounted, unsymboled, under a
+  // report line reading "Every label is accurate". A verdict that BLOCKED before became a silent exit 0.
+  //
+  // The general shape of the mistake: adding a new state (`claimAmbiguous`) leaves every consumer that
+  // branches on the old state (`claimed`) with an unhandled case. Three sites existed; one was updated.
+  for (const ref of ["v3", "v4.1.1"]) {
+    const pin = parsePins(`      uses: a/b@${ref} # v4.2.0 pinned 2026-08-16; replaces v3.9.0`, "w.yml")[0];
+    const r = evaluatePin(pin, { latestVersion: "v3.0.0" });
+    assert.equal(r.verdict, VERDICT.LABEL_AMBIGUOUS, `@${ref} with an ambiguous comment must not pass silently`);
+  }
+});
+
+test("U1: and the report counts it, so it cannot hide under a clean bill of health", () => {
+  const pin = parsePins(`      uses: a/b@v3 # v4.2.0 pinned 2026-08-16; replaces v3.9.0`, "w.yml")[0];
+  const report = buildReport([pin], () => ({ latestVersion: "v3.0.0" }));
+  assert.equal(report.counts.ambiguous, 1);
+  const out = renderReport(report);
+  assert.match(out, /1 ambiguous \(advisory\)/);
+  assert.doesNotMatch(out, /Every label is accurate/);
+});
+
+test("U1: an UNAMBIGUOUS contradicting comment on a tag ref still BLOCKS", () => {
+  // The guard on the guard. Downgrading ambiguity to advisory must not downgrade a comment that plainly
+  // contradicts its ref, which is ADR 0053's rule and stays exit 1.
+  assert.equal(evaluatePin(tagPin("v4", "v7.0.0"), {}).verdict, VERDICT.LABEL_CONTRADICTS_REF);
+  assert.equal(evaluatePin(tagPin("v4.1.1", "v7.0.0 pinned 2026-01-01"), {}).verdict, VERDICT.LABEL_CONTRADICTS_REF);
+});
+
+test("U4: the SAME version named twice is one unambiguous claim, not an ambiguity", () => {
+  // Fifth round. `versionsInComment(c).length > 1` counted raw tokens, so a comment quoting its own version
+  // in a release URL was declared ambiguous and the pin went unchecked - coverage lost to a shape that is
+  // not actually ambiguous at all.
+  const pin = parsePins(
+    `      uses: a/b@${"a".repeat(40)} # v3.0.2 pinned 2026-08-16 (see https://github.com/x/y/releases/tag/v3.0.2)`,
+    "w.yml"
+  )[0];
+  assert.equal(pin.claimAmbiguous, false);
+  assert.equal(pin.claimed, "v3.0.2");
+  assert.equal(evaluatePin(pin, { resolvedVersions: ["v3.0.2"] }).verdict, VERDICT.OK);
+});
+
 test("T1: the TIGHT transition shapes are still read, so real drift is still caught", () => {
   // This is what keeps the check a check. Dependabot and Renovate write exactly these, so the drift the
   // whole guard exists to catch still reaches a verdict rather than an advisory shrug.
@@ -802,25 +846,31 @@ test("T4: a deadline expiring mid-loop KEEPS the tags already found", async () =
   // throwing on page 3 discarded a sha matched on page 1 - and the pin was then reported UNRESOLVED, a
   // refusal about a question that had already been answered. The `RUN_DEADLINE_MS` docblock promises the run
   // "reports what it has"; for the in-flight action it reported nothing.
-  const sha = "a".repeat(40);
+  // THE FIRST VERSION OF THIS TEST WAS VACUOUS, and the fifth round caught it: page 1 carried the only
+  // wanted sha, so the loop broke before page 2 was ever requested and the deadline path was never reached.
+  // It passed with the fix reverted. TWO wanted shas, one per page, are what force the second request.
+  const shaA = "a".repeat(40);
+  const shaB = "b".repeat(40);
   let call = 0;
   const fetchImpl = async () => {
     call += 1;
-    const body =
-      call === 1
-        ? { tag_name: "v4.37.7" } // releases/latest
-        : [{ name: "v4.37.7", commit: { sha } }]; // page 1 carries the wanted sha
-    return { ok: true, status: 200, statusText: "OK", json: async () => body };
+    if (call === 1) return { ok: true, status: 200, statusText: "OK", json: async () => ({ tag_name: "v4.37.7" }) };
+    // Page 1 carries shaA only, so the loop must go on to page 2 looking for shaB. It sleeps past the
+    // deadline on the way, so page 2's `get` throws with page 1's match already recorded. The sleep is what
+    // makes this deterministic: with an instant fake the deadline never elapsed and the loop simply ran to
+    // the page cap, which is how the first version of this test managed to prove nothing.
+    await new Promise((r) => setTimeout(r, 60));
+    return { ok: true, status: 200, statusText: "OK", json: async () => [{ name: "v4.37.7", commit: { sha: shaA } }] };
   };
-  // A deadline already in the past when page 2 would be requested: page 1 has been recorded by then.
-  const deadlineAt = Date.now() + 40;
-  const out = await resolveAction("o/a", new Set([sha]), deadlineAt, { fetchImpl });
-  await new Promise((r) => setTimeout(r, 60));
-  const after = await resolveAction("o/a", new Set([sha]), Date.now() - 1, { fetchImpl });
+  const deadlineAt = Date.now() + 50;
+  const out = await resolveAction("o/a", new Set([shaA, shaB]), deadlineAt, { fetchImpl });
+  const never = await resolveAction("o/a", new Set([shaA]), Date.now() - 1, { fetchImpl });
 
-  assert.deepEqual(out.resolvedBySha[sha], ["v4.37.7"], "a sha matched before the deadline must survive it");
-  assert.deepEqual(after.resolvedBySha, {}, "an action never reached contributes nothing, and says so");
-  assert.match(after.error ?? "", /budget/);
+  assert.equal(call, 2, "exactly one tag page: the deadline must stop the second, or this proves nothing");
+  assert.match(out.error ?? "", /budget/, "the run must record that it ran out of time");
+  assert.deepEqual(out.resolvedBySha[shaA], ["v4.37.7"], "a sha matched before the deadline must survive it");
+  assert.deepEqual(never.resolvedBySha, {}, "an action never reached contributes nothing, and says so");
+  assert.match(never.error ?? "", /budget/);
 });
 
 test("F10: every request carries an abort signal, so a hung connection cannot hang the gate", async () => {

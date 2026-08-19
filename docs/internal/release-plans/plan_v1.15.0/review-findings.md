@@ -7,9 +7,11 @@ title: "v1.15.0 review findings - open, and blocking the tag"
 > **Status, 2026-08-19: ALL FIFTEEN FINDINGS ARE CLOSED**, each with a dated note under its own text -
 > and so are the FIVE a review of that fix code returned, the SIX a third round returned over those, and the
 > SEVEN a fourth returned again. Each round has its own dated section at the end of this file. Rounds went
-> **15/8 blocking, then 5/2, then 6/0, then 7/0** - the count is flat but the severity floor is reached, and
-> every round found defects in the previous round's fix code. The fourth round's `T1` removes the class they
-> kept finding, by deciding to stop guessing at all.
+> **15/8 blocking, 5/2, 6/0, 7/0, 5/1** across FIVE rounds - every one found something in the previous
+> round's fix code. The fourth round's `T1` removed the class they kept finding, by deciding to stop guessing
+> at all; the fifth then caught a REGRESSION that change introduced, plus three false statements in these
+> very records. Its remaining two findings are deferred to v1.15.1 or wave 2 with stated reasons, and a
+> sixth round is not recommended - see the fifth-round section for why.
 >
 > **This file no longer holds the tag.** Every finding carries a dated closure note under its own text, and
 > the ledger below tracks them. **Acceptance criterion 6 - a second adversarial wave - remains open**, and
@@ -992,7 +994,8 @@ same commit that fixed `S5`.**
 
 ## T3 - The layering guard did not budget the overrun it exists to prevent
 
-**`tests/unit/release-ready.test.mjs`**
+**`tests/unit/action-pin-watch.test.mjs`** (this record said `release-ready.test.mjs` when written; the
+assertion is the `S2: the watch bounds its OWN run` test, corrected 2026-08-19 by the fifth round, `U5`)
 
 `S2`'s guard asserted only `GATE_TIMEOUT_MS > RUN_DEADLINE_MS`. The deadline is checked BEFORE a request,
 so the run can exceed it by one whole request. Today's margin holds, but raising `FETCH_TIMEOUT_MS` to 60s
@@ -1012,9 +1015,26 @@ dropped a sha matched on page 1 - and that pin was reported `UNRESOLVED`, a refu
 already answered. The `RUN_DEADLINE_MS` docblock promises the run reports what it has.
 
 > **CLOSED 2026-08-19.** Published from a `finally`, with `found` hoisted so it is in scope. `resolveAction`
-> is now exported and takes an injectable fetch, so this is covered by a REAL test - a sha matched on page
-> one survives a deadline that expires before page two - rather than by reading the code. A fix with no
-> test is what this repository grades others on.
+> is now exported and takes an injectable fetch so the behaviour can be demonstrated rather than read.
+>
+> **CORRECTED 2026-08-19, fifth round. Two claims in the paragraph above were wrong, and both are the kind
+> of thing this file exists to prevent.**
+>
+> **The test was VACUOUS** (`U3`). Its fake page 1 carried the only wanted sha, so the loop broke before
+> page 2 was ever requested: the deadline path was never reached and it passed with the fix reverted.
+> Rewritten with two wanted shas across two pages and a fake that sleeps past the deadline, and
+> mutation-proved - it is now red when the `finally` is removed. The claim that it was a REAL test was
+> false when written.
+>
+> **And the fix changes no verdict today** (`U2`). `out.error` is set by the same throw that preserves
+> `found`, and `evaluatePin` returns `UNRESOLVED` on `err` before it reads `resolvedVersions`. So the
+> scenario this note describes still reports UNRESOLVED and still exits 2. The hoist makes the data
+> correct; it does not yet make the verdict different.
+>
+> **The real repair is DEFERRED, deliberately and with the reason stated**: it means preferring a non-empty
+> `resolvedVersions` over `err` for a SHA pin, which changes refusal precedence - the exact area wave 1
+> corrected once (`a known defect outranks uncertainty`) and `F6`/`F7` settled again. That is not a change
+> to make in the fifth round of a long day. Filed for v1.15.1 or wave 2 scope.
 
 ## T5 - The deadline docblock asserted an exit code the tag path does not produce
 
@@ -1059,3 +1079,79 @@ non-blocking it returns belongs in v1.15.1 or in wave 2's scope rather than in a
 **That is a recommendation to the maintainer, not a decision taken here.**
 
 **Acceptance criterion 6 is untouched by all four rounds.** Codex adversarial wave 2 has still never run.
+
+---
+
+# Fifth round, 2026-08-19: confirmation, and one regression it caught
+
+> **Status: the HIGH finding and two record defects are CLOSED. Two are DEFERRED with stated reasons.**
+> A repository-reading review over `32f9dda..HEAD`, run as the confirmation pass the fourth round said was
+> owed. **The stopping rule was changed before it ran**: fix what blocks, correct any false record, and
+> defer the rest to v1.15.1 or wave 2 rather than starting a sixth round.
+
+## U1 - HIGH, and a REGRESSION the fourth round introduced. CLOSED
+
+**`scripts/lib/action-pin-watch.mjs`**
+
+`T1` added `claimAmbiguous` and consulted it in the **sha branch only**. On a tag ref an ambiguous comment
+therefore left `claimed === null`, which skipped the `LABEL_CONTRADICTS_REF` check and returned plain OK.
+Verified against `32f9dda`: `uses: a/b@v3 # v4.2.0 pinned 2026-08-16; replaces v3.9.0` **used to return
+`LABEL_CONTRADICTS_REF` at exit 1 and now returned `OK`**, uncounted, under the sentence *Every label is
+accurate*.
+
+**That is the commit violating its own closure contract.** `T1` promised an ambiguous row is counted,
+prints `ambi`, and suppresses that sentence. For tag refs it got none of the three.
+
+> **CLOSED 2026-08-19.** Ambiguity is reported for **every** ref kind, advisory and counted, so the pin can
+> no longer pass silently. Currency goes unchecked with it, which `currencyUnknown` surfaces. An
+> UNAMBIGUOUS contradicting comment still blocks at exit 1, and a test asserts that separately so the
+> downgrade cannot spread.
+>
+> **The generalisable mistake is worth more than the fix: adding a new state leaves every consumer that
+> branches on the OLD state with an unhandled case.** There were three sites reading `claimed`; one was
+> updated. Grep for the old field, not for the new one.
+
+## U4 - LOW. CLOSED, because it was two lines and it was coverage this round had just lost
+
+`claimIsAmbiguous` counted raw tokens, so `# v3.0.2 pinned 2026-08-16 (see .../releases/tag/v3.0.2)` was
+declared ambiguous and left unchecked. **Two mentions of one version are one claim.** Both
+`versionInComment` and `claimIsAmbiguous` now deduplicate on `normalizeVersion`.
+
+> Note what is NOT fixed and is correct as designed: `# v4.37.7 pinned 2026-08-16 (node 20.11.0)` still
+> goes advisory, because two DIFFERENT versions is exactly the case `T1` decided not to guess about.
+
+## U2, U3, U5 - record defects. CLOSED as records; one repair DEFERRED
+
+**`U3`: the `T4` test was vacuous** - its fake page 1 carried the only wanted sha, so the loop broke before
+page 2 and the deadline path was never reached. It passed with the fix reverted. Rewritten with two shas
+across two pages and a fake that sleeps past the deadline; mutation-proved red without the `finally`.
+
+**`U2`: the `T4` fix changes no verdict today** - `evaluatePin` returns `UNRESOLVED` on `err` before it
+reads the preserved `resolvedVersions`. The real repair means changing refusal precedence, which is the
+area wave 1 corrected once and `F6`/`F7` settled again. **Deferred with that reason stated**, not silently.
+
+**`U5`: `T3` cited the wrong test file.** Corrected in place.
+
+**All three were FALSE OR MISLEADING STATEMENTS IN THE RECORD, and that is why they were fixed under a
+stopping rule that otherwise defers non-blocking findings.** A record that says something untrue is worse
+than one that says nothing, whatever the severity of the code beneath it - and `T4`'s note had claimed a
+REAL test that did not exist.
+
+## Where the rounds end
+
+| Round | Scope | Findings | Blocking | Disposition |
+| --- | --- | --- | --- | --- |
+| 1 | the release | 15 | 8 | all closed |
+| 2 | the fixes for those 15 | 5 | 2 | all closed |
+| 3 | the fixes for those 5 | 6 | 0 | all closed |
+| 4 | the fixes for those 6 | 7 | 0 | all closed |
+| 5 | the fixes for those 7 | 5 | 1 | 1 blocking + 3 records closed, 1 deferred |
+
+**Five rounds, 38 findings, and every round found something in the previous round's fix code.** The honest
+reading is not that reviewing is futile - round 1 alone found eight blocking defects in a release that was
+about to be tagged - but that **fix code deserves the same scrutiny as the code it fixes, every time.**
+
+**A sixth round is not recommended.** Round 5's single HIGH was a regression from a design change, and
+that design change is now settled; the rest were records. The remaining risk is better spent on
+**acceptance criterion 6**, which no round of this has touched: Codex adversarial wave 2 has still never
+run, and it reads the repository with a different instrument.
