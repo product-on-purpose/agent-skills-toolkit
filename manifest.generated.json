@@ -80,6 +80,16 @@
       "description": "Reports which component types a target agent can run and recommends a conformance tier before a plugin is built, mapping Claude Code and Codex capabilities to the Advanced Skill Library Standard's component types. Use when choosing agent-targets, checking whether a component is portable across agents, or deciding which tier to aim for."
     },
     {
+      "name": "askit-capability-gap-analysis",
+      "path": "skills/askit-capability-gap-analysis/SKILL.md",
+      "description": "Assesses a new agent capability against the capability matrix, the Standard, and every skill, subagent and command this plugin ships, then proposes a matrix update, a backlog entry or an ADR draft without implementing any of them. Use when deciding whether a new Claude Code, Cowork or Codex capability should be modelled or adopted, when analysing a capability gap after a survey reports one, or when checking which components were last verified against an older agent version."
+    },
+    {
+      "name": "askit-capability-whats-new",
+      "path": "skills/askit-capability-whats-new/SKILL.md",
+      "description": "Surveys what the agent platforms shipped since this repository last looked, diffing each vendor's release feed forward from a recorded version pin, and writes a dated survey record without deciding anything. Use when asking what is new in Claude Code, Claude Cowork, Codex or the agentskills.io spec, before planning a release that claims to be current with the vendors, or on a periodic currency sweep."
+    },
+    {
       "name": "askit-decision",
       "path": "skills/askit-decision/SKILL.md",
       "description": "Creates and maintains a plugin's decision records (MADR ADRs) and RFCs in docs/internal, and the summary TL;DR companion for long decision docs. Use when recording an architecture decision, drafting an RFC to evolve the Standard, or generating the TL;DR for a decision doc."

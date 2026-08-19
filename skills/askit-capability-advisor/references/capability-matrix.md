@@ -32,6 +32,41 @@ Subagents, output styles, and statuslines do not ship to Codex *from a plugin*. 
 
 `advise` recommends a tier from the target agents and the components planned: a single-agent skills-and-docs plugin sits comfortably at Bronze; a cross-agent plugin with packaging and a components index is Silver; hooks and self-hosting CI move it to Gold.
 
+## Cowork, and why it is here at all
+
+Cowork is **not** a plugin-distribution target the way Claude Code and Codex are, so it has no column in
+the table above. It is documented here because **two shipped checks already accommodate its behaviour**,
+which means the gate models an agent the matrix did not:
+
+| What | Where | What it assumes about Cowork |
+|---|---|---|
+| `U6` `reference-links` | `SKIP_SCHEME` includes `computer:` | that `computer:` is a local-artifact scheme, so a link using it is not a broken repo-relative path |
+| `U11` `mcp-valid` | a typed `http` server with no `url` is a warning, not an error | the managed-connector pattern, where the host supplies the endpoint at runtime |
+
+**Both assumptions are currently undocumented by the vendor.** A survey of Cowork's changelog on
+2026-08-18 found no mention of the `computer:` scheme at all, and the connector language present there
+concerns settings and UI rather than runtime endpoint injection. The full documentation set has not been
+swept, so this is *not found* rather than *does not exist*.
+
+That matters for what happens next. A documented behaviour becomes a `quote` claim in
+[`vendor-claims.json`](../../../docs/internal/vendor-watch/vendor-claims.json) and costs nothing
+recurring; an undocumented one can only be a `probe`, whose age is its whole verification and which
+blocks releases past a 30-day window. **Spend the search before filing a probe**, and never file one
+whose reproduction nobody will actually re-run.
+
 ## Keeping the matrix honest
 
-The matrix is pinned to specific agent versions. When an agent adds a capability (for example, if Codex gains an `agents` manifest field), update this file and `advise`/`check` together so the advice never claims more than the agents actually support.
+**Confirmed against these agent versions**, and this block exists because for a long time the sentence
+below claimed a version pin while the file recorded no version anywhere - a currency claim with no
+currency evidence, which is the same defect class as a SHA pin whose comment nobody re-checked.
+
+| Agent | Confirmed against | On | How |
+|---|---|---|---|
+| Claude Code | `2.1.235` | 2026-08-18 | changelog and documentation read |
+| Codex | plugins documentation page as published | 2026-08-18 | `learn.chatgpt.com/docs/plugins.md`, reached via a 308 from the former host |
+| Cowork | `v1.32885.1` | 2026-08-18 | changelog read; **the two behaviours below are NOT documented there** |
+
+When an agent adds a capability (for example, if Codex gains an `agents` manifest field), update this
+file, the versions above, and `advise`/`check` together so the advice never claims more than the agents
+actually support. [`askit-capability-gap-analysis`](../../askit-capability-gap-analysis/SKILL.md) owns
+that update; this skill reads the result.

@@ -15,6 +15,7 @@ The toolkit ships the full v1 catalog: builder skills for every component type, 
 - **Govern and lifecycle:** `askit-backlog`, `askit-decision` (ADRs and RFCs), `askit-release` (version, changelog, release-notes, gate), `askit-deprecate`, `askit-standards-watch` (does the pinned agentskills.io upstream still match, and what would a change touch).
 - **Onboard and adopt:** `askit-init-plugin` (interview, questionnaire, hybrid), `askit-init-marketplace`, `askit-migrate` (adopt an existing repo), `askit-template-manager`.
 - **Advise:** `askit-capability-advisor` (what a target agent supports, and which tier to aim for).
+- **Stay current:** `askit-capability-whats-new` (what the agent platforms shipped since you last looked, as a dated survey) and `askit-capability-gap-analysis` (what a finding means for your matrix, your Standard and your components). Together with `askit-capability-advisor` these form the capability family, sharing one capability matrix.
 
 ## The judgment subagents
 

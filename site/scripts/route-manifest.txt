@@ -59,6 +59,8 @@
 /reference/askit-build-subagent/index.html
 /reference/askit-build-workflow/index.html
 /reference/askit-capability-advisor/index.html
+/reference/askit-capability-gap-analysis/index.html
+/reference/askit-capability-whats-new/index.html
 /reference/askit-decision/index.html
 /reference/askit-deprecate/index.html
 /reference/askit-evaluate/index.html
