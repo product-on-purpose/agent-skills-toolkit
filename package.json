@@ -54,6 +54,7 @@
     "!scripts/lib/standards-watch.mjs",
     "!scripts/lib/vendor-watch.mjs",
     "!scripts/lib/release-ready.mjs",
+    "!scripts/lib/action-pin-watch.mjs",
     "STANDARD.md"
   ],
   "scripts": {
@@ -64,6 +65,7 @@
     "eval-run": "node scripts/eval-run.mjs",
     "standards-watch": "node scripts/standards-watch.mjs .",
     "vendor-watch": "node scripts/vendor-watch.mjs .",
+    "action-pin-watch": "node scripts/action-pin-watch.mjs .",
     "release-counts": "node scripts/check-release-counts.mjs .",
     "release-ready": "node scripts/release-ready.mjs",
     "prepublishOnly": "npm test && node scripts/check.mjs"

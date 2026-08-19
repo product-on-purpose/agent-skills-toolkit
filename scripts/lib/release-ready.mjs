@@ -41,6 +41,25 @@ export const GATES = Object.freeze([
     blocksOn: [1, 2],
     overridableCodes: [2],
   }),
+  Object.freeze({
+    id: "action-pins",
+    argv: ["scripts/action-pin-watch.mjs", "."],
+    why: "a SHA pin's comment is the only half a reviewer reads; shipping one that names the wrong version is a false claim about this repository's own supply chain",
+    // 1 = a LABEL disagrees with what its ref resolves to, which is a defect in this repository's own file.
+    // 2 = a lookup could not be performed, so the run proved nothing.
+    //
+    // A pin merely BEHIND its action's current release does NOT reach this gate at all: the watch reports
+    // it and exits 0, because that is news about somebody else's release cadence rather than a defect here,
+    // and blocking on it would let an upstream release stop a tag for a fact that is only worth knowing.
+    // That split is ADR 0053's central decision and it is why this gate is not a copy of `vendor-watch`.
+    blocksOn: [1, 2],
+    // The SAME `--allow-vendor-unreachable <reason>` excuses this refusal, deliberately and not by
+    // accident: a GitHub API outage is the same category of fact as a documentation-host outage - somebody
+    // else's downtime, for which a release with no remedy is a trap. It excuses code 2 ONLY, so no reason
+    // string can ever wave through a label that disagrees. The summary names which gate an override
+    // actually applied to, so reusing one flag cannot hide which refusal was excused.
+    overridableCodes: [2],
+  }),
 ]);
 
 /** What an exit code means for one gate. `blocksOn` defaults to "anything non-zero". */

@@ -18,7 +18,7 @@
 | Spine | 34 checks |
 | Scopes | 3 (plugin, component, marketplace) |
 | Skills | 24 |
-| Tests | 1252, 0 failures (local suite run 2026-08-16; both halves confirmed by `npm run release-ready` exiting 0) |
+| Tests | 1282, 0 failures (local suite run 2026-08-18; both halves confirmed by `npm run release-ready` exiting 0) |
 | Self-proving | `node scripts/check.mjs .` exits 0 at Advanced, 0 errors, 0 warnings |
 
 ## The v1.14.0 ADR pack: RATIFIED and IMPLEMENTED
