@@ -170,6 +170,9 @@ export function versionInComment(comment) {
   const tokens = [...comment.matchAll(VERSION_TOKEN)].map((m) => ({ text: m[0], at: m.index }));
   if (tokens.length === 0) return null;
   if (tokens.length === 1) return tokens[0].text;
+  // Several mentions of ONE version are one claim, not an ambiguity (fifth round, U4): a comment quoting
+  // its own version again in a release URL names nothing to be ambiguous between.
+  if (new Set(tokens.map((t) => normalizeVersion(t.text))).size === 1) return tokens[0].text;
 
   // The LAST tight transition wins, so `was v1, now v2, then v3` reads as v3.
   let transitioned = null;
@@ -185,7 +188,11 @@ export function versionInComment(comment) {
 
 /** True when a comment names several versions and none of them can be read as THE claim. See above. */
 export function claimIsAmbiguous(comment) {
-  return versionsInComment(comment).length > 1 && versionInComment(comment) === null;
+  // DEDUPLICATED, because two mentions of the SAME version are one unambiguous claim (fifth round, U4).
+  // Counting raw tokens declared `# v3.0.2 pinned ... (see .../releases/tag/v3.0.2)` ambiguous and left that
+  // pin unchecked - coverage lost to a shape that is not ambiguous at all.
+  const distinct = new Set(versionsInComment(comment).map(normalizeVersion));
+  return distinct.size > 1 && versionInComment(comment) === null;
 }
 
 /**
@@ -403,6 +410,24 @@ export function evaluatePin(pin, resolution) {
         ? `label and ref agree on ${pin.claimed} (of ${names}); current release ${latest}`
         : `label and ref agree on ${pin.claimed} (of ${names}); currency NOT checked${notComparable}`,
       currencyUnknown: !currencyComparable,
+    };
+  }
+
+  // AMBIGUITY IS REPORTED FOR EVERY REF KIND, not only for SHA pins (fifth round, U1). Consulting
+  // `claimAmbiguous` in the sha branch alone left a tag pin with `claimed === null`, which skipped the
+  // contradiction check and returned plain OK - uncounted, and under a report line claiming every label was
+  // accurate. A verdict that blocked became a silent exit 0, in the commit that introduced the ambiguity
+  // contract promising the opposite. Adding a state leaves every consumer branching on the OLD state with
+  // an unhandled case; there were three, and one was updated.
+  //
+  // Advisory rather than blocking, consistently with the sha branch: the claim is unknown, so a
+  // contradiction cannot be asserted - but silence is not the alternative. Currency goes unchecked with it,
+  // which `currencyUnknown` surfaces in the report.
+  if (pin.claimAmbiguous) {
+    return {
+      verdict: VERDICT.LABEL_AMBIGUOUS,
+      detail: `the comment names ${versionsInComment(pin.comment).join(" and ")} with no unambiguous claim among them, so it was not checked against ref ${pin.ref}; write one version`,
+      currencyUnknown: true,
     };
   }
 
