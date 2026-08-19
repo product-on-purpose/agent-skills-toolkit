@@ -186,7 +186,7 @@ test("a SHA pin whose label names the version it resolves to is OK", () => {
 });
 
 test("ONE COMMIT, TWO TAGS: a label naming EITHER is correct - the wave-1 false positive", () => {
-  // Measured live 2026-08-19: softprops/action-gh-release carries v3.0.2 and v3 on one commit, v1 and
+  // Measured live 2026-08-18: softprops/action-gh-release carries v3.0.2 and v3 on one commit, v1 and
   // v0.1.15 on another. Reading only the FIRST tag the registry listed turned this repository's own
   // correct `# v3` label into a release-blocking false finding, on response ordering nobody controls.
   const both = { resolvedVersions: ["v3.0.2", "v3"], latestVersion: "v3.0.2" };

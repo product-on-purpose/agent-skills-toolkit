@@ -101,7 +101,7 @@ A wrong label is **a defect in this repository's own file**, remediable by its o
 - **A `BEHIND` finding is only as good as somebody reading it.** The split buys safety at the price of a signal that gates nothing, and that is the recognised trade. **The reopening condition:** if a pin is ever found to have sat behind long enough to matter, and the advisory line was printed and ignored on every release in between, that is the evidence for promoting `BEHIND` to blocking, and it should be taken as such rather than argued about again from first principles.
 - **Found while implementing, and fixed here because the file was being edited anyway:** `scripts/README.md` and `scripts/lib/README.md` both listed `standards-watch.mjs` with **no description at all**, its text having been appended to the neighbouring `vendor-watch.mjs` entry. `G8` passed both, correctly, because it checks that every child is LISTED and not that it is described. **This is the second and third instance of that exact defect**, after `.github/workflows/README.md` in #238. Tightening `G8` remains out of scope (it moves verdicts for every plugin that has ever passed it, so it is an ADR with a migration window under ADR 0044), but three instances is now the evidence for opening that ADR rather than a hypothetical.
 
-## What review wave 1 corrected, 2026-08-19
+## What review wave 1 corrected, 2026-08-18
 
 Ten findings, five HIGH, all fixed before this ADR was merged. **The decision above is unchanged in its
 shape; two of its factual claims were false and one of its rules was inverted.** Recorded in full because a
