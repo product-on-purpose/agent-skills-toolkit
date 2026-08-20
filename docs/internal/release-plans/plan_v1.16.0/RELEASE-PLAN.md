@@ -56,6 +56,20 @@ ADR-first, per the pattern that paid in v1.14.0 where measurement overturned thr
 
 It must also settle the naming question this plan does not: `foundation/` versus `core/`. This plan uses `foundation/` because `core` reads as "core code" beside `scripts/` and `bin/` while this folder is entirely `.md` and `.json`; that is a preference, not a finding, and the ADR should record whichever is chosen and why.
 
+> **DECIDED 2026-08-19, by the maintainer: `foundation/`.** Recorded here rather than left to the ADR to
+> discover, because the plan asked the question and the answer arrived first.
+>
+> **No industry-standard term fits**, which was checked rather than assumed. The nearest candidate,
+> `corpus/`, is **already taken in this repository** - it means the set of real plugins graded against the
+> Standard (the fixture corpus, the v1.5.0 corpus-run workstream), and reusing it would collide with an
+> established meaning. The genuinely descriptive alternatives are `evidence/` and `provenance/`; neither is
+> a standard, both are preferences, and `foundation/` reads correctly beside `agents/ bin/ commands/ docs/
+> scripts/ skills/`.
+>
+> **The ADR still records the decision and its reasoning, including that `corpus/` was unavailable** - a
+> naming choice whose rejected alternatives are not written down invites the same debate at the next
+> release. See [`W1-layout-adr/SPEC.md`](W1-layout-adr/SPEC.md).
+
 ### W2 - The migration, and it is a code change
 
 `claims/` holds three files that are read **by path** from `scripts/lib/vendor-watch.mjs`, `scripts/lib/standards-watch.mjs`, `scripts/release-ready.mjs`, their unit tests, and `.github/workflows/vendor-watch.yml`. This is not a `git mv`.
