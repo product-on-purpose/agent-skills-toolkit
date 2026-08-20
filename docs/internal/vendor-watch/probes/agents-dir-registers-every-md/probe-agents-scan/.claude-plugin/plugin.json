@@ -1,0 +1,9 @@
+{
+  "name": "probe-agents-scan",
+  "version": "0.0.0",
+  "description": "PROBE FIXTURE, not a real plugin. Establishes whether Claude Code registers every .md under agents/. Deliberately ships README.md and _README.md inside agents/.",
+  "license": "Apache-2.0",
+  "author": {
+    "name": "product-on-purpose"
+  }
+}

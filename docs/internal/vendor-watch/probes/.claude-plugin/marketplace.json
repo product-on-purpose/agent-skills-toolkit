@@ -1,0 +1,26 @@
+{
+  "name": "askit-probe-fixtures",
+  "owner": {
+    "name": "product-on-purpose"
+  },
+  "metadata": {
+    "description": "MAINTAINER-ONLY probe fixtures. Not example plugins, not graded, and deliberately non-conforming in places. See README.md in this folder before installing anything here."
+  },
+  "plugins": [
+    {
+      "name": "probe-agents-scan",
+      "source": "./agents-dir-registers-every-md/probe-agents-scan",
+      "description": "Probe fixture for agents-dir-registers-every-md. Ships README.md inside agents/ on purpose."
+    },
+    {
+      "name": "probe-collision-a",
+      "source": "./components-share-one-namespace/probe-collision-a",
+      "description": "Probe fixture for components-share-one-namespace, side A. Install alongside side B."
+    },
+    {
+      "name": "probe-collision-b",
+      "source": "./components-share-one-namespace/probe-collision-b",
+      "description": "Probe fixture for components-share-one-namespace, side B. Install alongside side A."
+    }
+  ]
+}
