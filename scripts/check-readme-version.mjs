@@ -350,6 +350,49 @@ if (lib?.name === "agent-skills-toolkit" && spineClaimFiles.length < 5) {
 }
 
 // ---------------------------------------------------------------------------
+// The universal-checks page's stated RANGE must match the registry.
+//
+// This page has now drifted twice, and the second time is why this guard exists rather than a third hand
+// fix. v1.15.0 found it listing checks only to `U13` and repaired the TABLE; the prose two paragraphs above
+// the table still read "the Universal set is `U1-U9` and `U11-U13`" while the page's own frontmatter said
+// sixteen. **A page contradicting itself about its own subject is worse than one that is merely stale**,
+// and this one is public.
+//
+// **The first version of this guard could not fail, and its mutation test is what said so.** It compared
+// the highest `U<n>` named ANYWHERE on the page against the registry - but the table lists every check, so
+// the table saturates that maximum and stale prose sails past. Exactly the class this repository grades
+// others on, caught before it shipped only because reverting the fix was tried.
+//
+// The rule that works targets the shape the page actually uses. `U10` was retired in Standard v0.11, so the
+// set is described as two ranges either side of it, and it is the SECOND that goes stale: every
+// `U11-U<n>` on the page must end at the registry's highest universal check. Narrow on purpose - it polices
+// one number, the one a reader uses to decide whether the page is complete. Scoped to this repository by
+// name, on the same reasoning as the spine-claim floor above.
+if (lib?.name === "agent-skills-toolkit") {
+  const ucPath = path.join(dir, "docs", "reference", "universal-checks.md");
+  if (existsSync(ucPath)) {
+    const highest = Math.max(
+      ...CHECKS.filter((c) => c.meta?.tier === "universal").map((c) => Number(String(c.meta.reqId).slice(1)))
+    );
+    const ranges = [...readFileSync(ucPath, "utf8").matchAll(/\bU11\s*-\s*U?(\d+)\b/g)].map((m) => Number(m[1]));
+    if (ranges.length === 0) {
+      failures.push(
+        `docs/reference/universal-checks.md no longer states the universal range as "U11-U<n>", so the guard ` +
+        `that keeps it matching the registry cannot see it. Restore the range, or update this check.`
+      );
+    }
+    for (const end of new Set(ranges.filter((n) => n !== highest))) {
+      failures.push(
+        `docs/reference/universal-checks.md states the universal range ending at U${end} while the registry ` +
+        `carries universal checks up to U${highest}. A public page that stops short of the spine tells a ` +
+        `reader the set is smaller than it is. Fix EVERY statement of the range - the last repair fixed the ` +
+        `table and left the prose, which is why this is a guard rather than a third hand correction.`
+      );
+    }
+  }
+}
+
+// ---------------------------------------------------------------------------
 // A composite action manifest that advertises its OWN tag (review finding F13).
 //
 // `action.yml` is the file a consumer copies from: its USAGE block names the tag to pin. This
