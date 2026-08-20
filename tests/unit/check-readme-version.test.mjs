@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { mkdtempSync, writeFileSync, rmSync } from "node:fs";
+import { mkdtempSync, mkdirSync, writeFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -8,6 +8,8 @@ import { spawnSync } from "node:child_process";
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const SCRIPT = path.resolve(HERE, "../../scripts/check-readme-version.mjs");
+const { CHECKS } = await import("../../scripts/lib/registry.mjs");
+const SPINE_SIZE = CHECKS.length;
 
 // Every fixture carries a `## Status` section because the guard treats a missing one as a hard
 // failure. That is deliberate: a check that quietly passes when the thing it inspects is absent is
@@ -550,6 +552,87 @@ test('F13: EVERY occurrence must agree, not merely the first', () => {
     );
     const r = spawnSync(process.execPath, [SCRIPT, dir], { encoding: 'utf8' });
     assert.equal(r.status, 1, 'a second, stale occurrence must still fail');
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+// ---------------------------------------------------------------------------
+// The universal-checks page's stated RANGE (found by the v1.15.0 docs pass)
+//
+// The page drifted twice. v1.15.0 repaired the TABLE and left the prose saying
+// the set ended at U13 while the frontmatter said sixteen - a public page
+// contradicting itself about its own subject.
+//
+// The FIRST version of the guard could not fail: it compared the highest U<n>
+// named anywhere, and the table lists every check, so the table saturated it.
+// These tests exist because reverting the fix is what revealed that.
+// ---------------------------------------------------------------------------
+
+function mkRangeFixture(rangeSentence) {
+  const dir = mkdtempSync(path.join(tmpdir(), 'askit-ucrange-'));
+  writeFileSync(path.join(dir, 'library.json'), JSON.stringify({ name: 'agent-skills-toolkit', version: '9.9.9' }), 'utf8');
+  writeFileSync(
+    path.join(dir, "README.md"),
+    [
+      "# T",
+      "",
+      '<img src="https://img.shields.io/badge/version-9.9.9-blue" alt="v">',
+      "",
+      "## Status",
+      "",
+      "- **Version** - `9.9.9`.",
+      "",
+    ].join("\n"),
+    "utf8"
+  );
+  mkdirSync(path.join(dir, 'docs', 'reference'), { recursive: true });
+  // A full table of rows, exactly as the real page has - this is what defeated the first guard.
+  const rows = Array.from({ length: 17 }, (_, i) => `| U${i + 1} | mod | what | sec | no | fix |`);
+  writeFileSync(
+    path.join(dir, "docs", "reference", "universal-checks.md"),
+    ["# Universal", "", rangeSentence, "", ...rows, ""].join("\n"),
+    "utf8"
+  );
+  // The guard under test is scoped to this project by name, so the fixture must be named for it - which
+  // also switches ON the spine-claim floor (at least five present-tense pages must state the spine size).
+  // Satisfy it, or every fixture here fails for an unrelated reason. Finding this cost a red test twice:
+  // the same collision caught the F13 fixture, and it is exactly why name-scoped guards are awkward to
+  // test in isolation.
+  for (let i = 0; i < 5; i += 1) {
+    writeFileSync(path.join(dir, "docs", "reference", `spine-claim-${i}.md`), `The spine is ${SPINE_SIZE} checks.\n`, "utf8");
+  }
+  return dir;
+}
+
+test('the universal-checks page must state a range that matches the registry', () => {
+  const dir = mkRangeFixture('The Universal set is `U1-U9` and `U11-U13`.');
+  try {
+    const r = spawnSync(process.execPath, [SCRIPT, dir], { encoding: 'utf8' });
+    assert.equal(r.status, 1, 'a stale range must fail even when the table below it is complete');
+    assert.match((r.stdout ?? '') + (r.stderr ?? ''), /universal range ending at U13/);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test('a range that matches the registry passes', () => {
+  const dir = mkRangeFixture('The Universal set is `U1-U9` and `U11-U17`.');
+  try {
+    assert.equal(spawnSync(process.execPath, [SCRIPT, dir], { encoding: 'utf8' }).status, 0);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test('a page that stops stating the range at all is reported, not silently passed', () => {
+  // Otherwise the guard is removable by deleting the sentence it reads, which is the
+  // reports-clean-over-nothing class this repository keeps finding in its own checks.
+  const dir = mkRangeFixture('The Universal set is described in the table below.');
+  try {
+    const r = spawnSync(process.execPath, [SCRIPT, dir], { encoding: 'utf8' });
+    assert.equal(r.status, 1);
+    assert.match((r.stdout ?? '') + (r.stderr ?? ''), /no longer states the universal range/);
   } finally {
     rmSync(dir, { recursive: true, force: true });
   }

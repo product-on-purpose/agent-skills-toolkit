@@ -150,8 +150,8 @@ a real risk, since they are adjacent by design.
 - `node scripts/release-ready.mjs` exits **0** on all **five** gates: conformance, readme-drift,
   release-counts, vendor-watch, action-pins.
 - Conformance gate: **Advanced, 0 errors, 0 warnings**, at the repository's own **new 0.15 pin**.
-- Suite: **1349 tests, 0 failures**, 1 skipped. **This read 1292 at cut time**; the fifty-seven added are the `F1` to `F15`
-  , `R1` to `R5`, `S1` to `S6`, `T1` to `T7` and `U1` to `U5`
+- Suite: **1352 tests, 0 failures**, 1 skipped. **This read 1292 at cut time**; the sixty added are the `F1` to `F15`
+  , `R1` to `R5`, `S1` to `S6`, `T1` to `T7` and `U1` to `U5` regression tests, plus the universal-range guard added by the post-cut docs pass
   regression tests from the post-cut review and the review of its own fix code, which is the only reason this
   line moved after the cut.
 - **Criterion 1**, no family verdict moves: all six members at their own pins produce **zero**
@@ -188,3 +188,14 @@ of unreachable code, and a release gate that would have jammed on a future date.
 **2026-09-05** and **2026-09-11**: the two PROBE claims age past the freshness window and block every
 release until a human re-runs their reproductions. Unchanged by this release. Headroom at cut time was 17
 and 23 days.
+
+> **UPDATED 2026-08-19, after the cut.** `agents-dir-registers-every-md` was **re-verified** and its
+> deadline moved to **2026-09-18**; the claim holds exactly (three of four `.md` files register, the
+> underscore prefix protecting nothing). `components-share-one-namespace` was **NOT** re-verified - the run
+> ruled out one of three possible outcomes but could not establish which of two colliding skills wins, so
+> its date was deliberately left alone and it still blocks from **2026-09-11**.
+>
+> Both experiments now ship as installable fixtures with tested commands at
+> [`../../vendor-watch/probes/`](../../vendor-watch/probes/), so the next re-run is minutes rather than a
+> reconstruction. The re-run also produced a number the original did not record: the two phantom agents
+> that `G8`'s `agents/` exemption prevents cost **~110 always-on tokens in every session**.

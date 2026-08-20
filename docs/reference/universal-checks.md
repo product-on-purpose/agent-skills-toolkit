@@ -8,7 +8,7 @@ tags: [conformance, bronze, universal, standard, checks]
 
 # Reference: Universal (Bronze) conformance checks
 
-The Universal tier is the **portable floor**: every plugin must pass it, on any agentskills.io agent, regardless of house style. Each check fires findings tagged `reqId: "U<n>"`; `tier-report` buckets them into the `universal` tier, and a Universal error fails the gate at **every** tier (Bronze gates Silver and Gold). `U10` (`no-dashes`) was retired from the spine in Standard v0.11 (ADR 0028, a stylistic house preference, not a portability rule), so the Universal set is `U1-U9` and `U11-U13`.
+The Universal tier is the **portable floor**: every plugin must pass it, on any agentskills.io agent, regardless of house style. Each check fires findings tagged `reqId: "U<n>"`; `tier-report` buckets them into the `universal` tier, and a Universal error fails the gate at **every** tier (Bronze gates Silver and Gold). `U10` (`no-dashes`) was retired from the spine in Standard v0.11 (ADR 0028, a stylistic house preference, not a portability rule), so the Universal set is `U1-U9` and `U11-U17`: **sixteen checks**.
 
 | reqId | Module | What it checks | Standard | Conditional? | Example fix |
 |---|---|---|---|---|---|
