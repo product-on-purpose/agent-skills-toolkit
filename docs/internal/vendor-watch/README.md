@@ -29,6 +29,11 @@ Claims come in two kinds, and the difference is honest rather than cosmetic.
   it. `U15`'s "Claude Code registers every `.md` under `agents/`" is a probe claim: it was established by
   installing a plugin and looking at what registered.
 
+  **Every probe now ships its experiment.** [`probes/`](probes/) holds installable fixtures, tested
+  commands, and a per-probe run log of what each execution observed. A reproduction described in one
+  sentence is enough to remember what was done and not enough to do it again in five minutes, which is
+  what a task recurring every thirty days actually needs.
+
 It pins **claims, not pages**. A page hash would fire on every navigation and CSS change and be ignored
 within a month; what this repository depends on is specific sentences, so those are what is pinned.
 
