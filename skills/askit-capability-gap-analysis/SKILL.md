@@ -31,7 +31,9 @@ After a survey reports a capability finding; when deciding whether a new agent c
 
 **This skill PROPOSES. A human ratifies.**
 
-It may update the capability matrix, because that is a description of the world and it owns it. It may **not** edit a check module, `STANDARD.md`, `library.json`, `vendor-claims.json`, or any component's frontmatter.
+It may update the capability matrix, because that is a description of the world and it owns it. It may **not** edit a check module, `STANDARD.md`, `library.json`, or `vendor-claims.json`.
+
+**One carve-out in component frontmatter, and only one:** `metadata.verified-against`, on components this run actually assessed. [references/component-staleness.md](references/component-staleness.md) assigns that key to this skill by name and explains why it can belong to no other - a survey examines vendors rather than components, so a bulk stamp from a survey run asserts readings that never happened. Everything else in a component's frontmatter is still off limits. **Stamping a version onto a component nobody re-read is the defect this key exists to prevent**, so the carve-out is exactly as wide as "components you assessed" and no wider.
 
 **A capability finding is never itself a reason to add a check.** The Standard grows only by ADR, with the warn-first burndown of `STANDARD.md` sec 7.7, and this repository has measured what happens when that order is skipped: a recommendation that looks obvious before measurement is overturned by measurement about as often as not.
 
@@ -48,7 +50,7 @@ Does the matrix have a row for this component type, a column for this agent, and
 Two standing obligations, both from the matrix's own audit:
 
 - **Every value carries the agent version it was confirmed against.** The matrix claimed for a long time to be "pinned to specific agent versions" while recording no version anywhere, which is a currency claim with no currency evidence.
-- **Cowork is a column.** `U6` skips its `computer:` local-artifact scheme and `U11` tolerates its managed-connector pattern, so the gate already accommodates an agent the matrix did not model.
+- **Cowork is modelled, but deliberately NOT as a column.** `U6` skips its `computer:` local-artifact scheme and `U11` tolerates its managed-connector pattern, so the gate already accommodates an agent the matrix did not model. The matrix records that in prose rather than a column, because Cowork is not a plugin-distribution target the way Claude Code and Codex are, and the matrix owns that modelling decision. **Do not add the column;** report the gap and let an ADR move the boundary if it should move.
 
 ### 3. Ask the three questions in order, and stop at the first NO
 

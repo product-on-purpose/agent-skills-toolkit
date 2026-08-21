@@ -134,3 +134,46 @@ test("check-release-counts.mjs and check-readme-version.mjs both import the shar
     );
   }
 });
+
+// --- W1 (adversarial wave 2, HIGH): emphasis BETWEEN the number and the comma ---
+//
+// The docblock cites CHANGELOG's "**682 tests, 0 failures**", where the emphasis wraps the WHOLE
+// phrase and the parser is unaffected. Bolding only the NUMBER puts the markers between the integer
+// and the comma, and the claim became invisible: the v1.15.0 packet headline read
+// "| Suite | 1252 | **1292**, 0 failures |" while the same file said 1352 two sections later, and
+// check-release-counts reported "agrees everywhere checked" - true, and true only because it could
+// not see the one place that disagreed.
+
+test("extractTestCountClaims: emphasis around only the NUMBER is still a claim (W1)", () => {
+  for (const s of ["**1292**, 0 failures", "*1292*, 0 failures", "__1292__, 0 failures"]) {
+    const c = extractTestCountClaims(s);
+    assert.equal(c.length, 1, `no claim found in ${JSON.stringify(s)}`);
+    assert.equal(c[0].total, 1292);
+    assert.equal(c[0].failures, 0);
+  }
+});
+
+test("extractTestCountClaims: emphasis around the failures word too", () => {
+  const c = extractTestCountClaims("**1292** tests, **0** failures");
+  assert.equal(c.length, 1);
+  assert.equal(c[0].total, 1292);
+  assert.equal(c[0].failures, 0);
+});
+
+test("extractTestCountClaims: the real packet headline shape is seen (W1 regression)", () => {
+  const c = extractTestCountClaims("| Suite | 1252 | **1292**, 0 failures |");
+  assert.equal(c.length, 1, 'the exact line that defeated the guard must be visible');
+  assert.equal(c[0].total, 1292);
+});
+
+test("extractTestCountClaims: widening for emphasis did not start matching prose", () => {
+  // The guard on the guard. Emphasis runs are allowed AT THE SEAMS ONLY. Arbitrary words between the
+  // integer and the comma must still not match, or a parser loosened to see a bold number starts
+  // inventing claims out of ordinary sentences - which would be the false-finding class this
+  // repository grades other tools on, introduced by the fix for a missed finding.
+  assert.deepEqual(extractTestCountClaims("1292 skills and 5 suites, 0 failures").map((c) => c.total), []);
+  assert.deepEqual(extractTestCountClaims("1292 was the count once, 0 failures").map((c) => c.total), []);
+  // ...and the shapes that must keep working, including the comma-grouped integer the lookbehind exists for.
+  assert.deepEqual(extractTestCountClaims("1,720 tests, 0 failures").map((c) => c.total), [1720]);
+  assert.deepEqual(extractTestCountClaims("682 tests, 0 failures").map((c) => c.total), [682]);
+});

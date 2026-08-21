@@ -13,6 +13,9 @@ title: "v1.15.0 review findings - open, and blocking the tag"
 > very records. Its remaining two findings are deferred to v1.15.1 or wave 2 with stated reasons, and a
 > sixth round is not recommended - see the fifth-round section for why.
 >
+> **ADVERSARIAL WAVE 2 RAN ON 2026-08-20 and is recorded in its own section at the end of this file: five
+> findings, one HIGH, all closed. Acceptance criterion 6 is discharged.**
+>
 > **This file no longer holds the tag.** Every finding carries a dated closure note under its own text, and
 > the ledger below tracks them. **Acceptance criterion 6 - a second adversarial wave - remains open**, and
 > is not satisfied by these fixes, by the reviews that produced these findings, or by any self-review.
@@ -1155,3 +1158,115 @@ about to be tagged - but that **fix code deserves the same scrutiny as the code 
 that design change is now settled; the rest were records. The remaining risk is better spent on
 **acceptance criterion 6**, which no round of this has touched: Codex adversarial wave 2 has still never
 run, and it reads the repository with a different instrument.
+
+---
+
+# ADVERSARIAL WAVE 2, 2026-08-20: acceptance criterion 6, discharged
+
+> **Status: all five findings CLOSED.** This is the independent second wave the packet has carried as an
+> OPEN acceptance criterion since the cut. It is not another `/code-review` round: a different reviewer,
+> a different instrument, reading the local working tree at `7cb7f75`.
+
+**Every finding landed in territory the five `/code-review` rounds never entered**, which is what
+pointing a wave away from its predecessor is for. The focus text named the three files those rounds had
+ground over and told the reviewer to weight its attention elsewhere; it did, and found five defects there.
+
+## Getting it to run at all is part of the record
+
+Two attempts produced nothing and **neither was recorded as a result**, per the standing rule that a run
+which dies is UNMEASURED rather than a pass.
+
+The cause was not the review command, the CLI, or authentication. It was **Codex's local shell runner**:
+`windows.sandbox = "elevated"` in the user config, against a Codex process that is not elevated, so every
+`pwsh.exe` spawn returned `exit -1`. Codex then announced a fallback to the read-only GitHub connector and
+reviewed the PUSHED copy file-by-file until it died four minutes in - while the job record reported
+`status: running, phase: investigating` **for the next 67 minutes over a dead process**.
+
+**Three mechanisms all failing toward looks-fine at once**, and the buffer held two
+`{"verdict":"approve","findings":[]}` messages emitted while the reviewer was merely narrating its plan.
+Asking for the result rather than reading the log would have produced a clean bill of health from a run
+that read almost nothing. **`updatedAt`, log size and process CPU are what distinguished the states; the
+status field did not.**
+
+Fixed by running with `-c windows.sandbox="unelevated"` as a one-off override - verified first on a
+one-command probe (`git rev-parse --short HEAD` succeeded in 513ms) before spending a full wave on it. The
+user config was deliberately not edited.
+
+## W1 - HIGH. The release-count guard is blind to its own headline number. CLOSED
+
+**`scripts/lib/stated-counts.mjs`**
+
+`extractTestCountClaims` requires the comma to follow the integer directly, so **markdown emphasis around
+only the NUMBER hides the claim entirely**:
+
+```
+"**1292**, 0 failures"  ->  claims: []
+"1292, 0 failures"      ->  claims: [{ total: 1292, failures: 0 }]
+```
+
+The packet's own `## Final numbers` table stated the cut-time total in bold while the same file stated
+1352 two sections later. The exact row is in the fenced block above; writing it again as prose here would
+now trip the working guard, which is its own small proof. And `check-release-counts` reported
+**`OK (... agrees everywhere checked)`**. That sentence was true. It was true because the one claim that
+disagreed could not be seen.
+
+**This is the guard whose entire justification is that a human corrected this same drift three times in
+v1.10.1 and it recurred anyway - defeated by a stated count in bold.**
+
+> **CLOSED 2026-08-20.** Emphasis runs are tolerated at the token seams. **Widened rather than
+> pre-stripped**, because callers use `index` to report a LINE NUMBER and removing characters first would
+> shift every offset and misreport where the drift is.
+>
+> The proof is on the real repository rather than a fixture: after the fix the gate immediately reported
+> `README.md:16`, naming the bolded total it had been unable to see. The record was
+> then corrected so the headline states the true number and names the cut-time figure.
+>
+> A second seam needed the same treatment and only a red test found it: `**0** failures` puts the emphasis
+> BEFORE the space, so a `\s+[*_]*` separator still missed it; it is `(?:\s|[*_])+` now, which keeps
+> `0failures` from matching.
+>
+> **Guarded against its own hazard.** A test asserts that arbitrary prose between the integer and the comma
+> still does not match, because a parser loosened enough to see a bold number could start inventing claims
+> out of ordinary sentences - the false-finding class this repository grades other tools on, introduced by
+> the fix for a missed finding. Mutation-proved: removing the tolerance turns three tests red and leaves
+> that guard green.
+
+## W2 to W5 - MEDIUM. Four skills that contradict their own contracts. ALL CLOSED
+
+**Every one is a document telling an invocation to do two incompatible things**, in the two skills no
+review round had examined. In each case the reference or the folder contract was right and the `SKILL.md`
+overstated; the fix aligns the skill, never the contract.
+
+| # | The contradiction | Resolution |
+| --- | --- | --- |
+| W2 | `SKILL.md` forbids editing **any** component frontmatter; `component-staleness.md` assigns this skill to write `metadata.verified-against` | One carve-out, exactly as wide as *components this run assessed*. The reference argues why no other skill can own it: a survey examines vendors, so a bulk stamp asserts readings that never happened. |
+| W3 | `SKILL.md` says *Cowork is a column*; the matrix it updates says Cowork *has no column* | The matrix owns the modelling decision. The bullet's substance was always right (the gate accommodates an agent the matrix did not model); only its heading reversed the decision. Now: report the gap, do not add the column. |
+| W4 | `SKILL.md` requires versioned entries from **every** surface; `surfaces.md` says agentskills.io has no versioned feed and belongs to `askit-standards-watch` | Qualified to *every surface this skill pins*, with the exception named. **The same false claim was shipped publicly in `CHANGELOG.md` and is corrected there too.** |
+| W5 | `SKILL.md` step 5 says *Write the survey record*; the folder contract says the skill *proposes both files and writes neither* | Step 5 now proposes, matching step 6. A skill that wrote the record but proposed the pin could leave the two describing different runs - the exact divergence the contract exists to prevent. |
+
+## What wave 2 found clean, with its limits stated
+
+- **The Standard 0.15 graduations**: no defect; 54 of 54 targeted tests passed.
+- **`release.yml` and `publish-npm.yml`**: no defect in the changed lines - **but the hosted workflows were
+  not dispatched**, and the reviewer said so rather than implying coverage it did not have.
+- **The probe fixtures**: no bypass. `evaluate.mjs` exits 1 on them with the intended errors while
+  `check.mjs` stays Advanced 0/0, which is the intended split.
+- **Current action pins**: 29 pins across seven files, zero label problems.
+
+It also recorded that `npm test` could not complete in-sandbox (`spawnSync git EPERM`) and that it used
+targeted tests instead - a limit stated rather than a gap papered over. The working tree was unchanged at
+the end, which was verified independently: `7cb7f75`, zero modified files.
+
+## The rounds, complete
+
+| Round | Instrument | Findings | Blocking |
+| --- | --- | --- | --- |
+| Wave 1 | Codex, pre-merge | 10 | 5 HIGH |
+| 1 to 5 | `/code-review`, repository-reading | 38 | 11 |
+| **Wave 2** | **Codex, local tree** | **5** | **1 HIGH** |
+
+**Fifty-three findings across seven passes.** The argument for wave 2 was that a different instrument sees
+a different class, and it held: five rounds of `/code-review` never looked at the count parser or the new
+skills' internal contracts, because they were all reading the same files with the same assumptions.
+
+**Acceptance criterion 6 is DISCHARGED.**

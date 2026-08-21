@@ -489,3 +489,51 @@ test("CLI: exits 1 and names the disagreeing file when CHANGELOG.md states a sta
     rmSync(dir, { recursive: true, force: true });
   }
 }, { timeout: 20000 });
+
+// --- W1 second order: a record must be able to QUOTE the defect it records ---
+//
+// Widening the parser to see a bolded count immediately made the write-up documenting that bug trip the
+// gate, because it quotes the defective string as evidence. Same class as folder-readme's stripFences and
+// the pin-watch tests' stripComments: a guard that scans text also matches the passage explaining it.
+// Blanked to equal length rather than removed, so `index` keeps pointing at the right line.
+
+test("extractStatedCounts: a claim inside a fenced block is evidence, not an assertion", () => {
+  const doc = [
+    "The gate could not see this shape:",
+    "",
+    "```",
+    "**1292**, 0 failures",
+    "```",
+    "",
+    "That is the whole finding.",
+  ].join("\n");
+  assert.deepEqual(extractStatedCounts(doc), []);
+});
+
+test("extractStatedCounts: a claim OUTSIDE a fence still counts", () => {
+  const doc = [
+    "```",
+    "irrelevant fenced text",
+    "```",
+    "",
+    "The suite reports **1356**, 0 failures today.",
+  ].join("\n");
+  const claims = extractStatedCounts(doc);
+  assert.equal(claims.length, 1);
+  assert.equal(claims[0].total, 1356);
+});
+
+test("extractStatedCounts: blanking a fence does not shift the reported line number", () => {
+  // The reason fences are blanked rather than deleted. Deleting would renumber every claim after the
+  // first fence and misreport where the drift is - the same constraint that made the parser widen
+  // instead of pre-strip.
+  const doc = [
+    "```",
+    "1111, 0 failures",
+    "```",
+    "real claim: 1356, 0 failures",
+  ].join("\n");
+  const claims = extractStatedCounts(doc);
+  assert.equal(claims.length, 1);
+  assert.equal(doc.slice(0, claims[0].index).split("\n").length, 4, 'the claim must report line 4');
+});

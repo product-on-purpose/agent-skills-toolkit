@@ -35,8 +35,10 @@ rewritten to look as though this was always the plan.
   **Neither can see a capability nobody has recorded**, because a capability with no pin has nothing to fail.
   No extension of either covers it.
 
-  **The survey pins a VERSION, not a date**, because every surface publishes versioned entries, so
-  "everything after `2.1.208`" is exact and re-derivable by anyone. And it is a periodic human survey rather
+  **The survey pins a VERSION, not a date**, because every surface it pins publishes versioned entries, so
+  "everything after `2.1.208`" is exact and re-derivable by anyone. The agentskills.io spec is the exception
+  and is deliberately not one of them: it publishes no versioned feed, which is why `askit-standards-watch`
+  pins a git blob SHA-1 instead and remains a separate skill. And it is a periodic human survey rather
   than an automated diff, on measured grounds: one platform moved through 29 versions inside a single
   changelog window and another carried 31 entries. An alarm firing weekly on entries that almost never matter
   trains its reader to close it unread, and then the alarm is itself false assurance - the same reasoning

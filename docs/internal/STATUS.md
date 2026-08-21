@@ -6,7 +6,7 @@
 > technical history), and `docs/internal/release-plans/` (the per-release spec + implementation
 > packets). Do not add accretive per-release paragraphs here; append them to those instead.
 >
-> Last updated: 2026-08-19.
+> Last updated: 2026-08-20.
 
 ## Current state
 
@@ -18,7 +18,7 @@
 | Spine | 34 checks |
 | Scopes | 3 (plugin, component, marketplace) |
 | Skills | **26** |
-| Tests | 1352, 0 failures (local suite run 2026-08-19; both halves confirmed by `npm run release-ready` exiting 0) |
+| Tests | 1359, 0 failures (local suite run 2026-08-19; both halves confirmed by `npm run release-ready` exiting 0) |
 | Self-proving | `node scripts/check.mjs .` exits 0 at Advanced, 0 errors, 0 warnings |
 
 ## v1.15.0 is PREPARED and WITHHELD (2026-08-18)
@@ -79,7 +79,7 @@ path is now demonstrated against the real historical `codeql-action` case instea
 
 **The suite reported 1,281 passing and zero failures while every one of those defects was live.**
 
-### FIVE REVIEW ROUNDS, 38 FINDINGS; ONLY CRITERION 6 AND SIGN-OFF STILL HOLD THE TAG (2026-08-19)
+### FIVE REVIEW ROUNDS, 38 FINDINGS (2026-08-19)
 
 A max-effort repository code review over `v1.14.0..HEAD` returned **fifteen findings**, eight of them
 blocking. **All fifteen are now CLOSED**, each carrying a dated note under its own text saying what was
@@ -121,7 +121,34 @@ one that says nothing.** Two of its findings are deferred to v1.15.1 or wave 2 w
 
 **A sixth round is not recommended.** The remaining risk is better spent on the wave that has never run.
 
-**What holds the tag now:** acceptance criterion 6, the second adversarial wave, which has never run and is
+### ADVERSARIAL WAVE 2 RAN 2026-08-20. CRITERION 6 IS DISCHARGED. ONLY SIGN-OFF HOLDS THE TAG
+
+**Five findings, one HIGH, all closed** - and **every one in territory the five `/code-review` rounds never
+entered**, which is the entire argument for using a different instrument.
+
+**The HIGH is the sharpest defect of the whole release.** `check-release-counts` could not see a stated
+count wrapped in markdown bold: `**1292**, 0 failures` parsed as no claim at all. The packet's own
+`## Final numbers` table said 1292 while the same file said 1352 two sections later, and the gate reported
+**"agrees everywhere checked"** - a sentence that was true, and true only because the disagreeing claim was
+invisible to it. **The guard whose whole justification is that a human corrected this same drift three times
+in v1.10.1 was defeated by a stated count in bold.** Fixed by tolerating emphasis at the token seams, and
+proved on the real repository: the gate immediately reported the line it had been blind to.
+
+The other four are the two new skills contradicting their own contracts - each a document telling an
+invocation to do two incompatible things, and one of them (**"every surface publishes versioned entries"**,
+false for agentskills.io) had shipped publicly in `CHANGELOG.md`.
+
+**Getting it to run was itself a finding.** Two attempts died and neither was recorded as a result. The
+cause was `windows.sandbox = "elevated"` against a non-elevated Codex process: every `pwsh.exe` spawn
+returned `exit -1`, Codex silently fell back to reviewing the PUSHED copy over the GitHub connector, died
+four minutes in - and the job reported `status: running` **for 67 minutes over a dead process**, with two
+`verdict: approve, findings: []` messages sitting in its buffer. Three mechanisms failing toward looks-fine
+at once; `updatedAt`, log size and process CPU are what told them apart.
+
+**What holds the tag now:** maintainer sign-off. Nothing else.
+
+<!-- superseded 2026-08-20, kept for the record of what was true before wave 2 ran -->
+**~~What held the tag~~:** acceptance criterion 6, the second adversarial wave, which has never run and is
 not satisfied by any of these fixes, by the review that produced the findings, or by any self-review. Codex
 credits return **2026-08-20**, and it reads the repository with a different instrument than the five rounds
 above did - which is the whole reason no number of them substitutes for it.
