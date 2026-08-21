@@ -12,21 +12,48 @@
 
 | Fact | Value |
 |---|---|
-| Version | **1.15.0 (PREPARED 2026-08-18, NOT YET TAGGED)** - see "v1.15.0 is prepared and withheld" below. Previous: 1.14.0, shipped 2026-08-17 (tag `57727ab`, npm `latest` with signed Sigstore provenance, registry `agent-plugins` 1.66.0) |
+| Version | **1.15.0, SHIPPED 2026-08-20** - tag `9133014`, GitHub release published, npm `latest` with signed Sigstore provenance, registry `agent-plugins` **1.67.0** ([PR #82](https://github.com/product-on-purpose/agent-plugins/pull/82)). Previous: 1.14.0, shipped 2026-08-17 (tag `57727ab`, registry 1.66.0) |
 | Declared tier | Advanced (Gold) - `library.json` `tier: advanced` |
 | Standard pin | **0.15** |
 | Spine | 34 checks |
 | Scopes | 3 (plugin, component, marketplace) |
 | Skills | **26** |
-| Tests | 1359, 0 failures (local suite run 2026-08-19; both halves confirmed by `npm run release-ready` exiting 0) |
+| Tests | 1359, 0 failures (1 skipped; local suite run 2026-08-20 **at the shipped tag `9133014`**, and confirmed by `npm run release-ready` exiting 0 on the release runner) |
 | Self-proving | `node scripts/check.mjs .` exits 0 at Advanced, 0 errors, 0 warnings |
 
-## v1.15.0 is PREPARED and WITHHELD (2026-08-18)
+## v1.15.0 SHIPPED 2026-08-20
 
-Everything is merged to `main`, the gate is green and `npm run release-ready` exits 0 on all five gates.
-**The tag, the GitHub release, the npm publish and the registry re-pin are deliberately not done**, pending
-maintainer sign-off. That is the v1.14.0 pattern repeated on purpose: its withheld window is where two
-defects were found that neither adversarial review wave could have caught.
+| Step | State |
+| --- | --- |
+| Tag | `v1.15.0` -> `9133014`, annotated and pushed |
+| Release workflow | run `32443154744`, green. **All five gates ran on the runner**, not only locally: `Releasable: every release-blocking gate passed.` |
+| GitHub release | published (not draft, not prerelease) |
+| npm | `1.15.0` on `latest`, 211.7 kB packed / 72 files, SLSA provenance attestation present |
+| Registry | `agent-plugins` 1.66.0 to **1.67.0**, [PR #82](https://github.com/product-on-purpose/agent-plugins/pull/82), `strict: true` preserved |
+
+**The chain was smoke-verified from published state only** - `marketplace.json` on `agent-plugins@main` to
+the pinned sha to that commit's `plugin.json` to the npm registry - rather than from the working tree that
+produced it. That distinction earned itself during this cut: a leftover 2026-06-10 clone at another path
+reported `v1.5.1` and was very nearly re-pinned from.
+
+**The withheld window paid again.** Held open from 2026-08-18 to 2026-08-20, it absorbed five
+`/code-review` rounds (38 findings) and adversarial wave 2 (5, one HIGH) - **53 findings across the
+release, all closed** - and every round found defects in the previous round's fix code. The HIGH from wave
+2 was a release gate that could not see a stated count wrapped in markdown bold.
+
+**One correction landed between sign-off and the tag.** `CHANGELOG.md` and `RELEASE-NOTES.md` still carried
+the prepared date, `2026-08-18`. A release entry dates the release, not the preparation, so [PR #263](https://github.com/product-on-purpose/agent-skills-toolkit/pull/263)
+moved both to `2026-08-20` **before** the tag was cut, matching what v1.14.0 did. Dating a shipped artifact
+to the day its branch happened to be ready is the small, quiet kind of false record this repository keeps
+saying is worse than no record.
+
+<!-- superseded 2026-08-20 by the table above; kept because the reason for withholding is the record.
+     Everything below this comment, to the end of the blockquote, describes what was true 2026-08-18. -->
+> **~~v1.15.0 is PREPARED and WITHHELD (2026-08-18)~~.** Everything is merged to `main`, the gate is green
+> and `npm run release-ready` exits 0 on all five gates. **The tag, the GitHub release, the npm publish and
+> the registry re-pin are deliberately not done**, pending maintainer sign-off. That is the v1.14.0 pattern
+> repeated on purpose: its withheld window is where two defects were found that neither adversarial review
+> wave could have caught.
 
 **Standard 0.14 to 0.15. Spine stays 34. No check was added or removed, and no family verdict moved.**
 
@@ -145,7 +172,7 @@ four minutes in - and the job reported `status: running` **for 67 minutes over a
 `verdict: approve, findings: []` messages sitting in its buffer. Three mechanisms failing toward looks-fine
 at once; `updatedAt`, log size and process CPU are what told them apart.
 
-**What holds the tag now:** maintainer sign-off. Nothing else.
+**~~What holds the tag now: maintainer sign-off. Nothing else.~~** Given 2026-08-20. Nothing holds it; it is cut.
 
 <!-- superseded 2026-08-20, kept for the record of what was true before wave 2 ran -->
 **~~What held the tag~~:** acceptance criterion 6, the second adversarial wave, which has never run and is
@@ -178,14 +205,20 @@ dated corrections.
 that reads the session TRANSCRIPT rather than the repository. It returned four findings, all real, none of
 this class. Reading the actual files returned fifteen.
 
-### What is NOT discharged
+### ~~What is NOT discharged~~ - DISCHARGED 2026-08-20
 
-**Adversarial review wave 2 did not run.** The Codex runtime returned a usage-limit error before the
+<!-- superseded 2026-08-20: wave 2 ran. Kept because it is the record of what was true for two days,
+     and because "a killed run is UNMEASURED and never a result" is the rule that made the re-run happen. -->
+**~~Adversarial review wave 2 did not run.~~** The Codex runtime returned a usage-limit error before the
 reviewer started, so the run produced nothing. Per the standing rule that a killed run is UNMEASURED and
 never a result, **acceptance criterion 6 of the packet is open**, and no wave-2 finding count should be
 quoted anywhere. A stopgap self-review covered the wave-2 target areas (records, drift machinery,
 forward-in-time, the consumer re-pin path) and found no defect, but a self-review is not an independent
 wave and does not discharge the criterion.
+
+**It ran on 2026-08-20 and returned five findings, one HIGH, all closed** - see the wave-2 section above.
+The stopgap self-review had found no defect in the same target areas that wave 2 then found five in, which
+is the clearest measurement this release produced of what a self-review is worth.
 
 ## The v1.14.0 ADR pack: RATIFIED and IMPLEMENTED
 
@@ -322,7 +355,10 @@ blocked its own first real run** - on 7 failing tests and a stale count that had
   whether a plugin can be held to a collision with a sibling it does not know it is catalogued beside -
   has no ADR, and no release should graduate the set wholesale merely because it happens to be carrying
   a Standard bump.
-- **npm is CURRENT: the registry serves 1.13.0**, published 2026-08-14 via trusted publishing
+- **npm is CURRENT: the registry serves 1.15.0**, published 2026-08-20 via trusted publishing.
+  **This line read `1.13.0` from 2026-08-14 to 2026-08-20**, having gone unrefreshed through the v1.14.0
+  cut; the mechanism described below did not change, only the version it last carried. The mechanism, from
+  the 1.13.0 publish onward: trusted publishing
   (OIDC) with **no stored credential of any kind** - the repository holds zero Actions secrets, and
   authentication is the runner's short-lived OIDC token alone. The published tarball carries an
   automatic SLSA provenance attestation and a registry signature; `--provenance` is not passed,
@@ -336,6 +372,14 @@ blocked its own first real run** - on 7 failing tests and a stale count that had
   Verified from the consumer position after publishing, per `RELEASE.md`: installed from the live
   registry into a clean directory outside this repository and graded a plugin with `npx`, which
   returned `Tier: Advanced`, 0 errors, 0 warnings, exit 0.
+  **Re-run for 1.15.0 on 2026-08-20, both paths.** `npx agent-skills-toolkit@1.15.0` reports `1.15.0`,
+  and against a throwaway plugin outside this repository it returned `Tier: None`, 6 errors, **exit 1**;
+  after fixing only the two Universal blockers it returned `Tier: Universal`, 0 errors, **exit 0**.
+  Running the passing case as well as the failing one is deliberate - on a clean gate some behaviour
+  appears nowhere at all, which is how a provenance defect stayed hidden through v1.14.0.
+  The tarball was also checked from outside itself: **all eight maintainer-only libraries** are absent
+  (`action-pin-watch`, `release-ready`, `vendor-watch`, `standards-watch`, `eval-run`, `advisory-score`,
+  `craft-review`, `stated-counts`), 72 files, 211.7 kB packed.
   **Still outstanding, and blocking nothing:** the package is still owned by `jprisant` rather than
   the `product-on-purpose` org. The transfer must be done in the npmjs.com web UI, because
   `npm owner add product-on-purpose:developers` expects a username, not a team.
@@ -463,7 +507,10 @@ this file); the conclusions are stated here directly.
   line of implementation was written, which is exactly the cost bundling undrafted ADRs with a Standard
   bump imposed on v1.13.0.
 
-- **v1.15.0 "a window that never closes is not a window" (PREPARED 2026-08-18, NOT YET TAGGED):** **the Standard 0.15 cut.**
+- **v1.15.0 "a window that never closes is not a window" (SHIPPED 2026-08-20):** **the Standard 0.15 cut.**
+  Tag `9133014`, GitHub release published, npm `latest` with signed Sigstore provenance, registry
+  `agent-plugins` 1.67.0 ([PR #82](https://github.com/product-on-purpose/agent-plugins/pull/82)).
+  **This line read "PREPARED 2026-08-18, NOT YET TAGGED" until 2026-08-20.**
   The two windowed checks graduate from `warn` to gate-failing `error` - `S3`'s workflow mirror
   (ADR 0047) and `U17` (ADR 0052) - plus **E45** (pinned-action labels are unchecked) with its own ADR.
   Packet at [`release-plans/plan_v1.15.0/RELEASE-PLAN.md`](release-plans/plan_v1.15.0/RELEASE-PLAN.md).
@@ -475,10 +522,26 @@ this file); the conclusions are stated here directly.
   remediated its nine undeclared workflows in `fd343dd` on 2026-08-15, one day inside the window ADR 0047
   created for it** - the first end-to-end observation of a warn-first migration doing its whole job, and
   the reason to close the window on schedule rather than extend it.
-- **v1.16.0 "evidence":** fix the measurement instrument (E16, E17, E20, E15), publish the E13
-  readings as final, execute the live-hook behavioral evals. **E16 gates the rest** and is a design
-  question, not an implementation task: the same advisory scored 0.42 precision against key 1.0.0 and
-  1.00 against key 1.1.0 with no change to the advisory.
+- **v1.16.0 "the evidence gets an address" (NEXT, packet open):** promote the shared world-facts this
+  Standard rests on into a top-level `foundation/` folder - `vendor-claims.json`, `upstream-pin.json`,
+  `surveyed-pin.json`, the capability matrix and the surveys - with `method` a first-class field on every
+  source record, plus `tier-basis.md`, the artifact recording which vendor fact each tier boundary rests
+  on. Four workstreams; **W1 is an ADR that ratifies the layout before anything moves.** Packet at
+  [`release-plans/plan_v1.16.0/RELEASE-PLAN.md`](release-plans/plan_v1.16.0/RELEASE-PLAN.md).
+  **Scope addition 2026-08-20:** the **onboarding and documentation resource plan** and the **Astro
+  documentation site** join this release - see the scope note in the packet. The implementation and
+  execution plan for that half is deliberately not written yet; it is the next session's first job.
+  **This line described a different v1.16.0 until 2026-08-20**, namely the eval-instrument batch below.
+  The packet was written and merged (#247, #261) while this line went unrefreshed; the packet wins.
+- **Unscheduled, and explicitly NOT dropped - the eval-instrument batch.** Fix the measurement instrument
+  (**E16** advisory-score credits nothing when one finding engages two defect entries; **E17** the scoring
+  harness cannot consume an adjudication; **E20** the seeded-defect key is readable from inside the fixture
+  tree; **E15** three eval-run runner defects), publish the **E13** defect-rich model-triple readings as
+  final, and execute the live-hook behavioral evals. **E16 gates the rest** and is a design question, not
+  an implementation task: the same advisory scored 0.42 precision against key 1.0.0 and 1.00 against key
+  1.1.0 with no change to the advisory. **It carried the v1.16.0 label from 2026-08-18 to 2026-08-20** and
+  now carries no version, because assigning it one it will not get is how a line goes stale unnoticed. All
+  five entries stay live in [`backlog/enhancements.md`](backlog/enhancements.md).
 - **v1.17.0 "graded cohort":** grade an external cohort on portable checks and publish the
   registry page.
 
