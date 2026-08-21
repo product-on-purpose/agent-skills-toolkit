@@ -2,7 +2,7 @@
 
 Curated, user-facing highlights. For the full technical history see [`CHANGELOG.md`](CHANGELOG.md).
 
-## 1.15.0 - 2026-08-18
+## 1.15.0 - 2026-08-20
 
 **Two migration windows close on schedule, and one of them closed because its subject did the work.**
 
