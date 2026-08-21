@@ -133,7 +133,27 @@ export function parseTapSummary(tapText) {
 // file's original name so existing callers/tests need not change; see the module docblock's "Scope
 // note on what counts as a stated test count" for why this shape was chosen and what it deliberately
 // does not catch.
-export const extractStatedCounts = extractTestCountClaims;
+/**
+ * A fenced code block, blanked to spaces of IDENTICAL LENGTH rather than removed.
+ *
+ * Same reason `folder-readme.mjs` strips fences and the pin-watch tests strip comments: **a guard that
+ * scans text for a pattern also matches the passage EXPLAINING the guard.** This repository has now hit
+ * that three times in one test file and once here - adversarial wave 2's own write-up quotes the exact
+ * defective string `**1292**, 0 failures` as evidence, inside a fence, and the moment the parser was
+ * widened to see it the record documenting the bug became a bug report about itself.
+ *
+ * **A record must be able to quote the defect it records.** Blanking rather than deleting is what keeps
+ * `index` pointing at the right line, which is the same constraint that made the parser widen instead of
+ * pre-strip; deleting would renumber every claim after the first fence.
+ */
+function blankFencedBlocks(text) {
+  return String(text).replace(/```[\s\S]*?```|~~~[\s\S]*?~~~/g, (block) =>
+    block.replace(/[^\n]/g, " ")
+  );
+}
+
+/** Claims stated as live prose. Fenced examples are evidence, not assertions, so they do not count. */
+export const extractStatedCounts = (text) => extractTestCountClaims(blankFencedBlocks(text));
 
 function lineAt(text, index) {
   return text.slice(0, index).split("\n").length;

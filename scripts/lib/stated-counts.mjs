@@ -68,7 +68,30 @@ export function extractLabeledCounts(text, label) {
  * every occurrence via matchAll, never just the first.
  */
 export function extractTestCountClaims(text) {
-  const re = new RegExp(`${INT_TOKEN_SRC}\\s*(?:tests?)?\\s*,\\s*${INT_TOKEN_SRC}\\s+failures?\\b`, "gi");
+  // MARKDOWN EMPHASIS IS TOLERATED AT THE SEAMS, and adversarial wave 2 is why (finding W1, HIGH).
+  //
+  // The docblock above cites CHANGELOG's `**682 tests, 0 failures**`, where the emphasis wraps the whole
+  // phrase and never lands between two tokens. Bolding only the NUMBER does land between them, and the
+  // claim went invisible: the v1.15.0 packet headline read `| Suite | 1252 | **1292**, 0 failures |` while
+  // the same file stated 1352 two sections later, and `check-release-counts` reported
+  // "agrees everywhere checked" - a sentence that was true, and true only because the one disagreeing
+  // claim could not be seen. **The guard built to stop stated-count drift was defeated by a stated count
+  // in bold**, in the gate whose entire justification is that a human corrected this same drift three
+  // times in v1.10.1 and it recurred anyway.
+  //
+  // Widened rather than pre-stripped: callers use `index` to report a LINE NUMBER (see
+  // check-release-counts), and removing characters first would shift every offset and misreport where the
+  // drift is. Emphasis runs are permitted ONLY at the token seams - a test asserts that arbitrary prose
+  // between the integer and the comma still does not match, because a parser loosened enough to invent
+  // claims would be the false-finding class this repository grades other tools on.
+  const EMPH = "\\s*[*_]*\\s*";
+  const re = new RegExp(
+    // The last separator is `(?:\s|[*_])+` rather than `\s+[*_]*`: in `**0** failures` the emphasis comes
+    // BEFORE the space, so requiring whitespace first missed it. One-or-more is what keeps `0failures`
+    // from matching, so the shape still needs a real separator of some kind.
+    `${INT_TOKEN_SRC}${EMPH}(?:tests?)?${EMPH},${EMPH}${INT_TOKEN_SRC}(?:\\s|[*_])+failures?\\b`,
+    "gi"
+  );
   const out = [];
   for (const m of String(text).matchAll(re)) {
     out.push({ total: normalizeCount(m[1]), failures: normalizeCount(m[2]), index: m.index, raw: m[0] });

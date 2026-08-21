@@ -37,7 +37,9 @@ The separation is not bureaucratic. A survey that also proposed changes would be
 
 `docs/internal/capability-surveys/surveyed-pin.json` records, per surface, the **version** last surveyed. Start there.
 
-**A version, not a date, and the reason is load-bearing.** Every surface publishes versioned release entries, so "everything after `2.1.208`" is exact, re-derivable by anyone, and unaffected by when you happen to run this. A date pin silently loses anything published out of order or backdated, and gives two people different answers for the same question.
+**A version, not a date, and the reason is load-bearing.** Every surface **this skill pins** publishes versioned release entries, so "everything after `2.1.208`" is exact, re-derivable by anyone, and unaffected by when you happen to run this. A date pin silently loses anything published out of order or backdated, and gives two people different answers for the same question.
+
+**The agentskills.io spec is the exception, and it is not this skill's surface.** It has no versioned feed at all, which is exactly why [`askit-standards-watch`](../askit-standards-watch/SKILL.md) pins a git blob SHA-1 instead and stays a separate skill. Do not try to version-pin it here and do not treat its absence from your pin as a gap - see [references/surfaces.md](references/surfaces.md).
 
 If a surface has no pin yet, say so and survey a stated window instead - then record what you surveyed **from**, so the next run has a floor.
 
@@ -68,9 +70,13 @@ A release note announces; a documentation page specifies. **A capability finding
 
 **And search the documentation even when no release announced anything.** A page can gain a section describing behaviour that shipped silently, and this is not hypothetical: the sentence establishing which component types a Codex plugin may contain sits on a documentation page and was announced by no release note.
 
-### 5. Write the survey record, including when nothing was found
+### 5. Propose the survey record, including when nothing was found. Do not write it.
 
-Append one dated section to `docs/internal/capability-surveys/surveys.md`, in the format in [references/survey-record.md](references/survey-record.md). Never rewrite an existing section: a survey record is a dated measurement, and correcting a past one to today's numbers destroys the only evidence of what was true then.
+Emit one dated section for `docs/internal/capability-surveys/surveys.md`, in the format in [references/survey-record.md](references/survey-record.md), for a human to land **together with the pin from step 6**.
+
+**Both artifacts are proposed and neither is written, which is the folder's stated contract** ([capability-surveys/README.md](../../docs/internal/capability-surveys/README.md)): a human lands them together so the pin and the reading move as one. A skill that wrote the record but only proposed the pin could leave the two describing different runs, which is the precise divergence the contract exists to prevent.
+
+Never rewrite an existing section: a survey record is a dated measurement, and correcting a past one to today's numbers destroys the only evidence of what was true then.
 
 **A survey that found nothing material still writes its section.** Six months on, a review that never ran and a review that found nothing are indistinguishable unless the second one said so.
 

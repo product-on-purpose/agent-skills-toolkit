@@ -13,7 +13,7 @@
 | Evaluation scopes | 3 | 3 |
 | Release-blocking gates | 4 | **5** |
 | Declared tier | Advanced (Gold) | Advanced (Gold), self-validated 0 errors / 0 warnings **at its own new 0.15 pin** |
-| Suite | 1252 | **1292**, 0 failures |
+| Suite | 1252 | **1359**, 0 failures (1292 at cut time - see the note below) |
 
 Six PRs on `main` since `v1.14.0`, three of them landing after this packet was written (see the scope note above): **#242** (the graduations), **#243** (`action-pin-watch`
 plus the wave-1 fixes), and this packet's own records PR. Two records PRs preceded them: **#239** and
@@ -150,8 +150,8 @@ a real risk, since they are adjacent by design.
 - `node scripts/release-ready.mjs` exits **0** on all **five** gates: conformance, readme-drift,
   release-counts, vendor-watch, action-pins.
 - Conformance gate: **Advanced, 0 errors, 0 warnings**, at the repository's own **new 0.15 pin**.
-- Suite: **1352 tests, 0 failures**, 1 skipped. **This read 1292 at cut time**; the sixty added are the `F1` to `F15`
-  , `R1` to `R5`, `S1` to `S6`, `T1` to `T7` and `U1` to `U5` regression tests, plus the universal-range guard added by the post-cut docs pass
+- Suite: **1359 tests, 0 failures**, 1 skipped. **This read 1292 at cut time**; the sixty-seven added are the `F1` to `F15`
+  , `R1` to `R5`, `S1` to `S6`, `T1` to `T7` and `U1` to `U5` regression tests, the universal-range guard from the post-cut docs pass, and the emphasis-tolerance and fenced-quote tests from adversarial wave 2
   regression tests from the post-cut review and the review of its own fix code, which is the only reason this
   line moved after the cut.
 - **Criterion 1**, no family verdict moves: all six members at their own pins produce **zero**
