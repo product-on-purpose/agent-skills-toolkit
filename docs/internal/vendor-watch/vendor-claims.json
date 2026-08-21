@@ -126,7 +126,7 @@
       "dependsOn": [
         "ADR 0051's stated reopening condition for marketplace-skill-collision and marketplace-command-collision"
       ],
-      "verifiedOn": "2026-08-12",
+      "verifiedOn": "2026-08-20",
       "reproduction": "Fixtures and step-by-step: docs/internal/vendor-watch/probes/components-share-one-namespace/ (see EXPECTED.md for what each run observed, and probes/README.md for how to record the result). Install two plugins shipping the same skill name and observe which resolves.",
       "onChange": "If a runtime NAMESPACES components by plugin, the two collision classes should be RETIRED, not graduated - ADR 0051 says so explicitly. This is the one claim whose change makes the gate report LESS, not more."
     }
