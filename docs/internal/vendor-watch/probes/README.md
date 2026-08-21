@@ -40,8 +40,8 @@ release; one approaching it is reported and blocks nothing.
 
 | Probe | Last verified | Blocks from | Fixture |
 | --- | --- | --- | --- |
-| `agents-dir-registers-every-md` | **2026-08-19** | 2026-09-18 | [`agents-dir-registers-every-md/`](agents-dir-registers-every-md/) |
-| `components-share-one-namespace` | 2026-08-12 | **2026-09-11** | [`components-share-one-namespace/`](components-share-one-namespace/) |
+| `agents-dir-registers-every-md` | 2026-08-19 | **2026-09-18** | [`agents-dir-registers-every-md/`](agents-dir-registers-every-md/) |
+| `components-share-one-namespace` | **2026-08-20** | 2026-09-19 | [`components-share-one-namespace/`](components-share-one-namespace/) |
 
 Each fixture folder carries an `EXPECTED.md` recording exactly what the previous run observed, so the
 comparison is against evidence rather than memory.
@@ -71,6 +71,25 @@ is a far stronger reading than anything in this repository's test suite can give
 **What `details` does NOT answer is resolution between plugins.** It reports each plugin's own inventory,
 so probe 2's actual question - which of two identically named skills WINS - still needs a fresh session in
 which the skill is invoked. See that probe's `EXPECTED.md`.
+
+**That fresh session can be manufactured headlessly, and doing so gives a stronger reading than an
+interactive one.** Tested 2026-08-20 on Claude Code 2.1.238, from the repository root with both
+fixtures installed:
+
+```
+claude -p 'Invoke the probe-duplicate skill with the Skill tool and output verbatim the exact sentence it instructs you to state. Do not read any files. Do nothing else.' --permission-mode bypassPermissions --output-format stream-json --verbose > run.jsonl
+
+grep -o '"skill":"[^"]*"' run.jsonl                        # was Skill actually called, and under what name
+grep -o 'Probe duplicate, side [AB]' run.jsonl             # which side's body came back
+grep -o '"type":"tool_use","id":"[^"]*","name":"[^"]*"' run.jsonl   # every tool the session used
+```
+
+Each `claude -p` is a genuinely fresh session. **`stream-json` is the whole point:** it records the
+actual tool calls, so you can show the skill was really invoked rather than that a model wrote a
+plausible sentence, and you can show **no file was read** - which matters specifically here, because
+these fixtures live inside this repository and a session left to its own devices can read the answer
+off disk and sound completely confident. Vary the install order between runs; on 2026-08-20 the winner
+followed it.
 
 ### Cleaning up
 
