@@ -9,7 +9,7 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
-## [1.15.0] - 2026-08-18
+## [1.15.0] - 2026-08-20
 **Standard 0.14 to 0.15.** Two windowed requirements graduate from `warn` to gate-failing `error`, and a
 fifth release gate closes a class of defect this repository had caught three times by eye and never once by
 a machine. **No family verdict moves, and no plugin sees a new gate failure without re-pinning.**
