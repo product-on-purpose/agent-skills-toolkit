@@ -354,6 +354,47 @@ The claim landed hours earlier to fix the panel's CRITICAL - `SessionEnd uses 1 
 - **A claim naming an undeclared source id is `UNCHECKABLE` and exits 0.** Real, and it is in `scripts/lib/vendor-watch.mjs` - shipped gate code whose exit-code contract is release-scoped. `E54`.
 - **`check-parity`'s pin read fails open to a printed "skipped" line**, and its pin-skew section cannot influence the exit code under any input. Pre-existing, but this release moved the file and edited that line. **Two readers of the same moved artifact now behave oppositely**: `standards-watch` throws `no-pin`, this one prints and continues. `E55`.
 
+### The probe of the panel's own fixes - three defects, and one was the exact shape predicted
+
+**The panel's fixes had been reviewed by nothing.** Two follow-up lens runs were launched and stopped before producing output, so the check was done a different way: **an adversarial battery run directly against the guard**, mutating the real `STANDARD.md` and the real matrix and asserting what the guard should and should not report.
+
+**That was the better instrument anyway.** These were empirical questions, and this repository's own rule is measure rather than reason. Six hypotheses, three mismatches, found in about a minute.
+
+| | Hypothesis | Expected | Got |
+| --- | --- | --- | --- |
+| **H1** | a `####` subheading inside a tier section | pass | **rejected** |
+| H2 | an agent cell holding only a space | caught | caught |
+| H3 | the honest table loses its `On` column | caught | caught |
+| **H4** | a real, non-future date of `1970-01-01` | caught | **passed** |
+| **H5** | an escaped pipe in a Notes cell | pass | **rejected** |
+| H6 | a tier bullet gaining a parenthetical | caught | caught |
+
+### H1 - widening a terminator ended sections too early
+
+**This is the shape that was predicted before the probe ran**, and it arrived from the opposite direction. The section boundary had been widened from `###` to `#{2,6}` to stop rejecting reworded requirement lead-ins - **a false-FAIL fix.** But `####` is a **subsection OF** a tier section, not the end of one. Adding a note inside sec 2.2 truncated its extraction to zero, and only the floor noticed.
+
+**A terminator that matches more aggressively ends the section too early.** The correct boundary is shallower-or-equal to the tier heading's own level, never deeper.
+
+> **CLOSED.** `#{1,3}`. A standing test asserts a `####` subheading leaves sec 2.2's tokens intact.
+
+### H4 - a real, non-future, non-placeholder date that means nothing
+
+`1970-01-01` passed every check: real calendar date, not in the future, not a placeholder word. **A currency claim with no currency, in the section written against exactly that.**
+
+> **CLOSED with a FIXED floor, not a staleness window.** `EARLIEST_PLAUSIBLE_READING = "2025-01-01"`. A window would catch it and would also start failing on a future date with no code change, which is the calendar-bomb `vendor-watch` had to remove from its own verdict logic. **A fixed floor never fires spontaneously.**
+
+### H5 - the arity check rejected this repository's own escaping
+
+Adding row-arity checking closed a real false PASS. It also split on every pipe - including the `\|` that `scripts/lib/md-escape.mjs` exists to produce - turning one Notes cell into an extra column and reporting the row as truncated. **A false FAIL on output this repo's own helper generates.**
+
+> **CLOSED.** Splits on unescaped pipes only, and unescapes what survives.
+
+### Why this pass mattered
+
+**Four times in one release, a fix for a finding introduced a defect of the class it was fixing.** Three table-row claims; their replacement pinning a timeout budget; a guard anchor deleted rather than updated, twice; and now a terminator widened past its own section.
+
+**Every one was found only because something ran after the fix.** The three probe cases are now standing tests, so this particular set cannot regress silently.
+
 ### What the panel says about the two waves
 
 **The waves were not wasted and they were not sufficient.** Fifteen findings from the waves, plus a CRITICAL and three HIGHs from a panel run afterwards on the same code - and **the panel's CRITICAL was created by the fix for a wave finding.**
