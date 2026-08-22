@@ -270,11 +270,6 @@ const MEANING_REVERSALS = Object.freeze({
   // content words with the claim and so demonstrated vocabulary drift rather than meaning drift.
   "invocation-control-frontmatter":
     "Add disable-model-invocation: true to allow Claude to keep triggering it automatically.",
-  // The Codex claim. It pins ONE event in PROSE rather than the eleven-event TABLE, because three
-  // table-row claims landed on 2026-08-22 and were removed the same day: a pipe is rendering, not
-  // vendor prose, and a re-render would have blanked all three at once with MISSING, which is exit 1.
-  "codex-sessionend-hook-exists":
-    "SessionEnd uses 600 seconds by default and supports up to 3600 seconds.",
   "agents-scanned-recursively":
     "Plugin agents/ directories are no longer scanned recursively; only top-level files are registered.",
   "agent-filename-colon-excluded":

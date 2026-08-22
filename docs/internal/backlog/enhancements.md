@@ -609,6 +609,21 @@ One entry, from adversarial wave 1 over the v1.16.0 implementation. Its six othe
 - **What the fix looks like when it is taken:** emit a finding naming the unreadable path, at `warn` for one Standard minor and then `error`, measured against the reference family first - a census of how many members currently hit the swallow, which is very likely zero and should be counted rather than assumed.
 - **Status:** backlog, unversioned, ADR-gated.
 
+### E54 - a claim naming an undeclared source id is UNCHECKABLE and the run exits 0  [correctness, effort S, found by the v1.16.0 false-PASS lens]
+
+- **Target:** `scripts/lib/vendor-watch.mjs`.
+- **The defect:** `sourcesFailed` iterates `pin.sources`, so a claim pointing at an id that is not declared there contributes nothing to it, and `exitCodeFor` counts only `missing` and `stale` toward exit 1. A quote claim with a **dangling source** is therefore `UNCHECKABLE` and the run **exits 0**. Reproduce by changing any claim's `source` to a typo: the report prints "source could not be fetched" and the process succeeds.
+- **Why it matters:** the same file carries an explicit rule that **"a run that verified NOTHING must never exit 0"**, and this path routes around it. A typo in a source id silently converts a release-blocking claim into one that is never checked.
+- **Why NOT fixed in v1.16.0:** it is shipped gate code and the change alters an exit-code contract, which is release-scoped and needs its own acceptance criteria.
+- **Status:** backlog, unversioned.
+
+### E55 - check-parity's pin read fails open, and its pin-skew section cannot affect the exit code  [correctness, effort S, found by the v1.16.0 false-PASS lens]
+
+- **Target:** `scripts/check-parity.mjs`.
+- **The defect:** `readPin` collapses "absent" and "unparseable" into the same `null`, and the else branch prints *"upstream-pin.json not found or unparseable; pin-skew comparison skipped"* and pushes nothing into `results`. Grepping every `.mjs`, the only producer of a `pin-skew` result is a hand-built test fixture - **the script never emits one**, so that section cannot influence the exit code under any input. No test calls `readPin` or asserts the section ran.
+- **Why this is a v1.16.0 finding:** the fail-open behaviour predates the release, but this release **moved the file and edited that line**. Two readers of the same moved artifact now behave oppositely: `scripts/lib/standards-watch.mjs` throws `no-pin` and has a test asserting it; this one prints and continues. **Only the fail-closed reader had a test that would have caught a bad path.**
+- **Status:** backlog, unversioned.
+
 ## tier-basis intake (2026-08-20)
 
 Three findings from the first pass of [`foundation/synthesis/tier-basis.md`](../../../foundation/synthesis/tier-basis.md), written as v1.16.0 W3. **All three are boundaries resting on nothing first-party**, which the v1.16.0 plan is explicit is a finding to file rather than a defect to fix in that release: reassigning a tier is its own ADR with a migration window.

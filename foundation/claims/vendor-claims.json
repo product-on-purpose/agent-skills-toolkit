@@ -32,7 +32,7 @@
       "id": "cx-hooks",
       "vendor": "codex",
       "url": "https://developers.openai.com/codex/hooks.md",
-      "note": "The Codex hook reference, and the FIRST Codex source this file pins. Until 2026-08-22 every claim here sourced from a Claude Code page, which tier-basis.md recorded as its headline finding: the Convergent tier is defined as what BOTH agents support and had pinned evidence for one of them."
+      "note": "The Codex hook reference. Read 2026-08-22 and recorded in foundation/sources/codex.md; NO CLAIM IS PINNED AGAINST IT, deliberately. The eleven-event set exists on that page only as TABLE ROWS, and a table row pins rendering rather than prose - three such claims were landed and removed on 2026-08-22. The one prose sentence naming an event is about its TIMEOUT BUDGET, so pinning it would assert a default and a maximum while its dependsOn claimed it backed the event set: a page saying SessionEnd was REMOVED as a hook event, while keeping the timeout sentence, would still HOLD. Kept as a source so the URL and its reading date are recorded where the other surfaces are."
     }
   ],
   "claims": [
@@ -135,19 +135,6 @@
       "verifiedOn": "2026-08-20",
       "reproduction": "Fixtures and step-by-step: docs/internal/vendor-watch/probes/components-share-one-namespace/ (see EXPECTED.md for what each run observed, and probes/README.md for how to record the result). Install two plugins shipping the same skill name and observe which resolves.",
       "onChange": "If a runtime NAMESPACES components by plugin, the two collision classes should be RETIRED, not graduated - ADR 0051 says so explicitly. This is the one claim whose change makes the gate report LESS, not more."
-    },
-    {
-      "id": "codex-sessionend-hook-exists",
-      "kind": "quote",
-      "source": "cx-hooks",
-      "claim": "SessionEnd uses 1 second by default and supports up to 3 seconds",
-      "dependsOn": [
-        "foundation/synthesis/capability-matrix.md's Hook row, which lists SessionEnd among the Codex events",
-        "foundation/synthesis/tier-basis.md's Advanced-tier hooks boundary",
-        "STANDARD.md sec 2.3, which makes documenting every hook and its event a MUST for the Advanced tier"
-      ],
-      "verifiedOn": "2026-08-22",
-      "onChange": "SessionEnd disappearing is RED-WARD for any plugin declaring it under a codex target: an ADR and a migration window, never a silent matrix edit. This claim pins ONE event rather than the whole set, deliberately. The full eleven-event enumeration exists on that page only as a TABLE, and pinning a table row pins rendering rather than prose - three such claims were landed on 2026-08-22 and removed the same day when the false-FAIL lens showed a re-render would blank all three at once and block every release. The set itself is recorded as a dated `read` in foundation/sources/codex.md, which is evidence without an automatic re-check."
     }
   ]
 }

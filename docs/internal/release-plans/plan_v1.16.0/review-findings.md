@@ -259,7 +259,7 @@ Run 2026-08-22 as four independent headless Claude sessions, with the model rout
 
 | Lens | Model | Findings |
 | --- | --- | --- |
-| 1 - false-PASS | Opus | see below |
+| **1 - false-PASS** | Opus | **12: four HIGH** |
 | **2 - false-FAIL** | Opus | **12: one CRITICAL, three HIGH** |
 | 3 - determinism | Sonnet | 1 LOW; four categories explicitly clean |
 | 4 - contract-fidelity | Sonnet | 1 MINOR; all seven checks match |
@@ -300,6 +300,59 @@ The false-FAIL lens named the root cause better than the individual findings: **
 - **Directory-read order leaked into finding-message order** (determinism lens), so the same defect produced differently-ordered diagnostics on Linux and Windows. Sorted. **Not a regression this release created**: G8 carries the identical unsorted pattern, which is a separate, spine-scoped fix.
 - **ADR 0055's D1 diagram omits `synthesis/README.md`** while the same ADR's prose requires a README in all four folders (contract-fidelity lens). The code followed the prose. Recorded in the ADR's correction section, because a literal file-for-file audit against the diagram alone would flag that file as EXTRA - **a false finding lying in wait for whoever runs that audit next.**
 - **`foundation/claims/README.md` stated a stale claim count** within an hour of the count changing, and the prose-count guard does not scan that file. Corrected, with the gap noted in the line itself.
+
+### Lens 1 - false-PASS: 12 findings, four HIGH, and the composite is the point
+
+**It had to be run twice.** The first run's final message referred to "the ten findings" from its own earlier reasoning, and `claude -p` captures **only the final message**, so they were lost. **A headless prompt must demand the complete result IN the final message**; the re-run carried that as an explicit output contract.
+
+**The composite finding, stated by the lens better than any of its parts:**
+
+> **The SessionEnd evidence added in v1.16.0 is asserted in three artifacts and enforced in none of them.**
+
+`vendor-claims.json` pinned a sentence about a **timeout budget**, the drift guard checked that a row *named* `Hook` exists, and the honest table needed only a date-shaped string. Every guard green; the proposition *"Codex supports SessionEnd as one of eleven hook events, and it does not run for subagents"* had **no guard at all.**
+
+It also named the two shapes behind most of the list: **identity-only verification** (confirm a name exists, never read the payload it introduces) and **fail-open on the null branch** (three places return "nothing to check" and let that reach a success exit).
+
+### L1-HIGH-1 - the guard never read a component row's agent cells
+
+`parseMatrix` reduced every row to its first cell, so `yes` / `no` / `subset` / `differs` - **the matrix's entire product** - was structurally unreachable by the guard named after it. Blank every agent answer in the matrix and all tests passed.
+
+> **CLOSED.** Rows are kept whole and keyed by name; `verify()` reports an empty cell for any agent column. Proved on the real matrix: blanking `Output style`'s answers now yields *"matrix row Output style has an EMPTY Claude Code cell. A row whose capability answer is blank agrees with nothing."*
+
+### L1-HIGH-2 - no row-arity check, and the dropped cell was this release's own evidence
+
+`cells()` returned however many cells it found; nothing compared row width to header width. A row truncated after its second cell parsed cleanly - **and the cell it silently dropped is the Codex answer, which is exactly what v1.16.0 added.**
+
+> **CLOSED.** Arity is checked against the header. Proved: a three-cell row under a five-column header now yields *"matrix row Output style has 3 cells under a 5-column header."*
+
+### L1-HIGH-3 - "carries a confirmed-against ISO date" was a shape test, not a currency test
+
+`!rec.against` rejected only the empty string, and the regex checked only digit grouping. **`Confirmed against: none` with `On: 1999-01-01` passed**, in a section titled "Keeping the matrix honest" whose own prose says it exists because the file once made *"a currency claim with no currency evidence."* The guard certified the very defect the section was written against.
+
+> **CLOSED.** Placeholder values are rejected, the date must be a real calendar date, and a future date is a finding. **Deliberately NOT a staleness window**: a window would make this test fail on a future date with no code change, which is the calendar-bomb `vendor-watch` already had to remove from its own verdict logic.
+
+### L1-HIGH-4 - the replacement claim pinned a timeout budget, not the proposition it named
+
+The claim landed hours earlier to fix the panel's CRITICAL - `SessionEnd uses 1 second by default and supports up to 3 seconds` - asserts a default and a maximum. **It asserts nothing about SessionEnd being a hook event.** A page reading *"the SessionEnd hook event was removed in v0.9. SessionEnd uses 1 second by default..."* still **HOLDS**, while its `dependsOn` claims it backs the matrix's eleven-event Hook row.
+
+**Both guards designed to catch this shape missed it.** The word-count backstop passes at 12 words. **The meaning-reversal entry reverses the NUMBERS** - the one proposition the sentence genuinely discriminates - so the reversal test passed while proving only that the timeout figures are pinned.
+
+> **CLOSED by removing the claim.** The Codex hook event set is **not pinnable by this mechanism**: every expression of it on that page is a table, and the one prose sentence is about timeouts. The set is recorded as a dated `read` in `foundation/sources/codex.md` - real evidence, without an automatic re-check - and `cx-hooks` is kept as a source with its URL and reading date and **no claim pinned against it**, with the reason stated in the source note.
+>
+> **This is the same limitation as `E49`, met from the other direction and on the same day.** An ABSENCE cannot be pinned; an ENUMERATION THAT EXISTS ONLY AS A TABLE cannot be pinned. Both are real facts this repository depends on, and neither fits the quote mechanism.
+
+### The rest, all closed
+
+- **A fifth `foundation/` subfolder was never checked.** The folder-guide check iterated a fixed list of four, so `foundation/probes/` - the one ADR 0055 explicitly left open - could ship with no README and be examined by nothing. Subfolders are now **discovered**, recursively.
+- **The phantom check's escape accepted any resolvable path.** Listing `synthesis/tier-basis.md` in the parent's inventory suppressed the finding while breaking the set-equality the docblock claims. Narrowed to `INVENTORY_SKIP` membership, which is the one case it was added for.
+- **The folder half had no floor.** Deleting every record under `sources/` and its inventory bullets left the suite green on an evidence folder holding nothing but its own guide. A floor now fires.
+- **`tokensPerTier` was 1 against live extractions of 7, 5 and 6**, so a tier could lose most of its bullets in silence. Raised to 3. **The remaining gap - losing a single component type - is only closable by the reverse-direction check this file's docblock declares out of scope**, so it is filed rather than half-built.
+- **The honest table was read positionally**, so inserting a column re-pointed the date check at the wrong cell. Columns are now located **by name**, as the component table's already were.
+
+### Filed rather than fixed, with reasons
+
+- **A claim naming an undeclared source id is `UNCHECKABLE` and exits 0.** Real, and it is in `scripts/lib/vendor-watch.mjs` - shipped gate code whose exit-code contract is release-scoped. `E54`.
+- **`check-parity`'s pin read fails open to a printed "skipped" line**, and its pin-skew section cannot influence the exit code under any input. Pre-existing, but this release moved the file and edited that line. **Two readers of the same moved artifact now behave oppositely**: `standards-watch` throws `no-pin`, this one prints and continues. `E55`.
 
 ### What the panel says about the two waves
 
