@@ -270,14 +270,6 @@ const MEANING_REVERSALS = Object.freeze({
   // content words with the claim and so demonstrated vocabulary drift rather than meaning drift.
   "invocation-control-frontmatter":
     "Add disable-model-invocation: true to allow Claude to keep triggering it automatically.",
-  // The three Codex hook claims. Each keeps the row's own vocabulary and inverts what the row SAYS,
-  // because a reversal sharing no words with its claim proves nothing - see the honesty test below.
-  "codex-hook-events-during-turn":
-    "During a turn | PreToolUse and PostToolUse only. PermissionRequest, PreCompact, PostCompact, UserPromptSubmit, SubagentStop and Stop no longer run during a turn.",
-  "codex-hook-events-session-start":
-    "When a session or subagent starts | SessionStart was removed; only SubagentStart still fires when a subagent starts.",
-  "codex-hook-events-session-end":
-    "When the main thread ends | SessionEnd now also runs for subagents.",
   "agents-scanned-recursively":
     "Plugin agents/ directories are no longer scanned recursively; only top-level files are registered.",
   "agent-filename-colon-excluded":

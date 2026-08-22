@@ -32,7 +32,7 @@
       "id": "cx-hooks",
       "vendor": "codex",
       "url": "https://developers.openai.com/codex/hooks.md",
-      "note": "The Codex hook reference, and the FIRST Codex source this file pins. Until 2026-08-22 every claim here sourced from a Claude Code page, which tier-basis.md recorded as its headline finding: the Convergent tier is defined as what BOTH agents support and had pinned evidence for one of them."
+      "note": "The Codex hook reference. Read 2026-08-22 and recorded in foundation/sources/codex.md; NO CLAIM IS PINNED AGAINST IT, deliberately. The eleven-event set exists on that page only as TABLE ROWS, and a table row pins rendering rather than prose - three such claims were landed and removed on 2026-08-22. The one prose sentence naming an event is about its TIMEOUT BUDGET, so pinning it would assert a default and a maximum while its dependsOn claimed it backed the event set: a page saying SessionEnd was REMOVED as a hook event, while keeping the timeout sentence, would still HOLD. Kept as a source so the URL and its reading date are recorded where the other surfaces are."
     }
   ],
   "claims": [
@@ -135,46 +135,6 @@
       "verifiedOn": "2026-08-20",
       "reproduction": "Fixtures and step-by-step: docs/internal/vendor-watch/probes/components-share-one-namespace/ (see EXPECTED.md for what each run observed, and probes/README.md for how to record the result). Install two plugins shipping the same skill name and observe which resolves.",
       "onChange": "If a runtime NAMESPACES components by plugin, the two collision classes should be RETIRED, not graduated - ADR 0051 says so explicitly. This is the one claim whose change makes the gate report LESS, not more."
-    },
-    {
-      "id": "codex-hook-events-during-turn",
-      "kind": "quote",
-      "source": "cx-hooks",
-      "claim": "During a turn | PreToolUse, PermissionRequest, PostToolUse, PreCompact, PostCompact, UserPromptSubmit, SubagentStop, Stop",
-      "dependsOn": [
-        "foundation/synthesis/capability-matrix.md's Hook row (the Codex event subset)",
-        "foundation/synthesis/tier-basis.md's Advanced-tier hooks boundary",
-        "STANDARD.md sec 2.3, which makes documenting every hook and its event a MUST for the Advanced tier"
-      ],
-      "verifiedOn": "2026-08-22",
-      "onChange": "The Advanced tier REQUIRES hooks (STANDARD.md sec 2.3), so this set is a tier boundary. A row GAINING an event is green-ward: update the matrix's Codex column and this claim, note it in CHANGELOG. A row LOSING one is red-ward for any plugin declaring that event under a codex target - it needs an ADR and a migration window, never a silent matrix edit. Either way update foundation/synthesis/tier-basis.md's hooks row, which was `unverified` until this claim landed."
-    },
-    {
-      "id": "codex-hook-events-session-start",
-      "kind": "quote",
-      "source": "cx-hooks",
-      "claim": "When a session or subagent starts | SessionStart, SubagentStart",
-      "dependsOn": [
-        "foundation/synthesis/capability-matrix.md's Hook row (the Codex event subset)",
-        "foundation/synthesis/tier-basis.md's Advanced-tier hooks boundary",
-        "STANDARD.md sec 2.3, which makes documenting every hook and its event a MUST for the Advanced tier"
-      ],
-      "verifiedOn": "2026-08-22",
-      "onChange": "The Advanced tier REQUIRES hooks (STANDARD.md sec 2.3), so this set is a tier boundary. A row GAINING an event is green-ward: update the matrix's Codex column and this claim, note it in CHANGELOG. A row LOSING one is red-ward for any plugin declaring that event under a codex target - it needs an ADR and a migration window, never a silent matrix edit. Either way update foundation/synthesis/tier-basis.md's hooks row, which was `unverified` until this claim landed."
-    },
-    {
-      "id": "codex-hook-events-session-end",
-      "kind": "quote",
-      "source": "cx-hooks",
-      "claim": "When the main thread ends | SessionEnd (doesn’t run for subagents)",
-      "dependsOn": [
-        "foundation/synthesis/capability-matrix.md's Hook row (the Codex event subset)",
-        "foundation/synthesis/tier-basis.md's Advanced-tier hooks boundary",
-        "STANDARD.md sec 2.3, which makes documenting every hook and its event a MUST for the Advanced tier",
-        "SessionEnd specifically: it was ABSENT from the capability matrix's Codex list until 2026-08-22, which is the drift E48 predicted"
-      ],
-      "verifiedOn": "2026-08-22",
-      "onChange": "The Advanced tier REQUIRES hooks (STANDARD.md sec 2.3), so this set is a tier boundary. A row GAINING an event is green-ward: update the matrix's Codex column and this claim, note it in CHANGELOG. A row LOSING one is red-ward for any plugin declaring that event under a codex target - it needs an ADR and a migration window, never a silent matrix edit. Either way update foundation/synthesis/tier-basis.md's hooks row, which was `unverified` until this claim landed."
     }
   ]
 }

@@ -193,6 +193,14 @@ The second clause carries the weight. A folder that only records what it can sup
 > **So the blast-radius figure "two constants and two test files" is wrong.** The committed migration
 > touched **three script files and three test files.**
 >
+> **ALSO CORRECTED 2026-08-22, by the contract-fidelity lens: D1's diagram is internally inconsistent
+> with this ADR's own prose.** The tree above shows a `README.md` under `sources/` and under `claims/`
+> and **none under `synthesis/`** - while the Builds-on section states that ADR 0024 D1.1 is why
+> "`foundation/` and its three subfolders will each need" a README. **Four, not three.** The
+> implementation followed the prose and `foundation/synthesis/README.md` exists. Recorded because a
+> literal file-for-file audit against the diagram alone would flag that file as EXTRA, which is a
+> false finding waiting for whoever runs that audit next.
+>
 > **The generalisable rule:** a reader can reach a file by a path literal, by assembled segments, or by
 > an exported constant. Only a search for the constant's own name finds the third. The authoritative
 > record is the per-file table in [`foundation/claims/README.md`](../../../foundation/claims/README.md),

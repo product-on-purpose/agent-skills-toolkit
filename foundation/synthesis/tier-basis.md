@@ -16,7 +16,9 @@ First written 2026-08-20 (v1.16.0 W3). **Nothing in this file was filled in from
 
 ## The headline finding, and it was not expected
 
-> **UPDATE 2026-08-22: this finding drove a fix, and is now PARTLY SUPERSEDED.** Three `quote` claims for the Codex hook event set landed that day (`cx-hooks`), so the file now holds **11 claims across two vendors** rather than 8 across one. The asymmetry is narrowed, not gone: Codex has three claims to Claude Code's eight, and **Cowork still has none**. The paragraph below is the finding as first written.
+> **UPDATE 2026-08-22: this finding drove a fix, and is now PARTLY SUPERSEDED.** A `quote` claim for a Codex hook event landed that day against a new `cx-hooks` source, so the file now holds **9 claims across two vendors** rather than 8 across one. The asymmetry is narrowed, barely: **Codex has ONE claim to Claude Code's eight, and Cowork still has none.**
+>
+> **Three claims landed first and were removed the same day**, because they pinned the event table by quoting its rows - pipes and all - which pins rendering rather than prose. A re-render would have blanked all three at once, and `MISSING` is exit 1 with no soft path. The full eleven-event enumeration is recorded as a dated `read` in `../sources/codex.md` instead. The paragraph below is the finding as first written.
 
 **All eight pinned claims in [`../claims/vendor-claims.json`](../claims/vendor-claims.json) source from Claude Code pages** - `cc-plugins-reference`, `cc-skills`, `cc-sub-agents`. There is **no pinned claim for any Codex fact, and none for any Cowork fact.**
 
@@ -69,7 +71,7 @@ Component types the tier adds: hooks, output styles, statusline, self-hosting CI
 
 | Boundary | The vendor fact it rests on | Status | Pinned where | Confirmed |
 | --- | --- | --- | --- | --- |
-| **Hooks: Codex supports a SUBSET of Claude Code's events** | Claude Code has 31 events; **Codex has 11**, enumerated in three table rows on the vendor's hook reference | **pinned, quote** (newly pinned 2026-08-22) | `codex-hook-events-during-turn`, `codex-hook-events-session-start`, `codex-hook-events-session-end` | 2026-08-22 |
+| **Hooks: Codex supports a SUBSET of Claude Code's events** | Claude Code has 31 events; **Codex has 11**, enumerated on the vendor's hook reference | **partly pinned.** One event pinned by quote; the SET is a dated `read` | `codex-sessionend-hook-exists` pins `SessionEnd`. The eleven-event enumeration is recorded in [`../sources/codex.md`](../sources/codex.md), `method: read` | 2026-08-22 |
 | Output styles are Claude-only | Codex has no output-style feature | **`unverified`** | nothing | - |
 | Statusline differs | Codex configures a built-in picker via `config.toml` `tui.status_line`, not a shipped script | **`unverified`** | nothing | - |
 | Self-hosting CI | none - this Standard's own requirement | **n/a, house** | - | - |
@@ -80,7 +82,7 @@ Component types the tier adds: hooks, output styles, statusline, self-hosting CI
 
 Both halves are unverified in different ways. Claude Code's "31 events" is a count nobody pinned. Codex's nine are enumerated in the matrix with no citation and no date.
 
-**RESOLVED 2026-08-22, by doing exactly that: opening the reference, counting, and pinning.** The Codex hook page enumerates its events in three table rows, all three now pinned as `quote` claims that re-read on every `vendor-watch` run. **The reading found real drift:** this file and the capability matrix both recorded **nine or ten** events; the vendor documents **eleven**. `SessionEnd` was missing from our record, confirmed in the vendor's own event table, its timeout rules, its parameters table and a config example.
+**PARTLY RESOLVED 2026-08-22, by doing exactly that: opening the reference, counting, and pinning - and then learning what can and cannot be pinned.** The eleven events are enumerated on the vendor's page **only as a table.** Three claims quoting those rows landed and were removed the same day: a pipe is rendering, not prose, and a re-render would have reported all three `MISSING` at once, which is exit 1 with no soft path. **One event, `SessionEnd`, is pinned by a prose sentence** that would disappear if the event did. The set itself is a dated `read` in [`../sources/codex.md`](../sources/codex.md) - real evidence, without an automatic re-check. **The reading found real drift:** this file and the capability matrix both recorded **nine or ten** events; the vendor documents **eleven**. `SessionEnd` was missing from our record, confirmed in the vendor's own event table, its timeout rules, its parameters table and a config example.
 
 **Claude Code's "31 events" is still `unverified`** - a count nobody pinned. Half a row closed is still half a row open.
 

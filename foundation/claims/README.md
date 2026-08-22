@@ -50,4 +50,4 @@ That names no path at all, so it is invisible to a search for the path string **
 
 - `surveyed-pin.json` - per surface, the last release a human has actually READ, as a verbatim vendor version string. No gate reads it.
 - `upstream-pin.json` - the agentskills.io pin, content-addressed by git blob SHA-1 per artifact because the upstream publishes no version and cuts no tags.
-- `vendor-claims.json` - eight pinned claims (6 `quote`, 2 `probe`) across three vendor pages, each carrying what depends on it and what to do when it changes.
+- `vendor-claims.json` - eight pinned claims (6 `quote`, 2 `probe`) across four vendor pages, each carrying what depends on it and what to do when it changes. **This line is prose and rots**; the W2 prose-count guard scans only `CHANGELOG.md` and `STATUS.md`, and its regex does not match this phrasing, so nothing checks it. It was stale within an hour of the claim count changing on 2026-08-22.
