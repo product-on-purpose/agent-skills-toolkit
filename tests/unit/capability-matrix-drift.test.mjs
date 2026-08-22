@@ -85,6 +85,14 @@ const FLOORS = { tokensPerTier: 3, componentRows: 8, honestRows: 2, agentColumns
 /** Columns of the component table that name a document, not an agent. */
 const NON_AGENT_COLUMNS = new Set(["Component", "Standard", "Notes"]);
 
+/**
+ * A FIXED floor, not a moving window. A real, non-future, non-placeholder date still carries no
+ * currency if it predates the project: `1970-01-01` passed every other check. A staleness WINDOW
+ * would catch it and would also fail on a future date with no code change, which is the calendar-bomb
+ * `vendor-watch` had to remove from its own verdict logic. A fixed floor never fires spontaneously.
+ */
+const EARLIEST_PLAUSIBLE_READING = "2025-01-01";
+
 // ---------------------------------------------------------------------------------------------
 // Pure functions. Kept in this file deliberately: a scripts/lib helper would need listing in that
 // folder's README (the v1.14.0 trap) and would blur the "not part of the shipped gate" boundary.
@@ -113,7 +121,12 @@ function parseTierTokens(text) {
     // do it again - lowercase "must", "Convergent-tier plugins MUST", "A Tier 2 plugin MUST" - each
     // producing a wall of findings telling the maintainer that prose is a missing component type. So the
     // SHAPE is widened rather than the one instance patched.
-    const end = rest.search(/\n(?:#{2,6}\s|An?\s+[A-Za-z0-9 -]*?tier\s+plugins?\s+must\b)/i);
+    // #{1,3} - SHALLOWER-OR-EQUAL to the tier heading's own level. Widening this to #{2,6} to fix a
+    // false FAIL created a new one: a #### heading is a SUBSECTION OF a tier section, not the end of
+    // it, so adding a note inside sec 2.2 truncated extraction to zero and only the floor noticed. A
+    // terminator that matches more aggressively ends the section too early. Found by probing the fix
+    // set directly rather than reasoning about it.
+    const end = rest.search(/\n(?:#{1,3}\s|An?\s+[A-Za-z0-9 -]*?tier\s+plugins?\s+must\b)/i);
     const body = rest.slice(0, end === -1 ? rest.length : end);
     const tokens = [];
     // Strips ** as well as backticks, matching parseMatrix's strip(). Without it, bolding a component
@@ -153,7 +166,11 @@ function tableUnder(text, heading) {
   const lines = text.slice(start).split("\n");
   let i = lines.findIndex((l) => /^\s*\|/.test(l));
   if (i === -1) return null;
-  const cells = (l) => l.trim().replace(/^\||\|$/g, "").split("|").map((c) => c.trim());
+  // Splits on UNESCAPED pipes only, and unescapes what survives. This repository ships
+  // scripts/lib/md-escape.mjs precisely to write a literal pipe into a cell, and splitting on every
+  // pipe turned one such Notes cell into an extra column - which the new arity check then reported as
+  // a truncated row. A false FAIL on output this repo's own helper produces.
+  const cells = (l) => l.trim().replace(/^\||\|$/g, "").split(/(?<!\\)\|/).map((c) => c.replace(/\\\|/g, "|").trim());
   const header = cells(lines[i]);
   const rows = [];
   for (let j = i + 2; j < lines.length && /^\s*\|/.test(lines[j]); j++) rows.push(cells(lines[j]));
@@ -247,6 +264,8 @@ function verify(tokens, matrix) {
     const realDate = asDate && !Number.isNaN(asDate.getTime()) && asDate.toISOString().slice(0, 10) === rec.on;
     if (!realDate) {
       findings.push(`agent "${agent}" has no real ISO date in its "On" cell (found "${rec.on}").`);
+    } else if (rec.on < EARLIEST_PLAUSIBLE_READING) {
+      findings.push(`agent "${agent}" has an implausible "On" date (${rec.on}), earlier than this project existed. A date that old is a currency claim with no currency, which is the defect this section exists to prevent.`);
     } else if (asDate.getTime() > Date.now() + 86400000) {
       findings.push(`agent "${agent}" has a FUTURE "On" date (${rec.on}). A reading cannot have happened yet.`);
     }
@@ -430,6 +449,53 @@ test("the boundary regex handles BOTH 'A <Tier>-tier plugin MUST' and 'An Advanc
   for (const swallowed of ["document every hook", "its event", "its scope", "pass its own validation"]) {
     assert.ok(!tokens["2.3"].includes(swallowed), `sec 2.3 must not extract the requirement bullet "${swallowed}"`);
   }
+});
+
+
+// ---------------------------------------------------------------------------------------------
+// Probes of the FIX SET itself. Three of these were live defects in the code written to answer the
+// adversarial panel - found by running an adversarial battery against the guard rather than by
+// reasoning about it. Kept as standing tests because the pattern that produced them (each fix
+// introducing a defect of the class it was fixing) has recurred four times in one release.
+// ---------------------------------------------------------------------------------------------
+
+test("a #### subheading INSIDE a tier section does not truncate its extraction", () => {
+  // The boundary was briefly widened to #{2,6} to stop rejecting reworded requirement lead-ins. That
+  // made a DEEPER heading end the section, so a note added inside sec 2.2 cut its bullets off and
+  // extraction went to zero - caught only by the floor, and reported as a vanished heading.
+  const std = STANDARD_TEXT.replace("### 2.2 Tier 2 - Convergent (Silver)\n",
+    "### 2.2 Tier 2 - Convergent (Silver)\n\n#### A clarifying note\n\nSome prose.\n\n");
+  assert.notEqual(std, STANDARD_TEXT, "sec 2.2's heading moved; update this test");
+  const tokens = parseTierTokens(std);
+  assert.ok(tokens["2.2"].includes("subagents"),
+    `a subsection heading must not end the tier section; got ${JSON.stringify(tokens["2.2"])}`);
+  assert.deepEqual(floorViolations(tokens, parseMatrix(MATRIX_TEXT)), []);
+});
+
+test("an escaped pipe in a Notes cell is content, not a column boundary", () => {
+  // scripts/lib/md-escape.mjs exists to write a literal pipe into a markdown cell. Splitting on every
+  // pipe turned such a cell into an extra column, which the arity check then reported as a truncated
+  // row: a false FAIL on output this repository's own helper produces.
+  const matrix = MATRIX_TEXT.replace(
+    "| Output style | 2.3 (Advanced) | yes | no |",
+    "| Output style | 2.3 (Advanced) | yes | no |").replace(
+    "Codex has no output-style feature; Claude-only.",
+    "Claude-only \\| see sec 2.3.");
+  assert.notEqual(matrix, MATRIX_TEXT, "the Output style Notes cell moved; update this test");
+  assert.deepEqual(verify(parseTierTokens(STANDARD_TEXT), parseMatrix(matrix)), []);
+});
+
+test("NEGATIVE: a real, non-future, non-placeholder date that predates the project is still reported", () => {
+  // 1970-01-01 passed every other check: it is a real calendar date, it is not in the future, and it
+  // is not a placeholder word. A currency claim with no currency, in the section written against
+  // exactly that. Caught by a FIXED floor rather than a staleness window, which would be a
+  // calendar-bomb: it would start failing on a future date with no code change.
+  const matrix = MATRIX_TEXT.replace("| Claude Code | `2.1.235` | 2026-08-18 |",
+                                     "| Claude Code | `2.1.235` | 1970-01-01 |");
+  assert.notEqual(matrix, MATRIX_TEXT, "the Claude Code honest row moved; update this test");
+  const findings = verify(parseTierTokens(STANDARD_TEXT), parseMatrix(matrix));
+  assert.equal(findings.length, 1, JSON.stringify(findings));
+  assert.match(findings[0], /implausible "On" date/);
 });
 
 // ---------------------------------------------------------------------------------------------
