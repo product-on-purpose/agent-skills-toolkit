@@ -463,9 +463,14 @@ test("a #### subheading INSIDE a tier section does not truncate its extraction",
   // The boundary was briefly widened to #{2,6} to stop rejecting reworded requirement lead-ins. That
   // made a DEEPER heading end the section, so a note added inside sec 2.2 cut its bullets off and
   // extraction went to zero - caught only by the floor, and reported as a vanished heading.
-  const std = STANDARD_TEXT.replace("### 2.2 Tier 2 - Convergent (Silver)\n",
-    "### 2.2 Tier 2 - Convergent (Silver)\n\n#### A clarifying note\n\nSome prose.\n\n");
-  assert.notEqual(std, STANDARD_TEXT, "sec 2.2's heading moved; update this test");
+  // The anchor carries NO newline. An earlier version ended it with "\n" and passed locally while
+  // failing on the Windows CI runner: a clean checkout is CRLF, so "(Silver)\n" never matched and the
+  // fixture silently became a no-op. It passed here only because this file's own probe script rewrites
+  // STANDARD.md with LF - the test was being run against a file the tooling had normalized.
+  const H = "### 2.2 Tier 2 - Convergent (Silver)";
+  assert.ok(STANDARD_TEXT.includes(H), "sec 2.2's heading moved; update this test");
+  const std = STANDARD_TEXT.replace(H, `${H}\n\n#### A clarifying note\n\nSome prose.\n`);
+  assert.notEqual(std, STANDARD_TEXT);
   const tokens = parseTierTokens(std);
   assert.ok(tokens["2.2"].includes("subagents"),
     `a subsection heading must not end the tier section; got ${JSON.stringify(tokens["2.2"])}`);
