@@ -28,7 +28,7 @@
     },
     "agentskills-io": {
       "surveyedThrough": null,
-      "noFeed": "No versioned release feed. This surface is tracked by askit-standards-watch, which pins a git blob SHA-1 per artifact in docs/internal/standards-watch/upstream-pin.json. Do not duplicate that pin here.",
+      "noFeed": "No versioned release feed. This surface is tracked by askit-standards-watch, which pins a git blob SHA-1 per artifact in foundation/claims/upstream-pin.json. Do not duplicate that pin here.",
       "surveyedOn": "2026-08-11",
       "by": "see upstream-pin.json"
     }

@@ -34,7 +34,7 @@ function tmp() {
 }
 
 // --- gitBlobSha1: the git-blob-sha1 formula documented in
-// docs/internal/standards-watch/upstream-pin.json ("sha1('blob ' + length + NUL + bytes)"), verified
+// foundation/claims/upstream-pin.json ("sha1('blob ' + length + NUL + bytes)"), verified
 // against real `git hash-object` output so a reviewer can check this without trusting the test. ---
 
 test("gitBlobSha1: matches `git hash-object` for a known 3-byte file (\"abc\")", () => {
@@ -103,7 +103,7 @@ test("diffMetadataParity: both sides absent (no metadata: block at all) -> no mi
 // --- summarizePinSkew: the two-identity comparison the task requires (source blob pin vs the PyPI
 // release the harness actually runs). Grounded in a REAL measured skew found while building this
 // harness: the PyPI 0.1.1 wheel's skills_ref/parser.py is not byte-identical to the pinned upstream
-// blob (docs/internal/standards-watch/upstream-pin.json), which is exactly the divergence this
+// blob (foundation/claims/upstream-pin.json), which is exactly the divergence this
 // function exists to surface rather than silently assume away. ---
 
 test("summarizePinSkew: flags a real measured skew (PyPI 0.1.1 parser.py vs the pinned source blob)", () => {
@@ -461,7 +461,7 @@ test(
 /**
  * An ISOLATED copy of just the subtrees scripts/check-parity.mjs reads from its `root` argument
  * (skills/, templates/seed-plugin/, .claude-plugin/, docs/internal/decisions/,
- * docs/internal/standards-watch/), in a fresh temp directory. The test below mutates a skill's
+ * foundation/claims/), in a fresh temp directory. The test below mutates a skill's
  * SKILL.md to seed a real metadata-parity failure; an EARLIER version of this test mutated the real,
  * shared, concurrently-edited repository file in place instead, and it raced - caught live when a
  * full `npm test` run failed with "the fixture line was not found" because some other process had the
@@ -471,7 +471,7 @@ test(
  */
 function buildIsolatedParityCopy() {
   const dir = mkdtempSync(path.join(tmpdir(), "askit-parity-copy-"));
-  for (const rel of [".claude-plugin", "templates/seed-plugin", "skills", "docs/internal/decisions", "docs/internal/standards-watch"]) {
+  for (const rel of [".claude-plugin", "templates/seed-plugin", "skills", "docs/internal/decisions", "foundation/claims"]) {
     cpSync(path.join(REPO_ROOT, rel), path.join(dir, rel), { recursive: true });
   }
   return dir;

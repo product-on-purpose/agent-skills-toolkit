@@ -44,7 +44,7 @@ const ADR = "ADR 0042 (validator parity is report-only and checks parsed values)
 
 /**
  * git blob SHA-1 of raw bytes: sha1("blob " + length + NUL + bytes). Identical to `git hash-object
- * <file>` and to the convention documented in docs/internal/standards-watch/upstream-pin.json - pure,
+ * <file>` and to the convention documented in foundation/claims/upstream-pin.json - pure,
  * no git binary dependency, so it produces the same answer wherever Node runs (including a runner with
  * no git config quirks, e.g. core.autocrlf, in play).
  */
@@ -526,7 +526,7 @@ function readOurMetadata(skillMdAbs) {
 }
 
 function readPin(root) {
-  const p = path.join(root, "docs", "internal", "standards-watch", "upstream-pin.json");
+  const p = path.join(root, "foundation", "claims", "upstream-pin.json");
   if (!existsSync(p)) return null;
   try {
     return JSON.parse(readFileSync(p, "utf8"));

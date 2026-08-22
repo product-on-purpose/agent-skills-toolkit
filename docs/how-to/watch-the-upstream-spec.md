@@ -10,7 +10,7 @@ tags: [governance, standard, upstream, agentskills]
 
 Run the upstream spec watcher, read what changed and which checks it lands on, and re-pin once the ADR is accepted.
 
-[`STANDARD.md`](../../STANDARD.md) sec 6 says the Universal tier MUST track agentskills.io as it evolves. `askit-standards-watch` is how that obligation is discharged: it fetches the four watched artifacts, compares their git blob SHA-1 against the committed pin at `docs/internal/standards-watch/upstream-pin.json`, reports which checks any delta lands on, and stops. The human decides; the tool does not apply anything.
+[`STANDARD.md`](../../STANDARD.md) sec 6 says the Universal tier MUST track agentskills.io as it evolves. `askit-standards-watch` is how that obligation is discharged: it fetches the four watched artifacts, compares their git blob SHA-1 against the committed pin at `foundation/claims/upstream-pin.json`, reports which checks any delta lands on, and stops. The human decides; the tool does not apply anything.
 
 ## 1. When to run
 
@@ -156,7 +156,7 @@ npm run standards-watch -- --emit-pin --by "Your Name"
 Review the output, then redirect it yourself and save:
 
 ```
-npm run standards-watch -- --emit-pin --by "Your Name" > docs/internal/standards-watch/upstream-pin.json
+npm run standards-watch -- --emit-pin --by "Your Name" > foundation/claims/upstream-pin.json
 ```
 
 Commit the new pin in the same PR as the accepted ADR (or on its own when the decision is re-pin only with no ADR). The two move together: the pin records a decision, and the decision explains the pin.

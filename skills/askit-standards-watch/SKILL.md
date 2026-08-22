@@ -10,7 +10,7 @@ metadata:
 # askit-standards-watch
 
 ## Purpose
-[STANDARD.md](../../STANDARD.md) sec 6 states, as normative text, that **where agentskills.io evolves the Universal tier MUST track it; higher tiers remain this Standard's domain.** Tracking is only auditable against a recorded starting point. This skill owns that starting point (`docs/internal/standards-watch/upstream-pin.json`), detects when the upstream has moved away from it, maps each delta to the checks it lands on, and produces a **proposal**. It never applies one.
+[STANDARD.md](../../STANDARD.md) sec 6 states, as normative text, that **where agentskills.io evolves the Universal tier MUST track it; higher tiers remain this Standard's domain.** Tracking is only auditable against a recorded starting point. This skill owns that starting point (`foundation/claims/upstream-pin.json`), detects when the upstream has moved away from it, maps each delta to the checks it lands on, and produces a **proposal**. It never applies one.
 
 ## When to use
 When someone asks whether the upstream spec has changed, before cutting a Standard MINOR, on a periodic governance sweep, or when re-pinning the upstream revision after an ADR is accepted.

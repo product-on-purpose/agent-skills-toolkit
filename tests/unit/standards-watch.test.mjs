@@ -288,7 +288,7 @@ test("validatePin refuses an unknown schema, a missing blobSha, and a missing ra
 
 test("readPin refuses loudly when no pin exists (the pre-existing state this skill closes)", () => {
   assert.throws(
-    () => readPin(REPO_ROOT, "docs/internal/standards-watch/does-not-exist.json"),
+    () => readPin(REPO_ROOT, "foundation/claims/does-not-exist.json"),
     (e) => e instanceof StandardsWatchError && e.code === "no-pin",
   );
 });

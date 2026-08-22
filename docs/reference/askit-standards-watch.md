@@ -16,7 +16,7 @@ Watches the pinned agentskills.io upstream specification, maps each change to th
 
 ## The pin
 
-`docs/internal/standards-watch/upstream-pin.json` records which upstream revision the Universal tier is written against.
+`foundation/claims/upstream-pin.json` records which upstream revision the Universal tier is written against.
 
 It is **not** `library.json` `standard` (`"0.12"`), which versions this Standard's own ruleset and drives the sec 7.7 pinned-version gate. The two move independently.
 
