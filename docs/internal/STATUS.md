@@ -287,7 +287,7 @@ how the runtime discovers subagents; sec 3.2 explains itself by reference to how
 skill. Claude Code says *"Custom commands have been merged into skills."* The 2026-08-10 internal audit had
 **already found this** and graded `S7` a CONFLICT. The evidence existed; nothing was re-reading it.
 
-`foundation/claims/vendor-claims.json` pins eight claims (6 quote, 2 probe) across three vendor pages, each carrying what
+`foundation/claims/vendor-claims.json` pins eleven claims (9 quote, 2 probe) across four vendor pages, each carrying what
 depends on it and what to do when it fails. `npm run release-ready` re-checks them **inside `release.yml` and
 `publish-npm.yml`**, so a tag or a publish is blocked by a claim the vendor no longer makes; a monthly
 workflow opens an issue rather than editing anything. **Freshness blocks only what age can actually

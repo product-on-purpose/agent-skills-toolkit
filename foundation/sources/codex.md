@@ -10,7 +10,7 @@ title: "Source record - Codex"
 | **Surveyed on** | 2026-08-18, by jprisant |
 | **Method** | `read`, partial |
 | **Release feed** | `https://developers.openai.com/codex/changelog`, plus `https://github.com/openai/codex/releases` |
-| **Docs** | pages serve `.md` variants |
+| **Docs** | pages serve `.md` variants. `hooks.md` is pinned as of 2026-08-22 |
 
 ## The pin is null on purpose, and that is the most useful line in this record
 
@@ -32,7 +32,8 @@ Recorded here because they are the load-bearing Codex facts, and because two of 
 
 - **Codex ingests components ONLY via `.codex-plugin/plugin.json`.** Listing a component is not ingesting it, which is why round-trip tests must verify discovery rather than presence.
 - **Codex plugins ship skills, hooks and MCP servers, but NOT subagents.** Subagents are `config.toml` only; the plugin manifest has no `agents` field. **Established by round-trip experiment, then corroborated by a vendor list that contains no subagents** - so a knowledge that rested on a probe became quotable, which is a strict improvement: a quote costs nothing recurring, while a probe's age is its whole verification.
-- **Hooks are a subset of Claude Code's events.** **The subset itself is pinned NOWHERE and its confirmation date is unknown.** The Advanced tier requires hooks, so this is exactly the kind of boundary `tier-basis.md` (W3) must record as `unverified` rather than fill in from memory.
+- **Hooks are a subset of Claude Code's events, and the subset is now PINNED.** Read 2026-08-22 from `https://developers.openai.com/codex/hooks.md`, which enumerates the events in three table rows, all three pinned as `quote` claims (`codex-hook-events-*`). **Codex documents ELEVEN events**, not the nine or ten this repository had recorded: `PreToolUse`, `PermissionRequest`, `PostToolUse`, `PreCompact`, `PostCompact`, `UserPromptSubmit`, `SubagentStop`, `Stop`, `SessionStart`, `SubagentStart`, and `SessionEnd`.
+  **`SessionEnd` was missing from our record entirely** - the drift `E48` predicted, found by reading rather than by arguing, and corroborated four ways on the page (the event table, a config example, the timeout rules, and the parameters table). **Claude Code's own "31 events" remains an unpinned count.**
 - **Three component types Codex documents and this Standard does not model:** Connectors, Browser extensions, Scheduled task templates. Found by the v1.15.0 survey. Deliberately not modelled: the population of real plugins shipping any of them is unmeasured, and measure-first applies.
 
 ## What this surface holds up
