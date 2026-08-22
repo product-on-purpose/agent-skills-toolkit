@@ -574,6 +574,35 @@ patching one did not prompt a look at the other.
 - **A second consequence worth knowing:** the pre-pass also REWROTE `severity` in place, so a held-back finding no longer knew what its check had emitted. That is exactly the information a graduation needs, which is why the two defects had to be fixed together.
 - **Status:** RESOLVED 2026-08-13 (v1.13.0 W1b, ADR 0044). Recorded 2026-08-11 from the round-2 adversarial review of the v1.10.1 patch.
 
+## tier-basis intake (2026-08-20)
+
+Three findings from the first pass of [`foundation/synthesis/tier-basis.md`](../../../foundation/synthesis/tier-basis.md), written as v1.16.0 W3. **All three are boundaries resting on nothing first-party**, which the v1.16.0 plan is explicit is a finding to file rather than a defect to fix in that release: reassigning a tier is its own ADR with a migration window.
+
+**The context that makes all three the same shape.** All eight pinned claims in `foundation/claims/vendor-claims.json` source from Claude Code pages. **There is no pinned claim for any Codex fact and none for any Cowork fact** - so the Convergent tier, whose definition is a statement about what BOTH agents support, has pinned evidence for one of them. None of these readings is believed wrong. They simply have no expiry: a quote is re-read on every `vendor-watch` run and a probe blocks a release when it ages out, while an unpinned reading just persists.
+
+### E48 - the Codex hook event subset is pinned nowhere, and the Advanced tier requires hooks  [correctness, effort S, found writing tier-basis.md]
+
+- **Target:** `foundation/claims/vendor-claims.json`, `foundation/synthesis/capability-matrix.md` (the Hook row).
+- **The gap:** the matrix states Claude Code has **31 hook events** and Codex supports a **subset of 9** (PreToolUse, PostToolUse, Pre/PostCompact, SessionStart, SubagentStart/Stop, UserPromptSubmit, Stop, PermissionRequest). **Neither number is cited and neither carries a date.** `tier-basis.md` records the row as `unverified` with confirmation date `unknown`.
+- **Why it ranks first of the three:** `STANDARD.md` sec 2.3 makes documenting every hook, its event and its scope a **MUST for the Advanced tier**. The top tier of the ladder rests on an enumeration sourced from nothing.
+- **The fix is a reading, not an argument:** open both hook-event references, count, and pin a `quote` claim per side. If a side has no quotable sentence, it is a `probe` with a reproduction, not a matrix note.
+- **Status:** backlog, unversioned.
+
+### E49 - the Codex subagent absence is quotable and was never landed as a claim  [correctness, effort XS, found writing tier-basis.md]
+
+- **Target:** `foundation/claims/vendor-claims.json`.
+- **The gap:** "the Codex plugin manifest has no `agents` field, so plugin subagents are Claude-only" is a **Convergent tier boundary** - it is why authors are told to declare `agent-targets: [claude]` for every subagent they ship. It rests on a round-trip experiment, `unverified` in `tier-basis.md`.
+- **Why this is the cheapest row in the file to close:** the fact was **already corroborated by a vendor list containing no subagents**, which is exactly the probe-becomes-quotable transition `askit-capability-whats-new`'s golden example 2 records and routes to a candidate claim. **The candidate was never landed.** A quote costs nothing recurring; the current state costs a reading with no expiry.
+- **Status:** backlog, unversioned.
+
+### E50 - two shipped checks accommodate Cowork behaviour the vendor documents nowhere  [correctness, effort S-M, found writing tier-basis.md]
+
+- **Target:** `U6` (`reference-links`), `U11` (`mcp-valid`), `foundation/claims/vendor-claims.json`.
+- **The gap:** `U6`'s `SKIP_SCHEME` includes `computer:`, treating it as a local-artifact scheme, and `U11` downgrades a typed `http` server with no `url` to a warning for the managed-connector pattern. **Both accommodations are correct in practice and neither is documented by the vendor**, confirmed against `v1.32885.1` on 2026-08-18.
+- **Why it matters:** there is no quote to re-read and no probe whose age expires. **If either behaviour changed, nothing in this repository would notice** - the checks would simply keep accommodating something that no longer exists, or stop accommodating something that does.
+- **The two honest options**, and this entry does not choose: write a probe with a reproduction so the claims acquire an expiry, or find a first-party page and pin a quote. **Doing neither leaves two shipped checks resting on memory.**
+- **Status:** backlog, unversioned. See [`foundation/sources/claude-cowork.md`](../../../foundation/sources/claude-cowork.md).
+
 ## Onboarding proposal intake (2026-08-20)
 
 One entry, from the adoption-system proposals reviewed on 2026-08-20. Given its own dated header because provenance is the point of these intakes: it did not come from a dogfooding pass, it came from a corpus audit of how an adopter finds their way in.

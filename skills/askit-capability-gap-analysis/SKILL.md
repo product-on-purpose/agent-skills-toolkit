@@ -52,13 +52,17 @@ Two standing obligations, both from the matrix's own audit:
 - **Every value carries the agent version it was confirmed against.** The matrix claimed for a long time to be "pinned to specific agent versions" while recording no version anywhere, which is a currency claim with no currency evidence.
 - **Cowork is modelled, but deliberately NOT as a column.** `U6` skips its `computer:` local-artifact scheme and `U11` tolerates its managed-connector pattern, so the gate already accommodates an agent the matrix did not model. The matrix records that in prose rather than a column, because Cowork is not a plugin-distribution target the way Claude Code and Codex are, and the matrix owns that modelling decision. **Do not add the column;** report the gap and let an ADR move the boundary if it should move.
 
-### 3. Ask the three questions in order, and stop at the first NO
+### 3. Ask the four questions in order, and stop at the first NO
 
 **a. Is the capability real and stable?** A research preview, an alpha flag, or an unreleased entry is a watch item, not a gap. Record it and stop.
 
 **b. Is it plugin-distributable?** The matrix's whole framing is what ships *inside a distributed plugin*. A capability that exists but cannot be shipped in a plugin belongs in the matrix's notes and nowhere else - the Codex subagent case is the standing example.
 
 **c. Does anything break, or become possible, for a plugin author?** If neither, it is documentation. Say so and stop. **Most findings stop here, and that is the skill working.**
+
+**d. Does it touch a component type any TIER requires?** Check [`foundation/synthesis/tier-basis.md`](../../foundation/synthesis/tier-basis.md). If yes, **this is a tier question and not merely a matrix update**, and it routes to an ADR rather than to an edit. Added 2026-08-20 (v1.16.0 W3), because until `tier-basis.md` existed there was no way to ask it: nothing recorded which vendor fact each boundary rested on, so a finding could change the ground under a tier with no artifact noticing.
+
+**Two ways this question comes back YES, and they need different handling.** If the boundary's row is **pinned**, the finding may falsify a live claim - go read that claim's `onChange`. If the row reads **`unverified`**, the finding is landing on ground nothing was watching, and the proposal should say so plainly rather than quietly treating the new reading as a correction of an old one that was never recorded.
 
 ### 4. Only for a finding that survives all three: assess our own components
 
@@ -78,6 +82,7 @@ If measuring is not practical, the proposal must say the number is unmeasured. A
 |---|---|
 | the matrix was wrong or incomplete | the matrix, in this change |
 | a vendor sentence is now quotable | a candidate claim for `vendor-claims.json` |
+| it touches a component type a tier requires | a tier question: an ADR, plus the row in `tier-basis.md` |
 | the Standard should model this | an **ADR draft**, following [`askit-decision`](../askit-decision/SKILL.md) |
 | a component should adopt this | a **backlog entry** in `docs/internal/backlog/enhancements.md` |
 | real, but nothing to do yet | the backlog, **with the trigger condition that would change the answer** |
