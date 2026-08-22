@@ -195,6 +195,8 @@ and 23 days.
 > ruled out one of three possible outcomes but could not establish which of two colliding skills wins, so
 > its date was deliberately left alone and it still blocks from **2026-09-11**.
 >
+> **SUPERSEDED 2026-08-20.** `components-share-one-namespace` was **DISCHARGED** that day and now blocks from **2026-09-19**. The bare name resolves silently to one winner and the winner follows **install order** (A then B gave side A; B then A gave side B), so the claim HOLDS and the two collision checks STAY. `agents-dir-registers-every-md` is now the sooner of the two, at **2026-09-18**. The sentence above stands as the record of what was true at the v1.15.0 cut.
+>
 > Both experiments now ship as installable fixtures with tested commands at
 > [`../../vendor-watch/probes/`](../../vendor-watch/probes/), so the next re-run is minutes rather than a
 > reconstruction. The re-run also produced a number the original did not record: the two phantom agents
