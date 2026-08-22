@@ -52,7 +52,7 @@ It also cannot see a capability the vendor shipped and documented nowhere. That 
 | Artifact | Nature |
 |---|---|
 | `docs/internal/capability-surveys/surveys.md` | append-only dated record; never rewritten |
-| `docs/internal/capability-surveys/surveyed-pin.json` | proposed, landed by a human alongside the record |
+| `foundation/claims/surveyed-pin.json` | proposed, landed by a human alongside the record |
 | candidate claims | routed to `vendor-claims.json`, not written by this skill |
 
 **Nothing here blocks a release.** An old survey means work is waiting, not that a claim expired - which is deliberately unlike a stale `probe` claim, whose age is its whole verification.

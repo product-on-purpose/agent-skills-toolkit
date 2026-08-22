@@ -35,7 +35,7 @@ The separation is not bureaucratic. A survey that also proposed changes would be
 
 ### 1. Read the pin, and never survey from a date
 
-`docs/internal/capability-surveys/surveyed-pin.json` records, per surface, the **version** last surveyed. Start there.
+`foundation/claims/surveyed-pin.json` records, per surface, the **version** last surveyed. Start there.
 
 **A version, not a date, and the reason is load-bearing.** Every surface **this skill pins** publishes versioned release entries, so "everything after `2.1.208`" is exact, re-derivable by anyone, and unaffected by when you happen to run this. A date pin silently loses anything published out of order or backdated, and gives two people different answers for the same question.
 

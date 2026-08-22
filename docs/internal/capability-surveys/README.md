@@ -16,7 +16,7 @@ has nothing to fail.
 
 ## Inventory
 
-- `surveyed-pin.json` - the last release of each surface that has actually been read, as a verbatim vendor version string. A version rather than a date, because a date pin silently loses anything published out of order and gives two readers different answers.
+- [`surveyed-pin.json`](../../../foundation/claims/surveyed-pin.json) - **MOVED 2026-08-20 to `foundation/claims/` (ADR 0055).** The last release of each surface that has actually been read, as a verbatim vendor version string. A version rather than a date, because a date pin silently loses anything published out of order and gives two readers different answers.
 - `surveys.md` - the append-only dated record, newest first. A survey that finds nothing material still writes its section, with its counts: six months on, a sweep that never ran and a sweep that found nothing are indistinguishable unless the second one said so.
 
 ## What is deliberately not here
