@@ -52,15 +52,6 @@ const INVENTORY_SKIP = new Set([
 const FIXED_ROOTS = [
   "scripts", "scripts/checks", "scripts/generators", "scripts/lib",
   "templates", "evals", ".github/workflows", "site/scripts", "hooks",
-  // foundation/ and its three layers, added 2026-08-20 with v1.16.0 W2. ADR 0055 ratified the layout
-  // and left this to W2 deliberately, because it is a decision rather than a detail: adding them makes
-  // four more READMEs gate-blocking. It is taken because the folder whose entire purpose is
-  // traceability would otherwise be the one folder the folder-guide check does not watch.
-  //
-  // Entries apply only where the folder EXISTS (resolveFolders tests isDir), so no other plugin is
-  // affected. Measured rather than argued: all six registry members were graded before and after and
-  // no tier, error count, or warning count moved.
-  "foundation", "foundation/claims", "foundation/sources", "foundation/synthesis",
 ];
 
 // Each parent expands to its existing immediate subdirectories (minus the excludes).

@@ -12,7 +12,7 @@ One row per tier boundary, naming the capability it depends on and the source re
 
 An absent row reads as "no boundary here." An `unverified` row reads as "a boundary nobody has grounded", which is the finding. **`unverified` does not mean wrong.** Most rows below are almost certainly correct; they are simply not traceable to a first-party source with a date and a method, so if the vendor changed one, nothing here would notice.
 
-First written 2026-08-20 (v1.16.0 W3). **Nothing in this file was filled in from memory**; every `pinned` row cites a live claim, and everything else says `unverified`.
+First written 2026-08-20 (v1.16.0 W3). **Nothing in this file was filled in from memory**; every `pinned` row cites either a live claim **or** the upstream pin, and everything else says `unverified`.
 
 ## The headline finding, and it was not expected
 
@@ -35,7 +35,7 @@ Component types the tier adds: skills, references and assets, `AGENTS.md`, MCP.
 | One portable `.mcp.json` serves both | each native manifest carries an `mcpServers` pointer | **`unverified`** | nothing | - |
 | `U14` - agents must not declare `hooks`, `mcpServers`, `permissionMode` | the runtime refuses these fields for plugin-shipped agents | **pinned, quote** | `plugin-agent-unsupported-fields` | 2026-08-15 |
 | `U14`'s remediation list | which fields the runtime *does* support | **pinned, quote** | `plugin-agent-supported-fields` | 2026-08-16 |
-| `U15` - every `.md` under `agents/` registers | the runtime loads every `.md`, including `README.md` | **pinned, PROBE** | `agents-dir-registers-every-md`. **Blocks from 2026-09-18** | 2026-08-19 |
+| `U15` - every `.md` under `agents/` registers | the runtime loads every `.md`, including `README.md` | **pinned, PROBE** | `agents-dir-registers-every-md`. **Blocks from 2026-09-19** | 2026-08-19 |
 | `U15`'s recursion invariant | `agents/` is scanned recursively with scoped identifiers | **pinned, quote** | `agents-scanned-recursively` | 2026-08-15 |
 | `isRuntimeAgentFile`'s width | a filename containing a colon is excluded | **pinned, quote** | `agent-filename-colon-excluded` | 2026-08-16 |
 
@@ -47,11 +47,11 @@ Component types the tier adds: subagents, commands, workflows, chain contracts, 
 | --- | --- | --- | --- | --- |
 | Commands exist on Claude Code as `commands/<name>.md` | commands merged into skills; invocation control is frontmatter | **pinned, quote** | `commands-merged-into-skills`, `invocation-control-frontmatter` | 2026-08-15 / 2026-08-16 |
 | ...and realize on **Codex** as the backing skill | Codex has no separate command component; the skill is the invocable form | **`unverified`** | nothing | 2026-08-18, `method: read`, unpinned |
-| **Subagents are Claude-only for plugin distribution** | the Codex plugin manifest has **no `agents` field** | **`unverified`, and it is the most consequential row here** | nothing. See below | 2026-08-18 |
+| **Subagents are Claude-only for plugin distribution** | the Codex plugin manifest has **no `agents` field** | **`unverified`, and it is the most consequential row here** | **not pinned - but NOT uncited.** A verbatim first-party quote is in the repo at `skills/askit-capability-whats-new/examples/golden-2-a-capability-nobody-announced.md`. See below | 2026-08-18 |
 | Workflows are a convention | none - `_workflows/<name>.md` is this Standard's own convention | **n/a, house** | - | - |
 | Chain contracts are agent-agnostic | none - a single file this Standard defines | **n/a, house** | - | - |
 | Codex ingests components ONLY via `.codex-plugin/plugin.json` | listing is not ingestion | **`unverified`** | nothing. Established by round-trip experiment | 2026-08-18 |
-| Two plugins' identically named components share one pool | bare-name invocation resolves silently to one winner, by install order | **pinned, PROBE** | `components-share-one-namespace`. **Blocks from 2026-09-19** | 2026-08-20 |
+| Two plugins' identically named components share one pool | bare-name invocation resolves silently to one winner, by install order | **pinned, PROBE** | `components-share-one-namespace`. **Blocks from 2026-09-20** | 2026-08-20 |
 
 ### The subagent row deserves its own paragraph
 
@@ -95,11 +95,40 @@ Cowork is not a tier boundary and is deliberately not a matrix column, but two c
 
 | | Count |
 | --- | --- |
-| Boundaries resting on a **pinned** claim | **8** |
-| Boundaries resting on **nothing first-party** (`unverified`) | **11** |
+| Boundaries resting on a **pinned** claim | **9** |
+| Boundaries **not pinned** (`unverified`, so no expiry) | **11** |
 | Boundaries that are this Standard's own convention (`n/a, house`) | **3** |
 
 **Every one of the eight pinned claims is a Claude Code fact.** Every `unverified` row is a Codex fact, a Cowork fact, or a cross-agent portability claim.
+
+> **`unverified` here means NOT PINNED, and that is not the same as uncited.** An earlier wording said
+> these eleven rest on "nothing first-party", which adversarial wave 2 showed is false for at least one
+> of them: the subagent row is backed by a **verbatim quote of the Codex plugins page**, read 2026-08-18
+> and recorded in `askit-capability-whats-new`'s golden example 2, listing every plugin part with no
+> subagents among them.
+>
+> **The distinction is the whole point of the column.** A citation sitting in an example file establishes
+> the fact today. A **pinned claim** re-reads it on every `vendor-watch` run, or expires and blocks a
+> release. `unverified` in this table means the second thing is absent, so **nothing will notice if the
+> vendor changes it** - not that nobody ever looked.
+
+> **Two different counts, both nearly "eight", and this file said the wrong one until 2026-08-22.**
+> There are **8 pinned CLAIMS** in `vendor-claims.json`, and **9 pinned BOUNDARIES** in the tables above.
+> The summary row read **8** on first writing, which was the claim count wearing the boundary count's
+> clothes. **Corrected by counting the rows, not by re-reading them.**
+>
+> **The arithmetic, which took two attempts.** The first correction said the counts differ because
+> "several boundaries cite the same claim, and one cites `upstream-pin.json`". **Both halves were
+> wrong**, and adversarial wave 2 caught it. The truth:
+>
+> - **No claim id is shared between rows.** Each of the eight is cited exactly once.
+> - **Seven rows are backed by `vendor-claims.json`**, and they cover all eight claims because the
+>   commands row cites **two** (`commands-merged-into-skills` and `invocation-control-frontmatter`).
+> - **Two rows, not one, are backed by `upstream-pin.json`**: skills-are-portable and
+>   references-and-assets. Neither cites a vendor claim id at all.
+>
+> So **7 + 2 = 9 boundaries over 8 claims.** A correction that is itself wrong is worse than the error
+> it replaced, because it carries the authority of having been checked.
 
 **None of these is a defect to fix in this release.** ADR 0055 D4 and the v1.16.0 plan are explicit: where a boundary rests on nothing, that is a **finding to file**, and reassigning a tier is its own ADR with a migration window. This file's job is to make the eleven visible for the first time.
 

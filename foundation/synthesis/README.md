@@ -22,7 +22,7 @@ Point 3 is not fixed by this move. It is the reason W4 of v1.16.0 adds a guard.
 
 The artifact that records, per tier boundary, which vendor fact it rests on and where that fact is pinned. **Written 2026-08-20 (v1.16.0 W3).** Until then nothing connected "a vendor shipped a new component type" to "a tier boundary may need review."
 
-**What it found, on its first pass: 8 boundaries pinned, 11 `unverified`, 3 house conventions - and every one of the 8 pinned claims is a Claude Code fact.** There is no pinned claim for any Codex or Cowork fact, which means the Convergent tier, *defined* as what both agents support in different formats, has pinned evidence for one of them.
+**What it found, on its first pass: 9 boundaries pinned, 11 `unverified`, 3 house conventions - and every one of the 8 pinned CLAIMS is a Claude Code fact.** (Nine boundaries, eight claims: **seven** rows are backed by `vendor-claims.json` and cover all eight because the commands row cites two, and **two** rows rest on `upstream-pin.json` instead. No claim is cited twice.) There is no pinned claim for any Codex or Cowork fact, which means the Convergent tier, *defined* as what both agents support in different formats, has pinned evidence for one of them.
 
 Its contract is fixed by [ADR 0055](../../docs/internal/decisions/0055-the-evidence-gets-an-address-and-gate-readership-is-recorded-not-inferred.md) D3 and one line of it matters more than the rest: **a boundary with no evidence gets a row reading `unverified`, never an omitted row.** An absent row reads as "no boundary here"; an `unverified` row reads as "a boundary nobody has grounded", which is the finding this release exists to surface.
 

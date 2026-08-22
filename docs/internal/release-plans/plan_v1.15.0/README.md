@@ -13,7 +13,7 @@
 | Evaluation scopes | 3 | 3 |
 | Release-blocking gates | 4 | **5** |
 | Declared tier | Advanced (Gold) | Advanced (Gold), self-validated 0 errors / 0 warnings **at its own new 0.15 pin** |
-| Suite | 1252 | **1370**, 0 failures (1292 at cut time, 1359 at the tag - see the note below) |
+| Suite | 1252 | **1373**, 0 failures (1292 at cut time, 1359 at the tag - see the note below) |
 
 Six PRs on `main` since `v1.14.0`, three of them landing after this packet was written (see the scope note above): **#242** (the graduations), **#243** (`action-pin-watch`
 plus the wave-1 fixes), and this packet's own records PR. Two records PRs preceded them: **#239** and
@@ -150,7 +150,7 @@ a real risk, since they are adjacent by design.
 - `node scripts/release-ready.mjs` exits **0** on all **five** gates: conformance, readme-drift,
   release-counts, vendor-watch, action-pins.
 - Conformance gate: **Advanced, 0 errors, 0 warnings**, at the repository's own **new 0.15 pin**.
-- Suite: **1370 tests, 0 failures**, 1 skipped. **This read 1292 at cut time and 1359 at the tag**; the eleven most recent are v1.16.0 W4's capability-matrix drift guard, which has nothing to do with this release and moved this line anyway - see the closing sentence. the sixty-seven added are the `F1` to `F15`
+- Suite: **1373 tests, 0 failures**, 1 skipped. **This read 1292 at cut time and 1359 at the tag**; the fourteen most recent are v1.16.0 W4's capability-matrix drift guard - eleven at W4, three more added when adversarial wave 1 found gaps in it - which has nothing to do with this release and moved this line anyway - see the closing sentence. the sixty-seven added are the `F1` to `F15`
   , `R1` to `R5`, `S1` to `S6`, `T1` to `T7` and `U1` to `U5` regression tests, the universal-range guard from the post-cut docs pass, and the emphasis-tolerance and fenced-quote tests from adversarial wave 2
   regression tests from the post-cut review and the review of its own fix code, which is the only reason this
   line moved after the cut.
@@ -190,12 +190,18 @@ release until a human re-runs their reproductions. Unchanged by this release. He
 and 23 days.
 
 > **UPDATED 2026-08-19, after the cut.** `agents-dir-registers-every-md` was **re-verified** and its
-> deadline moved to **2026-09-18**; the claim holds exactly (three of four `.md` files register, the
+> deadline moved to **2026-09-18**  [CORRECTED 2026-08-22: **2026-09-19**; see the note below]; the claim holds exactly (three of four `.md` files register, the
 > underscore prefix protecting nothing). `components-share-one-namespace` was **NOT** re-verified - the run
 > ruled out one of three possible outcomes but could not establish which of two colliding skills wins, so
 > its date was deliberately left alone and it still blocks from **2026-09-11**.
 >
-> **SUPERSEDED 2026-08-20.** `components-share-one-namespace` was **DISCHARGED** that day and now blocks from **2026-09-19**. The bare name resolves silently to one winner and the winner follows **install order** (A then B gave side A; B then A gave side B), so the claim HOLDS and the two collision checks STAY. `agents-dir-registers-every-md` is now the sooner of the two, at **2026-09-18**. The sentence above stands as the record of what was true at the v1.15.0 cut.
+> **SUPERSEDED 2026-08-20, and its date CORRECTED 2026-08-22 (see below).** `components-share-one-namespace` was **DISCHARGED** that day and now blocks from **2026-09-20**. The bare name resolves silently to one winner and the winner follows **install order** (A then B gave side A; B then A gave side B), so the claim HOLDS and the two collision checks STAY. `agents-dir-registers-every-md` is now the sooner of the two, at **2026-09-18**. The sentence above stands as the record of what was true at the v1.15.0 cut.
+>
+> **DATE CORRECTION, 2026-08-22.** Both blocking dates above were computed as `verifiedOn` + 30 and
+> are one day early. `scripts/lib/vendor-watch.mjs` marks a probe stale on `age > FRESHNESS_DAYS`, so
+> day 30 is still fresh and blocking begins on day **31**. Confirmed by running the gate with `--today`
+> at each boundary. The original figures are left in place above rather than overwritten, because what
+> this packet recorded on the day is itself the record; the correction is this note.
 >
 > Both experiments now ship as installable fixtures with tested commands at
 > [`../../vendor-watch/probes/`](../../vendor-watch/probes/), so the next re-run is minutes rather than a
