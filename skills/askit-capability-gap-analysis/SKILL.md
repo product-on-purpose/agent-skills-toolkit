@@ -21,7 +21,7 @@ Three separate things can be true of one finding, and conflating them is how a c
 | Should the **Standard** model it? | an ADR. This skill drafts; a human ratifies |
 | Do **our own components** use or need it? | this skill, per component |
 
-It owns [`../askit-capability-advisor/references/capability-matrix.md`](../askit-capability-advisor/references/capability-matrix.md). `askit-capability-advisor` reads that file to advise an author; this skill is what keeps it true.
+It owns [`foundation/synthesis/capability-matrix.md`](../../foundation/synthesis/capability-matrix.md). `askit-capability-advisor` reads that file to advise an author; this skill is what keeps it true.
 
 ## When to use
 

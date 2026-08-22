@@ -20,5 +20,5 @@ Invoke `askit-capability-advisor` (check mode) on a component or the whole plugi
 ## See also
 
 - [`askit-capability-advisor` reference](../reference/askit-capability-advisor.md)
-- [capability-matrix](../../skills/askit-capability-advisor/references/capability-matrix.md)
+- [capability-matrix](../../foundation/synthesis/capability-matrix.md)
 - [emit-for-multiple-agents](emit-for-multiple-agents.md)

@@ -9,4 +9,8 @@ The askit-capability-advisor skill. Reports which component types a target agent
 ## Inventory
 
 - `SKILL.md` - the skill definition (frontmatter plus the procedure).
-- `references/` - supporting reference docs loaded on demand.
+
+> **`references/` was emptied 2026-08-20 (v1.16.0 W2).** Its only file, `capability-matrix.md`, moved to
+> [`../../foundation/synthesis/capability-matrix.md`](../../foundation/synthesis/capability-matrix.md)
+> per ADR 0055 (the `foundation/` layout). The matrix is a synthesis of vendor capability that three
+> skills and two public pages depend on, so it was never one skill's private reference.

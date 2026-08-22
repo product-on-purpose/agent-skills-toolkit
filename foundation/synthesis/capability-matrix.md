@@ -49,7 +49,7 @@ concerns settings and UI rather than runtime endpoint injection. The full docume
 swept, so this is *not found* rather than *does not exist*.
 
 That matters for what happens next. A documented behaviour becomes a `quote` claim in
-[`vendor-claims.json`](../../../foundation/claims/vendor-claims.json) and costs nothing
+[`vendor-claims.json`](../claims/vendor-claims.json) and costs nothing
 recurring; an undocumented one can only be a `probe`, whose age is its whole verification and which
 blocks releases past a 30-day window. **Spend the search before filing a probe**, and never file one
 whose reproduction nobody will actually re-run.
@@ -68,5 +68,5 @@ currency evidence, which is the same defect class as a SHA pin whose comment nob
 
 When an agent adds a capability (for example, if Codex gains an `agents` manifest field), update this
 file, the versions above, and `advise`/`check` together so the advice never claims more than the agents
-actually support. [`askit-capability-gap-analysis`](../../askit-capability-gap-analysis/SKILL.md) owns
+actually support. [`askit-capability-gap-analysis`](../../skills/askit-capability-gap-analysis/SKILL.md) owns
 that update; this skill reads the result.

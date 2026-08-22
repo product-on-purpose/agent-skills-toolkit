@@ -10,7 +10,7 @@ metadata:
 # askit-capability-advisor
 
 ## Purpose
-Tell a maintainer what their target agent supports before they build, so the plan fits the agent rather than failing at release. Two modes: `advise` takes the target agents (`claude`, `codex`, or both), reports which component types are plugin-distributable on each, flags the Claude-only types and the cross-agent asymmetries, and recommends a tier path; `check` takes a specific component or a whole plugin and reports which declared targets can actually run it, so a Claude-only component shipped under a Codex target is caught before release. The full matrix is in [references/capability-matrix.md](references/capability-matrix.md).
+Tell a maintainer what their target agent supports before they build, so the plan fits the agent rather than failing at release. Two modes: `advise` takes the target agents (`claude`, `codex`, or both), reports which component types are plugin-distributable on each, flags the Claude-only types and the cross-agent asymmetries, and recommends a tier path; `check` takes a specific component or a whole plugin and reports which declared targets can actually run it, so a Claude-only component shipped under a Codex target is caught before release. The full matrix is in [`foundation/synthesis/capability-matrix.md`](../../foundation/synthesis/capability-matrix.md).
 
 ## When to use
 When choosing `agent-targets`, checking whether a component is portable across agents, or deciding which conformance tier to aim for.
