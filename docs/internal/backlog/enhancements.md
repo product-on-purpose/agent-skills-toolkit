@@ -574,6 +574,27 @@ patching one did not prompt a look at the other.
 - **A second consequence worth knowing:** the pre-pass also REWROTE `severity` in place, so a held-back finding no longer knew what its check had emitted. That is exactly the information a graduation needs, which is why the two defects had to be fixed together.
 - **Status:** RESOLVED 2026-08-13 (v1.13.0 W1b, ADR 0044). Recorded 2026-08-11 from the round-2 adversarial review of the v1.10.1 patch.
 
+## Release-mechanics intake (2026-08-22)
+
+Two entries found while answering a maintainer question about why v1.15.0's packet kept changing weeks after v1.15.0 shipped. **The question was better than the answer that had been implied to it.**
+
+### E52 - a SHIPPED release's packet is rewritten every time the suite grows  [design, effort S, found 2026-08-22]
+
+- **Target:** `scripts/check-release-counts.mjs`, and the release choreography's ordering.
+- **The behaviour:** the gate reads the version from `library.json` and polices **that version's** packet. The version bump is Step 2 of the **cut**, so between shipping one release and cutting the next, `main` carries the next release's work while still declaring the last one. Every test the in-flight release adds therefore forces an edit to a **shipped** release's record.
+- **Measured:** `plan_v1.15.0/README.md`'s suite figure was rewritten **three times in one session** - 1359, 1370, 1373 - by work that had nothing to do with v1.15.0. That packet now reads "1292 at cut time and 1359 at the tag", an accreting annotation whose only cause is this ordering.
+- **Why it matters beyond tidiness:** a reader opening a shipped release's record sees it **still moving**, which is exactly the confusion that produced this entry. It also puts routine churn into a document the supersede convention says should be stable.
+- **Candidate fixes, none chosen here:** bump the version immediately **after** a tag rather than at the next cut, so the gate follows to the new packet and the old one freezes; or have the gate check only the packet of a version that has **not** yet shipped; or exempt a packet whose version has a tag.
+- **Status:** backlog, unversioned.
+
+### E53 - a golden example labels a reconstructed sentence `Verbatim`  [correctness, effort XS, found 2026-08-22]
+
+- **Target:** `skills/askit-capability-whats-new/examples/golden-2-a-capability-nobody-announced.md`.
+- **The defect:** the example quotes the Codex plugin parts list as `Verbatim:` in one flattened sentence - *"A plugin can contain one or more of these parts: Skills, Connectors, MCP servers, Browser extensions, Hooks, [and] Scheduled task templates."* **That sentence is not on the page.** Fetched 2026-08-22: the page carries the lead-in `A plugin can contain one or more of these parts:` followed by a **bullet list**. The bracketed `[and]` is the tell of a reconstruction.
+- **Why it is worth fixing in a golden example specifically:** a golden example teaches the skill what good output looks like. This one teaches it to label a flattening as verbatim - in a skill whose entire job is producing quotable sentences for `vendor-claims.json`, where a non-verbatim quote lands as `MISSING` and **blocks every release**.
+- **The fix:** quote the lead-in verbatim and render the parts as a list, or mark the flattening as a paraphrase. Check whether any eval or test asserts on this example before editing.
+- **Status:** backlog, unversioned.
+
 ## v1.16.0 adversarial-review intake (2026-08-22)
 
 One entry, from adversarial wave 1 over the v1.16.0 implementation. Its six other findings were fixed in that release; this one is deferred because it is **pre-existing and ADR-gated**, and the reason is recorded rather than the entry being quietly dropped.
@@ -600,14 +621,22 @@ Three findings from the first pass of [`foundation/synthesis/tier-basis.md`](../
 - **The gap:** the matrix states Claude Code has **31 hook events** and Codex supports a **subset of 9** (PreToolUse, PostToolUse, Pre/PostCompact, SessionStart, SubagentStart/Stop, UserPromptSubmit, Stop, PermissionRequest). **Neither number is cited and neither carries a date.** `tier-basis.md` records the row as `unverified` with confirmation date `unknown`.
 - **Why it ranks first of the three:** `STANDARD.md` sec 2.3 makes documenting every hook, its event and its scope a **MUST for the Advanced tier**. The top tier of the ladder rests on an enumeration sourced from nothing.
 - **The fix is a reading, not an argument:** open both hook-event references, count, and pin a `quote` claim per side. If a side has no quotable sentence, it is a `probe` with a reproduction, not a matrix note.
-- **Status:** backlog, unversioned.
+- **RESOLVED 2026-08-22.** Done exactly as prescribed: opened the reference, counted, pinned. `https://developers.openai.com/codex/hooks.md` enumerates the Codex events in three table rows, now all three pinned as `quote` claims (`codex-hook-events-during-turn`, `-session-start`, `-session-end`) against the new `cx-hooks` source - **the first Codex source this repository pins.** All three verified HOLDS against the live page before landing.
+- **The reading found the drift this entry predicted.** Codex documents **eleven** events; the capability matrix recorded ten and `tier-basis.md` said nine. **`SessionEnd` was absent from our record**, corroborated four ways on the page: the event table, a config example, the timeout rules, and the parameters table. Matrix and `tier-basis.md` both corrected.
+- **NOT fully closed: Claude Code's "31 events" is still an unpinned count.** Half a boundary grounded is still half a boundary open, and saying so is the point of the file this entry came from.
+- **Status:** RESOLVED for the Codex half 2026-08-22; the Claude Code count remains open.
 
 ### E49 - the Codex subagent absence is quotable and was never landed as a claim  [correctness, effort XS, found writing tier-basis.md]
 
 - **Target:** `foundation/claims/vendor-claims.json`.
 - **The gap:** "the Codex plugin manifest has no `agents` field, so plugin subagents are Claude-only" is a **Convergent tier boundary** - it is why authors are told to declare `agent-targets: [claude]` for every subagent they ship. It rests on a round-trip experiment, `unverified` in `tier-basis.md`.
 - **Why this is the cheapest row in the file to close:** the fact was **already corroborated by a vendor list containing no subagents**, which is exactly the probe-becomes-quotable transition `askit-capability-whats-new`'s golden example 2 records and routes to a candidate claim. **The candidate was never landed.** A quote costs nothing recurring; the current state costs a reading with no expiry.
-- **Status:** backlog, unversioned.
+- **AMENDED 2026-08-22: THE PREMISE OF THIS ENTRY IS WRONG, and it cannot be closed the way it proposes.** This entry says the fact is "already quotable" and only needs the candidate landed. **It is not quotable.** `vendor-watch` evaluates a `quote` by testing that the pinned sentence **is present** on the page (`normalizeForMatch(page).includes(...)`). There is no mechanism for pinning an **absence**, and "the Codex plugin manifest has no `agents` field" is an absence - a property of a LIST, not a sentence.
+- **The obvious workaround fails this repository's own rule.** Pinning `"A plugin can contain one or more of these parts:"` would hold whether or not subagents were ever added, so it cannot be shown failing, and **a guard that cannot be shown failing is not a guard.**
+- **A second defect surfaced while checking this.** `askit-capability-whats-new`'s golden example 2 presents the parts list as `Verbatim:` in a single flattened sentence. **The live page does not contain that sentence**; it carries the lead-in followed by a bullet list. The bracketed `[and]` was the tell. Filed separately as `E53`.
+- **Re-verified live 2026-08-22** against `https://developers.openai.com/codex/plugins.md` (308 to `learn.chatgpt.com/docs/plugins.md`): six parts - Skills, Connectors, MCP servers, Browser extensions, Hooks, Scheduled task templates. **No subagents.** The fact holds; only the proposed mechanism was wrong.
+- **The honest options are now two**, and this entry chooses neither: write a **probe** with a reproduction, so the absence acquires an expiry the way every other absence-shaped fact in this repository does; or add a claim `kind` that asserts a sentence is ABSENT, which is a `vendor-watch` change and an ADR.
+- **Status:** backlog, unversioned, **premise corrected**. Effort revised from XS to S-M.
 
 ### E50 - two shipped checks accommodate Cowork behaviour the vendor documents nowhere  [correctness, effort S-M, found writing tier-basis.md]
 

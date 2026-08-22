@@ -14,7 +14,7 @@ What each target agent can run, by component type, for a *distributed plugin*. P
 | Subagent | 3.3 (Convergent) | yes (`agents/<name>.md`) | no (plugin) | Codex subagents are user/project `config.toml` only; the Codex plugin manifest has no `agents` field. Plugin subagents are Claude-only; declare `agent-targets: [claude]`. |
 | Workflow | 3.4 (Convergent) | yes | yes | Convention (`_workflows/<name>.md`); a workflow SHOULD declare its `agent-targets`. |
 | Chain contract | 3.6 (Convergent) | yes | yes | Agent-agnostic single file (`agents/_chain-permitted.yaml`); conditional MUST (required iff chaining is used). |
-| Hook | 3.5 (Advanced) | yes (31 events) | subset | Codex supports a smaller event set (PreToolUse, PostToolUse, Pre/PostCompact, SessionStart, SubagentStart/Stop, UserPromptSubmit, Stop, PermissionRequest). |
+| Hook | 3.5 (Advanced) | yes (31 events) | subset, **11 events** | Codex supports a smaller set: `PreToolUse`, `PermissionRequest`, `PostToolUse`, `PreCompact`, `PostCompact`, `UserPromptSubmit`, `SubagentStop`, `Stop`, `SessionStart`, `SubagentStart`, `SessionEnd` (which does not run for subagents). **Pinned 2026-08-22** by `codex-hook-events-*` in [`../claims/vendor-claims.json`](../claims/vendor-claims.json). **`SessionEnd` was absent from this row until then** - the drift `E48` predicted, found by reading the page. |
 | Output style | 2.3 (Advanced) | yes | no | Codex has no output-style feature; Claude-only. |
 | Statusline | 2.3 (Advanced) | yes (custom script) | differs | Codex configures a built-in picker via `config.toml tui.status_line`, not a shipped script; treat the script component as Claude-only. |
 

@@ -9,6 +9,31 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+**The evidence this Standard rests on gets an address.** Six artifacts move into a new repo-root `foundation/`, the artifact recording which vendor fact each tier boundary depends on is written for the first time, and one guard is added. **No check is added to the spine, no Standard requirement changes, and no plugin's verdict moves** - measured per family member before and after, byte-identical.
+
+### Added
+
+- **`foundation/`**, a repo-root tree holding what the Standard rests on, ratified by ADR 0055. Three layers: `sources/` (one record per first-party surface, each carrying **what was read, which version, when, and by what METHOD**), `claims/` (the machine-checkable subset), `synthesis/` (what was concluded from them), plus `surveys.md`. Every folder carries a guide; `claims/README.md` names, **per file, the gate code that reads it**, because the previous answer was an inference from folder membership that was already false for one of the three.
+- **`foundation/synthesis/tier-basis.md`**, one row per tier boundary naming the vendor fact it depends on and whether that fact is pinned. **A boundary with no evidence gets a row reading `unverified`, never an omitted row.** Its first pass found that every pinned claim sourced from a Claude Code page, so the Convergent tier - defined as what *both* agents support - had pinned evidence for one of them.
+- **Three `quote` claims for the Codex hook event set** (`codex-hook-events-*`) against a new `cx-hooks` source: **the first Codex source this repository pins.** `foundation/claims/vendor-claims.json` now pins eleven claims (9 quote, 2 probe) across four vendor pages, up from eight across three. They close the Advanced tier's hooks boundary, which was previously grounded in nothing.
+- **`tests/unit/capability-matrix-drift.test.mjs`**, guarding the capability matrix against drifting from `STANDARD.md`'s tier sections and against claiming currency it cannot evidence. **A test, not a spine check** - it grades this repository's own evidence and carries no `reqId`.
+
+### Changed
+
+- **`scripts/vendor-watch.mjs`, `scripts/lib/standards-watch.mjs` and `scripts/check-parity.mjs`** read their claims files from `foundation/claims/` rather than `docs/internal/`. Consumers are unaffected: the npm tarball ships only the gate, and the plugin install carries the whole tree either way.
+- **`askit-capability-gap-analysis` gains a fourth gate question:** *does this finding touch a component type any tier requires?* A yes routes to an ADR rather than a matrix edit. Until `tier-basis.md` existed the question could not be asked.
+- **`askit-capability-gap-analysis` no longer reaches into another skill's `references/` folder.** The capability matrix now lives at a shared address instead.
+
+### Fixed
+
+- **Every probe blocking date in the repository was one day early.** The gate marks a probe stale on `age > 30`, so day 30 is still fresh and blocking begins on day **31**. Every date had been computed as `verifiedOn` + 30. Corrected across six documents; the horizon is now **2026-09-19** and **2026-09-20**.
+- **The capability matrix's Codex hook list was missing `SessionEnd`.** The vendor documents **eleven** events; this repository recorded nine or ten. Found by reading the reference, corroborated four ways on the page.
+
+### Review
+
+- **Two adversarial waves plus self-review returned fifteen findings**, ledger at `docs/internal/release-plans/plan_v1.16.0/review-findings.md`. **The overlap between the waves is zero**, because the second was pointed at *false sentences* rather than repeating the first's brief. Three of wave 2's findings were defects in wave 1's own fixes, including one where **the correction to a finding was itself wrong**.
+- **One finding is deferred and ships open:** `E51`, a `G8` silent pass on an unreadable README. Pre-existing, and fixing it moves verdicts, so it needs an ADR and a warn-first window.
+
 ## [1.15.0] - 2026-08-20
 **Standard 0.14 to 0.15.** Two windowed requirements graduate from `warn` to gate-failing `error`, and a
 fifth release gate closes a class of defect this repository had caught three times by eye and never once by
@@ -534,7 +559,7 @@ rewritten to look as though this was always the plan.
 
   **What that cost, one day before this shipped:** ADR 0048 was ratified asserting that a command is not a skill, and Claude Code says *"Custom commands have been merged into skills."* A 2026-08-10 internal audit had **already found it** and graded `S7` a conceptual conflict. The evidence existed. Nothing was re-reading it.
 
-  `docs/internal/vendor-watch/vendor-claims.json` pins eight claims (6 quote, 2 probe) across three vendor pages, each carrying a `dependsOn` list (what breaks) and an `onChange` instruction (what to do, which differs per claim: `U14`'s is asymmetric because a field REMOVED from the refused list is green-ward while a field ADDED is a Standard revision). `npm run vendor-watch` checks them; `.github/workflows/vendor-watch.yml` runs monthly and **opens an issue rather than editing anything**; and `npm run release-ready` **runs it inside `release.yml` and `publish-npm.yml`**, so a tag or a publish is blocked by a claim the vendor no longer makes rather than by someone remembering to look.
+  `docs/internal/vendor-watch/vendor-claims.json` **pinned, at this release,** eight claims (6 quote, 2 probe) across three vendor pages, each carrying a `dependsOn` list (what breaks) and an `onChange` instruction (what to do, which differs per claim: `U14`'s is asymmetric because a field REMOVED from the refused list is green-ward while a field ADDED is a Standard revision). `npm run vendor-watch` checks them; `.github/workflows/vendor-watch.yml` runs monthly and **opens an issue rather than editing anything**; and `npm run release-ready` **runs it inside `release.yml` and `publish-npm.yml`**, so a tag or a publish is blocked by a claim the vendor no longer makes rather than by someone remembering to look.
 
   **It pins CLAIMS, not pages.** A page hash would fire on every navigation and CSS change and be ignored within a month; what this repository depends on is specific sentences, so those are what is pinned and checked.
 

@@ -270,6 +270,14 @@ const MEANING_REVERSALS = Object.freeze({
   // content words with the claim and so demonstrated vocabulary drift rather than meaning drift.
   "invocation-control-frontmatter":
     "Add disable-model-invocation: true to allow Claude to keep triggering it automatically.",
+  // The three Codex hook claims. Each keeps the row's own vocabulary and inverts what the row SAYS,
+  // because a reversal sharing no words with its claim proves nothing - see the honesty test below.
+  "codex-hook-events-during-turn":
+    "During a turn | PreToolUse and PostToolUse only. PermissionRequest, PreCompact, PostCompact, UserPromptSubmit, SubagentStop and Stop no longer run during a turn.",
+  "codex-hook-events-session-start":
+    "When a session or subagent starts | SessionStart was removed; only SubagentStart still fires when a subagent starts.",
+  "codex-hook-events-session-end":
+    "When the main thread ends | SessionEnd now also runs for subagents.",
   "agents-scanned-recursively":
     "Plugin agents/ directories are no longer scanned recursively; only top-level files are registered.",
   "agent-filename-colon-excluded":
@@ -341,7 +349,12 @@ test("W2: the prose describing the pin counts what the pin actually holds", () =
   // the pin grew twice afterwards. Every other number this repository publishes is generated or checked;
   // this one was prose, so it rotted in the release notes a consumer reads FIRST.
   const d = JSON.parse(readFileSync(CLAIMS, "utf8"));
-  const WORD = ["zero", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine", "ten"];
+  // Extended past "ten" on 2026-08-22, when the pin reached ELEVEN claims and this table silently
+  // turned the word into NaN. A lookup that runs out mid-range fails as a wrong answer rather than as a
+  // missing one, which is the quieter of the two failures: the assertion reported a count mismatch and
+  // named no cause. Kept as words because that is how the prose is written; grown so it keeps up.
+  const WORD = ["zero", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine", "ten",
+    "eleven", "twelve", "thirteen", "fourteen", "fifteen", "sixteen", "seventeen", "eighteen", "nineteen", "twenty"];
   const expected = { claims: d.claims.length, sources: d.sources.length };
   const RE = /pins (\w+) claims[^.]*? across (\w+) vendor pages/g;
   for (const rel of ["CHANGELOG.md", "docs/internal/STATUS.md"]) {

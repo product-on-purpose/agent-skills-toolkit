@@ -16,6 +16,8 @@ First written 2026-08-20 (v1.16.0 W3). **Nothing in this file was filled in from
 
 ## The headline finding, and it was not expected
 
+> **UPDATE 2026-08-22: this finding drove a fix, and is now PARTLY SUPERSEDED.** Three `quote` claims for the Codex hook event set landed that day (`cx-hooks`), so the file now holds **11 claims across two vendors** rather than 8 across one. The asymmetry is narrowed, not gone: Codex has three claims to Claude Code's eight, and **Cowork still has none**. The paragraph below is the finding as first written.
+
 **All eight pinned claims in [`../claims/vendor-claims.json`](../claims/vendor-claims.json) source from Claude Code pages** - `cc-plugins-reference`, `cc-skills`, `cc-sub-agents`. There is **no pinned claim for any Codex fact, and none for any Cowork fact.**
 
 **The Convergent tier is defined by cross-agent parity.** `STANDARD.md` sec 2.2: *"Concepts both CC and CX support, but in different formats."* So the tier whose entire definition is a statement about two agents has **pinned evidence for one of them.**
@@ -67,18 +69,20 @@ Component types the tier adds: hooks, output styles, statusline, self-hosting CI
 
 | Boundary | The vendor fact it rests on | Status | Pinned where | Confirmed |
 | --- | --- | --- | --- | --- |
-| **Hooks: Codex supports a SUBSET of Claude Code's events** | Claude Code has 31 events; Codex has 9 (PreToolUse, PostToolUse, Pre/PostCompact, SessionStart, SubagentStart/Stop, UserPromptSubmit, Stop, PermissionRequest) | **`unverified`. The subset is pinned NOWHERE and its confirmation date is unknown** | nothing | **unknown** |
+| **Hooks: Codex supports a SUBSET of Claude Code's events** | Claude Code has 31 events; **Codex has 11**, enumerated in three table rows on the vendor's hook reference | **pinned, quote** (newly pinned 2026-08-22) | `codex-hook-events-during-turn`, `codex-hook-events-session-start`, `codex-hook-events-session-end` | 2026-08-22 |
 | Output styles are Claude-only | Codex has no output-style feature | **`unverified`** | nothing | - |
 | Statusline differs | Codex configures a built-in picker via `config.toml` `tui.status_line`, not a shipped script | **`unverified`** | nothing | - |
 | Self-hosting CI | none - this Standard's own requirement | **n/a, house** | - | - |
 
-### The hooks row is the one this release was written to expose
+### The hooks row is the one this release was written to expose, and it is now CLOSED
 
 **The Advanced tier REQUIRES hooks.** `STANDARD.md` sec 2.3 makes documenting every hook, its event and its scope a MUST. So the top tier of this ladder rests on a claim about which events Codex supports - and **that list is written in the capability matrix, sourced from nothing, dated never.**
 
 Both halves are unverified in different ways. Claude Code's "31 events" is a count nobody pinned. Codex's nine are enumerated in the matrix with no citation and no date.
 
-**This is the row to fix first**, and it needs a reading rather than an argument: open both hook-event references, count, and pin.
+**RESOLVED 2026-08-22, by doing exactly that: opening the reference, counting, and pinning.** The Codex hook page enumerates its events in three table rows, all three now pinned as `quote` claims that re-read on every `vendor-watch` run. **The reading found real drift:** this file and the capability matrix both recorded **nine or ten** events; the vendor documents **eleven**. `SessionEnd` was missing from our record, confirmed in the vendor's own event table, its timeout rules, its parameters table and a config example.
+
+**Claude Code's "31 events" is still `unverified`** - a count nobody pinned. Half a row closed is still half a row open.
 
 ## Cowork: two shipped checks bending around undocumented behaviour
 
@@ -95,8 +99,8 @@ Cowork is not a tier boundary and is deliberately not a matrix column, but two c
 
 | | Count |
 | --- | --- |
-| Boundaries resting on a **pinned** claim | **9** |
-| Boundaries **not pinned** (`unverified`, so no expiry) | **11** |
+| Boundaries resting on a **pinned** claim | **10** |
+| Boundaries **not pinned** (`unverified`, so no expiry) | **10** |
 | Boundaries that are this Standard's own convention (`n/a, house`) | **3** |
 
 **Every one of the eight pinned claims is a Claude Code fact.** Every `unverified` row is a Codex fact, a Cowork fact, or a cross-agent portability claim.
@@ -127,7 +131,12 @@ Cowork is not a tier boundary and is deliberately not a matrix column, but two c
 > - **Two rows, not one, are backed by `upstream-pin.json`**: skills-are-portable and
 >   references-and-assets. Neither cites a vendor claim id at all.
 >
-> So **7 + 2 = 9 boundaries over 8 claims.** A correction that is itself wrong is worse than the error
+> So **7 + 2 = 9 boundaries over 8 claims** as first counted. **Now 10 pinned**, after the Advanced hooks row was pinned on 2026-08-22 by three Codex claims.
+>
+> **A counting trap this file then created for itself.** The hooks row's status briefly read
+> "**pinned, quote** (was `unverified` until 2026-08-22)" - which contains BOTH words, so any script
+> classifying rows by substring counted it twice and produced 10 + 11 + 3 = 24 over 23 rows. **A status
+> cell must name one state.** The history belongs in the notes, not in the field being counted. A correction that is itself wrong is worse than the error
 > it replaced, because it carries the authority of having been checked.
 
 **None of these is a defect to fix in this release.** ADR 0055 D4 and the v1.16.0 plan are explicit: where a boundary rests on nothing, that is a **finding to file**, and reassigning a tier is its own ADR with a migration window. This file's job is to make the eleven visible for the first time.
