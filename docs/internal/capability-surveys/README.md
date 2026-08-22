@@ -23,6 +23,6 @@ has nothing to fail.
 
 **Nothing blocks on the age of this pin.** An old survey means work is waiting, not that a claim has
 expired. The mechanisms that do block on age are the `probe` claims in
-[`../vendor-watch/vendor-claims.json`](../vendor-watch/vendor-claims.json), where a probe has no page to
+[`foundation/claims/vendor-claims.json`](../../../foundation/claims/vendor-claims.json), where a probe has no page to
 re-check so its age is its whole verification. Keeping that asymmetry is deliberate: a survey backlog
 should never stop a release, and a stale probe always should.

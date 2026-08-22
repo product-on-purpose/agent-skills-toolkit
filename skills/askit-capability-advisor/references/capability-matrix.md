@@ -49,7 +49,7 @@ concerns settings and UI rather than runtime endpoint injection. The full docume
 swept, so this is *not found* rather than *does not exist*.
 
 That matters for what happens next. A documented behaviour becomes a `quote` claim in
-[`vendor-claims.json`](../../../docs/internal/vendor-watch/vendor-claims.json) and costs nothing
+[`vendor-claims.json`](../../../foundation/claims/vendor-claims.json) and costs nothing
 recurring; an undocumented one can only be a `probe`, whose age is its whole verification and which
 blocks releases past a 30-day window. **Spend the search before filing a probe**, and never file one
 whose reproduction nobody will actually re-run.

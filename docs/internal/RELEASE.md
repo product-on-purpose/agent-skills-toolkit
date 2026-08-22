@@ -39,7 +39,7 @@ A public `0.x` tag ships at every wave boundary (RELEASE-PLAN v0.2 Section 5); `
 
   Every vendor claim this repository asserts as fact - `U14`'s refused-field sentence, `U15`'s discovery
   behaviour, sec 3.2's commands-into-skills premise, ADR 0051's namespacing condition - is pinned in
-  [`vendor-claims.json`](vendor-watch/vendor-claims.json) and re-checked against the live page by that run.
+  [`vendor-claims.json`](../../foundation/claims/vendor-claims.json) and re-checked against the live page by that run.
   **Exit 1 means a claim is gone or stale; exit 2 is a REFUSAL (a page could not be read) and is never a pass.**
   **Freshness is scoped to what age can actually prove.** A QUOTE is re-confirmed against the live page on
   every run, so it never blocks while it holds; if nobody has READ that page in 30 days the run says so and

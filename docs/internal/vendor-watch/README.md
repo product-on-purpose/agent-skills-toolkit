@@ -60,7 +60,13 @@ The watcher is **write-incapable by construction** - it imports only `readFileSy
 and [a test](../../../tests/unit/vendor-watch.test.mjs) fails the build if any write API appears in
 either module. A watcher that can amend the claim it watches turns a governed decision into a silent one.
 
+> **MOVED 2026-08-20 (v1.16.0 W2).** `vendor-claims.json` now lives at
+> [`../../../foundation/claims/vendor-claims.json`](../../../foundation/claims/vendor-claims.json), per
+> ADR 0055 (the `foundation/` layout). **The probe reproductions did NOT move** and stay here: they are
+> deliberately non-conforming fixtures whose exclusion from the gates and the suite was established at
+> this path, and whose tested commands name it.
+
 ## Inventory
 
-- `vendor-claims.json` - the pinned claims, their sources, what depends on each, and what to do when one
-  fails.
+- `probes/` - the installable reproductions behind the two `probe` claims, with an `EXPECTED.md` per
+  probe recording what each run observed.

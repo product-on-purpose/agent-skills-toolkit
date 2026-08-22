@@ -18,7 +18,7 @@ import path from "node:path";
 import { buildReport, exitCodeFor, renderReport } from "./lib/vendor-watch.mjs";
 import { normalizeArgPath } from "./lib/fs-utils.mjs";
 
-export const CLAIMS_REL = "docs/internal/vendor-watch/vendor-claims.json";
+export const CLAIMS_REL = "foundation/claims/vendor-claims.json";
 
 const USAGE = `Usage: node scripts/vendor-watch.mjs [root] [options]
 

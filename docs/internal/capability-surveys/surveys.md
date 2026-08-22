@@ -46,7 +46,7 @@ and its pin is recorded as `null` rather than guessed.
 ### Claim-bearing findings
 
 - **The Codex subagent absence is now QUOTABLE.** It can move from probe-derived knowledge to a `quote`
-  claim in `vendor-watch/vendor-claims.json`, which costs nothing recurring - whereas a probe's age is its
+  claim in `foundation/claims/vendor-claims.json`, which costs nothing recurring - whereas a probe's age is its
   whole verification and blocks releases past a 30-day window. **Candidate claim, not yet filed.**
 
 ### Environmental findings
