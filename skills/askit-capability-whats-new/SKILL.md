@@ -72,7 +72,7 @@ A release note announces; a documentation page specifies. **A capability finding
 
 ### 5. Propose the survey record, including when nothing was found. Do not write it.
 
-Emit one dated section for `docs/internal/capability-surveys/surveys.md`, in the format in [references/survey-record.md](references/survey-record.md), for a human to land **together with the pin from step 6**.
+Emit one dated section for `foundation/surveys.md`, in the format in [references/survey-record.md](references/survey-record.md), for a human to land **together with the pin from step 6**.
 
 **Both artifacts are proposed and neither is written, which is the folder's stated contract** ([capability-surveys/README.md](../../docs/internal/capability-surveys/README.md)): a human lands them together so the pin and the reading move as one. A skill that wrote the record but only proposed the pin could leave the two describing different runs, which is the precise divergence the contract exists to prevent.
 

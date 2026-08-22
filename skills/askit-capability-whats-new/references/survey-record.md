@@ -5,7 +5,7 @@ Two artifacts, split the same way [`askit-standards-watch`](../../askit-standard
 | Artifact | Half | Rewritten? |
 |---|---|---|
 | `foundation/claims/surveyed-pin.json` | machine | replaced wholesale each survey |
-| `docs/internal/capability-surveys/surveys.md` | human | **append only, never edited** |
+| `foundation/surveys.md` | human | **append only, never edited** |
 
 ## The pin
 

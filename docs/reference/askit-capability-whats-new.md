@@ -51,7 +51,7 @@ It also cannot see a capability the vendor shipped and documented nowhere. That 
 
 | Artifact | Nature |
 |---|---|
-| `docs/internal/capability-surveys/surveys.md` | append-only dated record; never rewritten |
+| `foundation/surveys.md` | append-only dated record; never rewritten |
 | `foundation/claims/surveyed-pin.json` | proposed, landed by a human alongside the record |
 | candidate claims | routed to `vendor-claims.json`, not written by this skill |
 

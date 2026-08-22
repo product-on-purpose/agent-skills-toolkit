@@ -5,8 +5,8 @@ title: "Capability surveys"
 # Capability surveys
 
 The dated record of what the agent platforms shipped and what a human made of it. Written by
-[`askit-capability-whats-new`](../../../skills/askit-capability-whats-new/SKILL.md); findings route to
-[`askit-capability-gap-analysis`](../../../skills/askit-capability-gap-analysis/SKILL.md).
+[`askit-capability-whats-new`](../skills/askit-capability-whats-new/SKILL.md); findings route to
+[`askit-capability-gap-analysis`](../skills/askit-capability-gap-analysis/SKILL.md).
 
 **Append only.** A section is a dated measurement of what was true when it was written. If a later survey
 shows an earlier one was wrong, the correction goes in the **later** section, dated, naming what it
