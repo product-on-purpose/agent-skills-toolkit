@@ -36,7 +36,7 @@ These are `probe` claims. **There is nothing to re-read, so their age IS the ver
 
 - 2026-08-06, `method: probe` - registered subagents listed in a live session. An actual observation, not reproducible on demand.
 - 2026-08-19, `method: tool` - `claude plugin details`, the runtime's own inventory command. Reproducible in 30 seconds, but reports what the runtime says it will load rather than an observation of it having loaded.
-- **Blocks from 2026-09-18.**
+- **Blocks from 2026-09-19.**
 
 **This pair is the worked example behind the `method` field.** Both readings are legitimate, they have opposite weaknesses, and "confirmed 2026-08-19" describes both while distinguishing neither.
 
@@ -45,7 +45,7 @@ These are `probe` claims. **There is nothing to re-read, so their age IS the ver
 - 2026-08-12, `method: probe` - shared pool observed. Which side won was not recorded.
 - 2026-08-19 - **PARTIAL, and the date was deliberately not advanced.** Install-refusal was ruled out; which side wins was still open. Advancing a date on evidence that does not exist is the one thing this mechanism exists to prevent.
 - 2026-08-20, `method: probe` (headless `claude -p --output-format stream-json --verbose`) - **discharged.** The bare name resolves silently to one winner, and the winner **follows install order**: A-then-B gave side A, B-then-A gave side B. Alphabetical ordering is ruled out. Two runs where opposite sides win is the direct evidence for the word *undefined*.
-- **Blocks from 2026-09-19.**
+- **Blocks from 2026-09-20.**
 
 **The 2026-08-20 instrument is stronger than `probe` can express.** The event stream records the actual tool calls, so "the skill was invoked" and "no file was read" are receipts rather than assertions. That second one mattered: the fixtures live inside this repository, so a session left alone can read the answer off disk and sound certain.
 

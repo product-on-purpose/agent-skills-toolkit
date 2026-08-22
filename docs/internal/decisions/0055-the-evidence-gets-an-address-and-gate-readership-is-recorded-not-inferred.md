@@ -178,6 +178,26 @@ The second clause carries the weight. A folder that only records what it can sup
 
 **This ADR is ratification, so its implementation sites are prospective.** No file has moved; recording them here is what lets W2 be checked against a decision rather than against a memory.
 
+> **CORRECTED 2026-08-22 by adversarial wave 2: the list below was NOT complete, and neither was the
+> blast-radius figure above.** The ADR is left as ratified and this note is the correction of record.
+>
+> **Two readers were missing, each invisible to a different search.**
+>
+> - `scripts/check-parity.mjs:529` assembles the path from separate segments -
+>   `path.join(root, "foundation", "claims", "upstream-pin.json")` - so no path-string grep can see it.
+>   Found during W2 itself and recorded in the correction section above.
+> - `tests/unit/standards-watch.test.mjs:297` calls `readPin(REPO_ROOT, PIN_REL)`, reaching the file
+>   through the **exported constant** and naming no path at all. Invisible to a path-string grep AND to
+>   a `path.join` segment search - the two techniques added precisely to stop missing readers.
+>
+> **So the blast-radius figure "two constants and two test files" is wrong.** The committed migration
+> touched **three script files and three test files.**
+>
+> **The generalisable rule:** a reader can reach a file by a path literal, by assembled segments, or by
+> an exported constant. Only a search for the constant's own name finds the third. The authoritative
+> record is the per-file table in [`foundation/claims/README.md`](../../../foundation/claims/README.md),
+> maintained by hand, and this ADR should be read as the reasoning rather than as the inventory.
+
 **Path constants that must change when `claims/` is populated (W2), and the complete list of them:**
 
 - `scripts/vendor-watch.mjs:21` - `export const CLAIMS_REL = "docs/internal/vendor-watch/vendor-claims.json"`

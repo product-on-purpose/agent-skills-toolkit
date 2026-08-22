@@ -190,12 +190,18 @@ release until a human re-runs their reproductions. Unchanged by this release. He
 and 23 days.
 
 > **UPDATED 2026-08-19, after the cut.** `agents-dir-registers-every-md` was **re-verified** and its
-> deadline moved to **2026-09-18**; the claim holds exactly (three of four `.md` files register, the
+> deadline moved to **2026-09-18**  [CORRECTED 2026-08-22: **2026-09-19**; see the note below]; the claim holds exactly (three of four `.md` files register, the
 > underscore prefix protecting nothing). `components-share-one-namespace` was **NOT** re-verified - the run
 > ruled out one of three possible outcomes but could not establish which of two colliding skills wins, so
 > its date was deliberately left alone and it still blocks from **2026-09-11**.
 >
-> **SUPERSEDED 2026-08-20.** `components-share-one-namespace` was **DISCHARGED** that day and now blocks from **2026-09-19**. The bare name resolves silently to one winner and the winner follows **install order** (A then B gave side A; B then A gave side B), so the claim HOLDS and the two collision checks STAY. `agents-dir-registers-every-md` is now the sooner of the two, at **2026-09-18**. The sentence above stands as the record of what was true at the v1.15.0 cut.
+> **SUPERSEDED 2026-08-20, and its date CORRECTED 2026-08-22 (see below).** `components-share-one-namespace` was **DISCHARGED** that day and now blocks from **2026-09-20**. The bare name resolves silently to one winner and the winner follows **install order** (A then B gave side A; B then A gave side B), so the claim HOLDS and the two collision checks STAY. `agents-dir-registers-every-md` is now the sooner of the two, at **2026-09-18**. The sentence above stands as the record of what was true at the v1.15.0 cut.
+>
+> **DATE CORRECTION, 2026-08-22.** Both blocking dates above were computed as `verifiedOn` + 30 and
+> are one day early. `scripts/lib/vendor-watch.mjs` marks a probe stale on `age > FRESHNESS_DAYS`, so
+> day 30 is still fresh and blocking begins on day **31**. Confirmed by running the gate with `--today`
+> at each boundary. The original figures are left in place above rather than overwritten, because what
+> this packet recorded on the day is itself the record; the correction is this note.
 >
 > Both experiments now ship as installable fixtures with tested commands at
 > [`../../vendor-watch/probes/`](../../vendor-watch/probes/), so the next re-run is minutes rather than a

@@ -6,7 +6,7 @@
 > technical history), and `docs/internal/release-plans/` (the per-release spec + implementation
 > packets). Do not add accretive per-release paragraphs here; append them to those instead.
 >
-> Last updated: 2026-08-20.
+> Last updated: 2026-08-22.
 
 ## Current state
 
@@ -18,7 +18,7 @@
 | Spine | 34 checks |
 | Scopes | 3 (plugin, component, marketplace) |
 | Skills | **26** |
-| Tests | 1373, 0 failures (1 skipped; local suite run 2026-08-20 on `main`, after v1.16.0 W4 added the capability-matrix drift guard and adversarial wave 1 grew it). It read **1359 at the shipped tag `9133014`**, confirmed there by `npm run release-ready` exiting 0 on the release runner |
+| Tests | 1373, 0 failures (1 skipped; local suite run **2026-08-22**, after v1.16.0 W4 added the capability-matrix drift guard and adversarial wave 1 grew it by three). It read **1359 at the shipped tag `9133014`**, confirmed there by `npm run release-ready` exiting 0 on the release runner |
 | Self-proving | `node scripts/check.mjs .` exits 0 at Advanced, 0 errors, 0 warnings |
 
 ## v1.15.0 SHIPPED 2026-08-20
@@ -528,9 +528,11 @@ this file); the conclusions are stated here directly.
   source record, plus `tier-basis.md`, the artifact recording which vendor fact each tier boundary rests
   on. Four workstreams; **W1 is an ADR that ratifies the layout before anything moves.** Packet at
   [`release-plans/plan_v1.16.0/RELEASE-PLAN.md`](release-plans/plan_v1.16.0/RELEASE-PLAN.md).
-  **Scope addition 2026-08-20:** the **onboarding and documentation resource plan** and the **Astro
-  documentation site** join this release - see the scope note in the packet. The implementation and
-  execution plan for that half is deliberately not written yet; it is the next session's first job.
+  **Scope addition 2026-08-20, SUPERSEDED the same day:** the **onboarding and documentation resource
+  plan** and the **Astro documentation site** were admitted here, then moved to **v1.17.0** once their
+  plan was written and the maintainer asked for the funnel to be a release centrepiece. v1.16.0 keeps
+  the four `foundation/` workstreams it was specified with. See the annotated scope note in the packet
+  and [`release-plans/plan_v1.17.0/RELEASE-PLAN.md`](release-plans/plan_v1.17.0/RELEASE-PLAN.md).
   **This line described a different v1.16.0 until 2026-08-20**, namely the eval-instrument batch below.
   The packet was written and merged (#247, #261) while this line went unrefreshed; the packet wins.
 - **Unscheduled, and explicitly NOT dropped - the eval-instrument batch.** Fix the measurement instrument
@@ -542,8 +544,14 @@ this file); the conclusions are stated here directly.
   1.1.0 with no change to the advisory. **It carried the v1.16.0 label from 2026-08-18 to 2026-08-20** and
   now carries no version, because assigning it one it will not get is how a line goes stale unnoticed. All
   five entries stay live in [`backlog/enhancements.md`](backlog/enhancements.md).
-- **v1.17.0 "graded cohort":** grade an external cohort on portable checks and publish the
-  registry page.
+- **v1.17.0 "what are you trying to do?":** the onboarding funnel - a `docs/adoption/` router, nine
+  job-shaped runbooks, a capability map, and `docs/how-to/grade-in-ci.md`, which is the first public
+  documentation of the shipped GitHub Action. Packet at
+  [`release-plans/plan_v1.17.0/RELEASE-PLAN.md`](release-plans/plan_v1.17.0/RELEASE-PLAN.md).
+- **The graded-cohort work carries NO version**, as of 2026-08-22. It held v1.17.0 until the onboarding
+  funnel took that number. Left unversioned deliberately rather than pushed to v1.18.0: assigning a line
+  a version it will not get is how it goes stale unnoticed, which is the same call made for the
+  eval-instrument batch.
 
 **Not on this list:** manage-and-studio (a read-only studio dashboard) is deferred indefinitely -
 a UI over a grade nothing yet consumes. See the dated note in

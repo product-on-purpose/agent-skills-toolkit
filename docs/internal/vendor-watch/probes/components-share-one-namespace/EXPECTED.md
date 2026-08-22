@@ -70,7 +70,8 @@ that does not exist, which is the one thing this whole mechanism is built to pre
 ### 2026-08-20: DISCHARGED. The claim holds, and the winner follows install order
 
 **This run discharged the probe.** `verifiedOn` advanced to **2026-08-20**, which moves the blocking
-date to **2026-09-19**.
+date to **2026-09-20**. (Written as 2026-09-19 on the day and corrected 2026-08-22: the gate marks a
+probe stale on `age > 30`, so blocking starts at `verifiedOn` + 31, not + 30.)
 
 **The instrument was not the one this folder documents, and that is worth knowing.** The README's
 procedure is an interactive fresh session. This run used **headless fresh sessions** instead, on

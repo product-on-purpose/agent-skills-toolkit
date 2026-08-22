@@ -45,6 +45,8 @@ The criterion's phrase is "the second pointed away from the first", so the two w
 
 **The cause is worth more than the correction.** There are exactly **8 pinned CLAIMS** in `vendor-claims.json` - a true statement, made three times in the same file. There are **9 pinned BOUNDARIES**, because several boundaries rest on the same claim and one rests on `upstream-pin.json` rather than `vendor-claims.json` at all. **Two counts of different things, both plausibly "8", and the summary asserted the wrong one.**
 
+**The first correction of this finding was itself wrong**, and adversarial wave 2 caught it - see `W2-3`. It claimed the counts differ because "several boundaries cite the same claim, and one cites `upstream-pin.json`". **No claim is shared between rows at all**, and **two** rows rest on the upstream pin. The real arithmetic is **7 vendor-claim-backed rows** (covering all 8 claims, because the commands row cites two) **plus 2 upstream-pin-backed rows**.
+
 **How it was caught, and how it was not.** Re-reading the file does not surface it: the summary reads as a natural consequence of the prose above it. It was caught by **counting the rows programmatically** and comparing. This is the "verify, do not notice" rule applied to a document's own arithmetic.
 
 > **CLOSED 2026-08-22.** The summary row reads **9**. Both files that stated the tally are corrected (`tier-basis.md`, `foundation/synthesis/README.md`), and `tier-basis.md` gains a dated blockquote stating the 8-claims / 9-boundaries distinction explicitly, so the next reader cannot repeat the conflation. The `unverified` and house counts were verified unchanged rather than assumed.
@@ -67,7 +69,9 @@ The criterion's phrase is "the second pointed away from the first", so the two w
 
 **The measurement matters as much as the finding.** A naive run of the same checker reports **87** broken links, of which roughly one is actionable: the rest are placeholder text in prose (`(url)`, `(path)`, `(name)`), regex fragments inside ADRs about link-checking, and `tests/fixtures/anti/**` whose links are broken **on purpose**. Reporting 87 would have been a guard reporting defects that are not there. **The signal came from diffing before against after, not from the absolute count.**
 
-> **CLOSED 2026-08-22.** The link now targets `../../../../foundation/claims/vendor-claims.json`; the sentence around it is untouched. Re-measured after the fix: **47 broken at `v1.15.0`, 47 at `HEAD`, difference zero.**
+> **CLOSED 2026-08-22.** The link now targets `../../../../foundation/claims/vendor-claims.json`; the sentence around it is untouched. Re-measured after the fix: **47 broken at `v1.15.0`, 47 in the WORKING TREE, difference zero.**
+>
+> **AMENDED 2026-08-22.** This note originally read "47 at `HEAD`". When it was written the fix was uncommitted, so the figure described the working tree and `HEAD` still carried the broken target - adversarial wave 2 caught the overclaim. It became true of `HEAD` at commit `9759d8a`. **A closure note that says `HEAD` when it means the working tree is the same defect class as the finding it closes**: a record asserting something it had not checked.
 
 ### S3 - a source record broke the rule its own folder states
 
@@ -151,7 +155,107 @@ The criterion's phrase is "the second pointed away from the first", so the two w
 
 ## Wave 2 - false statements in the records
 
-*Running. Recorded when the wave reports.*
+**Ran 2026-08-22**, after wave 1 finished, alone and with stdin closed. **Seven findings: three HIGH, three MEDIUM, one LOW.** Every one reproduced here before being acted on.
+
+**Pointing the second wave away from the first worked, and the evidence is that the overlap is zero.** Wave 1 found broken mechanics; wave 2 found false sentences. **Not one finding appears in both lists.** Two of wave 2's three HIGHs are defects wave 1 could not have found, because they are wrong statements in documents whose code is fine.
+
+**Three of the seven are defects in wave 1's own fixes, or in the self-review that preceded it.** That is the standing lesson of this repository stated again: **the code written in RESPONSE to a review is itself unreviewed.**
+
+### W2-1 - HIGH. Every probe blocking date in the repository was one day early
+
+**The false statements:** `Blocks from 2026-09-18` and `Blocks from 2026-09-19`, in `foundation/sources/claude-code.md`, `foundation/synthesis/tier-basis.md`, `docs/internal/vendor-watch/probes/README.md`, the `components-share-one-namespace` `EXPECTED.md`, the v1.15.0 packet, and the project memory.
+
+**What is actually true.** `scripts/lib/vendor-watch.mjs` marks a probe stale on `age > FRESHNESS_DAYS`, so **day 30 is still fresh and blocking begins on day 31.** Every date in the repository was computed as `verifiedOn` + 30.
+
+**Settled by running the real gate at each candidate boundary**, not by re-reading the arithmetic:
+
+| `--today` | result |
+| --- | --- |
+| 2026-09-18 | `8 claims: 6 hold, 0 MISSING, **0 stale**` |
+| 2026-09-19 | `... **1 stale**` |
+| 2026-09-20 | `... **2 stale**` |
+
+So `agents-dir-registers-every-md` blocks from **2026-09-19**, and `components-share-one-namespace` from **2026-09-20**.
+
+**The error was pre-existing and this session PROPAGATED it.** `2026-09-18` was already in the repository. When `components-share-one-namespace` was discharged on 2026-08-20, its new blocking date was computed the same way - by adding 30 - and written down as `2026-09-19`. **An existing wrong answer supplied the method for producing a new one.**
+
+**Why nothing caught it.** These dates are prose. No check reads them, and the gate that enforces the real threshold never states a date. A number that only ever appears in documentation is only ever as good as the arithmetic of whoever last wrote it.
+
+> **CLOSED 2026-08-22.** Both dates corrected everywhere they appear, in the correct order so the shift is not applied twice. The v1.15.0 packet keeps its original figures with a **dated correction note** rather than an overwrite, because what it recorded on the day is itself the record. `probes/README.md` gains the rule in a blockquote: **the blocking date is `verifiedOn` + 31, and it should be obtained by running the gate with `--today`, never by adding 30 in your head.**
+
+### W2-2 - HIGH. A row labelled `unverified` had an exact first-party citation
+
+**The false framing.** `tier-basis.md`'s summary row read *"Boundaries resting on **nothing first-party** (`unverified`): 11"*, and the subagent row's citation cell read simply `nothing`.
+
+**What is actually true.** The repository holds a **verbatim quote of the Codex plugins page**, read 2026-08-18 and recorded in `askit-capability-whats-new`'s golden example 2:
+
+> *"A plugin can contain one or more of these parts: Skills, Connectors, MCP servers, Browser extensions, Hooks, [and] Scheduled task templates."*
+
+Subagents are absent from that list. **That is a first-party citation, and the file said there was none.**
+
+**The distinction this exposes is the column's whole purpose.** A quote sitting in an example file establishes the fact **today**. A **pinned claim** re-reads it on every `vendor-watch` run, or expires and blocks a release. `unverified` should mean *the second thing is missing, so nothing will notice if the vendor changes it* - **not** *nobody ever looked*. The stronger phrasing overclaimed the gap, which in a file whose job is honest gaps is the same defect as understating one.
+
+> **CLOSED 2026-08-22.** The summary row now reads **"Boundaries not pinned (`unverified`, so no expiry)"**. The subagent row names the citation and its location. A blockquote states the unpinned-versus-uncited distinction so the next reader does not collapse them.
+
+### W2-3 - HIGH. The correction to `S1` was itself wrong
+
+**The false statement**, added while closing `S1`:
+
+> *"They differ because several boundaries cite the same claim ... and one cites `upstream-pin.json` rather than `vendor-claims.json` at all."*
+
+**Both halves are false.** Checked row by row against `vendor-claims.json`:
+
+- **No claim id is shared between rows.** Each of the eight is cited exactly once.
+- **Two rows, not one, rest on `upstream-pin.json`** - skills-are-portable and references-and-assets - and neither cites a vendor claim id.
+- **Seven rows are backed by `vendor-claims.json`**, covering all eight claims because the commands row cites **two**.
+
+So the arithmetic is **7 + 2 = 9 boundaries over 8 claims.** It also falsified a second sentence in the same file, *"every `pinned` row cites a live claim"*, which is untrue of the two upstream-pin rows.
+
+**This is the finding worth reading twice.** `S1` was a wrong number. Its correction explained the wrong number **with a wrong reason**, and the explanation was more confident than the original because it had just been "verified". **A correction carries the authority of having been checked, so a wrong one is worse than the error it replaces.**
+
+> **CLOSED 2026-08-22.** The blockquote states the real arithmetic per row. The "every pinned row cites a live claim" sentence now reads "a live claim **or** the upstream pin". `S1`'s entry above carries a dated amendment pointing here, and its original wrong text is left standing rather than rewritten.
+
+### W2-4 - MEDIUM. ADR 0055 still asserted a "complete" reader list that was not complete
+
+**The false statements**, in a ratified ADR: *"Every site"*, *"the complete list of them"*, and the blast radius *"two constants and two test files"*.
+
+**What is actually true.** Two readers are missing, **each invisible to a different search**: `scripts/check-parity.mjs:529` assembles the path from segments, and `tests/unit/standards-watch.test.mjs:297` reaches it through the exported `PIN_REL` constant, naming no path at all. The committed migration touched **three script files and three test files.**
+
+> **CLOSED 2026-08-22.** The ADR gains a dated correction section rather than an edit, per its own immutability convention, naming both omissions and restating the blast radius. It also records the generalisable rule - **a reader reaches a file by literal, by assembled segments, or by an exported constant, and only the third is invisible to both greps** - and points at `foundation/claims/README.md` as the authoritative inventory, with the ADR to be read as reasoning rather than as a list.
+
+### W2-5 - MEDIUM. A closure note said `HEAD` when it meant the working tree
+
+**The false statement**, in `S2`'s own closure: *"Re-measured after the fix: 47 broken at `v1.15.0`, 47 at `HEAD`, difference zero."* When it was written the fix was **uncommitted**; `HEAD` still carried the broken target.
+
+**A closure note that asserts something it has not checked is the same defect class as the finding it closes.** The v1.15.0 packet's fifth review round spent two of its five findings on exactly this, and it recurred here.
+
+> **CLOSED 2026-08-22.** The note reads "in the WORKING TREE" and carries a dated amendment recording the overclaim and naming the commit (`9759d8a`) at which it became true of `HEAD`.
+
+### W2-6 - MEDIUM. `STATUS.md` still assigned the onboarding work to v1.16.0
+
+**The false statements.** `STATUS.md` said the onboarding plan and the Astro site *"join this release"* (v1.16.0), and listed **v1.17.0 as "graded cohort"**. Both were true when written and became false when the onboarding scope moved to v1.17.0 on 2026-08-20.
+
+**The v1.16.0 packet was annotated at the time; `STATUS.md` was not.** A superseding note that reaches one of two live documents leaves the other asserting the old world, and `STATUS.md` is the one a reader checks first.
+
+> **CLOSED 2026-08-22.** The scope note is annotated as superseded and points at the v1.17.0 packet. v1.17.0 is renamed to its real identity. **The graded-cohort work now carries NO version**, deliberately, rather than being pushed to v1.18.0 - assigning a line a version it will not get is how it goes stale unnoticed, which is the call already made for the eval-instrument batch.
+
+### W2-7 - LOW. `STATUS.md` dated a test count to before those tests existed
+
+**The false statement.** The suite row read `1373 ... local suite run 2026-08-20`, and the file's header read `Last updated: 2026-08-20`. **Three of those 1373 tests were written on 2026-08-22**, in response to wave 1.
+
+> **CLOSED 2026-08-22.** Both dates corrected, and the suite row now says the count grew by three when wave 1 found gaps in the guard.
+
+## What was checked and found clean
+
+Recorded because a review that reports only what it found is half a report.
+
+- The raw tallies: **9 pinned rows, 11 `unverified`, 3 house**, and **8 claims in `vendor-claims.json`, all sourced from Claude Code pages.**
+- The four source records' surveyed versions and dates against the claims JSON and the capability matrix. **All eight claim ids and their `verifiedOn` dates now appear in `claude-code.md`.**
+- The working-tree `claims/README.md` reader inventory, row by row against the code.
+- ADR 0055's physical `foundation/` layout against what is on disk.
+- Every other closure note in this file, against code and tests.
+- `CHANGELOG.md` and the packet READMEs, for current-state claims falsified by this work.
+- A fresh run at the end: **suite 1373 / 0** (1 skipped), `check.mjs` **Advanced, 0 errors, 0 warnings.**
 
 ## Wave 2 - false statements in the records
 

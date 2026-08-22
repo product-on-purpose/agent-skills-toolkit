@@ -40,8 +40,15 @@ release; one approaching it is reported and blocks nothing.
 
 | Probe | Last verified | Blocks from | Fixture |
 | --- | --- | --- | --- |
-| `agents-dir-registers-every-md` | 2026-08-19 | **2026-09-18** | [`agents-dir-registers-every-md/`](agents-dir-registers-every-md/) |
-| `components-share-one-namespace` | **2026-08-20** | 2026-09-19 | [`components-share-one-namespace/`](components-share-one-namespace/) |
+| `agents-dir-registers-every-md` | 2026-08-19 | **2026-09-19** | [`agents-dir-registers-every-md/`](agents-dir-registers-every-md/) |
+| `components-share-one-namespace` | **2026-08-20** | 2026-09-20 | [`components-share-one-namespace/`](components-share-one-namespace/) |
+
+> **The blocking date is `verifiedOn` + 31, not + 30. Corrected 2026-08-22 across every record that
+> stated one.** `scripts/lib/vendor-watch.mjs` marks a probe stale on `age > FRESHNESS_DAYS`, so day 30
+> is still FRESH and blocking begins on day 31. Every date in this repository was written as + 30 and
+> was therefore one day early. Found by adversarial wave 2 and confirmed by running the real gate with
+> `--today` at each boundary: 2026-09-18 reports 0 stale, 2026-09-19 reports 1, 2026-09-20 reports 2.
+> **Compute a blocking date by running the gate, not by adding 30 in your head.**
 
 Each fixture folder carries an `EXPECTED.md` recording exactly what the previous run observed, so the
 comparison is against evidence rather than memory.
