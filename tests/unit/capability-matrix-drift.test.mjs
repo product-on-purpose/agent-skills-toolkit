@@ -481,9 +481,11 @@ test("an escaped pipe in a Notes cell is content, not a column boundary", () => 
   // scripts/lib/md-escape.mjs exists to write a literal pipe into a markdown cell. Splitting on every
   // pipe turned such a cell into an extra column, which the arity check then reported as a truncated
   // row: a false FAIL on output this repository's own helper produces.
+  // One replace, doing one thing. The first draft chained a second that replaced a row with ITSELF -
+  // dead code left from restructuring the fixture, which CodeQL flagged on the PR. The test passed
+  // either way, because the meaningful replace is this one: a no-op hiding inside a test written to
+  // prove correctness is exactly the kind of thing a green run cannot tell you about.
   const matrix = MATRIX_TEXT.replace(
-    "| Output style | 2.3 (Advanced) | yes | no |",
-    "| Output style | 2.3 (Advanced) | yes | no |").replace(
     "Codex has no output-style feature; Claude-only.",
     "Claude-only \\| see sec 2.3.");
   assert.notEqual(matrix, MATRIX_TEXT, "the Output style Notes cell moved; update this test");
