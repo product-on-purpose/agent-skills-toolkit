@@ -212,6 +212,30 @@ That made G8's requirement of a folder README in `agents/` actively harmful: bot
 
 **Worth reading for the lesson:** `docs/internal/release-plans/plan_v1.1.0/P4-folder-readme/SPEC.md` line 194 records that this toolkit already hit this bug once. "Adding `agents/README.md` exposed that the subagent/command enumeration ... treated every `agents/*.md` as a component, so a folder README became a bogus 'README' subagent." It was fixed "at the single enumeration point: `README.md` is excluded from component discovery everywhere." That fixed the **toolkit's** idea of what an agent is and left the **runtime's** untouched, which is the one that ships. **The `commands/` half is now probed and closed, 2026-08-07.** A probe plugin holding `real-command.md`, `README.md` and `_README.md` in `commands/` was loaded with `claude --plugin-dir` and asked to enumerate its slash commands. It returned **`real-command` only**. Same prompt shape that made the `agents/` probe return all three files, so this is a real behavioral difference and not the model self-filtering: **Claude Code excludes `README.md` from command discovery but not from agent discovery.** `commands/` is safe, `agents/` was not, and the enumeration mismatch in `listCommandFiles` is therefore harmless rather than latent. No action needed. Recorded so nobody re-opens this as a theoretical risk.
 
+### E47 - `askit-onboard`: the adoption funnel as an interactive skill  [discoverability, effort M-L, green-lit 2026-08-20, sequenced after v1.17.0]
+
+- **Target:** a NEW skill, `askit-onboard`. Phase 2 of the adoption system.
+- **Change:** three modes following the established multi-mode pattern (`askit-migrate`'s assess / plan / adopt). **`assess`** surveys where the adopter stands - which install lane, whether a plugin exists, what components it has, which capability-map regions they have touched; read-only, reusing the `askit-explorer` subagent rather than adding one. **`plan`** interviews briefly (the `askit-init-plugin` interview mode is the voice model), picks the doors matching their goals, and writes a personalised roadmap file. **`next`** is the re-entry point, and it is the mode that makes this a process rather than a one-off.
+
+**Why-gate statement.** The docs-layer funnel serves readers, but this toolkit's actual users are inside an agent session, and that is the highest-leverage moment to onboard them: the agent can look at their repo, tell them where they are, run the first win WITH them, and leave a roadmap that survives the session.
+
+**The delineation, which is what makes it pass the why-gate rather than duplicate three existing skills:**
+
+| Skill | The question it answers |
+| --- | --- |
+| `askit-init-plugin` | "help me start this repo" - onboards a maintainer into a NEW plugin |
+| `askit-migrate` | "help me fix this repo" - onboards a REPO into conformance |
+| `askit-capability-advisor` | "what can my agent run?" - advises on targets and tier BEFORE a plugin exists |
+| **`askit-onboard`** | **"help me use all of this well, from where I am, over weeks"** - onboards a PERSON |
+
+**The scope fence, and it is the entry's most important line:** `askit-onboard` interviews, diagnoses, sequences and tracks. **It routes INTO the three skills above and never duplicates their work.** The moment it starts scaffolding or fixing, it has failed its own why-gate.
+
+- **Why now, and why NOT now.** Green-lit by the maintainer on 2026-08-20 so it stops being an unrecorded intention. **Deliberately sequenced after v1.17.0 ships and is dogfooded**, because Phase 2 automates a curriculum: validating that curriculum as cheap, editable docs first means the expensive product surface is built on a proven design rather than a guess. **Paper before automation.**
+- **Depends on:** `docs/adoption/` existing and having been walked end to end (v1.17.0 W6, the dogfood walkthrough). A skill that sequences nine runbooks cannot be written before the runbooks are known to work.
+- **Cost beyond the skill itself, so it is not underestimated:** a new catalogue entry, samples, and eval coverage, per the standing pattern for any new component.
+- **Source material:** the full proposal is `_local/onboarding/02-proposal-askit-onboard-skill.md`, written in why-gate shape so it can be promoted verbatim. **It is gitignored and is not a followable link from this file.**
+- **Status:** backlog, green-lit, unversioned. **Deliberately carries no version**, per the v1.15.0 lesson that assigning a line a version it will not get is how it goes stale unnoticed.
+
 ### E46 - the Standard defines a list-valued `metadata` key that cannot be declared without failing validator parity  [correctness, effort S, found building the capability family]
 
 - **Target:** `scripts/check-parity.mjs` (the `metadata-parity` section), `STANDARD.md` sec 3.7.

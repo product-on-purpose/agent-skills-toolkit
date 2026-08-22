@@ -99,6 +99,23 @@ fifth workstream, because **the implementation and execution plan for it does no
 workstream numbers and acceptance criteria ahead of that plan would be the thing this document's own header
 forbids. **Writing that plan is the next session's first job.**
 
+> **SUPERSEDED IN PART, 2026-08-20 (later the same day). The plan now exists, and the scope moved to
+> v1.17.0.** The note below stands as the record of what was admitted and why; only its release
+> assignment changed.
+>
+> The maintainer settled five decisions on 2026-08-20 and asked for the funnel to be **a release
+> centrepiece**. This release already carries four fully specified `foundation/` workstreams, whose ADR
+> (0055, the `foundation/` layout) was ratified the same day to unblock W2, and a release cannot have
+> two centrepieces. So the onboarding half was written as its own packet:
+> **[`../plan_v1.17.0/RELEASE-PLAN.md`](../plan_v1.17.0/RELEASE-PLAN.md)**, v1.17.0 "what are you trying
+> to do?".
+>
+> **v1.16.0's scope is therefore back to the four `foundation/` workstreams it was specified with.**
+> Everything the note records below (what was admitted, the rejected tier-centred spine, the
+> undocumented Action finding, and the measured interaction between the two halves) remains accurate and
+> is carried into the v1.17.0 packet. **The measurement in "How the two halves interact" is the reason
+> the split is cheap:** they were already structurally independent.
+
 ### What is being admitted
 
 **1. The onboarding and documentation resource plan.** Four proposals plus five worked prototypes,
