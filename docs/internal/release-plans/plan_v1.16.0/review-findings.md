@@ -245,6 +245,68 @@ So the arithmetic is **7 + 2 = 9 boundaries over 8 claims.** It also falsified a
 
 > **CLOSED 2026-08-22.** Both dates corrected, and the suite row now says the count grew by three when wave 1 found gaps in the guard.
 
+## The 4-lens adversarial panel - the pre-cut gate that had NOT been run
+
+**Found 2026-08-22 while checking the release preconditions**, not while reviewing code. `docs/internal/execution/06-release-choreography.md` Step 1 lists six preconditions and says **"None is skippable."** One of them is:
+
+> *"A **4-lens Claude adversarial panel (false-PASS, false-FAIL, determinism, contract-fidelity)** has been run on every substantive PR merged since the last release, and every finding has been answered."*
+
+**The two waves above are not that panel.** They were good, they found fifteen real defects, and **not one of their lenses is any of these four.** A different review that felt thorough does not satisfy a named gate. This is the failure the release spent two waves hunting, pointed at the release process itself: **a precondition treated as met by something that was not it.**
+
+Run 2026-08-22 as four independent headless Claude sessions, with the model routing `10-agent-operations.md` specifies: Opus for the two hunter lenses, Sonnet for determinism and contract-fidelity. **Parallel `claude -p` is safe**, unlike the Codex harness, which fails quietly under concurrency.
+
+### Panel result
+
+| Lens | Model | Findings |
+| --- | --- | --- |
+| 1 - false-PASS | Opus | see below |
+| **2 - false-FAIL** | Opus | **12: one CRITICAL, three HIGH** |
+| 3 - determinism | Sonnet | 1 LOW; four categories explicitly clean |
+| 4 - contract-fidelity | Sonnet | 1 MINOR; all seven checks match |
+
+### P-CRITICAL - three quote claims pinned markdown TABLE SYNTAX, and would have blocked a future release
+
+**Landed and removed the same day.** Resolving `E48` added three `quote` claims quoting rows of the Codex hook event table, pipes included.
+
+**A pipe is rendering, not vendor prose.** If that page starts serving HTML, gains a column, or becomes a bullet list, **all three go MISSING at once** - and MISSING is deliberately exit 1 with no soft path. This vendor has already 308-redirected one of its pages. The blast radius is one page, one source, three of eleven claims, failing together, **on a future release with no warning.**
+
+**It also broke the claims file's own stated convention**, which reads: *"A quote claim MUST be a COMPLETE SEMANTIC SENTENCE, not an identifier or a noun phrase."* The file says that **because a previous review wave already caught two claims violating it.** I violated it again, three times, an hour after writing about meaning-bearing guards.
+
+**The reversal test could not catch this.** It proves a claim is semantically load-bearing, which these were, and says nothing about whether the pinned string survives re-rendering.
+
+> **CLOSED 2026-08-22.** The three table-row claims are removed. **One event is pinned in prose instead** - "SessionEnd uses 1 second by default and supports up to 3 seconds" - which is a complete sentence, pipe-free, and disappears if the event does. The eleven-event enumeration is recorded as a dated `read` in `foundation/sources/codex.md`: real evidence, without an automatic re-check. **An enumeration that exists only as a table is not quotable by this mechanism**, which is the same shape as `E49`, found twice in one day.
+
+### P-HIGH - three assertions pinned the repository instead of the invariant
+
+The false-FAIL lens named the root cause better than the individual findings: **three of eleven assertions were equality pins against the live repository**, converting the guard from *"the matrix agrees with the Standard"* into *"the matrix and the Standard are exactly as they were on 2026-08-22."*
+
+**That is the shape most likely to make a maintainer distrust a guard, because it fails loudest on the edits it was built to support.**
+
+| | Was | Now |
+| --- | --- | --- |
+| `SYNTHETIC_MATRIX` | a hand-copied duplicate of the live matrix | **derived** from it |
+| sec 2.3 token list | a deep-equality over the whole extraction | asserts only the regression it pins |
+| agent columns | a deep-equality on two exact names | a floor plus membership |
+
+**Measured, not argued.** Simulating exactly what the lens described - a maintainer adding a component type correctly to `STANDARD.md`, the alias table and the matrix - produced **seven red tests**, each reporting a bare count mismatch under a name about agent columns or ISO dates or boundary regexes, **none saying what to add.** After the fix, the same simulation passes **14/14**.
+
+### P-MEDIUM and below, all closed
+
+- **The folder-guide check dropped G8's skip list**, so a `.DS_Store` from opening the folder in Finder - gitignored, invisible to `git status` - turned the suite red and advised adding it to the inventory. Now mirrors G8's twelve-name list.
+- **The token normaliser stripped backticks but not bold markers**, so bolding a component name in a tier bullet produced a token nothing could alias, and a false finding. The asymmetry with `parseMatrix` made it look deliberate.
+- **The section boundary matched one exact phrasing.** A lowercase "must", or "Convergent-tier plugins MUST", would have re-run the guard's original false positive through a different door. Widened by shape rather than patched per instance.
+- **The inventory parse read raw text and accepted only one heading spelling.** A fenced example inside the section read as a phantom child, and "Contents" - which G8 blesses - was rejected **and then silently skipped that folder's set-equality**, a false fail that also dropped the real check.
+- **A guide listing its own README was told that file is not on disk** - false, and factually wrong on its face. G8's existence clause restored.
+- **Directory-read order leaked into finding-message order** (determinism lens), so the same defect produced differently-ordered diagnostics on Linux and Windows. Sorted. **Not a regression this release created**: G8 carries the identical unsorted pattern, which is a separate, spine-scoped fix.
+- **ADR 0055's D1 diagram omits `synthesis/README.md`** while the same ADR's prose requires a README in all four folders (contract-fidelity lens). The code followed the prose. Recorded in the ADR's correction section, because a literal file-for-file audit against the diagram alone would flag that file as EXTRA - **a false finding lying in wait for whoever runs that audit next.**
+- **`foundation/claims/README.md` stated a stale claim count** within an hour of the count changing, and the prose-count guard does not scan that file. Corrected, with the gap noted in the line itself.
+
+### What the panel says about the two waves
+
+**The waves were not wasted and they were not sufficient.** Fifteen findings from the waves, plus a CRITICAL and three HIGHs from a panel run afterwards on the same code - and **the panel's CRITICAL was created by the fix for a wave finding.**
+
+**The lesson is one this repository already knows, relearned at the process level: the code written in RESPONSE to a review is unreviewed.** `E48`'s resolution went through no review at all before the panel caught it, because by then the reviewing was considered done.
+
 ## What was checked and found clean
 
 Recorded because a review that reports only what it found is half a report.
