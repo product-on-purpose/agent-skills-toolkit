@@ -18,14 +18,17 @@ It used to live at `skills/askit-capability-advisor/references/capability-matrix
 
 Point 3 is not fixed by this move. It is the reason W4 of v1.16.0 adds a guard.
 
-## `tier-basis.md` is not here yet, and its absence is W3
+## `tier-basis.md`, and what it found
 
-The artifact that records, per tier boundary, which vendor fact it rests on and where that fact is pinned. **It does not exist**, which is why nothing today connects "a vendor shipped a new component type" to "a tier boundary may need review."
+The artifact that records, per tier boundary, which vendor fact it rests on and where that fact is pinned. **Written 2026-08-20 (v1.16.0 W3).** Until then nothing connected "a vendor shipped a new component type" to "a tier boundary may need review."
+
+**What it found, on its first pass: 8 boundaries pinned, 11 `unverified`, 3 house conventions - and every one of the 8 pinned claims is a Claude Code fact.** There is no pinned claim for any Codex or Cowork fact, which means the Convergent tier, *defined* as what both agents support in different formats, has pinned evidence for one of them.
 
 Its contract is fixed by [ADR 0055](../../docs/internal/decisions/0055-the-evidence-gets-an-address-and-gate-readership-is-recorded-not-inferred.md) D3 and one line of it matters more than the rest: **a boundary with no evidence gets a row reading `unverified`, never an omitted row.** An absent row reads as "no boundary here"; an `unverified` row reads as "a boundary nobody has grounded", which is the finding this release exists to surface.
 
-**Expect it to expose real gaps rather than confirm the ladder.** The Advanced tier requires hooks, and the matrix says Codex supports "a subset" of Claude Code's events. That subset is pinned nowhere and its confirmation date is unknown.
+**It exposed real gaps rather than confirming the ladder, as predicted.** The Advanced tier requires hooks, and the matrix says Codex supports "a subset" of Claude Code's events. **That subset is pinned nowhere and its confirmation date is unknown** - now a row rather than an absence. None of the eleven is a defect to fix here: a boundary resting on nothing is a finding to file, and moving a tier is its own ADR with a migration window.
 
 ## Inventory
 
 - `capability-matrix.md` - per component type, what Claude Code and Codex each support for plugin distribution, and the cross-agent asymmetries the tier boundaries are written against.
+- `tier-basis.md` - one row per tier boundary: the vendor fact it depends on, whether that fact is pinned, and where. `unverified` where nothing grounds it.
