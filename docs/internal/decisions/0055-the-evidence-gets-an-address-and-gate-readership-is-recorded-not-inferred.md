@@ -9,7 +9,7 @@
 - **`claims/` membership is defined by machine-checkable FORMAT, and each file's gate readers are NAMED in `claims/README.md`, with "none" a legal and expected value.** This **overturns the W1 spec**, which defined the folder by readership and asserted all three files are read by path from release-blocking code. Measured 2026-08-20: `surveyed-pin.json` has **no gate reader at all**. Defining membership by readership would have shipped a rule that is false on day one, and false in the dangerous direction.
 - **Not promoted, deliberately:** ADRs, the backlog, release plans and `STATUS.md`. The test, stated so the next person does not have to ask: **would an outside reader need this to judge whether a Standard requirement is grounded?** If no, it stays in `docs/internal/`.
 - **Inherits ADR 0054's rule (a component records what agent version it was checked against): `stale` is not `wrong`, and `unknown` is not `stale`.** A record missing a date or a method is a prompt to go and look, not a defect cleared by deleting the row.
-- **Status:** **Proposed (awaiting ratification).** No file has moved and no gate has changed.
+- **Status:** **Accepted (ratified 2026-08-20).** No file has moved and no gate has changed.
 
 - **Date:** 2026-08-20
 - **Deciders:** maintainer (jprisant), with Claude (Opus 5)
