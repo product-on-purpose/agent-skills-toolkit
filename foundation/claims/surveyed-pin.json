@@ -3,7 +3,7 @@
   "about": "The last release of each surface that has been SURVEYED. Not the latest release that exists - the latest one a human has actually read. The gap between the two is the work. Written by askit-capability-whats-new, which PROPOSES this file and never writes it; a human lands it alongside the survey record so the pin and the reading move together.",
   "conventions": {
     "surveyedThrough": "A version string the vendor published, copied VERBATIM. Not normalised, not parsed into semver, not decorated - a reader must be able to search the vendor's own changelog for this exact string and find the entry the survey stopped at. A version rather than a date, because a date pin silently loses anything published out of order and gives two people different answers to the same question.",
-    "surveyedOn": "When a human read it. A NOTE, never a gate: an old survey means work is waiting, not that a claim has expired. The mechanisms that DO block on age are the probe claims in vendor-watch/vendor-claims.json, where a probe's age is its whole verification. That asymmetry is deliberate.",
+    "surveyedOn": "When a human read it. A NOTE, never a gate: an old survey means work is waiting, not that a claim has expired. The mechanisms that DO block on age are the probe claims in foundation/claims/vendor-claims.json, where a probe's age is its whole verification. That asymmetry is deliberate.",
     "by": "A person. A survey is a reading, and readings have readers.",
     "noFeed": "A surface with no versioned release feed carries this instead of surveyedThrough, naming what tracks it instead."
   },
@@ -28,7 +28,7 @@
     },
     "agentskills-io": {
       "surveyedThrough": null,
-      "noFeed": "No versioned release feed. This surface is tracked by askit-standards-watch, which pins a git blob SHA-1 per artifact in docs/internal/standards-watch/upstream-pin.json. Do not duplicate that pin here.",
+      "noFeed": "No versioned release feed. This surface is tracked by askit-standards-watch, which pins a git blob SHA-1 per artifact in foundation/claims/upstream-pin.json. Do not duplicate that pin here.",
       "surveyedOn": "2026-08-11",
       "by": "see upstream-pin.json"
     }

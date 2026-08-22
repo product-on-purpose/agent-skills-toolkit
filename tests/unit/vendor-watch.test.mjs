@@ -22,7 +22,7 @@ import {
 } from "../../scripts/lib/vendor-watch.mjs";
 
 const REPO = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
-const CLAIMS = path.join(REPO, "docs/internal/vendor-watch/vendor-claims.json");
+const CLAIMS = path.join(REPO, "foundation/claims/vendor-claims.json");
 
 // Built from char codes rather than written literally: this repository's PreToolUse hook refuses to write
 // en/em dashes to disk, and a test fixture is still bytes on disk.

@@ -4,7 +4,7 @@ title: "Probe reproductions - the experiments behind the claims no page states"
 
 # Probe reproductions
 
-Every claim in [`vendor-claims.json`](../vendor-claims.json) is one of two kinds, and they age completely
+Every claim in [`vendor-claims.json`](../../../../foundation/claims/vendor-claims.json) is one of two kinds, and they age completely
 differently.
 
 - A **`quote`** claim is a sentence that must still appear on a vendor's live page. `npm run vendor-watch`

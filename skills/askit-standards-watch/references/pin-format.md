@@ -1,7 +1,7 @@
 # The upstream pin format (reference)
 
 The pin is the artifact that makes [STANDARD.md](../../../STANDARD.md) sec 6 auditable. It lives at
-`docs/internal/standards-watch/upstream-pin.json`, schema `askit-upstream-pin/1`, and it answers one
+`foundation/claims/upstream-pin.json`, schema `askit-upstream-pin/1`, and it answers one
 question: **which revision of agentskills.io is this Standard's Universal tier written against?**
 
 ## What it is not

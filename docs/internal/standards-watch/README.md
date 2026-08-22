@@ -10,7 +10,11 @@ repository could answer, let alone answer deterministically.
 
 ## What lives here
 
-- [`upstream-pin.json`](upstream-pin.json) - the pin. Schema `askit-upstream-pin/1`: which upstream
+> **MOVED 2026-08-20 (v1.16.0 W2).** The pin now lives at
+> [`../../../foundation/claims/upstream-pin.json`](../../../foundation/claims/upstream-pin.json), per
+> ADR 0055 (the `foundation/` layout). This folder keeps the guide only.
+
+- [`upstream-pin.json`](../../../foundation/claims/upstream-pin.json) - the pin. Schema `askit-upstream-pin/1`: which upstream
   artifacts are watched, the git blob SHA-1 of each at verification time, the extracted structural
   surface of the specification, and the map from an upstream field, directory, or section to the
   `reqId`s a change there lands on.

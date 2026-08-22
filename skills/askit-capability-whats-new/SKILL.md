@@ -35,7 +35,7 @@ The separation is not bureaucratic. A survey that also proposed changes would be
 
 ### 1. Read the pin, and never survey from a date
 
-`docs/internal/capability-surveys/surveyed-pin.json` records, per surface, the **version** last surveyed. Start there.
+`foundation/claims/surveyed-pin.json` records, per surface, the **version** last surveyed. Start there.
 
 **A version, not a date, and the reason is load-bearing.** Every surface **this skill pins** publishes versioned release entries, so "everything after `2.1.208`" is exact, re-derivable by anyone, and unaffected by when you happen to run this. A date pin silently loses anything published out of order or backdated, and gives two people different answers for the same question.
 
@@ -72,7 +72,7 @@ A release note announces; a documentation page specifies. **A capability finding
 
 ### 5. Propose the survey record, including when nothing was found. Do not write it.
 
-Emit one dated section for `docs/internal/capability-surveys/surveys.md`, in the format in [references/survey-record.md](references/survey-record.md), for a human to land **together with the pin from step 6**.
+Emit one dated section for `foundation/surveys.md`, in the format in [references/survey-record.md](references/survey-record.md), for a human to land **together with the pin from step 6**.
 
 **Both artifacts are proposed and neither is written, which is the folder's stated contract** ([capability-surveys/README.md](../../docs/internal/capability-surveys/README.md)): a human lands them together so the pin and the reading move as one. A skill that wrote the record but only proposed the pin could leave the two describing different runs, which is the precise divergence the contract exists to prevent.
 

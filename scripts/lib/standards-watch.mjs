@@ -19,7 +19,7 @@ import { CHECKS } from "./registry.mjs";
 import { escapeMdCell } from "./md-escape.mjs";
 
 /** The tracked upstream pin, relative to the plugin root. */
-export const PIN_REL = "docs/internal/standards-watch/upstream-pin.json";
+export const PIN_REL = "foundation/claims/upstream-pin.json";
 /** The existing reqId reference table this module joins against instead of duplicating. */
 export const UNIVERSAL_CHECKS_REL = "docs/reference/universal-checks.md";
 /** The pin document schema this module understands. */

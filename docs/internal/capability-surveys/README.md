@@ -4,6 +4,11 @@ title: "docs/internal/capability-surveys - folder guide"
 
 # docs/internal/capability-surveys
 
+> **BOTH ARTIFACTS MOVED 2026-08-20 (v1.16.0 W2), per ADR 0055 (the `foundation/` layout).**
+> `surveyed-pin.json` is now at [`../../../foundation/claims/surveyed-pin.json`](../../../foundation/claims/surveyed-pin.json)
+> and `surveys.md` at [`../../../foundation/surveys.md`](../../../foundation/surveys.md). This folder keeps
+> the guide only: a guide explains a practice, while those two are evidence.
+
 What the agent platforms shipped, and when a human last looked. Owned by
 [`askit-capability-whats-new`](../../../skills/askit-capability-whats-new/SKILL.md), which **proposes**
 both files and writes neither: a human lands them together, so the pin and the reading move as one.
@@ -16,13 +21,13 @@ has nothing to fail.
 
 ## Inventory
 
-- `surveyed-pin.json` - the last release of each surface that has actually been read, as a verbatim vendor version string. A version rather than a date, because a date pin silently loses anything published out of order and gives two readers different answers.
-- `surveys.md` - the append-only dated record, newest first. A survey that finds nothing material still writes its section, with its counts: six months on, a sweep that never ran and a sweep that found nothing are indistinguishable unless the second one said so.
+- [`surveyed-pin.json`](../../../foundation/claims/surveyed-pin.json) - **MOVED 2026-08-20 to `foundation/claims/` (ADR 0055).** The last release of each surface that has actually been read, as a verbatim vendor version string. A version rather than a date, because a date pin silently loses anything published out of order and gives two readers different answers.
+- [`surveys.md`](../../../foundation/surveys.md) - **MOVED 2026-08-20 to `foundation/` (ADR 0055).** The append-only dated record, newest first. A survey that finds nothing material still writes its section, with its counts: six months on, a sweep that never ran and a sweep that found nothing are indistinguishable unless the second one said so.
 
 ## What is deliberately not here
 
 **Nothing blocks on the age of this pin.** An old survey means work is waiting, not that a claim has
 expired. The mechanisms that do block on age are the `probe` claims in
-[`../vendor-watch/vendor-claims.json`](../vendor-watch/vendor-claims.json), where a probe has no page to
+[`foundation/claims/vendor-claims.json`](../../../foundation/claims/vendor-claims.json), where a probe has no page to
 re-check so its age is its whole verification. Keeping that asymmetry is deliberate: a survey backlog
 should never stop a release, and a stale probe always should.
