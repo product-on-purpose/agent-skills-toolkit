@@ -15,7 +15,7 @@ The machine-checkable subset of [`../sources/`](../sources/README.md): facts abo
 | File | Read by gate code | Also read at run time by |
 | --- | --- | --- |
 | `vendor-claims.json` | `scripts/vendor-watch.mjs` (`CLAIMS_REL`), `tests/unit/vendor-watch.test.mjs` | - |
-| `upstream-pin.json` | `scripts/lib/standards-watch.mjs` (`PIN_REL`), **`scripts/check-parity.mjs`**, `tests/unit/check-parity.test.mjs` | `askit-standards-watch` |
+| `upstream-pin.json` | `scripts/lib/standards-watch.mjs` (`PIN_REL`), **`scripts/check-parity.mjs`**, `tests/unit/check-parity.test.mjs`, `tests/unit/standards-watch.test.mjs` | `askit-standards-watch` |
 | `surveyed-pin.json` | **none. No gate reads this file.** | `askit-capability-whats-new`, `askit-capability-gap-analysis` |
 
 **`none` is a legal value and not a deletion notice.** `surveyed-pin.json` is read by skills at run time, and an agent following a skill is a reader; it simply cannot break a build. Whether it should gain a gate reader, or move to `sources/` as a human-read record, is an open question that ADR 0055 deliberately left open.
@@ -26,7 +26,15 @@ The machine-checkable subset of [`../sources/`](../sources/README.md): facts abo
 path.join(root, "foundation", "claims", "upstream-pin.json")
 ```
 
-A grep for the directory string cannot match that, which is exactly how ADR 0055's own "complete list" came to omit it. **A path assembled from segments is invisible to a path-string search.** Anyone adding a reader should add it to this table by hand rather than trusting a grep to find it later.
+A grep for the directory string cannot match that, which is exactly how ADR 0055's own "complete list" came to omit it. **A path assembled from segments is invisible to a path-string search.**
+
+**And there is a third shape, which adversarial wave 1 found after both of those searches had been run.** `tests/unit/standards-watch.test.mjs` reaches the pin through the **exported `PIN_REL` constant**:
+
+```js
+const pin = readPin(REPO_ROOT, PIN_REL);
+```
+
+That names no path at all, so it is invisible to a search for the path string **and** to a search for `path.join` segments - the two techniques added precisely to stop missing readers. **A reader can reach a file by literal, by assembled segments, or by an exported constant.** Only a search for the constant's own name finds the third. **Anyone adding a reader should add it to this table by hand rather than trusting any grep to find it later.**
 
 **And it would have failed silently.** `check-parity.mjs` falls back to *"upstream-pin.json not found or unparseable; pin-skew comparison skipped"* and exits 0. A wrong path there does not turn the build red; it quietly switches off the comparison. Verify a change here by confirming the tool **prints the pin's verified date**, not by confirming it exited 0.
 

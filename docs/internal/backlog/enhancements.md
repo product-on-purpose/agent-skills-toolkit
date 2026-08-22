@@ -574,6 +574,20 @@ patching one did not prompt a look at the other.
 - **A second consequence worth knowing:** the pre-pass also REWROTE `severity` in place, so a held-back finding no longer knew what its check had emitted. That is exactly the information a graduation needs, which is why the two defects had to be fixed together.
 - **Status:** RESOLVED 2026-08-13 (v1.13.0 W1b, ADR 0044). Recorded 2026-08-11 from the round-2 adversarial review of the v1.10.1 patch.
 
+## v1.16.0 adversarial-review intake (2026-08-22)
+
+One entry, from adversarial wave 1 over the v1.16.0 implementation. Its six other findings were fixed in that release; this one is deferred because it is **pre-existing and ADR-gated**, and the reason is recorded rather than the entry being quietly dropped.
+
+### E51 - `G8` (`folder-readme`) silently PASSES a README it cannot read  [correctness, effort S, ADR-gated, found by v1.16.0 adversarial wave 1]
+
+- **Target:** `scripts/checks/folder-readme.mjs`.
+- **The defect:** the check catches a `readFileSync` failure and `continue`s **without emitting a finding**. A README that exists but cannot be read - a directory carrying that name, a permissions failure, a malformed checkout object - disables both the folder-guide and the inventory checks for that folder **while the gate reports success**. Reproduced by making a folder's `README.md` a directory: `existsSync` succeeds, the read throws, and `check({ root })` returns zero findings for it.
+- **Why it matters more than its size:** this is the failure class this repository grades other tools on. `existsSync` passing and the read failing is exactly the "a check that reports success while checking nothing" shape that v1.15.0 spent eight blocking findings on, and it is currently in the spine.
+- **PRE-EXISTING, not introduced by v1.16.0.** `git show v1.15.0:scripts/checks/folder-readme.mjs` carries the identical `catch { continue; }`; the line was last touched **2026-06-03**.
+- **Why it was NOT fixed in v1.16.0:** turning a silent pass into a finding **moves verdicts** for any plugin currently benefiting from it, and v1.16.0's plan states `no new spine check` and `no verdict movement for any plugin`. Per sec 7.7 a red-ward change needs an ADR and a warn-first window. **Fixing it inside a review pass would have been the migration this repository tells other people not to do.**
+- **What the fix looks like when it is taken:** emit a finding naming the unreadable path, at `warn` for one Standard minor and then `error`, measured against the reference family first - a census of how many members currently hit the swallow, which is very likely zero and should be counted rather than assumed.
+- **Status:** backlog, unversioned, ADR-gated.
+
 ## tier-basis intake (2026-08-20)
 
 Three findings from the first pass of [`foundation/synthesis/tier-basis.md`](../../../foundation/synthesis/tier-basis.md), written as v1.16.0 W3. **All three are boundaries resting on nothing first-party**, which the v1.16.0 plan is explicit is a finding to file rather than a defect to fix in that release: reassigning a tier is its own ADR with a migration window.

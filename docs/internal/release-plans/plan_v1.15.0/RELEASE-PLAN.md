@@ -148,7 +148,7 @@ ADR-first, per the v1.14.0 pattern that paid. The ADR must settle, in order:
 | **2026-09-05** | `agents-dir-registers-every-md` | ages past the 30-day freshness window, `vendor-watch` exits 1, `release-ready` exits non-zero, **no tag can be cut** |
 | **2026-09-11** | `components-share-one-namespace` | same |
 
-A probe has no page to re-check, so its age **is** its verification, and the only remedy is a human re-running the reproduction and refreshing `verifiedOn` in [`vendor-claims.json`](../../vendor-watch/vendor-claims.json). Hand-editing the date without re-running is what `RELEASE.md` forbids.
+A probe has no page to re-check, so its age **is** its verification, and the only remedy is a human re-running the reproduction and refreshing `verifiedOn` in [`vendor-claims.json`](../../../../foundation/claims/vendor-claims.json). Hand-editing the date without re-running is what `RELEASE.md` forbids.
 
 - `agents-dir-registers-every-md`: install a plugin whose `agents/` holds `real-agent.md`, `README.md`, `_README.md` and `README.txt`, then list the registered subagents.
 - `components-share-one-namespace`: install two plugins shipping the same skill name and observe which resolves.

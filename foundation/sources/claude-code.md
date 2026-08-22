@@ -18,11 +18,13 @@ The surface most of this Standard's Claude-side requirements rest on.
 
 ## Pages read, and what each one holds up
 
-| Page | `method` | What depends on it |
-| --- | --- | --- |
-| `https://code.claude.com/docs/en/plugins-reference` | `read` | `U14` (restricted fields on plugin-shipped agents). The older `docs.claude.com` path 301-redirects here |
-| `https://code.claude.com/docs/en/skills` | `read` | `STANDARD.md` sec 3.2's commands-into-skills premise, and the invocation-control frontmatter |
-| `https://code.claude.com/docs/en/sub-agents` | `read` | Subagent discovery: recursion, scoped identifiers, the colon exclusion. **Added 2026-08-15**, after review wave 1 found `U15` had been built on a flat-directory assumption nothing was watching |
+| Page | `method` | Claims it pins, and each claim's `verifiedOn` | What depends on it |
+| --- | --- | --- | --- |
+| `https://code.claude.com/docs/en/plugins-reference` | `read` | `plugin-agent-unsupported-fields` **2026-08-15**, `plugin-agent-supported-fields` **2026-08-16**. Both probes below also name this page as their source | `U14` (restricted fields on plugin-shipped agents). The older `docs.claude.com` path 301-redirects here |
+| `https://code.claude.com/docs/en/skills` | `read` | `commands-merged-into-skills` **2026-08-15**, `invocation-control-frontmatter` **2026-08-16** | `STANDARD.md` sec 3.2's commands-into-skills premise, and the invocation-control frontmatter |
+| `https://code.claude.com/docs/en/sub-agents` | `read` | `agents-scanned-recursively` **2026-08-15**, `agent-filename-colon-excluded` **2026-08-16** | Subagent discovery: recursion, scoped identifiers, the colon exclusion. **Added 2026-08-15**, after review wave 1 found `U15` had been built on a flat-directory assumption nothing was watching |
+
+**The dates are the claims' own `verifiedOn` values, not this file's.** They are copied here so a reader can judge age without opening the JSON, and they are the one thing in this table that will go stale: if they disagree with `../claims/vendor-claims.json`, the JSON wins and this table is wrong.
 
 Each is pinned as a `quote` claim in [`../claims/vendor-claims.json`](../claims/vendor-claims.json) and re-read on every `npm run vendor-watch` run, so a quote never goes stale silently.
 

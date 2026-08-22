@@ -1,6 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
+import { readFileSync, readdirSync, existsSync, mkdtempSync, mkdirSync, writeFileSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -49,6 +50,9 @@ const ALIASES = new Map([
   ["hooks", "Hook"],
   ["output styles", "Output style"],
   ["statusline", "Statusline"],
+  // From a PARENTHETICAL. Sec 2.1's first bullet spells the progressive-disclosure bundle inside
+  // parentheses, so this token exists only because parenthetical contents are extracted too.
+  ["skill.md + references/", "References / assets"],
 ]);
 
 /**
@@ -61,6 +65,12 @@ const ALIASES = new Map([
 const NOT_A_COMPONENT_TYPE = new Map([
   ["plugin packaging", "a packaging obligation on the plugin as a whole, not a component whose support differs per agent"],
   ["self-hosting ci", "a lifecycle requirement discharged by the plugin's own CI; there is no per-agent capability to record"],
+  // Parenthetical tokens that are not component types.
+  ["scripts/", "part of the same progressive-disclosure bundle as references/, covered by the References / assets row"],
+  ["assets/", "part of the same progressive-disclosure bundle as references/, covered by the References / assets row"],
+  ["the server is portable; only its registration location differs", "a clarifying note about MCP, not a component"],
+  ["session lifecycle", "a category of hook event, not a component"],
+  ["tool-use guards", "a category of hook event, not a component"],
 ]);
 
 /** A broken parser must fail loudly rather than pass vacuously. */
@@ -94,12 +104,20 @@ function parseTierTokens(text) {
     const end = rest.search(/\n(?:###|An? [A-Za-z]+-tier plugin MUST)/);
     const body = rest.slice(0, end === -1 ? rest.length : end);
     const tokens = [];
+    const norm = (x) => x.trim().replace(/\.$/, "").replace(/^full\s+/i, "").replace(/\s+/g, " ").toLowerCase();
     for (const line of body.split("\n")) {
       if (!/^\s*-\s+/.test(line)) continue;
-      const cleaned = line.replace(/^\s*-\s+/, "").replace(/\([^)]*\)/g, " ").replace(/`/g, "");
-      for (const piece of cleaned.split(/,| and /)) {
-        const t = piece.trim().replace(/\.$/, "").replace(/^full\s+/i, "").replace(/\s+/g, " ").toLowerCase();
-        if (t) tokens.push(t);
+      const raw = line.replace(/^\s*-\s+/, "").replace(/`/g, "");
+      // Parentheticals are extracted SEPARATELY rather than discarded. Stripping them stops the
+      // comma-split from shredding sec 2.1's bundle, but it also made everything inside them
+      // invisible - and "references/" lives inside one, which left the matrix's
+      // "References / assets" row entirely unguarded. Wave 1 found that by deleting the row and
+      // watching all eleven tests pass.
+      for (const inner of raw.match(/\(([^)]*)\)/g) ?? []) {
+        for (const piece of inner.slice(1, -1).split(",")) { const t = norm(piece); if (t) tokens.push(t); }
+      }
+      for (const piece of raw.replace(/\([^)]*\)/g, " ").split(/,| and /)) {
+        const t = norm(piece); if (t) tokens.push(t);
       }
     }
     out[sec] = tokens;
@@ -164,6 +182,19 @@ function verify(tokens, matrix) {
   return findings;
 }
 
+/** Floor violations as a LIST, so a negative test can assert the floors actually fire. */
+function floorViolations(tokens, matrix) {
+  const out = [];
+  for (const sec of TIER_SECTIONS) {
+    const n = (tokens[sec] ?? []).length;
+    if (n < FLOORS.tokensPerTier) out.push(`sec ${sec} yielded ${n} tokens (floor ${FLOORS.tokensPerTier}); the heading or its bullet list moved, and every subset assertion would pass vacuously.`);
+  }
+  if (matrix.components.size < FLOORS.componentRows) out.push(`parsed ${matrix.components.size} component rows, floor ${FLOORS.componentRows}`);
+  if (matrix.confirmed.size < FLOORS.honestRows) out.push(`parsed ${matrix.confirmed.size} confirmed-against rows, floor ${FLOORS.honestRows}`);
+  if (matrix.agentColumns.length < FLOORS.agentColumns) out.push(`derived ${matrix.agentColumns.length} agent columns, floor ${FLOORS.agentColumns}`);
+  return out;
+}
+
 const STANDARD_TEXT = readFileSync(STANDARD_PATH, "utf8");
 const MATRIX_TEXT = readFileSync(MATRIX_PATH, "utf8");
 
@@ -177,15 +208,8 @@ test("the live STANDARD.md and capability matrix agree: no drift findings", () =
 });
 
 test("FLOORS: extraction is non-vacuous, so a renamed heading fails loudly instead of passing green", () => {
-  const tokens = parseTierTokens(STANDARD_TEXT);
-  for (const sec of TIER_SECTIONS) {
-    assert.ok((tokens[sec] ?? []).length >= FLOORS.tokensPerTier,
-      `sec ${sec} yielded ${tokens[sec]?.length ?? 0} tokens; the heading or its bullet list moved, and every subset assertion below would pass vacuously.`);
-  }
-  const m = parseMatrix(MATRIX_TEXT);
-  assert.ok(m.components.size >= FLOORS.componentRows, `parsed ${m.components.size} component rows, floor ${FLOORS.componentRows}`);
-  assert.ok(m.confirmed.size >= FLOORS.honestRows, `parsed ${m.confirmed.size} confirmed-against rows, floor ${FLOORS.honestRows}`);
-  assert.ok(m.agentColumns.length >= FLOORS.agentColumns, `derived ${m.agentColumns.length} agent columns, floor ${FLOORS.agentColumns}`);
+  const v = floorViolations(parseTierTokens(STANDARD_TEXT), parseMatrix(MATRIX_TEXT));
+  assert.deepEqual(v, [], `floor violations:\n  - ${v.join("\n  - ")}`);
 });
 
 test("every NOT_A_COMPONENT_TYPE entry is still extracted from the Standard (no dead allowlist entries)", () => {
@@ -213,6 +237,7 @@ const SYNTHETIC_MATRIX = [
   "| Component | Standard | Claude Code | Codex | Notes |",
   "|---|---|---|---|---|",
   "| Skill | 3.1 | yes | yes | . |",
+  "| References / assets | 3.1 | yes | yes | . |",
   "| AGENTS.md | 3.10 | yes | yes | . |",
   "| MCP server | 3.9 | yes | yes | . |",
   "| Subagent | 3.3 | yes | no | . |",
@@ -279,8 +304,23 @@ test("NEGATIVE: a renamed tier heading empties the extraction, which the FLOORS 
   assert.notEqual(std, STANDARD_TEXT, "fixture anchor no longer matches STANDARD.md; update this test");
   const tokens = parseTierTokens(std);
   assert.equal(tokens["2.2"].length, 0, "the rename should empty sec 2.2's extraction");
-  // And the point: verify() alone stays silent, which is exactly why the floors are a separate test.
+  // verify() alone stays SILENT - which is exactly why the floors exist...
   assert.deepEqual(verify(tokens, parseMatrix(SYNTHETIC_MATRIX)), []);
+  // ...and THIS is the assertion adversarial wave 1 found missing. Without it, setting
+  // FLOORS.tokensPerTier to 0 left all eleven tests green, so nothing proved the floors caught
+  // anything. A floor nobody exercises is the same class of defect the floors exist to prevent.
+  const v = floorViolations(tokens, parseMatrix(SYNTHETIC_MATRIX));
+  assert.ok(v.some((x) => x.includes("sec 2.2")), `the floors must fire on a renamed heading; got: ${JSON.stringify(v)}`);
+});
+
+test("NEGATIVE: a dropped References / assets row IS caught (it was not, until parentheticals were extracted)", () => {
+  // Wave 1's reproduction: sec 2.1 names references/ only INSIDE a parenthetical, so while
+  // parentheticals were discarded this row had no token pointing at it and could be deleted freely.
+  const dropped = SYNTHETIC_MATRIX.replace("| References / assets | 3.1 | yes | yes | . |\n", "");
+  assert.ok(!parseMatrix(dropped).components.has("References / assets"), "fixture should have lost the row");
+  const findings = verify(parseTierTokens(STANDARD_TEXT), parseMatrix(dropped));
+  assert.equal(findings.length, 1, `expected exactly the dropped-row finding, got: ${JSON.stringify(findings)}`);
+  assert.match(findings[0], /matrix row "References \/ assets"/);
 });
 
 test("the boundary regex handles BOTH 'A <Tier>-tier plugin MUST' and 'An Advanced-tier plugin MUST'", () => {
@@ -288,5 +328,84 @@ test("the boundary regex handles BOTH 'A <Tier>-tier plugin MUST' and 'An Advanc
   // past sec 2.3's "An Advanced-tier plugin MUST" and swallowed four requirement bullets
   // ("document every hook", "its event", "its scope", ...) as if they were component types.
   const tokens = parseTierTokens(STANDARD_TEXT);
-  assert.deepEqual(tokens["2.3"], ["hooks", "output styles", "statusline", "self-hosting ci"]);
+  // Parenthetical tokens come first, then the main split. The four requirement bullets must NOT
+  // appear at all - their presence is the regression this pins.
+  assert.deepEqual(tokens["2.3"],
+    ["session lifecycle", "tool-use guards", "hooks", "output styles", "statusline", "self-hosting ci"]);
+  for (const swallowed of ["document every hook", "its event", "its scope", "pass its own validation"]) {
+    assert.ok(!tokens["2.3"].includes(swallowed), `sec 2.3 must not extract the requirement bullet "${swallowed}"`);
+  }
+});
+
+// ---------------------------------------------------------------------------------------------
+// foundation/'s own folder guides.
+//
+// WHY THIS LIVES HERE AND NOT IN G8. The first attempt added "foundation" and its three layers to
+// FIXED_ROOTS in scripts/checks/folder-readme.mjs. That was wrong, and adversarial wave 1 caught it:
+// G8 is a SPINE check that grades other people's plugins, so the change silently imposed this
+// repository's private evidence layout on any third-party plugin that happened to use a folder
+// called `foundation/`. Reproduced with a throwaway plugin containing an empty foundation/: it took
+// a gate-failing error demanding a README.
+//
+// The measurement that was offered as proof did not support the claim it was hung on. All six
+// registry members were graded before and after and nothing moved - true, and uninformative, since
+// none of them HAS a foundation/ folder. A narrower question was answered than the one asked.
+//
+// So the FIXED_ROOTS change is reverted and the guard lives here instead, where it grades exactly
+// one repository: this one. That is also what ADR 0055 said in the first place - "W4 adds exactly
+// one guard, and it guards the matrix rather than graded plugins."
+// ---------------------------------------------------------------------------------------------
+
+const FOUNDATION_DIRS = ["foundation", "foundation/claims", "foundation/sources", "foundation/synthesis"];
+const INVENTORY_SKIP = new Set(["README.md"]);
+
+/** G8's semantics, applied to foundation/ only: title, an inventory, and set-equal children. */
+function folderGuideFindings(root) {
+  const out = [];
+  for (const rel of FOUNDATION_DIRS) {
+    const dir = path.join(root, rel);
+    const readme = path.join(dir, "README.md");
+    if (!existsSync(readme)) { out.push(`${rel}/ has no README.md`); continue; }
+    const text = readFileSync(readme, "utf8");
+    const fm = /^---\r?\n([\s\S]*?)\r?\n---/.exec(text);
+    if (!fm || !/^title:\s*\S/m.test(fm[1])) out.push(`${rel}/README.md has no non-empty frontmatter title`);
+    const invAt = text.indexOf("## Inventory");
+    if (invAt === -1) { out.push(`${rel}/README.md has no "## Inventory" section`); continue; }
+    const listed = new Set();
+    for (const line of text.slice(invAt).split("\n").slice(1)) {
+      if (/^##\s/.test(line)) break;
+      if (!/^\s*[-*]\s/.test(line)) continue;
+      const m = /`([^`]+)`/.exec(line);
+      if (m) listed.add(m[1].replace(/\/$/, ""));
+    }
+    const onDisk = new Set(readdirSync(dir).filter((n) => !INVENTORY_SKIP.has(n)));
+    for (const n of onDisk) if (!listed.has(n)) out.push(`${rel}/README.md: child "${n}" is on disk but not in the inventory`);
+    for (const n of listed) if (!onDisk.has(n)) out.push(`${rel}/README.md: inventory lists "${n}", which is not on disk`);
+  }
+  return out;
+}
+
+
+test("foundation/'s four folder guides carry a title, an inventory, and children that set-equal what is on disk", () => {
+  const f = folderGuideFindings(REPO);
+  assert.deepEqual(f, [], `foundation folder-guide findings:\n  - ${f.join("\n  - ")}`);
+});
+
+test("NEGATIVE: the foundation folder-guide check fires on a phantom and on an unlisted child", () => {
+  const dir = mkdtempSync(path.join(tmpdir(), "askit-foundation-guide-"));
+  try {
+    for (const rel of FOUNDATION_DIRS) mkdirSync(path.join(dir, rel), { recursive: true });
+    // Correct guides for the three subfolders, so only the top-level one is under test.
+    for (const rel of FOUNDATION_DIRS.slice(1)) {
+      writeFileSync(path.join(dir, rel, "README.md"), `---\ntitle: "${rel}"\n---\n\n## Inventory\n\n`, "utf8");
+    }
+    writeFileSync(path.join(dir, "foundation", "surveys.md"), "x\n", "utf8");
+    writeFileSync(path.join(dir, "foundation", "README.md"),
+      `---\ntitle: "foundation"\n---\n\n## Inventory\n\n- \`claims/\` - ok.\n- \`sources/\` - ok.\n- \`synthesis/\` - ok.\n- \`ghost.md\` - not on disk.\n`, "utf8");
+    const f = folderGuideFindings(dir);
+    assert.ok(f.some((x) => x.includes('"surveys.md" is on disk but not in the inventory')), `expected an unlisted-child finding; got ${JSON.stringify(f)}`);
+    assert.ok(f.some((x) => x.includes('lists "ghost.md", which is not on disk')), `expected a phantom finding; got ${JSON.stringify(f)}`);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
 });

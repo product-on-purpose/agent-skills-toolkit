@@ -95,11 +95,18 @@ Cowork is not a tier boundary and is deliberately not a matrix column, but two c
 
 | | Count |
 | --- | --- |
-| Boundaries resting on a **pinned** claim | **8** |
+| Boundaries resting on a **pinned** claim | **9** |
 | Boundaries resting on **nothing first-party** (`unverified`) | **11** |
 | Boundaries that are this Standard's own convention (`n/a, house`) | **3** |
 
 **Every one of the eight pinned claims is a Claude Code fact.** Every `unverified` row is a Codex fact, a Cowork fact, or a cross-agent portability claim.
+
+> **Two different counts, both nearly "eight", and this file said the wrong one until 2026-08-22.**
+> There are **8 pinned CLAIMS** in `vendor-claims.json`, and **9 pinned BOUNDARIES** in the tables above.
+> They differ because several boundaries cite the same claim (`U15` and its recursion invariant both
+> rest on Claude Code subagent-discovery readings) and one cites `upstream-pin.json` rather than
+> `vendor-claims.json` at all. The summary row read **8** on first writing, which was the claim count
+> wearing the boundary count's clothes. **Corrected by counting the rows, not by re-reading them.**
 
 **None of these is a defect to fix in this release.** ADR 0055 D4 and the v1.16.0 plan are explicit: where a boundary rests on nothing, that is a **finding to file**, and reassigning a tier is its own ADR with a migration window. This file's job is to make the eleven visible for the first time.
 

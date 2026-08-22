@@ -28,7 +28,7 @@ Subagents, output styles, and statuslines do not ship to Codex *from a plugin*. 
 |---|---|
 | Universal (Bronze) | skills + references/assets, AGENTS.md, MCP |
 | Convergent (Silver) | + subagents, commands, workflows, chain contracts, plugin packaging, the prefix, native manifests |
-| Advanced (Gold) | + hooks, output styles, self-hosting CI |
+| Advanced (Gold) | + hooks, output styles, statusline, self-hosting CI |
 
 `advise` recommends a tier from the target agents and the components planned: a single-agent skills-and-docs plugin sits comfortably at Bronze; a cross-agent plugin with packaging and a components index is Silver; hooks and self-hosting CI move it to Gold.
 
