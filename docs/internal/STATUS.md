@@ -6,13 +6,13 @@
 > technical history), and `docs/internal/release-plans/` (the per-release spec + implementation
 > packets). Do not add accretive per-release paragraphs here; append them to those instead.
 >
-> Last updated: 2026-08-22.
+> Last updated: 2026-08-22 (v1.16.0 shipped; marketplace re-pin still open).
 
 ## Current state
 
 | Fact | Value |
 |---|---|
-| Version | **1.16.0, BUMPED 2026-08-22, NOT YET TAGGED.** The manifests, CHANGELOG and RELEASE-NOTES carry 1.16.0; **no tag exists, nothing is published, and the registry still pins 1.15.0.** Do not read this row as shipped until the tag, the GitHub release, the npm publish and the re-pin are all done and verified from published state. Previous: **1.15.0, SHIPPED 2026-08-20** - tag `9133014`, GitHub release published, npm `latest` with signed Sigstore provenance, registry `agent-plugins` **1.67.0** ([PR #82](https://github.com/product-on-purpose/agent-plugins/pull/82)). |
+| Version | **1.16.0, SHIPPED 2026-08-22.** Tagged `v1.16.0` at `87108ba`, GitHub release live and Latest, npm `1.16.0` on `latest`. **The marketplace re-pin is the one step still open** and is staged for the maintainer at [`plan_v1.16.0/repin-instructions.md`](release-plans/plan_v1.16.0/repin-instructions.md); the registry still pins 1.15.0 until it is applied. |
 | Declared tier | Advanced (Gold) - `library.json` `tier: advanced` |
 | Standard pin | **0.15** |
 | Spine | 34 checks |
@@ -20,6 +20,18 @@
 | Skills | **26** |
 | Tests | 1388, 0 failures (1 skipped; local suite run **2026-08-22**, after v1.16.0 W4 added the capability-matrix drift guard and adversarial wave 1 grew it by three). It read **1359 at the shipped tag `9133014`**, confirmed there by `npm run release-ready` exiting 0 on the release runner |
 | Self-proving | `node scripts/check.mjs .` exits 0 at Advanced, 0 errors, 0 warnings |
+
+## v1.16.0 SHIPPED 2026-08-22
+
+| Step | State |
+| --- | --- |
+| Tag | `v1.16.0` -> `87108ba`, pushed. **Not the release PR's commit** (#275, `1fe6afc`): #276 and #277 corrected ten stale check-spine claims across eight public files and recorded that in the notes, so tagging the earlier commit would have published the very claims those PRs removed. |
+| Release workflow | run `32616278433`, green. All five release-ready gates ran on the runner, and the tag/manifest guard passed against all four version-bearing manifests. |
+| GitHub release | published, Latest, not draft, not prerelease. Body carries the `One thing worth re-reading` section naming `U14`-`U17`. |
+| npm | `1.16.0` on `latest`, 212 kB packed / 72 files, SLSA provenance attestation present. Trusted publishing (OIDC), no stored credential. Dry run passed first. |
+| Published-state smoke test | Installed from the registry into a clean directory **outside this repository**: binary reports `1.16.0`, shipped `README.md` carries the corrected `U1-U9`, `U11-U17` / "16 checks", gate grades Advanced 0/0. All nine maintainer-only libraries absent from the tarball. |
+| Registry | **OPEN.** Staged at [`repin-instructions.md`](release-plans/plan_v1.16.0/repin-instructions.md); `metadata.version` 1.67.0 -> 1.68.0, `source.sha` -> `87108ba...`. This program never writes to `agent-plugins`. |
+| Pre-tag doc review | [`doc-review.md`](release-plans/plan_v1.16.0/doc-review.md). Ten stale spine claims fixed, `check-doc-enumerations.mjs` added to guard them, QUICKSTART and the glossary rewritten. |
 
 ## v1.15.0 SHIPPED 2026-08-20
 
