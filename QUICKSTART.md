@@ -18,11 +18,18 @@ The toolkit installs on Claude Code and Codex - it ships both native manifests. 
 
 ## 2. Grade a plugin
 
-Grading tells you the highest tier a plugin satisfies (Bronze / Silver / Gold) and a burndown of exactly what blocks the next tier. There are two ways to run it, and both run the same checks.
+Grading tells you the highest tier a plugin satisfies (Bronze / Silver / Gold) and a burndown of exactly what blocks the next tier. There are three ways to run it, and all three run the same checks.
+
+**From a terminal, with nothing installed.** The gate is published to npm, so this works on any plugin directory right now, including one you have not touched yet:
+
+```bash
+npx agent-skills-toolkit .                     # grade the plugin in this directory
+npx agent-skills-toolkit /path/to/your-plugin  # or one somewhere else
+```
 
 **Ask your agent.** Invoke the `askit-evaluate` skill - run the `/askit-evaluate` command, or just say "grade this plugin against the Standard." It runs the deterministic core and presents the tier, the burndown to the next tier, and per-rule remediation.
 
-**Run the script.** The same gate is a portable script you can run directly - in CI, a pre-commit hook, or a plain terminal, anywhere Node 22.12+ runs (one runtime dependency, a YAML parser). From the plugin's root:
+**From a clone.** With this repository checked out, the scripts run directly - this is the form CI and pre-commit hooks use. Anywhere Node 22.12+ runs, with one runtime dependency (a YAML parser):
 
 ```bash
 node scripts/check.mjs              # the tier + what blocks the next one, on a real exit code
@@ -44,7 +51,16 @@ The skill is the door; the script is the engine. Only a deterministic gate with 
 
 Pick the path that matches where you are.
 
-**Start a new plugin.** Scaffold a Bronze-anatomy plugin from scratch and onboard yourself by interview, questionnaire, or hybrid mode. Invoke `askit-init-plugin`, or just ask your agent to "start a new plugin." It writes a minimal `library.json` (the five required fields) plus a root `AGENTS.md`, a minimal `.claude-plugin/plugin.json` (`name`, `version`, `description` only, so it installs on Claude Code and Codex from the first commit), and README/CHANGELOG starters, so the new plugin passes the conformance core immediately. If you use interview mode and give it an author, that goes into the manifest too, and `claude plugin validate --strict` passes outright; decline and the manifest stays exactly as minimal as the template (still install-recognized, just short of `--strict`-clean). Then add your first skill with `askit-build-skill` and re-run the grade to confirm Bronze.
+**Start a new plugin.** Invoke `askit-init-plugin`, or just ask your agent to "start a new plugin." It onboards you by interview, questionnaire, or hybrid mode, then scaffolds a plugin that passes the conformance core immediately:
+
+- a minimal `library.json` carrying the five required fields
+- a root `AGENTS.md` entrypoint
+- a minimal `.claude-plugin/plugin.json` (`name`, `version`, `description` only), so it installs on Claude Code and Codex from the first commit
+- README and CHANGELOG starters
+
+Give it an author in interview mode and `claude plugin validate --strict` passes outright. Decline, and the manifest stays exactly as minimal as the template: still install-recognized, just short of `--strict`-clean.
+
+Then add your first skill with `askit-build-skill` and re-run the grade to confirm Bronze.
 
 **Bring an existing skills repo up to the bar.** Adopt an ad-hoc or foreign skills repo into a conformant plugin. Invoke `askit-migrate`, or ask your agent to "migrate this repo to the Standard." It runs in three modes:
 

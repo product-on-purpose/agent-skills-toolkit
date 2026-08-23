@@ -58,7 +58,7 @@
     "STANDARD.md"
   ],
   "scripts": {
-    "test": "node scripts/check-readme-version.mjs . && node --test",
+    "test": "node scripts/check-readme-version.mjs . && node scripts/check-doc-enumerations.mjs . && node --test",
     "check": "node scripts/check.mjs",
     "tier-report": "node scripts/tier-report.mjs",
     "evaluate": "node scripts/evaluate.mjs",
@@ -67,6 +67,7 @@
     "vendor-watch": "node scripts/vendor-watch.mjs .",
     "action-pin-watch": "node scripts/action-pin-watch.mjs .",
     "release-counts": "node scripts/check-release-counts.mjs .",
+    "doc-enumerations": "node scripts/check-doc-enumerations.mjs .",
     "release-ready": "node scripts/release-ready.mjs",
     "prepublishOnly": "npm test && node scripts/check.mjs"
   },
