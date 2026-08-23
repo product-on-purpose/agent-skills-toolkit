@@ -9,7 +9,7 @@ expanded and compared against `scripts/lib/registry.mjs`. Two of the sweeps belo
 the first pass, because the first pass was truncated and its conclusion ("three stale files, one
 correct") was wrong by more than half.
 
-## Finding 1 - seven public files stated a check spine the toolkit does not ship
+## Finding 1 - eight public files stated a check spine the toolkit does not ship
 
 **Severity: release-blocking.** This is a false public record, the class this repo already treats as
 a blocker.
@@ -53,7 +53,7 @@ including the one 170 lines above it in the same file.
 
 This is the v1.15.0 defect recurring. That release fixed `docs/reference/universal-checks.md`, which
 "had stopped at `U13`, missing four checks across two releases", and shipped the fix with **no sweep
-and no guard**. One release later the same staleness was live in seven more files.
+and no guard**. One release later the same staleness was live in eight more files.
 
 ### The guard
 
@@ -147,6 +147,10 @@ index pages of five long index lines each; the number is a small-sample artifact
   about today.
 - **`STANDARD.md` normative text.** Its current spine statement at line 142 was checked and is
   correct, so it needed no edit. Normative changes require maintainer merge authority regardless.
+- **`skills/` and `templates/`.** Both the sweep and the guard exclude them on purpose: a golden
+  or anti example legitimately quotes the spine of the day it was written, and rewriting one would
+  falsify the example. Checked separately all the same, since these are shipped instructions:
+  **0 lines across 129 tracked files** name a check that does not exist.
 - **The generated half of the docs site.** 86 files are on disk under `site/src/content/docs/`, 6 are
   tracked; the rest are generated from `docs/` by `gen-docs-site.mjs`, so fixing `docs/` fixes them.
   Only the authored `catalog.md` needed its own edit. Route parity re-checked after: 88 of 88.

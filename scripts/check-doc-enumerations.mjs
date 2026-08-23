@@ -4,7 +4,7 @@
 //               expansion against scripts/lib/registry.mjs, the one place the spine is real
 // why:          v1.15.0 fixed docs/reference/universal-checks.md, which "had stopped at U13,
 //               missing four checks across two releases", and shipped that fix WITHOUT a guard
-//               and WITHOUT a sweep. By v1.16.0 the identical staleness was live in seven more
+//               and WITHOUT a sweep. By v1.16.0 the identical staleness was live in eight more
 //               public files, README.md among them - where line 219 said the correct
 //               "34 checks (U1-U9, U11-U17, S1-S8, G1-G10)" and line 225, six lines later in the
 //               same section, said "Bronze - Universal (U1-U9, U11-U13, 12 checks)". The count
