@@ -9,6 +9,8 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [1.16.0] - 2026-08-22
+
 **The evidence this Standard rests on gets an address.** Six artifacts move into a new repo-root `foundation/`, the artifact recording which vendor fact each tier boundary depends on is written for the first time, and one guard is added. **No check is added to the spine, no Standard requirement changes, and no plugin's verdict moves** - measured per family member before and after, byte-identical.
 
 ### Added

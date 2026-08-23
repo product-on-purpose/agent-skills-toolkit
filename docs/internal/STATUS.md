@@ -12,7 +12,7 @@
 
 | Fact | Value |
 |---|---|
-| Version | **1.15.0, SHIPPED 2026-08-20** - tag `9133014`, GitHub release published, npm `latest` with signed Sigstore provenance, registry `agent-plugins` **1.67.0** ([PR #82](https://github.com/product-on-purpose/agent-plugins/pull/82)). Previous: 1.14.0, shipped 2026-08-17 (tag `57727ab`, registry 1.66.0) |
+| Version | **1.16.0, BUMPED 2026-08-22, NOT YET TAGGED.** The manifests, CHANGELOG and RELEASE-NOTES carry 1.16.0; **no tag exists, nothing is published, and the registry still pins 1.15.0.** Do not read this row as shipped until the tag, the GitHub release, the npm publish and the re-pin are all done and verified from published state. Previous: **1.15.0, SHIPPED 2026-08-20** - tag `9133014`, GitHub release published, npm `latest` with signed Sigstore provenance, registry `agent-plugins` **1.67.0** ([PR #82](https://github.com/product-on-purpose/agent-plugins/pull/82)). |
 | Declared tier | Advanced (Gold) - `library.json` `tier: advanced` |
 | Standard pin | **0.15** |
 | Spine | 34 checks |

@@ -34,6 +34,7 @@ The toolkit is a quality bar for AI skill libraries: it grades a plugin Bronze, 
 | v1.13.0 | 2026-08-13 | The contract you adopted: one post-resolution ceiling over `since` and `until`, config provenance, and two graduations that could not previously fire | 31 / 0.13 |
 | v1.14.0 | 2026-08-16 | Four things the gate was telling you were not true, and three files it was never reading | 34 / 0.14 |
 | v1.15.0 | 2026-08-18 | Two migration windows close on schedule, one because its subject did the work | 34 / 0.15 |
+| v1.16.0 | 2026-08-22 | The evidence gets an address, and some of it was resting on nothing | 34 / 0.15 |
 
 ("Spine" = the number of checks the gate runs. "Standard" = the version of the written specification. They were stable at 29 / 0.11 from v1.2.0 through v1.5.x; **v1.6.0 grew them to 30 / 0.12** - the first new requirement since v1.1.0, shipped under a warn-first burndown so no existing plugin newly fails.)
 
@@ -225,3 +226,21 @@ schedules the corpus growth that would change that answer, so "wait for evidence
 gates", decided quietly. And the new action-pin gate's first reported defect turned out to be **its own
 false positive against this repository's own file** - the exact failure mode the previous release was named
 for. Adversarial review caught it, and the release records say so plainly.
+
+### v1.16.0 - the evidence gets an address, and some of it was resting on nothing (2026-08-22)
+
+**The problem, in one sentence.** `STANDARD.md` defines Convergent as what both agents support in different formats and Advanced as deep, often agent-specific capability - so **every tier boundary is a claim about software this project does not control**, and until this release no artifact recorded which vendor fact any boundary actually depended on.
+
+**What shipped.** A repo-root `foundation/` in three layers: verified first-party sources, the machine-checkable claims, and the conclusions drawn from them. Every source record carries what was read, which version, when, and **by what method** - because "confirmed on the 19th" describes a page-read and a live experiment identically while distinguishing neither. Plus `tier-basis.md`, one row per tier boundary, where **a boundary with no evidence gets a row reading `unverified` rather than being left out.**
+
+**Ratified before anything moved, and the ADR was overturned by measurement before it was written.** The W1 spec defined the claims folder by readership - "these files are read by release-blocking code" - and one grep showed that was false for one of the three. Membership became a format, with each file's gate readers named in a table instead of inferred from a folder.
+
+**What it found is the reason to read this entry.** Every pinned claim in the repository sources from a **Claude Code** page. Not one pins a Codex fact or a Cowork fact - so the tier defined as *what both agents support* had pinned evidence for one of them. The Codex hook event list in the capability matrix was **missing an event**, found by opening the reference and counting. And two shipped checks accommodate Cowork behaviour the vendor documents nowhere, with no quote to re-read and no probe that expires.
+
+**None of that was fixed here.** Each is filed. A boundary resting on nothing is a finding to record; moving a tier is its own decision with its own migration window.
+
+**The review is the other half of the story.** Two adversarial waves, then the four-lens panel the pre-cut gate requires - which had **not** been run, and which the waves did not substitute for - then a direct probe of the panel's own fixes. More than thirty findings.
+
+**Six times, a fix for a finding introduced a defect of the class it was fixing.** Three vendor claims pinned markdown *table syntax*, so a re-render would have blocked every release; their replacement pinned a *timeout budget* while claiming to back an event set; a guard anchor was deleted rather than updated, twice; a terminator widened to cure a false failure started ending sections early; and a test written to prove correctness contained a no-op that CodeQL caught. **Every one was found only because something ran after the fix - never by re-reading it.**
+
+**The durable lesson, and it is not new here, only sharper:** the code written in *response* to a review is unreviewed. This release is the first to run a review pass against its own corrections, and that pass found three more defects.

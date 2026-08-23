@@ -2,6 +2,42 @@
 
 Curated, user-facing highlights. For the full technical history see [`CHANGELOG.md`](CHANGELOG.md).
 
+## 1.16.0 - 2026-08-22
+
+**The evidence this Standard rests on gets an address - and the release found that some of it was resting on nothing.**
+
+The tier ladder is defined in terms of what Claude Code and Codex support. That makes every tier boundary a claim about software this project does not control. Until now those claims lived scattered across one skill's private folder and three separate directories, and **no artifact recorded which vendor fact any boundary actually depended on.**
+
+### Upgrade
+
+**Nothing here changes your grade.** No check is added, no check is removed, the spine stays at 34, and the Standard stays at 0.15. Every one of the six reference-family plugins was graded before and after and came back **byte-identical**.
+
+**If you consume the npm package or the plugin, nothing changes for you.** The tarball ships the gate and `STANDARD.md`; the plugin install carries the whole tree. Files moved inside the repository, and both delivery paths carry them either way.
+
+**If you pinned the GitHub Action to a tag**, note that `action.yml`'s example now reads `@v1.16.0`. Pin a released tag or a commit sha - the example is an example, not a recommendation to track.
+
+### What is new
+
+**A `foundation/` folder** holding what the Standard rests on, in three layers: verified first-party sources, the machine-checkable claims, and the conclusions drawn from them. Every source record carries what was read, which version, when, and **by what method** - because "confirmed on the 19th" describes a page-read and a live experiment identically while distinguishing neither.
+
+**`tier-basis.md`**, which records, per tier boundary, the vendor fact it depends on and whether that fact is pinned anywhere. **A boundary with no evidence gets a row reading `unverified`, never an omitted row.** An absent row reads as "no boundary here"; an `unverified` row reads as "a boundary nobody has grounded", which is the finding.
+
+### What it found, stated plainly
+
+**Every pinned claim in this repository sources from a Claude Code page.** There is no pinned claim for any Codex fact and none for any Cowork fact - so the Convergent tier, which is *defined* as what both agents support in different formats, has pinned evidence for one of them.
+
+**The Codex hook event list in our capability matrix was missing an event.** The vendor documents eleven; this repository recorded ten. Found by opening the reference and counting.
+
+**Two shipped checks accommodate Cowork behaviour the vendor documents nowhere.** They are almost certainly correct and they have no expiry, so if that behaviour changed, nothing here would notice.
+
+None of these is fixed in this release. Each is filed, because a boundary resting on nothing is a finding to record, and moving a tier is its own decision with its own migration window.
+
+### On the review
+
+Two adversarial waves, a four-lens panel, and a direct probe of the panel's own fixes returned **more than thirty findings** between them. Several were defects in the fixes for earlier findings - including one that would have blocked every future release the moment a vendor re-rendered a documentation page.
+
+That is recorded in full rather than summarized away, in the release packet's findings ledger, and it is the reason this release took the shape it did.
+
 ## 1.15.0 - 2026-08-20
 
 **Two migration windows close on schedule, and one of them closed because its subject did the work.**
