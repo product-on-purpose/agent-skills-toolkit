@@ -128,6 +128,31 @@ export function evaluateClaim(claim, pageText, today) {
 }
 
 /** Evaluate every claim. `pagesById` maps source id to fetched text, or to null where a fetch failed. */
+/**
+ * STRUCTURAL validation of the claims document, answered from the document alone and before any fetch.
+ *
+ * A claim whose `source` names an id that `sources` does not declare can never be checked by anything:
+ * there is no url to fetch, so `pagesById[c.source]` is forever undefined and the claim is permanently
+ * UNCHECKABLE. Before this existed the run REPORTED THAT AND EXITED 0, because `sourcesFailed` iterates
+ * `pin.sources` (an undeclared id is not in it) and `exitCodeFor` counted only `missing` and `stale`
+ * toward 1. One typo in a claim's source silently retired that claim while the gate stayed green - and
+ * vendor-watch is one of the five gates `release-ready` blocks a tag on. Found by the v1.16.0 false-PASS
+ * lens (E54).
+ *
+ * Deliberately checked as SHAPE rather than by counting UNCHECKABLE verdicts: UNCHECKABLE is a legitimate
+ * outcome for a probe claim and for a real outage, so a verdict-counting rule would either block those or
+ * be silently bypassed the next time a status value is added.
+ *
+ * Deliberately NOT symmetric. A declared source carrying no claim is fine and is a recorded decision here:
+ * `cx-hooks` is declared and carries none, because the three table-row claims landed against it in v1.16.0
+ * pinned markdown pipes and would have blocked every release the first time the vendor re-rendered.
+ */
+export function undeclaredSources(pin) {
+  const declared = new Set((pin.sources ?? []).map((s) => s.id));
+  return (pin.claims ?? [])
+    .filter((c) => !declared.has(c.source))
+    .map((c) => ({ claim: c.id ?? "(unnamed claim)", source: c.source ?? "(no source field)" }));
+}
 export function buildReport(pin, pagesById, today) {
   const bySource = new Map((pin.sources ?? []).map((s) => [s.id, s]));
   const results = (pin.claims ?? []).map((c) =>
@@ -150,6 +175,7 @@ export function buildReport(pin, pagesById, today) {
     freshnessDays: FRESHNESS_DAYS,
     results,
     sourcesFailed,
+    undeclared: undeclaredSources(pin),
     summary: {
       total: results.length,
       holds: count(VERDICT.HOLDS),
@@ -183,6 +209,12 @@ export function exitCodeFor(report) {
   // A MISSING claim is NOT a refusal. The page was read and the sentence is gone - that is a finding a
   // human must act on, which is exit 1. Conflating them would report "could not verify" for the case
   // where verification succeeded and returned bad news.
+  // (c) STRUCTURAL FIRST, ahead of refusal. A claim naming an undeclared source is a defect in THIS
+  //     repository's own claims file, so it belongs in the class release-ready cannot excuse:
+  //     --allow-vendor-unreachable excuses code 2 ONLY. Checked BEFORE the refusal tests on purpose - if a
+  //     dangling id and somebody else's outage landed in the same run, returning 2 would let a legitimate
+  //     reason string wave the config defect through alongside the outage it was written for.
+  if ((report.undeclared ?? []).length > 0) return 1;
   if ((report.sourcesFailed ?? []).length > 0) return 2;
   if (report.results.length === 0) return 2;
   if (report.summary.missing > 0 || report.summary.stale > 0) return 1;
@@ -197,6 +229,11 @@ export function renderReport(report) {
   const rank = { missing: 0, stale: 1, uncheckable: 2, holds: 3 };
   const rows = [...report.results].sort((a, b) => rank[a.verdict] - rank[b.verdict]);
   const out = [`vendor-watch  ${report.today}  (freshness window ${report.freshnessDays} days)`, ""];
+  for (const u of report.undeclared ?? []) {
+    out.push(`BAD  ${u.claim}  points at source "${u.source}", which this document does not declare.`);
+    out.push("       Nothing can ever check this claim. Fix the id or declare the source.");
+    out.push("");
+  }
   for (const r of rows) {
     out.push(`${ICON[r.verdict]} ${r.id}  [${r.kind}]  ${r.detail}`);
     if (r.verdict === VERDICT.MISSING || r.verdict === VERDICT.STALE) {

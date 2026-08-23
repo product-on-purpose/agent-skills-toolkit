@@ -15,7 +15,7 @@
 // appears in this file or in scripts/lib/vendor-watch.mjs.
 import { readFileSync } from "node:fs";
 import path from "node:path";
-import { buildReport, exitCodeFor, renderReport } from "./lib/vendor-watch.mjs";
+import { buildReport, exitCodeFor, renderReport, undeclaredSources } from "./lib/vendor-watch.mjs";
 import { normalizeArgPath } from "./lib/fs-utils.mjs";
 
 export const CLAIMS_REL = "foundation/claims/vendor-claims.json";
@@ -91,6 +91,20 @@ export async function main(argv = process.argv.slice(2)) {
     return 2;
   }
 
+  // Structural check BEFORE the network. A claim naming a source this document does not declare can never
+  // be checked by any fetch, so spending a request per source first only delays the same answer and buries
+  // it under a page of verdicts. exitCodeFor enforces the same rule for any caller that builds a report
+  // directly; this is the fast path, not a second copy of the decision (E54).
+  const dangling = undeclaredSources(pin);
+  if (dangling.length > 0) {
+    for (const u of dangling) {
+      console.error(
+        `vendor-watch: claim "${u.claim}" points at source "${u.source}", which this document does not declare.`
+      );
+    }
+    console.error("Nothing can ever check those claims. Fix the id or declare the source. No page was fetched.");
+    return 1;
+  }
   const pages = {};
   for (const source of pin.sources ?? []) {
     pages[source.id] = await loadSource(source, opts);

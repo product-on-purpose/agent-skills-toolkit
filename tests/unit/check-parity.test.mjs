@@ -6,6 +6,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { spawnSync } from "node:child_process";
 import {
+  readPin,
   gitBlobSha1,
   diffMetadataParity,
   summarizePinSkew,
@@ -626,4 +627,43 @@ test("PARITY_EXCEPTIONS: every shipped entry carries a RegExp fingerprint", () =
 // remaining test would still pass on a machine (or a CI leg) without `claude`/`uvx` installed.
 test("PARITY_MODE ships as 'gating' (the v1.12.0 flip, ADR 0042's scheduled discharge)", () => {
   assert.equal(PARITY_MODE, "gating");
+});
+
+// --- E55: readPin collapsed "absent" and "unparseable" into the same null -----------------------------
+//
+// A NOTE ON WHAT E55 CLAIMED, because the backlog entry is partly wrong and the record should say so.
+// It reported that "the pin-skew section cannot affect the exit code under any input" as a defect. That
+// is true and it is DELIBERATE: ADR 0042's round-2 addendum audited exactly this and recorded pin-skew as
+// "the one case in this audit that was already right for the right reason" - it compares a git-blob-SHA
+// source pin against an installed PyPI release, two identities the same ADR documents as not expected to
+// agree, so a skew is evidence to report and never a first-party rejection to gate on. Pushing it into
+// `results` would undo a ratified decision. The test at "an unrecognized result kind never counts" uses
+// `kind: "pin-skew"` as its example ON PURPOSE, for the same reason.
+//
+// What was genuinely wrong is narrower: `readPin` returned `null` both when the file was absent and when
+// it was corrupt, so a malformed upstream-pin.json reported as "not found or unparseable; comparison
+// skipped" - the same words as the legitimate absent case. Silent degradation, not a gating hole.
+
+test("readPin distinguishes an ABSENT pin from an UNPARSEABLE one (E55)", () => {
+  const dir = mkdtempSync(path.join(tmpdir(), "askit-pin-"));
+  try {
+    assert.equal(readPin(dir).status, "absent", "no file at all is not a defect; it is nothing to compare");
+
+    mkdirSync(path.join(dir, "foundation", "claims"), { recursive: true });
+    writeFileSync(path.join(dir, "foundation", "claims", "upstream-pin.json"), "{ not json");
+    const corrupt = readPin(dir);
+    assert.equal(corrupt.status, "unreadable", "a corrupt pin is a defect in THIS repository");
+    assert.ok(corrupt.error, "and it must carry why, or the operator cannot fix it");
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test("readPin reads the real repository's pin from foundation/claims (E55)", () => {
+  // Also a live check on the v1.16.0 migration: this file moved from docs/internal/standards-watch/ to
+  // foundation/claims/, and readPin reaches it through an exported constant rather than a literal path,
+  // so a directory-string grep during that migration could not see this reader.
+  const r = readPin(REPO_ROOT);
+  assert.equal(r.status, "ok", "Section D is dead weight if the pin it reads is not where it looks");
+  assert.ok(Array.isArray(r.pin.artifacts), "and the shape Section D consumes must actually be there");
 });
