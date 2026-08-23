@@ -111,7 +111,7 @@ level: beginner
 
 ## How it is enforced
 
-The taxonomy is documented here as a reference (the way a plugin ships a `frontmatter-schema` file). It is **applied today** - every `docs/**` page already carries it - and it is **enforced** by the `docs-frontmatter` check as of Standard v0.10, which reclassified the old `G7` tier-inclusion statement (now an unnumbered structural property) and assigned `G7` to this check. The spine is **34 checks (`U1-U9`, `U11-U14`, `S1-S8`, `G1-G10`)**; the related `docs-presence` (`G10`), folder-README (`G8`), and source-docblock (`G9`) checks are all live, `U13` (`skill-registration`) was added in Standard v0.12, and `U14` (`agent-restricted-fields`) in Standard v0.13.
+The taxonomy is documented here as a reference (the way a plugin ships a `frontmatter-schema` file). It is **applied today** - every `docs/**` page already carries it - and it is **enforced** by the `docs-frontmatter` check as of Standard v0.10, which reclassified the old `G7` tier-inclusion statement (now an unnumbered structural property) and assigned `G7` to this check. The spine is **34 checks (`U1-U9`, `U11-U17`, `S1-S8`, `G1-G10`)**; the related `docs-presence` (`G10`), folder-README (`G8`), and source-docblock (`G9`) checks are all live, `U13` (`skill-registration`) was added in Standard v0.12, and `U14` (`agent-restricted-fields`) in Standard v0.13.
 
 The `docs-frontmatter` module (reqId `G7`, Gold tier):
 
