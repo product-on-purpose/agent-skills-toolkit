@@ -16,6 +16,21 @@ The tier ladder is defined in terms of what Claude Code and Codex support. That 
 
 **If you pinned the GitHub Action to a tag**, note that `action.yml`'s example now reads `@v1.16.0`. Pin a released tag or a commit sha - the example is an example, not a recommendation to track.
 
+### One thing worth re-reading
+
+**If you used the README's tier model to decide what Bronze requires, read it again.** It described the Universal tier as `U1-U9`, `U11-U13`, 12 checks. The tier actually ships **16**: `U1-U9` and `U11-U17`. Six lines above it, the same section stated the spine correctly, which is how the error survived - the wrong count and its wrong list agreed with each other perfectly.
+
+Four Universal checks therefore had **no description anywhere in the README**:
+
+- **`U14` `agent-restricted-fields`** - a plugin-shipped agent declares none of `hooks`, `mcpServers` or `permissionMode`; Claude Code refuses those on plugin-shipped agents for security reasons, so an author who writes one gets no signal it was ignored.
+- **`U15` `agents-dir-registerable`** - every `.md` under `agents/` is a registered subagent, because the runtime loads every file it finds there. A stray `README.md` ships as a live phantom subagent.
+- **`U16` `metadata-placement`** - a governance key sits under `metadata`, not at the frontmatter top level where nothing reads it. The vocabulary itself stays open; only placement is checked.
+- **`U17` `catalogue-manifest-shape`** - a `marketplace.json` you ship parses, carries a `plugins` array, and does not mix skill sources with plugin sources.
+
+**If your `standard` pin is `0.15`, all four already apply to you as errors.** Nothing about the gate changed in this release; only what the README told you about it.
+
+Eight public files carried a stale version of that list. All are corrected, and `scripts/check-doc-enumerations.mjs` now expands every check range in the documentation and compares it against the registry, so prose and gate cannot drift apart again without the suite failing.
+
 ### What is new
 
 **A `foundation/` folder** holding what the Standard rests on, in three layers: verified first-party sources, the machine-checkable claims, and the conclusions drawn from them. Every source record carries what was read, which version, when, and **by what method** - because "confirmed on the 19th" describes a page-read and a live experiment identically while distinguishing neither.
