@@ -525,13 +525,30 @@ function readOurMetadata(skillMdAbs) {
   return md && typeof md === "object" && !Array.isArray(md) ? md : null;
 }
 
-function readPin(root) {
+/**
+ * Reads the upstream pin, DISTINGUISHING the three states a caller must tell apart.
+ *
+ * This used to return `null` both when the file was absent and when it was corrupt, and Section D
+ * printed the single sentence "upstream-pin.json not found or unparseable; pin-skew comparison skipped"
+ * for both. Those are not the same event: an absent pin is nothing to compare and is legitimate, while a
+ * malformed one is a defect in THIS repository that had been degrading silently into the same words
+ * (E55, found by the v1.16.0 false-PASS lens).
+ *
+ * What E55 ALSO claimed - that pin-skew cannot affect the exit code - is true and is deliberate. ADR 0042's
+ * round-2 addendum audited exactly this and recorded it as the one case already right for the right reason:
+ * a git-blob-SHA source pin and an installed PyPI release are two identities that ADR documents as not
+ * expected to agree, so a skew is evidence to report and never a first-party rejection to gate on. This
+ * change does not touch that, and must not.
+ *
+ * @returns {{status:"ok",pin:object}|{status:"absent",path:string}|{status:"unreadable",path:string,error:string}}
+ */
+export function readPin(root) {
   const p = path.join(root, "foundation", "claims", "upstream-pin.json");
-  if (!existsSync(p)) return null;
+  if (!existsSync(p)) return { status: "absent", path: p };
   try {
-    return JSON.parse(readFileSync(p, "utf8"));
-  } catch {
-    return null;
+    return { status: "ok", pin: JSON.parse(readFileSync(p, "utf8")) };
+  } catch (err) {
+    return { status: "unreadable", path: p, error: String(err.message ?? err) };
   }
 }
 
@@ -668,7 +685,8 @@ function main() {
   // --- Section D: validator identity + pin skew ---
   line("-- validator versions and pin identity --");
   line(`  claude CLI: ${hasClaude ? (runClaudeVersion() ?? "found, version unknown") : "NOT INSTALLED"}`);
-  const pin = readPin(root);
+  const pinRead = readPin(root);
+  const pin = pinRead.status === "ok" ? pinRead.pin : null;
   if (hasUvx) {
     const probe = runVersionProbe();
     let probeData = null;
@@ -686,8 +704,11 @@ function main() {
           const status = row.match === null ? "NOT MEASURED" : row.match ? "MATCH" : "SKEW";
           line(`    ${row.file}: ${status}  (pinned ${row.pinnedSha}${row.installedSha ? `, installed ${row.installedSha}` : ""})`);
         }
+      } else if (pinRead.status === "unreadable") {
+        line(`  upstream-pin.json is present but UNPARSEABLE (${pinRead.error}); pin-skew comparison could`);
+        line("    not run. This is a defect in this repository, not an absent pin - repair the file.");
       } else {
-        line("  upstream-pin.json not found or unparseable; pin-skew comparison skipped.");
+        line("  upstream-pin.json not found; pin-skew comparison skipped (nothing to compare).");
       }
     } else {
       line("  skills-ref (PyPI): could not read version/pin probe output.");
