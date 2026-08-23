@@ -40,177 +40,114 @@ That is recorded in full rather than summarized away, in the release packet's fi
 
 ## 1.15.0 - 2026-08-20
 
-**Two migration windows close on schedule, and one of them closed because its subject did the work.**
+**Two rules that had been warnings since 0.14 became errors. Nothing happens to you until you opt in.**
 
-This is a small release with one large idea in it. In 0.14 two requirements shipped as warnings with a
-stated deadline: adopt them by 0.15. That deadline is now here. **Nothing in this release will change your
-grade unless you raise your own `standard` pin.**
+### Do you need to do anything?
 
-### Upgrade
+**If `library.json` has a `standard` line** (the version of the rules you are graded against), **no.** Your grade does not change until you raise that number yourself.
 
-**Nothing here takes effect for your plugin until you raise `standard` to `0.15` in your own
-`library.json`.** If you change nothing, your grade does not change.
+**If it does not have one, yes - today.** A plugin with no `standard` line is graded against the newest rules the moment they ship, so both rules below already apply to you. Add the line and pick a version:
 
-**If you have no `standard` pin at all, none of this protects you** - an unpinned plugin grades against the
-current ruleset immediately, so both requirements below are already errors for you today. Add the line.
+```jsonc
+{ "standard": "0.14" }   // grades you against 0.14's rules, not whatever is newest
+```
 
-Two things become gate-failing errors when you pin `0.15`, both of which have been warnings since 0.14:
+### See what adopting 0.15 would cost, before you commit
 
-1. **Every `_workflows/<name>.md` on disk must be declared in `library.json` `components.workflows`, and
-   every declared workflow must exist on disk** (`S3`). A workflow on disk but undeclared ships invisibly
-   to installers; a declared one with no file cannot be delivered.
-2. **A `.claude-plugin/marketplace.json` that is present must be readable by exactly one scope** (`U17`):
-   it must parse, it must carry a `plugins` array, and its entries must not mix skill sources with plugin
-   sources. A mixed catalogue is claimed entirely by the first reader, so its other half is examined by
-   nothing.
+```bash
+npx agent-skills-toolkit . --strict
+```
 
-**Price the move before you commit to it.** `npx agent-skills-toolkit . --strict` grades you against the
-newest ruleset without changing your pin, so every finding that appears only under `--strict` is one that
-adoption would make real.
+That grades you against the newest rules **without changing your pin**. Anything that appears only under `--strict` is something adoption would turn real. Nothing is written; it just tells you.
 
-### Why these two closed rather than slipping again
+### The two rules
 
-The workflow mirror was windowed for one specific reason, recorded at the time: graduating it immediately
-would have cost a real plugin in our reference family a whole tier, on nine workflows it shipped and did
-not declare. **That plugin declared all nine the day after the decision was published, inside the window
-the decision created.** A warning was raised, understood, and discharged before its deadline. That is the
-entire point of a migration window, and it is the first time we have watched one work end to end.
+**1. Declare your workflows.** Every `_workflows/<name>.md` file must be listed in `library.json` under `components.workflows`, and everything listed there must exist on disk.
 
-Extending a window whose subject has already done the work protects nobody, and it teaches the next
-maintainer that the date is negotiable.
+*Why it matters:* a workflow file you never declared is invisible to whoever installs your plugin - it ships, and nothing loads it. A declared file that does not exist cannot be delivered at all.
 
-The catalogue-manifest check is the harder case, and we are saying so plainly: **a fresh census still finds
-zero instances of either defect** across every plugin corpus we track. It is a preventive rule, not a
-corrective one. We graduated it anyway, because nothing in our plan schedules the corpus growth that would
-change that answer - so "wait for evidence" would have meant "never gates", decided quietly. If catalogues
-that mix entry kinds turn out to be a real pattern rather than a mistake, that is the thing to tell us.
+**2. A marketplace catalogue must be readable in one piece.** If you ship `.claude-plugin/marketplace.json`, it must parse, it must have a `plugins` array, and its entries must not mix skill-style sources with plugin-style sources.
 
-### New: your pinned GitHub Actions are checked
+*Why it matters:* a catalogue that mixes both kinds is claimed entirely by the first tool that reads it, so the other half is examined by nothing and fails silently.
 
-If you pin a GitHub Action by commit SHA, the trailing `# v1.2.3` comment beside it is the only half a
-human ever reads - and the tools that bump the SHA routinely leave that comment behind. We caught it by eye
-three times in this repository and never once by a machine.
+### Also new: your pinned GitHub Actions get checked
 
-`npm run action-pin-watch` now resolves every pin against the registry and reports where the label
-disagrees with what the ref actually points at. It **reports; it never rewrites**, because deciding whether
-the comment or the pin is the wrong half is a judgement call. A pin merely being *behind* the current
-release is reported and **never blocks** - that is news about somebody else's release, not a defect in
-yours.
+If you pin an Action by commit SHA, the `# v1.2.3` comment next to it is the only part a human reads - and the bots that bump the SHA routinely leave that comment stale. We had caught that by eye three times and never once automatically.
 
-This runs on our own workflows. It is not a new requirement laid on your plugin and it adds no check to the
-Standard.
+```bash
+npm run action-pin-watch
+```
 
-### Also in this release: three skills that keep the toolkit current with the agents
+It resolves every pin and reports where the label disagrees with what the SHA actually points at. **It reports and never rewrites**, because which half is wrong is a judgement call. A pin that is merely *behind* the latest release is reported and **never fails the run** - that is news about someone else's release, not a defect in yours.
 
-This release was prepared for the two graduations above. While it was held for sign-off, two more pieces
-landed, and they ship here rather than waiting.
+This runs on our workflows. **It adds no requirement to your plugin.**
 
-**`askit-capability-whats-new`** surveys what the agent platforms shipped since you last looked - Claude
-Code, Cowork, Codex, and the upstream spec - and writes a dated record. It **decides nothing**, and it
-**pins a version rather than a date**, so "everything since 2.1.208" is exact and anyone can re-derive it.
+### Also new: three skills for keeping up with the agents
 
-**`askit-capability-gap-analysis`** takes a finding and asks what it means for your capability matrix, the
-Standard, and the components you ship. It **proposes** a matrix update, a backlog entry or an ADR draft,
-and implements none of them.
+- **`askit-capability-whats-new`** - surveys what Claude Code, Cowork, Codex and the upstream spec shipped since you last looked, and writes a dated record. It decides nothing, and it records a **version** rather than a date, so "everything since 2.1.208" is exact and anyone can re-check it.
+- **`askit-capability-gap-analysis`** - takes one of those findings and works out what it means for you. It **proposes** a change and implements none of it.
+- Together with the existing **`askit-capability-advisor`** they read as the sequence they are: *what shipped, what it means for us, what we tell an author.*
 
-With the existing `askit-capability-advisor` they form a family sharing one capability matrix, and they
-read as the sequence they are: **what shipped, what it means for us, what we tell an author.**
+**Why a survey you run rather than an alarm that fires:** while building this we measured one platform moving through **29 versions inside a single changelog window**, and another carrying **31 entries**. An alarm that fires weekly on entries which almost never matter teaches you to close it unread - and then it is worse than nothing, because its existence looks like assurance.
 
-It is worth saying why this is a periodic human survey and not an automated alarm. Measured while building
-it: one platform moved through **29 versions inside a single changelog window**, and another carried **31
-entries**. An alarm firing weekly on entries that almost never matter teaches its reader to close it
-unread - and then the alarm is worse than nothing, because its existence reads as assurance.
+### A documentation fix worth re-reading
 
-**Nothing here is a new requirement on your plugin.** No check was added, and the spine is unchanged.
-
-### One documentation fix worth calling out
-
-`docs/reference/universal-checks.md`, the Bronze reference page, **had stopped at `U13`** - missing `U14`,
-`U15`, `U16` and `U17` across two releases. The README correctly said 34 checks the whole time, because
-that number is machine-guarded and the table it points at was not. **If you have used that page to
-understand the Universal floor, re-read it**: it now describes every check, including the two graduating
-in this release.
+`docs/reference/universal-checks.md` - the page describing the entry-level requirements - **had stopped at `U13`**, missing four checks across two releases. The README always said 34 because that number is machine-checked; the table it pointed at was not. **If you used that page to understand the entry-level bar, read it again.**
 
 ### What did not change
 
-The spine is still **34 checks**. No check was added, none was removed, and **no member of our reference
-family changed grade** - measured before and after, at every member's own pin.
+**34 checks, same as before.** None added, none removed. Every plugin in our reference set was graded before and after, at its own pin, and **not one changed grade**.
+
+### The part we would rather not print
+
+The catalogue rule graduated against a survey that found **zero real instances** of the problem it prevents. It is preventive, not corrective. We shipped it anyway, because nothing in our plan schedules the growth that would change that answer - so "wait for evidence" would have quietly meant "never". **If catalogues that mix entry kinds turn out to be a real pattern rather than a mistake, that is the thing to tell us.**
+
+The other rule waited a full release for one specific reason: graduating it immediately would have cost a real plugin in our reference set an entire grade, over nine workflows it shipped and had not declared. **That plugin declared all nine the day after we published the decision** - inside the window the decision created. That is what a migration window is for, and it is the first time we watched one work end to end.
 
 ## 1.14.0 - 2026-08-16
 
-**Four things the gate was telling you were not true, and three files it was never reading.**
+**Four things the grader was telling you that were not true, and three files it was never looking at.**
 
-This release came out of seven decisions written and measured *before* any code. Three of those measurements overturned what the decision was going to be, and the corrections are the most useful part of it.
+### Do you need to do anything?
 
-### Upgrade
+**No.** Nothing here changes your grade until you raise the `standard` line in your own `library.json`. If you change nothing, nothing changes.
 
-**Nothing here takes effect for your plugin until you raise `standard` in your own `library.json`.** If you change nothing, your grade does not change. Adopting **0.14** makes two things effective: `U15` (every `.md` under `agents/` must be a registered subagent) and `U16` (a governance key declared at the top level instead of under `metadata`). Two more are introduced now and become gate-failing at **0.15**: `U17` (a `marketplace.json` no scope can read) and the workflow half of the components mirror.
+**Unless you have no `standard` line at all** - then you are graded against the newest rules the moment they ship. Add one and pick a version.
 
-**If you have no `standard` pin at all, none of this protects you** - an unpinned plugin grades against the current ruleset immediately. Add the line. To price the move before committing: `npx agent-skills-toolkit . --strict` grades you against the newest spine without changing your pin, so every finding that appears only under `--strict` is one adoption would make real.
+**One thing is worth checking even if you do nothing:** if your plugin has an `agents/` folder, read the third section below. It describes files that were shipping and being loaded without anyone noticing.
 
-### The gate was telling you things that were not true
+### Four wrong answers, now fixed
 
-- **"That workflow doesn't exist"** - when it did. A command declaring `maps-to: my-workflow` was reported as resolving to nothing, against a repository containing `_workflows/my-workflow.md`. The loader had never built the workflow list, so the check that reads it always saw an empty one. Fixed, with no migration window: correcting a false statement can only ever withdraw a finding.
-- **"That agent file isn't on disk"** - when it was. If you honestly declared `agents/_helper.md` in your manifest, you were told it was missing. Combined with the next item, the gate was **rewarding you for hiding a file and penalising you for declaring it.**
-- **"Your description doesn't say when to use it"** - to descriptions that said exactly that, in French. The description scorer awards more than a third of its score for matching English trigger phrases, so a description it could not read was **mathematically unable to pass at any quality**. On a 349-skill French corpus it failed all 346 parseable descriptions while 341 of them carried an explicit French trigger clause. It now **declines** to score what it cannot read, and reports the count of declines separately so silence is not mistaken for a pass.
-- **"Your command's description is too weak"** - it would have been, had we shipped what we planned. **0 of 14 commands in our own reference family met the skill description bar, including this toolkit's own two**, whose backing skills of identical intent score a perfect 1.00. A command description is a label beside `/name` typed by a person; it is not a trigger surface, and the Standard now says so.
+Each of these was the grader reporting a problem that did not exist. **A false alarm is worse than a missed defect** - it costs you time and teaches you to ignore the report.
 
-### Three files the runtime loads and the gate never read
+- **"That workflow doesn't exist"** - when it did. A command saying `maps-to: my-workflow` was reported as pointing at nothing.
+- **"That agent file isn't on disk"** - when it was. Honestly declaring `agents/_helper.md` got you told it was missing.
+- **"Your description doesn't say when to use it"** - said to descriptions that said exactly that, **in French**. The scorer awarded more than a third of its points for English phrasing.
+- **"Your command's description is too weak"** - it would have been, if we had shipped what we planned. We measured first: **0 of 14 commands** in our own reference set would have met the bar we were about to impose. We did not ship it.
 
-Claude Code registers **every** `.md` under `agents/` - a folder `README.md` becomes a subagent named `README` with no name and no description. A plugin could ship `agents/_worker.md` carrying an unprefixed name, no manifest entry and a stale version, and still earn Silver with zero errors. **`U15` closes that.** The obvious fix was built, measured, and thrown away: it produced remediation telling authors to declare their folder README as a subagent, which creates the exact defect it should prevent.
+### Three files your runtime loads and the grader never read
 
-### What did not change, deliberately
+**Claude Code registers every `.md` file under `agents/`.** Not the ones you declared - every one. A folder `README.md` sitting there becomes a subagent named `README`, with no description and no purpose, silently.
 
-**Your frontmatter can carry whatever keys you like.** We considered restricting the vocabulary and measured it first: **44.9 percent of 2342 skills across thirteen sources** carry a key the Standard does not name, and the upstream spec calls the `metadata` map arbitrary. The Standard now states the openness as a rule so nobody proposes closing it again. What *is* checked is **placement** - a `version` written at the top level instead of under `metadata` is read by nothing, so you have not recorded a version and nothing tells you.
+**Check your own `agents/` folder.** If it holds a README, a template, or a scratch file, your plugin is shipping a phantom subagent right now. The grader now reports these; it never did before.
 
-**And a catalogue-level finding will never become a requirement on your plugin.** If two plugins in a marketplace collide on a skill name, neither can fix that alone without knowing who they are catalogued beside. A requirement you cannot discharge by editing your own repository is not a requirement.
+### What deliberately did not change
 
-### Verified before shipping
+**Your frontmatter can carry whatever keys you like.** We considered restricting the vocabulary, and measured before deciding: **44.9 percent of 2342 skills** across the ecosystem carry a key our Standard does not name. Restricting would have failed nearly half of everything. We did not.
 
-- **Codex round-trip (Q-E gate):** `CODEX_REQUIRED=1 npm test` passed against the real `codex` CLI (`codex-cli 0.144.5`). The emitted
-  `.codex-plugin/plugin.json` was **ingested**, not merely listed: the skills it points at were discovered by
-  Codex itself. Listing is not ingestion, and a test that only checks the manifest parses has caught nothing.
-- **Conformance gate:** Advanced, 0 errors, 0 warnings, self-validated with the same portable command a
-  contributor runs.
-- **Docs site:** 86 pages built, every internal link resolves, route parity against the committed baseline holds.
-- **Suite:** 1252 tests, 0 failures, on Windows and Linux across Node 22.12.0 and 24.
-- **Reference family:** six members graded before and after every change. **No verdict moved.**
+**A marketplace-level problem will never become a requirement on your plugin.** If two plugins in a catalogue collide on a skill name, neither author can fix it alone - it depends on who they were listed beside. **A requirement you cannot discharge by yourself is not a requirement.**
 
-### Why you can trust this next month, not just today
+### How this was checked before shipping
 
-This Standard states things about Claude Code as **fact**. A check refuses certain fields on plugin-shipped
-agents because the vendor says they are not supported. Another grades every `.md` under `agents/` because
-that is what the runtime registers. Section 3.2 explains itself by how commands are invoked.
+- **Codex was actually run.** `codex-cli 0.144.5` **ingested** the emitted `.codex-plugin/plugin.json` and discovered the skills it points at. Listing is not ingestion, and a test that only checks the file parses has proved nothing.
+- **1252 tests**, no failures, on Windows and Linux, on Node 22.12 and 24.
+- **Six plugins in our reference set graded before and after every change. No grade moved.**
 
-**Every one of those was a page somebody read once and a date they wrote down.** One day before this release,
-that cost us a ratified decision: it asserted a premise the vendor's own documentation contradicts, and an
-internal audit had already found it five days earlier. The evidence existed. Nothing was re-reading it.
+### Where this release came from
 
-Those claims are now **pinned as sentences and re-checked against the live pages**, monthly and at every
-release. If a sentence this toolkit depends on disappears from a vendor's docs, an issue opens saying which
-checks rest on it and what to do; a release stops. The watcher **cannot edit what it watches** - deciding what
-a vendor change means is a decision a person makes, not a robot's 3am commit.
+Seven decisions were written and **measured before any code was written**. **Three of those measurements overturned the decision they were testing** - including the command-description bar that would have failed all fourteen of our own commands.
 
-**For anyone weighing this toolkit against alternatives:** the practical difference is not that we read the
-documentation carefully. It is that the reading has an expiry date the build enforces. A grading tool whose
-rules quietly rest on last year's vendor behaviour still runs, still prints a grade, and is still wrong.
-
-### Two adversarial review waves, ten findings, all fixed before shipping
-
-Wave 1 went deep on the new checks. Wave 2 was pointed deliberately **away** from that target - at this
-release's own records, its published text, and the machinery that is supposed to catch drift - because a
-second look aimed where the first one looked finds the same things. It found six, all one shape: **something
-that reads as checked and is not.**
-
-The Standard contradicted itself across three sections, so a command could conform to and violate the same
-document. The README drift guard covered four of five front-door claims, so the fifth drifted a full version
-with the whole suite green. Two pinned vendor claims were single words and could never have failed. The
-monthly watcher deduplicated on a label nobody had created. And the release-blocking checks were a list a
-human ticked, one of which no automation had ever run.
-
-Every fix is a guard rather than a correction, so none of the six can recur silently. `npm run release-ready`
-now replaces that checklist with one exit code, and **it blocked its own first run** - on seven failing tests
-and a stale count that had not yet reached CI.
+That is the whole method: write down what you intend, measure it against something real, and let the measurement win. Three times out of seven it did.
 
 ## 1.13.0 - 2026-08-13
 
