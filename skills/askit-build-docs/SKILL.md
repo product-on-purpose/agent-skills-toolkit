@@ -2,7 +2,7 @@
 name: askit-build-docs
 description: Creates and improves a plugin's documentation across modes (readme, quickstart, tutorial, how-to, reference, glossary, faq, troubleshooting, architecture, folder-readme, and an Astro Starlight docs site) to the Advanced Skill Library Standard. Use when authoring or refreshing docs, scaffolding a folder README, standing up a docs site, or aligning documentation with the component index.
 metadata:
-  version: 0.1.0
+  version: 0.2.0
   tier: universal
   audience: intermediate
 ---
@@ -21,7 +21,7 @@ When authoring or refreshing a plugin's docs, standing up a docs site, or aligni
 3. Cross-link: every relative link must resolve (the U6 reference-link rule is the discipline to mirror).
 
 ## improve mode
-1. Run `node scripts/evaluate.mjs . --json` and read the docs for drift against the component index (a renamed or removed component leaves a dangling reference).
+1. Run `npx agent-skills-toolkit evaluate . --json` and read the docs for drift against the component index (a renamed or removed component leaves a dangling reference).
 2. Fix each gap; keep prose tight (the ETH-Zurich finding: verbose context files lower agent task success).
 
 ## site mode
@@ -35,5 +35,11 @@ Scaffold or refresh a folder `README.md` whose inventory set-equals the folder's
 3. Refresh rather than overwrite: when a README exists, keep its purpose paragraph and existing per-child descriptions, and only add or remove inventory lines so the set matches the current children.
 The meaningful-folder allowlist (ADR 0024 D1) is the repo's source and component folders; the repo-root README (the project hero) and `templates/seed-plugin/` (a seed payload, not a folder guide) are excluded.
 
+## Writing rules (all modes)
+Four rules, each from a defect found in this repository's own public docs on 2026-08-23 and 2026-08-24.
+1. **Every command must run from the reader's position.** A page written for a plugin author must not name `node scripts/*.mjs`: that path exists only in a clone, while the install docs send people to npm or the marketplace. Use the published bin (`npx agent-skills-toolkit [subcommand]`). Where a tool ships with the plugin but NOT the npm package, say which install route provides it rather than dropping the command. Seventy commands across 34 pages had this defect.
+2. **No internal planning vocabulary.** Project phases, wave numbers and packet names mean nothing outside this repo, and they rot: one page told readers to wait for a phase that had shipped three months earlier.
+3. **Define a coined word in the sentence that first uses it**, and link [the glossary](../../docs/explanation/glossary.md). Product terms (Bronze, Silver, Gold, tier) do not need this; invented ones (burndown, spine, emission, declared-tier ceiling) do.
+4. **A reference ID always carries a handle and a route.** Never a bare `E14`; write what it is and link where it lives. A reader cannot look up a number they have no index for.
 ## Scope
 Documentation is Universal (markdown is portable on both agents). The site is the v1 docs surface (ADR 0021/0023); README/CHANGELOG/RELEASE-NOTES discipline is gated by `askit-release` and the release-readiness gate (ADR 0022). Sample sets and eval coverage are authored by `askit-build-samples`, not here.
