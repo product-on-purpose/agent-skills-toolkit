@@ -50,6 +50,7 @@ either alone.
 | 2026-08-19 | **PARTIAL - not a verification** | see below |
 | 2026-08-20 | shared pool; the claim HOLDS. Installed A then B | **side A** |
 | 2026-08-20 | shared pool; the claim HOLDS. Installed B then A | **side B** |
+| 2026-08-24 | shared pool; the claim HOLDS. Installed A then B | **side A** |
 
 ### 2026-08-19: one outcome ruled out, the question itself still open
 
@@ -131,3 +132,16 @@ whether the entry count changed or was simply never looked at. The fourth outcom
 a vendor change on this record.
 
 Add a row every time, including confirming runs.
+
+## 2026-08-24: re-run, unchanged, and it corroborates the install-order refinement
+
+Both plugins were installed A then B, and both report a skill named `probe-duplicate` in their own inventory. The resolution question was answered headlessly, which records the actual tool call rather than an assertion about it:
+
+```
+grep -o '"skill":"[^"]*"'   ->  "skill":"probe-duplicate"
+grep -o 'Probe duplicate, side [AB]'  ->  Probe duplicate, side A
+```
+
+**The Skill tool fired under the BARE name**, with no plugin prefix and no disambiguation, and side A answered. That is the first outcome in the table: a shared pool, one winner, silently.
+
+Installing A before B and getting A **matches the install-order refinement** the 2026-08-20 pair established. It is a third data point in the same direction rather than a new finding. `verifiedOn` advances to 2026-08-24.
