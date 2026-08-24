@@ -19,7 +19,7 @@ Every skill named in a step must exist on disk (S5). Every chaining step must be
 
 ## 3. Validate
 
-    node scripts/evaluate.mjs . --json
+    npx agent-skills-toolkit evaluate . --json
 
 Resolve any S5 finding (a step naming a skill not on disk) by fixing the name or creating the skill. Iterate to `0 error(s)`.
 

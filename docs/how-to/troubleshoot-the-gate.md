@@ -7,14 +7,14 @@ level: intermediate
 
 # How to troubleshoot the gate
 
-The deterministic gate (`node scripts/check.mjs`) reports the highest tier a plugin satisfies and lists what blocks the next one. Every finding carries a `reqId` (for example `U5`, `S3`, `G2`) and an inline `Standard sec` pointer. This page maps the findings you hit most often to their cause and the exact remediation, so you can read a failing reqId off the gate and go straight to the fix.
+The deterministic gate (`npx agent-skills-toolkit`) reports the highest tier a plugin satisfies and lists what blocks the next one. Every finding carries a `reqId` (for example `U5`, `S3`, `G2`) and an inline `Standard sec` pointer. This page maps the findings you hit most often to their cause and the exact remediation, so you can read a failing reqId off the gate and go straight to the fix.
 
 The gate is judgment-free: it never decides quality, only conformance to the Standard. Description scoring and behavioral evaluation sit beside it (`askit-evaluate` / `/askit-evaluate`) and never gate pass/fail.
 
 ## First, read the findings
 
 ```
-node scripts/check.mjs
+npx agent-skills-toolkit
 ```
 
 Each line is `[severity] check (reqId): message -> file`. Two things matter:
@@ -23,7 +23,7 @@ Each line is `[severity] check (reqId): message -> file`. Two things matter:
 - **The declared-tier ceiling.** The gate only fails on errors at or below the tier you declared in `library.json` (`tier`). A `convergent` error on a plugin that declares `universal` does not fail the gate - it shows up in the burndown to the next tier instead. See it as a to-do list:
 
 ```
-node scripts/tier-report.mjs --json
+npx agent-skills-toolkit tier-report --json
 ```
 
 `blocked.convergent` and `blocked.advanced` each list the unmet `reqId: <message>` entries standing between this plugin and the next grade. The fix tables below are keyed to those same reqIds.
@@ -83,7 +83,7 @@ These gate any plugin that declares `universal` or higher.
 - **Fix:** regenerate, never hand-edit:
 
 ```
-node scripts/generators/gen-manifest.mjs . --write --target=all
+npx agent-skills-toolkit gen-manifest . --write --target=all
 ```
 
 ### U9 - package.json version drift
@@ -121,7 +121,7 @@ These appear in `blocked.convergent` until you declare `convergent`, then they g
 - **Fix:** add or remove the entry so the index matches disk, each entry carrying `{ name, path, version, tier, status }`. Regenerating the manifest keeps the index honest:
 
 ```
-node scripts/generators/gen-manifest.mjs . --write --target=all
+npx agent-skills-toolkit gen-manifest . --write --target=all
 ```
 
 ### S8 - components entry does not mirror frontmatter
@@ -149,7 +149,7 @@ node scripts/generators/gen-manifest.mjs . --write --target=all
 - **Fix:** generate the missing manifest:
 
 ```
-node scripts/generators/gen-manifest.mjs . --write --target=all
+npx agent-skills-toolkit gen-manifest . --write --target=all
 ```
 
 ### S7 - command contract incomplete
@@ -166,7 +166,7 @@ These appear in `blocked.advanced` until you declare `advanced`, then they gate.
 
 - **Symptom:** `no CI workflow under .github/workflows/`, or `a CI workflow is present but none runs the conformance gate`.
 - **Cause:** Gold requires the plugin to ship CI that runs its own validators and passes (Standard sec 2.6 G2, sec 4). "Self-hosting" means the plugin proves itself with the same gate it ships.
-- **Fix:** add a workflow under `.github/workflows/` that runs `node scripts/check.mjs` (directly or via an npm script that resolves to it), and `npm test`. The CI config must only shell out to the portable scripts - it must contain no validation logic of its own (Standard sec 4.4), so any contributor reproduces a CI failure locally with the same command.
+- **Fix:** add a workflow under `.github/workflows/` that runs `npx agent-skills-toolkit` (directly or via an npm script that resolves to it), and `npm test`. The CI config must only shell out to the portable scripts - it must contain no validation logic of its own (Standard sec 4.4), so any contributor reproduces a CI failure locally with the same command.
 
 ### G3 - a chain or hook has no eval
 
@@ -183,7 +183,7 @@ These appear in `blocked.advanced` until you declare `advanced`, then they gate.
 **If you are working inside this toolkit**, the generator is in your tree:
 
 ```bash
-node scripts/generators/gen-index.mjs . --write
+npx agent-skills-toolkit gen-index . --write
 ```
 
 **If you are a plugin that uses this toolkit**, it is almost certainly not. Nothing installs the generators into your repository, so run them from wherever the toolkit is checked out, passing your plugin root as a positional argument:
@@ -218,7 +218,7 @@ So a `G4` error after upgrading is not a regression. It is the first time the ch
 
 ## General workflow
 
-1. Run `node scripts/check.mjs` (or `tier-report --json` for the burndown).
+1. Run `npx agent-skills-toolkit .` (or `npx agent-skills-toolkit tier-report . --json` for the list of what is blocking you).
 2. For each finding, find its `reqId` above and apply the fix - usually an `askit-build-*` skill or a generator under `scripts/generators/`.
 3. Re-run the gate. When the error count at your declared tier is zero, the gate exits `0`.
 4. To climb a tier, clear its `blocked.<tier>` list, then raise `tier` in `library.json`. The [Bronze-to-Silver](climb-from-bronze-to-silver.md) how-to walks that move; the same pattern climbs to Gold.

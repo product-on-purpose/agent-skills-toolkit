@@ -19,13 +19,13 @@ Add the server to `library.json` `components.mcpServers` as `{ name, version, ti
 
 ## 3. Wire the pointer
 
-    node scripts/generators/gen-manifest.mjs . --write --target=all
+    npx agent-skills-toolkit gen-manifest . --write --target=all
 
 Each native manifest gains `"mcpServers": "./.mcp.json"`.
 
 ## 4. Validate
 
-    node scripts/evaluate.mjs . --json
+    npx agent-skills-toolkit evaluate . --json
 
 Fix any mcp-valid (malformed server / committed secret), S3 (undeclared server), or S6 (missing pointer) findings, and iterate to `0 error(s)`.
 

@@ -18,7 +18,7 @@ Nothing on this page is a caveat added to soften a claim. Each entry is a specif
 
 ## 1. The gate checks structure, never quality
 
-The deterministic gate (`node scripts/check.mjs`) answers one question: **does this plugin have the shape the Standard requires?** It does not, and cannot, answer whether the plugin is any good.
+The deterministic gate (`npx agent-skills-toolkit`) answers one question: **does this plugin have the shape the Standard requires?** It does not, and cannot, answer whether the plugin is any good.
 
 A plugin can pass every one of the 34 spine checks at Gold and still be useless. Concretely, a Gold-passing plugin may contain:
 
@@ -57,13 +57,13 @@ These are current, tracked, and stated here rather than discovered by you.
 
 **`U5` (description scoring) assumes English.** The check awards 0.35 for a use-when trigger phrase, matched by an English-only pattern. Measured against a 349-skill French corpus, the pattern fired on **0 of 346** descriptions while 341 carried an explicit French trigger clause. A description in a language the pattern does not know is capped at 0.65 against a 0.7 bar, so it **cannot pass**, regardless of quality. English controls matched 705 of 1016.
 
-`U5` is one check of thirty, carries `house` provenance (so `--profile plain-plugin` drops it entirely), and emits a warning rather than an error. But within the default profile the limit is absolute, not a bias. Tracked as `E14`; the fix requires a decision between language detection, a pluggable lexicon, or a language-independent structural signal. Adding French patterns is explicitly the wrong fix, because it would leave every other language in the same position.
+`U5` is one check of thirty, carries `house` provenance (so `--profile plain-plugin` drops it entirely), and emits a warning rather than an error. But within the default profile the limit is absolute, not a bias. Tracked as [E14, U5 assumes English and is unpassable in a language it does not know](https://github.com/product-on-purpose/agent-skills-toolkit/blob/main/docs/internal/backlog/enhancements.md); the fix requires a decision between language detection, a pluggable lexicon, or a language-independent structural signal. Adding French patterns is explicitly the wrong fix, because it would leave every other language in the same position.
 
 **`G3`'s skill branch is a documented no-op.** The `library-regression` check has a branch for skills that does nothing. A plugin cannot rely on `G3` to grade its skills, and any plan that assumes otherwise is unsatisfiable as written.
 
-**`U6` does not scan commands or subagents.** The link-rot check iterates skills only. A broken reference in a command body or a subagent body passes clean. Demonstrated: a command linking a nonexistent file, with the gate reporting 0 errors. Tracked as `E18`.
+**`U6` does not scan commands or subagents.** The link-rot check iterates skills only. A broken reference in a command body or a subagent body passes clean. Demonstrated: a command linking a nonexistent file, with the gate reporting 0 errors. Tracked as [E18, U6 scans skills only so link rot in a command or subagent is invisible](https://github.com/product-on-purpose/agent-skills-toolkit/blob/main/docs/internal/backlog/enhancements.md).
 
-**Nothing resolves `.claude-plugin/plugin.json` component paths.** A Claude plugin manifest can declare `agents: ["./agents/does-not-exist.md"]` and the gate will pass. `U13` (skill-registration) covers the catalogued-but-undeliverable case for **skills only**, and only via `library.json` or `marketplace.json`. Tracked as `E19`.
+**Nothing resolves `.claude-plugin/plugin.json` component paths.** A Claude plugin manifest can declare `agents: ["./agents/does-not-exist.md"]` and the gate will pass. `U13` (skill-registration) covers the catalogued-but-undeliverable case for **skills only**, and only via `library.json` or `marketplace.json`. Tracked as [E19, nothing resolves the component paths declared in .claude-plugin/plugin.json](https://github.com/product-on-purpose/agent-skills-toolkit/blob/main/docs/internal/backlog/enhancements.md).
 
 ## 4. There is no marketplace scope
 

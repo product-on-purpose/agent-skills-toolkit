@@ -16,7 +16,7 @@ Authors and syncs a plugin's `AGENTS.md` (the agent navigation + instructions en
 ## The bar
 - Sections: what-this-is, current-state, conventions, build/test/lint, where-to-look.
 - Brevity is a feature: verbose, generated-looking context files measurably reduce agent task success and raise cost; prefer positive instructions over long "do not" lists.
-- Keep the component section in sync with `library.json` via `node scripts/generators/sync-agents-md.mjs` (no hand-edit drift).
+- Keep the component section in sync with `library.json` via `node scripts/generators/sync-agents-md.mjs` (no hand-edit drift). That generator ships with the plugin, not with the npm package.
 
 ## Cross-tool
 `AGENTS.md` is read by Claude Code, Codex, Gemini CLI, Copilot, and Cursor. See the [build-agents-md how-to](../how-to/build-agents-md.md) and [authoring-agents-md](../../skills/askit-build-agents-md/references/authoring-agents-md.md).

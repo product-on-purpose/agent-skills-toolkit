@@ -11,8 +11,8 @@ tags: [evaluate, report, html, markdown, migration, release, review, behavioral]
 `scripts/evaluate.mjs` produces ONE structured report object over a plugin's conformance. Beside the terminal summary and `--json`, it can render that object as a designed, self-contained HTML page or a Markdown twin, so a result is consumable by a non-engineer (HTML) and a reviewer or agent (Markdown), never only in a terminal. MD, HTML, JSON, and terminal all derive from the same object, so they cannot diverge.
 
 ```
-node scripts/evaluate.mjs <path> --format=html --out report.html
-node scripts/evaluate.mjs <path> --format=md
+npx agent-skills-toolkit evaluate <path> --format=html --out report.html
+npx agent-skills-toolkit evaluate <path> --format=md
 ```
 
 The HTML is fully self-contained: inline CSS, one small inline script (TOC scroll-spy, copy-prompt buttons, print), no external assets and no web fonts, so it opens offline. It is a linear scroll with a left-docked sticky table of contents and a print / Save-PDF affordance; nothing is hidden behind tabs or accordions. The on-disk spine and the Standard version are read live at render time, never hard-coded.
@@ -43,8 +43,8 @@ With `--out <file>` the report is written to the file and a `Wrote <file>` line 
 The conformance, migration, and release reports are pure decorators over the deterministic object: they add a typed block and never run a model or change the gate exit code. Example:
 
 ```
-node scripts/evaluate.mjs <path> --report=migration --target-tier=advanced --format=html --out plan.html
-node scripts/evaluate.mjs <path> --report=release --format=md
+npx agent-skills-toolkit evaluate <path> --report=migration --target-tier=advanced --format=html --out plan.html
+npx agent-skills-toolkit evaluate <path> --report=release --format=md
 ```
 
 ## The deterministic / advisory boundary
@@ -58,7 +58,7 @@ The conformance gate alone decides the tier (Design Principle 3 / ADR 0023). The
 Because the advisory content is model-produced, it is supplied to the renderer rather than computed by it. The `askit-reviewer` and `askit-quality-grader` skills produce an advisory JSON block, and the CLI merges it onto the conformance object:
 
 ```
-node scripts/evaluate.mjs <path> --report=review --advisory review.json --format=html --out review.html
+npx agent-skills-toolkit evaluate <path> --report=review --advisory review.json --format=html --out review.html
 ```
 
 where `review.json` is `{ "review": { "model", "effort", "date", "findings": [ { "area", "severity", "message", "file", "provenance" } ] }, "insights": [ ... ] }`, and a behavioral advisory file is `{ "behavioral": { "model", "effort", "date", "cases": [ { "kind", "id", "expected", "observed", "verdict", "evidence" } ], "summary": { "fired", "missed", "behaviorPass", "behaviorFail" } } }`.

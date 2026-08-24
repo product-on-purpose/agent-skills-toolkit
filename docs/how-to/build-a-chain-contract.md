@@ -24,7 +24,7 @@ askit-build-skill:
 
 ## 2. Validate
 
-    node scripts/evaluate.mjs . --json
+    npx agent-skills-toolkit evaluate . --json
 
 Resolve any S4 findings: an **orphan** (a `chain:` invocation not permitted) means add the `caller: [callee]` line; a **phantom** (an entry naming a missing component) means fix the name, remove the entry, or create the component. Iterate to `0 error(s)`.
 

@@ -14,11 +14,11 @@ Every `askit-build-<type>` skill follows one shape. There is no per-component co
 2. Copy the type's template from `templates/` to the canonical file (`commands/<name>.md`, `agents/<name>.md`, `skills/<name>/SKILL.md`, ...).
 3. Author the Claude-native canonical file: frontmatter (per Standard sec 3.8 for the type) + body.
 4. Register the component in `library.json` `components.<type>` as `{ name, path, version, tier, status }`.
-5. Wire any per-target manifest pointer by running `node scripts/generators/gen-manifest.mjs . --write --target=all` (skills/MCP are referenced by the native manifests; Claude auto-discovers `commands/` and `agents/`).
-6. Assess: `node scripts/evaluate.mjs . --json` and iterate to 0 errors.
+5. Wire any per-target manifest pointer by running `npx agent-skills-toolkit gen-manifest . --write --target=all` (skills/MCP are referenced by the native manifests; Claude auto-discovers `commands/` and `agents/`).
+6. Assess: `npx agent-skills-toolkit evaluate . --json` and iterate to 0 errors.
 
 ## The shape (improve mode)
-1. `node scripts/evaluate.mjs . --json` and read the findings.
+1. `npx agent-skills-toolkit evaluate . --json` and read the findings.
 2. Fix each finding per its message (a missing `maps-to`, an over-scoped tool set, a description below the bar, a drifted manifest).
 3. Re-run to confirm.
 

@@ -21,7 +21,7 @@ The toolkit defines a standard with three tiers (Bronze, Silver, Gold) and a gra
 
 **Why this matters (plainly).** It is the difference between a restaurant critic who eats their own cooking and one who does not. The toolkit cannot quietly hold others to a standard it fails itself, because the same gate that grades your plugin grades the toolkit first, automatically, with no human in the loop to look the other way.
 
-**For engineers.** This is dogfooding enforced as a release gate. `node scripts/check.mjs .` exits non-zero on any error, the build requires it, and the suite of 400-plus tests includes a self-conformance check. The Gold checks (`G1`-`G10`) are non-vacuous: they grade real artifacts (a real hook, generated index, release notes, source docblocks), not empty placeholders. "Self-validating at Gold, 0 errors, 0 warnings" is a build status, not a brochure line.
+**For engineers.** This is dogfooding enforced as a release gate. `npx agent-skills-toolkit .` exits non-zero on any error, the build requires it, and the suite of 400-plus tests includes a self-conformance check. The Gold checks (`G1`-`G10`) are non-vacuous: they grade real artifacts (a real hook, generated index, release notes, source docblocks), not empty placeholders. "Self-validating at Gold, 0 errors, 0 warnings" is a build status, not a brochure line.
 
 ## 2. It improves by grading the real world
 

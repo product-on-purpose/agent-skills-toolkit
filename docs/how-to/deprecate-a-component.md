@@ -15,7 +15,7 @@ Invoke `askit-deprecate` (deprecate mode). Set the component's `status` to `depr
 
 ## Check the contract
 
-Invoke `askit-deprecate` (check mode), or run `node scripts/check.mjs`. The G6 `deprecation` check confirms every deprecated component declares `deprecated-by` + `remove-in` and that no status is invalid. A deprecated component must keep validating until `remove-in` - the migration window is the point.
+Invoke `askit-deprecate` (check mode), or run `npx agent-skills-toolkit`. The G6 `deprecation` check confirms every deprecated component declares `deprecated-by` + `remove-in` and that no status is invalid. A deprecated component must keep validating until `remove-in` - the migration window is the point.
 
 ## Remove later
 

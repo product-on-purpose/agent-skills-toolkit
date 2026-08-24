@@ -22,10 +22,10 @@ Introduced in v1.12.0 under [ADR 0039 (marketplace-scope evaluation)](https://gi
 ## Running it
 
 ```bash
-node scripts/evaluate.mjs <catalogue-root>                    # terminal
-node scripts/evaluate.mjs <catalogue-root> --format md        # the collection report, Markdown
-node scripts/evaluate.mjs <catalogue-root> --format html      # the collection report, one self-contained page
-node scripts/evaluate.mjs <catalogue-root> --format json      # the collection report object
+npx agent-skills-toolkit evaluate <catalogue-root>                    # terminal
+npx agent-skills-toolkit evaluate <catalogue-root> --format md        # the collection report, Markdown
+npx agent-skills-toolkit evaluate <catalogue-root> --format html      # the collection report, one self-contained page
+npx agent-skills-toolkit evaluate <catalogue-root> --format json      # the collection report object
 ```
 
 The scope is detected, not selected: a directory carrying a `marketplace.json` whose entries catalogue
@@ -107,7 +107,7 @@ that cannot be found.
 The scope and `U13` partition the well-formed cases cleanly, and say nothing about the rest. A
 `marketplace.json` that does not parse is declined by this scope and ignored by `U13`, so nothing
 reports it. A manifest that **mixes** skill entries and plugin entries goes entirely to `U13`, so its
-plugin entries are never collection-graded. Both are tracked as backlog **E36**; closing either changes
+plugin entries are never collection-graded. Both are tracked as backlog [E36, a malformed or mixed marketplace manifest is owned by nobody](https://github.com/product-on-purpose/agent-skills-toolkit/blob/main/docs/internal/backlog/enhancements.md); closing either changes
 which scope claims a directory, which is a compatibility decision rather than a patch.
 
 ### What a run does not tell you

@@ -55,7 +55,7 @@
       {
         "name": "askit-build-docs",
         "path": "skills/askit-build-docs/SKILL.md",
-        "version": "0.1.0",
+        "version": "0.2.0",
         "tier": "universal",
         "status": "active"
       },

@@ -21,7 +21,7 @@ Set `agent-targets: [claude]`. Output styles have no Codex or cross-agent equiva
 
 Add it to `library.json` `components.outputStyles`, then:
 
-    node scripts/evaluate.mjs . --json
+    npx agent-skills-toolkit evaluate . --json
 
 ## See also
 

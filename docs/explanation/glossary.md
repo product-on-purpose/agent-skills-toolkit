@@ -37,7 +37,7 @@ Every term below is defined in one sentence, and the sections run roughly in the
 
 ## The grading machinery
 
-**The gate** - the deterministic core that decides pass or fail: `node scripts/check.mjs` runs the checks and exits with a real status code, so a plugin proves itself in CI rather than relying on an opinion.
+**The gate** - the deterministic core that decides pass or fail: `npx agent-skills-toolkit` runs the checks and exits with a real status code, so a plugin proves itself in CI rather than relying on an opinion.
 
 **Check** - one validation rule implemented as a portable module under `scripts/checks/`, emitting `error` or `warn` findings, where the gate fails on any `error` and never on a `warn` alone.
 

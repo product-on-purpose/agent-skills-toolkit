@@ -13,9 +13,9 @@ Creates and improves Claude subagents (`agents/<name>.md`) to the Standard. Clau
   to `agents/<name>.md` -> fill frontmatter (`name`, `description`, narrowest
   `tools`, optional `model`, `chain` only if it invokes another component) ->
   declare in `library.json components.subagents` -> if `chain` is declared, add the
-  entry to `agents/_chain-permitted.yaml` -> run `node scripts/evaluate.mjs . --json`
+  entry to `agents/_chain-permitted.yaml` -> run `npx agent-skills-toolkit evaluate . --json`
   to 0 errors (S3 + S4 must be clean).
-- **improve:** consume `node scripts/evaluate.mjs . --json` -> resolve findings
+- **improve:** consume `npx agent-skills-toolkit evaluate . --json` -> resolve findings
   (S3 index drift, S4 orphan/phantom, description quality) -> re-evaluate to 0
   errors.
 - **Files touched:** `agents/<name>.md` (created or edited), `library.json`
