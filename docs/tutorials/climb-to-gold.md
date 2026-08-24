@@ -9,7 +9,7 @@ level: advanced
 
 This is the full climb. You start with a Bronze plugin (a folder of agentskills.io skills carrying a minimal `library.json`) and finish with a self-proving Gold plugin: `tier-report` prints `advanced` and the burndown is empty. The whole walk is driven by one tool - the deterministic gate, which always tells you the next thing to fix.
 
-The tiers are monotonic. Each rung is the floor the next one builds on, so nothing you do for Bronze or Silver is thrown away. The gate (`node scripts/check.mjs`) reports the highest tier the plugin actually satisfies and, for the tier above it, the exact blocking requirements keyed to their requirement IDs. That `blocked` list is your worklist, not a grade.
+The tiers are monotonic. Each rung is the floor the next one builds on, so nothing you do for Bronze or Silver is thrown away. The gate (`npx agent-skills-toolkit .`) reports the highest tier the plugin actually satisfies and, for the tier above it, the exact blocking requirements keyed to their requirement IDs. That `blocked` list is your worklist, not a grade.
 
 > **The one habit.** After every change in this tutorial, re-run the gate and read the burndown. The climb is "shrink the blocked list to empty, then raise the declared tier." Nothing more.
 
@@ -20,8 +20,8 @@ The tiers are monotonic. Each rung is the floor the next one builds on, so nothi
 - The two commands you will live in:
 
 ```bash
-node scripts/check.mjs              # the tier + what blocks the next one, on a real exit code
-node scripts/tier-report.mjs --json # the same result as JSON, with the blocked list keyed by reqId
+npx agent-skills-toolkit .              # the tier + what blocks the next one, on a real exit code
+npx agent-skills-toolkit tier-report . --json # the same result as JSON, with the blocked list keyed by reqId
 ```
 
 Read the JSON form once so the shape is familiar:
@@ -80,7 +80,7 @@ At Convergent tier `library.json` carries a `components` index keyed by type (`s
 You do not hand-maintain this. Regenerate the index and native manifests from the authored `library.json` plus component frontmatter:
 
 ```bash
-node scripts/generators/gen-manifest.mjs . --write --target=all
+npx agent-skills-toolkit gen-manifest . --write --target=all
 ```
 
 Then add or align each component entry as `{ name, path, version, tier, status }`. Re-run the gate until `S3` and `S8` clear.
@@ -123,7 +123,9 @@ When `blocked.convergent` is empty, raise the floor:
 "tier": "convergent"
 ```
 
-From here `node scripts/check.mjs` gates on Convergent errors too - the declared-tier ceiling has risen, so a regression now fails the gate instead of merely showing up as a Gold burndown item. Run the gate once more; it should exit 0 at Silver. You now have a genuinely cross-agent plugin with verified format parity and collision-proof names.
+From here `npx agent-skills-toolkit .` fails on Convergent problems too, not just Bronze ones. The gate only holds you to the tier you claim in `library.json`, so raising that line raises the bar it applies: a regression now fails the run instead of quietly appearing as a Gold to-do item.
+
+Run it once more. It should exit 0 at Silver. You now have a genuinely cross-agent plugin with verified format parity and collision-proof names.
 
 ---
 
@@ -134,7 +136,7 @@ Gold certifies that the plugin proves itself: deep lifecycle plus CI that runs t
 Read the new worklist first:
 
 ```bash
-node scripts/tier-report.mjs --json   # now read blocked.advanced
+npx agent-skills-toolkit tier-report . --json   # now read blocked.advanced
 ```
 
 ### Step 7 - Self-hosting CI (G2)
@@ -154,10 +156,10 @@ jobs:
         with:
           node-version-file: .nvmrc
       - run: npm ci
-      - run: node scripts/check.mjs
+      - run: npx agent-skills-toolkit .
 ```
 
-The `G2` check (self-hosting) looks for a workflow that actually invokes `node scripts/check.mjs` (it strips YAML comments first, so a mere mention does not count). The CI configuration MUST contain no validation logic of its own - it only shells out to the portable scripts, which is what guarantees local and CI results are identical. Whether the GitHub run is green is a runtime concern; the check verifies the plugin is wired to validate itself.
+The `G2` check (self-hosting) looks for a workflow that actually invokes `npx agent-skills-toolkit .` (it strips YAML comments first, so a mere mention does not count). The CI configuration MUST contain no validation logic of its own - it only shells out to the portable scripts, which is what guarantees local and CI results are identical. Whether the GitHub run is green is a runtime concern; the check verifies the plugin is wired to validate itself.
 
 ### Step 8 - A regression case per chain edge and per hook (G3)
 
@@ -187,8 +189,8 @@ Each eval set is an `evals/<name>.eval.json` file that declares what it covers. 
 `G4` keeps the human view and the agent view from drifting apart. `INDEX.md`, the native plugin manifests, and `manifest.generated.json` are generated from the authored `library.json` plus component frontmatter, and drift-checked - a hand-edited generated file is an `error`. Regenerate them rather than editing by hand:
 
 ```bash
-node scripts/generators/gen-index.mjs . --write
-node scripts/generators/gen-manifest.mjs . --write --target=all
+npx agent-skills-toolkit gen-index . --write
+npx agent-skills-toolkit gen-manifest . --write --target=all
 ```
 
 The `index-drift` check (`G4`) compares `INDEX.md` against what `gen-index` would produce; `U8` already drift-checks the native manifests. After any component change, regenerate both and commit the result.
@@ -212,7 +214,7 @@ When `blocked.advanced` is empty, raise the floor one last time:
 Run the gate:
 
 ```bash
-node scripts/check.mjs
+npx agent-skills-toolkit .
 ```
 
 ```
@@ -224,7 +226,7 @@ Tier: Advanced (no blockers detected)
 And confirm the machine form agrees:
 
 ```bash
-node scripts/tier-report.mjs --json
+npx agent-skills-toolkit tier-report . --json
 ```
 
 ```json

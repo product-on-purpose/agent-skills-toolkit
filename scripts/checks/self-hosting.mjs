@@ -12,6 +12,29 @@ export const meta = { id: "self-hosting", tier: "advanced", reqId: "G2", since: 
 // The gate entrypoint, anchored so a longer filename (scripts/check.mjsx, .mjs.bak) does not match.
 const GATE_PATH = /scripts\/check\.mjs(?![\w.])/;
 
+// The SAME gate, reached the three ways a plugin can actually reach it. Before this, G2 recognised only
+// GATE_PATH, which requires a VENDORED copy of this toolkit - so a plugin that installed the documented
+// way (npm, or the plugin marketplace) had no scripts/ directory, the only command it could run in CI
+// was refused, and Gold was unreachable for it. STANDARD.md sec 2.6 asks for CI that runs the check
+// suite "via the portable scripts", and all three of these do: npx runs those scripts out of the
+// published package, and the Action runs check.mjs out of its own checkout of this repository.
+//
+// This is E35 one level up - "a remediation naming a command its reader does not have" - fixed for
+// gen-index at v1.13.0 and never swept into G2.
+//
+// Each pattern requires the gate to be INVOKED, never merely named: `npm install agent-skills-toolkit`
+// installs and runs nothing, and must not count. Whole-line YAML comments are already stripped before
+// any of these are applied, so a mention in a comment cannot pass either.
+const NPX_GATE = /\bnpx\s+(?:-{1,2}[\w-]+(?:[= ][\w.-]+)?\s+)*agent-skills-toolkit(?:@[\w.^~><=+-]+)?(?![\w-])/;
+const ACTION_GATE = /\buses:\s*["']?[\w.-]+\/agent-skills-toolkit@/;
+// The installed bin invoked directly, but only where a `run:` key hands it the whole command, so the
+// bare package name appearing inside an install line cannot match.
+const BIN_GATE = /(?:^|[\r\n])\s*-?\s*run:\s*["'|>]?\s*agent-skills-toolkit(?![\w-])/;
+
+/** Every spelling of "this workflow runs the conformance gate". */
+const invokesGate = (text) =>
+  GATE_PATH.test(text) || NPX_GATE.test(text) || ACTION_GATE.test(text) || BIN_GATE.test(text);
+
 const escapeRe = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 // Drop whole-line YAML comments so a workflow that only MENTIONS the gate in a comment does not pass.
 const stripComments = (text) => text.split(/\r?\n/).filter((l) => !/^\s*#/.test(l)).join("\n");
@@ -20,7 +43,7 @@ const stripComments = (text) => text.split(/\r?\n/).filter((l) => !/^\s*#/.test(
 function gateNpmScripts(root) {
   const pkg = readJsonSafe(path.join(root, "package.json")).data;
   const scripts = pkg && typeof pkg.scripts === "object" && pkg.scripts !== null ? pkg.scripts : {};
-  return new Set(Object.entries(scripts).filter(([, cmd]) => typeof cmd === "string" && GATE_PATH.test(cmd)).map(([name]) => name));
+  return new Set(Object.entries(scripts).filter(([, cmd]) => typeof cmd === "string" && invokesGate(cmd)).map(([name]) => name));
 }
 
 /**
@@ -58,10 +81,10 @@ export function check(ctx) {
     } catch {
       return false;
     }
-    return GATE_PATH.test(text) || (npmRe !== null && npmRe.test(text));
+    return invokesGate(text) || (npmRe !== null && npmRe.test(text));
   });
   if (!runsGate) {
-    return [finding(meta.id, SEVERITY.ERROR, "a CI workflow is present but none runs the conformance gate (node scripts/check.mjs, directly or via an npm script that resolves to it); Gold requires the plugin to pass its own validators in CI (Standard sec 2.6 G2).", { file: ".github/workflows/", reqId: meta.reqId })];
+    return [finding(meta.id, SEVERITY.ERROR, "a CI workflow is present but none runs the conformance gate; Gold requires the plugin to pass its own validators in CI (Standard sec 2.6 G2). Any of these counts: `npx agent-skills-toolkit .`, the `product-on-purpose/agent-skills-toolkit` Action, `node scripts/check.mjs` if you vendor the gate, or an npm script that runs one of them.", { file: ".github/workflows/", reqId: meta.reqId })];
   }
   return [];
 }

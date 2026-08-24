@@ -32,7 +32,7 @@ You need:
 - The toolkit installed (see [Install](https://product-on-purpose.github.io/agent-skills-toolkit/)), so the `askit-` skills are available to your agent.
 - **Node 22.12 or newer** to run the gate directly. Check with `node --version`. The validators have a single runtime dependency (a YAML parser); they run anywhere Node does.
 
-You will reach Bronze entirely by talking to your agent. The direct `node scripts/check.mjs` commands are shown so you can see the same gate the skill runs and, later, wire it into CI.
+You will reach Bronze entirely by talking to your agent. The direct `npx agent-skills-toolkit .` commands are shown so you can see the same gate the skill runs and, later, wire it into CI.
 
 ## Step 1 - Scaffold the plugin
 
@@ -76,7 +76,7 @@ One subtlety worth knowing: `tier` here is what you *declare*, not what you have
 
 `library.json` is the **single source of truth** for the plugin's cross-agent metadata. The scaffold also wrote a minimal `.claude-plugin/plugin.json` next to it (`name`, `version`, `description` only) - just enough for Claude Code, and Codex since 0.146.0, to recognize the folder as an installable plugin. When you fill in `library.json`'s `name`/`description`, fill the same values into `.claude-plugin/plugin.json`, or `U8` (manifest-drift) flags the mismatch. At Silver and above, BOTH agent-native manifests (Claude's `.claude-plugin/plugin.json`, Codex's `.codex-plugin/plugin.json`) are fully *regenerated* from `library.json` - carrying `author`, `homepage`, `keywords`, and a component-path pointer per target - once you declare `agent-targets` and a `prefix`. That fuller, per-target generation is the Silver step; the one minimal file you have now is not it.
 
-**Two honest, different states of `claude plugin validate --strict`, not a bug.** If you answered `interview` mode's author question, `.claude-plugin/plugin.json` also carries a real `author` object, and `--strict` passes with zero warnings. If you skipped it (or used `questionnaire`/`hybrid` mode, which do not ask yet), the manifest stays exactly as minimal as the raw template, and `--strict` warns: `No author information provided`. That warning is correct, not a defect - a manifest with no author genuinely has none to declare, and the toolkit will never write a placeholder one just to silence the warning (the same reasoning `U5`'s description-quality check already applies to a description that just says "TODO"). Plain `claude plugin validate` (no `--strict`) passes either way; the gate (`node scripts/check.mjs`) is unaffected either way too, since it does not read `author` at all.
+**Two honest, different states of `claude plugin validate --strict`, not a bug.** If you answered `interview` mode's author question, `.claude-plugin/plugin.json` also carries a real `author` object, and `--strict` passes with zero warnings. If you skipped it (or used `questionnaire`/`hybrid` mode, which do not ask yet), the manifest stays exactly as minimal as the raw template, and `--strict` warns: `No author information provided`. That warning is correct, not a defect - a manifest with no author genuinely has none to declare, and the toolkit will never write a placeholder one just to silence the warning (the same reasoning `U5`'s description-quality check already applies to a description that just says "TODO"). Plain `claude plugin validate` (no `--strict`) passes either way; the gate (`npx agent-skills-toolkit .`) is unaffected either way too, since it does not read `author` at all.
 
 ## Step 3 - Look at the root `AGENTS.md`
 
@@ -115,7 +115,7 @@ Now prove it. You can do this two ways, and they run the **same checks**:
 - Run the portable script yourself from the plugin root - this is the engine, the same one that runs in CI:
 
 ```bash
-node scripts/check.mjs
+npx agent-skills-toolkit .
 ```
 
 When everything passes, you will see the grade and a clean count:
@@ -131,7 +131,7 @@ That line is Bronze. `Tier: Universal` means every Bronze check passed and nothi
 If you want the same result as structured data for tooling, ask for JSON:
 
 ```bash
-node scripts/tier-report.mjs --json
+npx agent-skills-toolkit tier-report . --json
 ```
 
 ```json
@@ -172,4 +172,4 @@ Because the tiers are **monotonic**, none of this work is throwaway. Bronze is t
 
 - **Climb to Silver** - take the plugin genuinely cross-agent: declare `agent-targets` and a component `prefix`, add subagents, commands, and workflows, and emit each in the right format per agent. Start with [Climb from Bronze to Silver](../how-to/climb-from-bronze-to-silver.md).
 - **Aim for Gold eventually** - the self-proving summit adds hooks, self-hosting CI, regression coverage, and a release and deprecation story. See [The tier model](https://product-on-purpose.github.io/agent-skills-toolkit/) for the full ladder and the [Gold checks reference](../reference/gold-checks.md) for what `G1` through `G10` certify.
-- **Keep building components** - the `askit-build-*` family scaffolds every component type to the Standard; `askit-evaluate` (or `node scripts/check.mjs`) tells you, at any point, the highest tier you satisfy and exactly what blocks the next one.
+- **Keep building components** - the `askit-build-*` family scaffolds every component type to the Standard; `askit-evaluate` (or `npx agent-skills-toolkit .`) tells you, at any point, the highest tier you satisfy and exactly what blocks the next one.

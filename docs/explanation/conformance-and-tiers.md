@@ -31,7 +31,7 @@ The toolkit is itself built to this Standard and validates itself in CI: it decl
 reports `tier: advanced` with an empty `blocked` - a self-proving example of the Standard. See
 [`STANDARD.md`](../../STANDARD.md) for the normative rules.
 
-## Silver checks (added in Phase 3A)
+## Silver checks
 
 Convergent (Silver) reqIds carry the `S` prefix. The current set:
 
