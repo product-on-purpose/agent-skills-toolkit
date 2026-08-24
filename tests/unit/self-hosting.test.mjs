@@ -1,6 +1,8 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import path from "node:path";
+import { mkdtempSync, mkdirSync, writeFileSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
 import { fileURLToPath } from "node:url";
 import { loadPlugin } from "../../scripts/lib/load-plugin.mjs";
 import { check, meta } from "../../scripts/checks/self-hosting.mjs";
@@ -60,4 +62,42 @@ test("ci-install-only fixture: INSTALLING the package is not RUNNING the gate (G
   // package name count as self-hosting CI - the same false-PASS the comment-stripping rule prevents.
   const r = check(loadPlugin(path.join(FIXTURES, "anti/ci-install-only")));
   assert.equal(r.length, 1, "npm install agent-skills-toolkit runs nothing");
+});
+
+// --- the contract the reference page states, pinned -------------------------------------------------
+//
+// The four-lens review before the v1.16.1 cut found the docs and the code disagreeing in two directions:
+// gold-checks.md named only `product-on-purpose` as the Action owner while the matcher accepts any, and
+// it did not mention the installed bin at all though the matcher accepts that too. Both forms are
+// deliberate, so they are pinned here rather than narrowed away.
+
+test("an agent-skills-toolkit Action from ANY owner counts (a fork runs the same gate)", () => {
+  // Deliberate, and consistent with the form that predates this: GATE_PATH accepts any
+  // scripts/check.mjs, including one the plugin wrote itself. G2 asks whether CI is wired to a
+  // conformance gate, not whose copy of it.
+  const dir = mkdtempSync(path.join(tmpdir(), "askit-g2-"));
+  try {
+    mkdirSync(path.join(dir, ".github", "workflows"), { recursive: true });
+    writeFileSync(path.join(dir, ".github", "workflows", "ci.yml"),
+      "jobs:\n  a:\n    steps:\n      - uses: someone-else/agent-skills-toolkit@v1\n");
+    writeFileSync(path.join(dir, "library.json"), '{"name":"x","version":"1.0.0","tier":"advanced"}');
+    assert.deepEqual(check(loadPlugin(dir)), []);
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
+test("the installed bin on a run: line counts, but the same name inside an install line does not", () => {
+  const mk = (cmd) => {
+    const dir = mkdtempSync(path.join(tmpdir(), "askit-g2-"));
+    mkdirSync(path.join(dir, ".github", "workflows"), { recursive: true });
+    writeFileSync(path.join(dir, ".github", "workflows", "ci.yml"), `jobs:\n  a:\n    steps:\n      - run: ${cmd}\n`);
+    writeFileSync(path.join(dir, "library.json"), '{"name":"x","version":"1.0.0","tier":"advanced"}');
+    return dir;
+  };
+  const ok = mk("agent-skills-toolkit ."), no = mk("npm install agent-skills-toolkit");
+  try {
+    assert.deepEqual(check(loadPlugin(ok)), [], "invoking the bin is running the gate");
+    assert.equal(check(loadPlugin(no)).length, 1, "installing it is not");
+  } finally {
+    rmSync(ok, { recursive: true, force: true }); rmSync(no, { recursive: true, force: true });
+  }
 });

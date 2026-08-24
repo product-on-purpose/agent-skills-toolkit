@@ -84,7 +84,7 @@ export function check(ctx) {
     return invokesGate(text) || (npmRe !== null && npmRe.test(text));
   });
   if (!runsGate) {
-    return [finding(meta.id, SEVERITY.ERROR, "a CI workflow is present but none runs the conformance gate; Gold requires the plugin to pass its own validators in CI (Standard sec 2.6 G2). Any of these counts: `npx agent-skills-toolkit .`, the `product-on-purpose/agent-skills-toolkit` Action, `node scripts/check.mjs` if you vendor the gate, or an npm script that runs one of them.", { file: ".github/workflows/", reqId: meta.reqId })];
+    return [finding(meta.id, SEVERITY.ERROR, "a CI workflow is present but none runs the conformance gate; Gold requires the plugin to pass its own validators in CI (Standard sec 2.6 G2). Any of these counts: `npx agent-skills-toolkit .`, the installed bin invoked directly on a `run:` line, an `agent-skills-toolkit` GitHub Action (any owner - a fork runs the same gate, and the vendored form has never checked provenance either), `node scripts/check.mjs` if you vendor the gate, or an npm script that runs any of them.", { file: ".github/workflows/", reqId: meta.reqId })];
   }
   return [];
 }
