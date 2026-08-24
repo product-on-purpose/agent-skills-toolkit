@@ -6,15 +6,13 @@ Curated, user-facing highlights. For the full technical history see [`CHANGELOG.
 
 **The evidence this Standard rests on gets an address - and the release found that some of it was resting on nothing.**
 
-The tier ladder is defined in terms of what Claude Code and Codex support. That makes every tier boundary a claim about software this project does not control. Until now those claims lived scattered across one skill's private folder and three separate directories, and **no artifact recorded which vendor fact any boundary actually depended on.**
+### Do you need to do anything?
 
-### Upgrade
+**No.** No check was added, none was removed, the spine stays at **34**, and the Standard stays at **0.15**. All six reference-family plugins were graded before and after. Every one came back **byte-identical**.
 
-**Nothing here changes your grade.** No check is added, no check is removed, the spine stays at 34, and the Standard stays at 0.15. Every one of the six reference-family plugins was graded before and after and came back **byte-identical**.
+**Installing changes nothing either way.** Files moved inside the repository. The npm tarball ships the gate and `STANDARD.md`; the plugin install carries the whole tree. Both paths carry them as before.
 
-**If you consume the npm package or the plugin, nothing changes for you.** The tarball ships the gate and `STANDARD.md`; the plugin install carries the whole tree. Files moved inside the repository, and both delivery paths carry them either way.
-
-**If you pinned the GitHub Action to a tag**, note that `action.yml`'s example now reads `@v1.16.0`. Pin a released tag or a commit sha - the example is an example, not a recommendation to track.
+**One exception, if you pin the GitHub Action to a tag.** `action.yml`'s example now reads `@v1.16.0`. Pin a released tag or a commit sha - the example is an example, not a recommendation to track.
 
 ### One thing worth re-reading
 
@@ -31,6 +29,11 @@ Four Universal checks therefore had **no description anywhere in the README**:
 
 Eight public files carried a stale version of that list. All are corrected, and `scripts/check-doc-enumerations.mjs` now expands every check range in the documentation and compares it against the registry, so prose and gate cannot drift apart again without the suite failing.
 
+### Why this release exists
+
+The tier ladder is defined by what Claude Code and Codex support. That makes **every tier boundary a claim about software this project does not control.**
+
+Those claims used to live scattered across one skill's private folder and three separate directories. **No artifact recorded which vendor fact any boundary actually depended on.**
 ### What is new
 
 **A `foundation/` folder** holding what the Standard rests on, in three layers: verified first-party sources, the machine-checkable claims, and the conclusions drawn from them. Every source record carries what was read, which version, when, and **by what method** - because "confirmed on the 19th" describes a page-read and a live experiment identically while distinguishing neither.
