@@ -21,7 +21,7 @@ In `library.json`:
 ## 2. Generate the native manifests
 
 ```
-node scripts/generators/gen-manifest.mjs . --write --target=all
+npx agent-skills-toolkit gen-manifest . --write --target=all
 ```
 - `--target=all` writes `manifest.generated.json`, `.claude-plugin/plugin.json`, and `.codex-plugin/plugin.json`.
 - `--target=claude` or `--target=codex` writes just one.
@@ -33,7 +33,7 @@ category) for the Codex plugin system.
 
 ## 3. Validate
 
-- `node scripts/check.mjs` runs S6 (per-target-presence): each declared target must
+- `npx agent-skills-toolkit` runs S6 (per-target-presence): each declared target must
   have its native manifest on disk.
 - U8 warns if a generated manifest's name/version drifts from `library.json` -
   regenerate to fix.

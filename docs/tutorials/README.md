@@ -14,3 +14,5 @@ Learning-oriented tutorials that walk a plugin from nothing to a graded tier.
 - `build-your-first-skill.md` - the "build your first skill" page.
 - `climb-to-gold.md` - the "climb to gold" page.
 - `start-a-plugin-and-reach-bronze.md` - the "start a plugin and reach bronze" page.
+
+- **New vocabulary?** [The glossary](../explanation/glossary.md) defines every term this toolkit invents, one sentence each.

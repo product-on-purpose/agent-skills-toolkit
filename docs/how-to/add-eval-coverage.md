@@ -11,7 +11,7 @@ Give each chain and hook an eval case so the plugin clears the Gold G3 baseline 
 
 ## Find what is uncovered
 
-Run `node scripts/check.mjs` (or `node scripts/evaluate.mjs <plugin> --json`). A plugin that declares `advanced` fails on each uncovered chain or hook; one that declares `universal`/`convergent` sees the same items in `tier-report` under `blocked.advanced` - the burndown to Gold. Each finding names the edge or event and the file to add.
+Run `npx agent-skills-toolkit` (or `npx agent-skills-toolkit evaluate <plugin> --json`). A plugin that declares `advanced` fails on each uncovered chain or hook; one that declares `universal`/`convergent` sees the same items in `tier-report` under `blocked.advanced` - the burndown to Gold. Each finding names the edge or event and the file to add.
 
 ## Add a chain eval
 

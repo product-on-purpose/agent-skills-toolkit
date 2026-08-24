@@ -40,3 +40,5 @@ Task-oriented guides for building each component type and climbing from one tier
 - `stand-up-a-marketplace.md` - the "stand up a marketplace" page.
 - `troubleshoot-the-gate.md` - the "troubleshoot the gate" page.
 - `watch-the-upstream-spec.md` - the "watch the upstream spec" page.
+
+- **New vocabulary?** [The glossary](../explanation/glossary.md) defines every term this toolkit invents, one sentence each.

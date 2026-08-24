@@ -84,6 +84,8 @@ A real upstream change is pinned in the examples directory. Running the watcher 
 node scripts/standards-watch.mjs . --pin skills/askit-standards-watch/examples/pin-historical-2026-05-15.json
 ```
 
+**The watcher ships with the plugin, not with the npm package**, which carries the grading gate and `STANDARD.md` only. Ask your agent to run `askit-standards-watch` if you installed that way.
+
 Output captured 2026-07-27:
 
 ```

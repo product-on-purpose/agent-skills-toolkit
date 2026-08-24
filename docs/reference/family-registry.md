@@ -37,7 +37,7 @@ commits produces the same numbers.
 **Measured 2026-08-12** by running, from the toolkit checkout:
 
 ```bash
-node scripts/evaluate.mjs ../agent-plugins --format md
+npx agent-skills-toolkit evaluate ../agent-plugins --format md
 ```
 
 **Collection verdict: RED.** Graded 6 of 6 members. 0 collection errors, 0 collection warnings.

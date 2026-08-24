@@ -33,7 +33,7 @@ plugin against the Standard," and it reports the tier, the burndown to the next
 tier, and per-rule remediation.
 
 Under the hood the same checks are also a portable script
-(`node scripts/check.mjs`), which is the CI engine. As the README puts it under
+(`npx agent-skills-toolkit`), which is the CI engine. As the README puts it under
 "why a script, not only a skill": a model can present the grade, but only a
 deterministic gate with a real exit code can run in CI and let a plugin prove
 itself. The skill is the door; the script is the engine, and both run the same
@@ -114,7 +114,7 @@ certifies, never by redoing the earlier work. The beginner's first Bronze plugin
 is the exact foundation the advanced track builds on. The bar rises, and the
 earlier work still counts.
 
-In practice you run `askit-evaluate` (or `node scripts/check.mjs`) at any point to
+In practice you run `askit-evaluate` (or `npx agent-skills-toolkit`) at any point to
 see the highest tier you satisfy and the burndown of what blocks the next one,
 then close that list at your own pace while CI stays green throughout the climb.
 
@@ -140,7 +140,7 @@ under the full ladder.
 
 On Windows, check your path separators. A backslash path makes `check.mjs`
 silently grade an empty directory and report a clean pass. Use forward slashes.
-The target is also **positional**, not a flag: `node scripts/check.mjs .`
+The target is also **positional**, not a flag: `npx agent-skills-toolkit .`
 
 ## A check fired on something that is deliberately not live. Is that a bug?
 
@@ -157,7 +157,7 @@ judgment about your description. Its use-when trigger pattern is English-only, s
 a description in another language cannot earn that 0.35 and is capped at 0.65
 against a 0.7 bar. Measured on a French corpus, the pattern matched **0 of 346**.
 `U5` is `house` provenance, so `--profile plain-plugin` drops it entirely, and it
-warns rather than errors. Tracked as `E14`.
+warns rather than errors. Tracked as [E14, U5 assumes English and is unpassable in a language it does not know](https://github.com/product-on-purpose/agent-skills-toolkit/blob/main/docs/internal/backlog/enhancements.md).
 
 ## Does it work on a plugin that is not JavaScript?
 

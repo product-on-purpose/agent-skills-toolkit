@@ -77,7 +77,7 @@ check, so any single finding can be traced to the rule that produced it.
 | What are the Gold checks? | [Gold checks](../reference/gold-checks.md) | Verification |
 | A check failed and I do not understand why | [Troubleshoot the gate](../how-to/troubleshoot-the-gate.md) | Instructional |
 | How do I know the grader itself is any good? | [How the toolkit is validated and improved](validation-and-improvement.md) | Legitimacy |
-| What does the toolkit score against itself? | [`INDEX.md`](../../INDEX.md) header, and `node scripts/tier-report.mjs --json` | Verification |
+| What does the toolkit score against itself? | [`INDEX.md`](../../INDEX.md) header, and `npx agent-skills-toolkit tier-report --json` | Verification |
 
 The strongest single piece of evidence is that the toolkit is graded by its own gate at the
 top tier and would fail its own build if it slipped. [Validation and

@@ -51,7 +51,7 @@ There is no `--scope marketplace`. What works is a loop over members, because th
 # from the toolkit checkout, grading a portfolio that lives elsewhere
 for p in ../plugin-a ../plugin-b ../plugin-c; do
   echo "=== $p ==="
-  node scripts/check.mjs "$p"
+  npx agent-skills-toolkit "$p"
 done
 ```
 
@@ -63,7 +63,7 @@ Two things to get right, both of which have burned this project:
 For a report rather than an exit code, swap in `evaluate.mjs`:
 
 ```bash
-node scripts/evaluate.mjs "../plugin-a" --report=conformance --format=html --out ../plugin-a/report.html
+npx agent-skills-toolkit evaluate "../plugin-a" --report=conformance --format=html --out ../plugin-a/report.html
 ```
 
 ### What the loop cannot tell you
@@ -132,7 +132,7 @@ The practical consequence for a portfolio:
 - **`--strict` grades against the newest spine regardless of pin.** Use it to see what a bump would cost before committing to it.
 
 ```bash
-node scripts/check.mjs ../plugin-a --strict   # what a pin bump would surface
+npx agent-skills-toolkit ../plugin-a --strict   # what a pin bump would surface
 ```
 
 ## One repo or many
