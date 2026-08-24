@@ -30,3 +30,34 @@ test("ci-npm-gate fixture: a workflow running the gate via `npm run check` passe
 test("the toolkit ships CI that runs the gate -> no G2 findings", () => {
   assert.deepEqual(check(loadPlugin(REPO_ROOT)), []);
 });
+
+// --- the npx and Action forms of the same gate ------------------------------------------------------
+//
+// G2 used to recognise ONE spelling: the literal path scripts/check.mjs, or an npm script resolving to
+// it. Both require a VENDORED copy of this toolkit. A plugin that installed the documented way - npm or
+// the plugin marketplace - has no scripts/ directory, so the only command it can run in CI was the one
+// G2 refused, and Gold was unreachable for it. STANDARD.md sec 2.6 asks for CI that runs the check
+// suite "via the portable scripts"; npx runs exactly those scripts from the published package, and the
+// GitHub Action runs check.mjs out of its own checkout. All three are the same gate.
+//
+// This is E35 one level up: "a remediation naming a command its reader does not have", fixed for
+// gen-index at v1.13.0 and never swept into G2. library.json's selfValidation enum, whose ABSENT value
+// means "npx" and is documented as correct for any plugin that consumes rather than vendors a toolkit,
+// had no effect here at all.
+
+test("ci-npx-gate fixture: a workflow running the gate via npx passes G2", () => {
+  const r = check(loadPlugin(path.join(FIXTURES, "golden/ci-npx-gate")));
+  assert.deepEqual(r, [], "a plugin that installed the documented way must be able to reach Gold");
+});
+
+test("ci-action-gate fixture: a workflow using this repository's own GitHub Action passes G2", () => {
+  const r = check(loadPlugin(path.join(FIXTURES, "golden/ci-action-gate")));
+  assert.deepEqual(r, [], "the Action runs check.mjs from its own checkout - it is the same gate");
+});
+
+test("ci-install-only fixture: INSTALLING the package is not RUNNING the gate (G2 error)", () => {
+  // The guard on the fix above. Widening the matcher must not let a workflow that merely mentions the
+  // package name count as self-hosting CI - the same false-PASS the comment-stripping rule prevents.
+  const r = check(loadPlugin(path.join(FIXTURES, "anti/ci-install-only")));
+  assert.equal(r.length, 1, "npm install agent-skills-toolkit runs nothing");
+});

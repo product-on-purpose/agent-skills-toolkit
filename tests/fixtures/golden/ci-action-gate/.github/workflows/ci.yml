@@ -1,0 +1,10 @@
+name: CI
+on: [push]
+jobs:
+  grade:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: product-on-purpose/agent-skills-toolkit@v1.16.0
+        with:
+          path: .
