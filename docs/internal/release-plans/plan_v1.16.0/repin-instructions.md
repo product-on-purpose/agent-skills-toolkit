@@ -1,5 +1,12 @@
 # Marketplace re-pin instructions, v1.16.0
 
+> **APPLIED 2026-08-24** via [agent-plugins PR #83](https://github.com/product-on-purpose/agent-plugins/pull/83),
+> registry `metadata.version` 1.67.0 to **1.68.0**. The maintainer waived the boundary rule below for this
+> re-pin and directed this program to execute it; the steps are kept as written rather than rewritten in the
+> past tense, because the record of what was staged is the point. Verified after merge by reading the LIVE
+> registry: entry sha `87108ba`, version `1.16.0`, `strict: true`, five other members untouched, and the
+> plugin manifest at that pinned ref reads `1.16.0`.
+
 **Boundary rule: this program never writes to `agent-plugins`.** These steps are staged for the
 maintainer to apply in the maintainer's own repository. The orchestrator wrote this file and
 performed the read-only verification at the bottom; it executed none of steps 1 through 6.

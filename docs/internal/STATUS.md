@@ -6,13 +6,13 @@
 > technical history), and `docs/internal/release-plans/` (the per-release spec + implementation
 > packets). Do not add accretive per-release paragraphs here; append them to those instead.
 >
-> Last updated: 2026-08-22 (v1.16.0 shipped; marketplace re-pin still open).
+> Last updated: 2026-08-24 (v1.16.0 fully shipped, re-pin applied).
 
 ## Current state
 
 | Fact | Value |
 |---|---|
-| Version | **1.16.0, SHIPPED 2026-08-22.** Tagged `v1.16.0` at `87108ba`, GitHub release live and Latest, npm `1.16.0` on `latest`. **The marketplace re-pin is the one step still open** and is staged for the maintainer at [`plan_v1.16.0/repin-instructions.md`](release-plans/plan_v1.16.0/repin-instructions.md); the registry still pins 1.15.0 until it is applied. |
+| Version | **1.16.0, FULLY SHIPPED 2026-08-24.** Tagged `v1.16.0` at `87108ba`, GitHub release Latest, npm `1.16.0` on `latest` with SLSA provenance, registry `agent-plugins` **1.68.0** via [PR #83](https://github.com/product-on-purpose/agent-plugins/pull/83). Nothing outstanding. |
 | Declared tier | Advanced (Gold) - `library.json` `tier: advanced` |
 | Standard pin | **0.15** |
 | Spine | 34 checks |
@@ -30,7 +30,7 @@
 | GitHub release | published, Latest, not draft, not prerelease. Body carries the `One thing worth re-reading` section naming `U14`-`U17`. |
 | npm | `1.16.0` on `latest`, 212 kB packed / 72 files, SLSA provenance attestation present. Trusted publishing (OIDC), no stored credential. Dry run passed first. |
 | Published-state smoke test | Installed from the registry into a clean directory **outside this repository**: binary reports `1.16.0`, shipped `README.md` carries the corrected `U1-U9`, `U11-U17` / "16 checks", gate grades Advanced 0/0. All nine maintainer-only libraries absent from the tarball. |
-| Registry | **OPEN.** Staged at [`repin-instructions.md`](release-plans/plan_v1.16.0/repin-instructions.md); `metadata.version` 1.67.0 -> 1.68.0, `source.sha` -> `87108ba...`. This program never writes to `agent-plugins`. |
+| Registry | `agent-plugins` 1.67.0 to **1.68.0**, [PR #83](https://github.com/product-on-purpose/agent-plugins/pull/83), `strict: true` preserved, no other member entry moved. Pinned to the TAG commit `87108ba`, not main: main had moved past the tag and a version number must mean one tree. |
 | Pre-tag doc review | [`doc-review.md`](release-plans/plan_v1.16.0/doc-review.md). Ten stale spine claims fixed, `check-doc-enumerations.mjs` added to guard them, QUICKSTART and the glossary rewritten. |
 
 ## v1.15.0 SHIPPED 2026-08-20
