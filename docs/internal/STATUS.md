@@ -6,13 +6,13 @@
 > technical history), and `docs/internal/release-plans/` (the per-release spec + implementation
 > packets). Do not add accretive per-release paragraphs here; append them to those instead.
 >
-> Last updated: 2026-08-24 (v1.16.1 bumped, not yet tagged).
+> Last updated: 2026-08-24 (v1.16.1 fully shipped).
 
 ## Current state
 
 | Fact | Value |
 |---|---|
-| Version | **1.16.1, BUMPED 2026-08-24, NOT YET TAGGED.** All four manifests carry 1.16.1; **no tag exists, nothing is published, and the registry still pins 1.16.0.** v1.16.0 itself is fully shipped. |
+| Version | **1.16.1, FULLY SHIPPED 2026-08-24.** Tagged `v1.16.1` at `1da4d16`, GitHub release Latest, npm `1.16.1` on `latest` with SLSA provenance, registry `agent-plugins` **1.69.0** via [PR #84](https://github.com/product-on-purpose/agent-plugins/pull/84). Nothing outstanding. |
 | Declared tier | Advanced (Gold) - `library.json` `tier: advanced` |
 | Standard pin | **0.15** |
 | Spine | 34 checks |
@@ -21,14 +21,18 @@
 | Tests | 1399, 0 failures (1 skipped; local suite run **2026-08-22**, after v1.16.0 W4 added the capability-matrix drift guard and adversarial wave 1 grew it by three). It read **1359 at the shipped tag `9133014`**, confirmed there by `npm run release-ready` exiting 0 on the release runner |
 | Self-proving | `node scripts/check.mjs .` exits 0 at Advanced, 0 errors, 0 warnings |
 
-## v1.16.1 CUT IN PROGRESS 2026-08-24
+## v1.16.1 SHIPPED 2026-08-24
 
 | Step | State |
 | --- | --- |
 | Pre-cut gate | passed: suite 1399/0, gate Advanced 0/0, `release-ready` all five green, CHANGELOG `[Unreleased]` written from the four merged PRs, packet created |
 | Four-lens review | run over the six commits since `v1.16.0`. Four findings, none left open: one filed as **E56** (pre-existing, verified against the old matcher), one kept deliberately and pinned by a test, two fixed. [`review-findings.md`](release-plans/plan_v1.16.1/review-findings.md) |
 | Bump | done, all four manifests at 1.16.1 |
-| Tag / release / npm / registry | **NOT YET** |
+| Tag | `v1.16.1` -> `1da4d16`. Release run green; Codex round-trip gate run manually and confirmed EXECUTED, not skipped |
+| GitHub release | published, **Latest**, not draft, not prerelease, 42 lines of notes |
+| npm | `1.16.1` on `latest`, SLSA provenance. Dry run passed first |
+| Published-state smoke test | installed from the registry into a clean directory outside this repository: bin reports `1.16.1`, gate grades Advanced 0/0 |
+| Registry | `agent-plugins` 1.68.0 to **1.69.0**, [PR #84](https://github.com/product-on-purpose/agent-plugins/pull/84), `strict: true` kept, 5 other members untouched |
 
 ## v1.16.0 SHIPPED 2026-08-22
 
