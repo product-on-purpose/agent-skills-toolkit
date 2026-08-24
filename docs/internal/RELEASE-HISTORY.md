@@ -228,6 +228,17 @@ gates", decided quietly. And the new action-pin gate's first reported defect tur
 false positive against this repository's own file** - the exact failure mode the previous release was named
 for. Adversarial review caught it, and the release records say so plainly.
 
+### v1.16.1 - Gold was unreachable for anyone who did not vendor the gate (2026-08-24)
+
+**The problem, in one sentence.** `G2` asks for CI that runs the conformance gate, and it recognised one spelling of that: the literal path `scripts/check.mjs`. That path exists only in a clone, while this project's own install documentation sends people to npm or the plugin marketplace, so the only command those users could run in CI was the one `G2` refused. **Gold was unreachable for anyone who followed the instructions.**
+
+**Why it is a bug and not a rule change.** `STANDARD.md` sec 2.6 already asked for CI that runs the suite *via the portable scripts*, and `npx` runs precisely those from the published package. `library.json` already carried `selfValidation`, whose absent value means `npx` and which the Standard documents as correct for every plugin that consumes a toolkit rather than vendoring one. `gen-index` honoured that setting. `G2` never read it. **The same fix had been made in one place and never swept into the other** - E35, one level up, first fixed for `gen-index` at v1.13.0.
+
+**What shipped.** `G2` now accepts five spellings of the same gate. Three more fixes in this project's own guards, including a vendor-claim watcher that reported a clean run on a claim nothing could ever check. And two plain-language documentation passes: 88 commands across 37 public pages named a path their readers do not have, one page had been false for three months, and the writing rules behind those fixes went into the skill that authors documentation so new pages start from them.
+
+**The pre-cut review is the part worth keeping.** Its most valuable finding was a defect the same cycle had introduced. The bulk command substitution rewrote a sentence in which the vendored path was the **subject** being described rather than an instruction to follow, leaving `gold-checks.md` claiming that npx is what you use *if you vendor the gate* - the opposite of true, in the documentation for the very check this release exists to fix. Five pages had been deliberately held back from that sweep for exactly this reason and this one was still missed, because it sat in a page edited in an earlier commit.
+
+**The durable lesson.** A find-and-replace over prose cannot tell an instruction from a description of an instruction. Holding pages back by judgement caught most of it and not all of it; what caught the rest was a review lens asking whether the code does what its own documentation says. **The check that finds a substitution error is not a better substitution - it is a different question, asked afterwards.**
 ### v1.16.0 - the evidence gets an address, and some of it was resting on nothing (2026-08-22)
 
 **The problem, in one sentence.** `STANDARD.md` defines Convergent as what both agents support in different formats and Advanced as deep, often agent-specific capability - so **every tier boundary is a claim about software this project does not control**, and until this release no artifact recorded which vendor fact any boundary actually depended on.
