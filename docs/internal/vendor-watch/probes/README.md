@@ -40,8 +40,11 @@ release; one approaching it is reported and blocks nothing.
 
 | Probe | Last verified | Blocks from | Fixture |
 | --- | --- | --- | --- |
-| `agents-dir-registers-every-md` | 2026-08-19 | **2026-09-19** | [`agents-dir-registers-every-md/`](agents-dir-registers-every-md/) |
-| `components-share-one-namespace` | **2026-08-20** | 2026-09-20 | [`components-share-one-namespace/`](components-share-one-namespace/) |
+| `agents-dir-registers-every-md` | 2026-08-24 | **2026-09-24** | [`agents-dir-registers-every-md/`](agents-dir-registers-every-md/) |
+| `components-share-one-namespace` | 2026-08-24 | **2026-09-24** | [`components-share-one-namespace/`](components-share-one-namespace/) |
+
+
+> **Both dates were re-established on 2026-08-24 by running the gate at candidate boundaries, not by adding to a date.** `--today 2026-09-23` reports 0 stale; `--today 2026-09-24` reports 2. Both probes now share a verification date, so they expire together rather than a day apart.
 
 > **The blocking date is `verifiedOn` + 31, not + 30. Corrected 2026-08-22 across every record that
 > stated one.** `scripts/lib/vendor-watch.mjs` marks a probe stale on `age > FRESHNESS_DAYS`, so day 30
