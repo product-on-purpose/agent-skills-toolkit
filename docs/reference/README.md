@@ -49,3 +49,5 @@ Reference material: one page per askit-* skill plus the per-tier conformance-che
 - `subagents.md` - the "subagent reference" page.
 - `token-usage-estimates.md` - the "token usage estimates (model and effort)" page.
 - `universal-checks.md` - the "universal checks" page.
+
+- **New vocabulary?** [The glossary](../explanation/glossary.md) defines every term this toolkit invents, one sentence each.

@@ -6,20 +6,33 @@
 > technical history), and `docs/internal/release-plans/` (the per-release spec + implementation
 > packets). Do not add accretive per-release paragraphs here; append them to those instead.
 >
-> Last updated: 2026-08-22 (v1.16.0 shipped; marketplace re-pin still open).
+> Last updated: 2026-08-24 (v1.16.1 fully shipped).
 
 ## Current state
 
 | Fact | Value |
 |---|---|
-| Version | **1.16.0, SHIPPED 2026-08-22.** Tagged `v1.16.0` at `87108ba`, GitHub release live and Latest, npm `1.16.0` on `latest`. **The marketplace re-pin is the one step still open** and is staged for the maintainer at [`plan_v1.16.0/repin-instructions.md`](release-plans/plan_v1.16.0/repin-instructions.md); the registry still pins 1.15.0 until it is applied. |
+| Version | **1.16.1, FULLY SHIPPED 2026-08-24.** Tagged `v1.16.1` at `1da4d16`, GitHub release Latest, npm `1.16.1` on `latest` with SLSA provenance, registry `agent-plugins` **1.69.0** via [PR #84](https://github.com/product-on-purpose/agent-plugins/pull/84). Nothing outstanding. |
 | Declared tier | Advanced (Gold) - `library.json` `tier: advanced` |
 | Standard pin | **0.15** |
 | Spine | 34 checks |
 | Scopes | 3 (plugin, component, marketplace) |
 | Skills | **26** |
-| Tests | 1388, 0 failures (1 skipped; local suite run **2026-08-22**, after v1.16.0 W4 added the capability-matrix drift guard and adversarial wave 1 grew it by three). It read **1359 at the shipped tag `9133014`**, confirmed there by `npm run release-ready` exiting 0 on the release runner |
+| Tests | 1399, 0 failures (1 skipped; local suite run **2026-08-22**, after v1.16.0 W4 added the capability-matrix drift guard and adversarial wave 1 grew it by three). It read **1359 at the shipped tag `9133014`**, confirmed there by `npm run release-ready` exiting 0 on the release runner |
 | Self-proving | `node scripts/check.mjs .` exits 0 at Advanced, 0 errors, 0 warnings |
+
+## v1.16.1 SHIPPED 2026-08-24
+
+| Step | State |
+| --- | --- |
+| Pre-cut gate | passed: suite 1399/0, gate Advanced 0/0, `release-ready` all five green, CHANGELOG `[Unreleased]` written from the four merged PRs, packet created |
+| Four-lens review | run over the six commits since `v1.16.0`. Four findings, none left open: one filed as **E56** (pre-existing, verified against the old matcher), one kept deliberately and pinned by a test, two fixed. [`review-findings.md`](release-plans/plan_v1.16.1/review-findings.md) |
+| Bump | done, all four manifests at 1.16.1 |
+| Tag | `v1.16.1` -> `1da4d16`. Release run green; Codex round-trip gate run manually and confirmed EXECUTED, not skipped |
+| GitHub release | published, **Latest**, not draft, not prerelease, 42 lines of notes |
+| npm | `1.16.1` on `latest`, SLSA provenance. Dry run passed first |
+| Published-state smoke test | installed from the registry into a clean directory outside this repository: bin reports `1.16.1`, gate grades Advanced 0/0 |
+| Registry | `agent-plugins` 1.68.0 to **1.69.0**, [PR #84](https://github.com/product-on-purpose/agent-plugins/pull/84), `strict: true` kept, 5 other members untouched |
 
 ## v1.16.0 SHIPPED 2026-08-22
 
@@ -30,7 +43,7 @@
 | GitHub release | published, Latest, not draft, not prerelease. Body carries the `One thing worth re-reading` section naming `U14`-`U17`. |
 | npm | `1.16.0` on `latest`, 212 kB packed / 72 files, SLSA provenance attestation present. Trusted publishing (OIDC), no stored credential. Dry run passed first. |
 | Published-state smoke test | Installed from the registry into a clean directory **outside this repository**: binary reports `1.16.0`, shipped `README.md` carries the corrected `U1-U9`, `U11-U17` / "16 checks", gate grades Advanced 0/0. All nine maintainer-only libraries absent from the tarball. |
-| Registry | **OPEN.** Staged at [`repin-instructions.md`](release-plans/plan_v1.16.0/repin-instructions.md); `metadata.version` 1.67.0 -> 1.68.0, `source.sha` -> `87108ba...`. This program never writes to `agent-plugins`. |
+| Registry | `agent-plugins` 1.67.0 to **1.68.0**, [PR #83](https://github.com/product-on-purpose/agent-plugins/pull/83), `strict: true` preserved, no other member entry moved. Pinned to the TAG commit `87108ba`, not main: main had moved past the tag and a version number must mean one tree. |
 | Pre-tag doc review | [`doc-review.md`](release-plans/plan_v1.16.0/doc-review.md). Ten stale spine claims fixed, `check-doc-enumerations.mjs` added to guard them, QUICKSTART and the glossary rewritten. |
 
 ## v1.15.0 SHIPPED 2026-08-20

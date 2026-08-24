@@ -14,7 +14,7 @@ The seven askit subagents are bounded, read-only or narrowly scoped delegates th
 
 ## askit-evaluator
 
-**Purpose.** The delegated assessment role behind `askit-evaluate`. Runs `node scripts/evaluate.mjs <target> --json` and reports findings grouped by severity and requirement ID, each with its file path and the remediation the message states. Read-only: it never edits the target.
+**Purpose.** The delegated assessment role behind `askit-evaluate`. Runs `npx agent-skills-toolkit evaluate <target> --json` and reports findings grouped by severity and requirement ID, each with its file path and the remediation the message states. Read-only: it never edits the target.
 
 **Parent skill.** `askit-evaluate` (primary); also dispatched by `askit-skill-author` for post-authoring conformance checks.
 

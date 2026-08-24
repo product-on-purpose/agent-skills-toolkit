@@ -65,7 +65,7 @@ On a real outside repository those two numbers were **159** and **11**. The 11 w
 
 ### If you write code
 
-- **A gate you can put in CI.** `node scripts/check.mjs .` exits non-zero on failure. Wire it to a pull request and quality stops being a review-time argument.
+- **A gate you can put in CI.** `npx agent-skills-toolkit .` exits non-zero on failure. Wire it to a pull request and quality stops being a review-time argument.
 - **Findings with a location and a rule.** Every finding names the requirement it violates, the file, and what to do. Not "this could be better."
 - **A tier report that is a work queue.** It tells you the highest tier you satisfy and exactly what blocks the next one.
 - **Configurability that does not require a fork.** Per-rule severity, named profiles, a suppressions baseline, and a version pin so rules written after your code do not retroactively fail it.

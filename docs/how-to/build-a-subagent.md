@@ -81,7 +81,7 @@ omit `chain:` from the frontmatter.
 
 ## 4. Validate
 
-    node scripts/evaluate.mjs . --json
+    npx agent-skills-toolkit evaluate . --json
 
 Look at the findings array. An S3 error means the `components.subagents` index is
 out of sync with disk - check the declared name and path match exactly. An S4 orphan

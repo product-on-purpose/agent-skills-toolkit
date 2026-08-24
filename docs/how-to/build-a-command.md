@@ -75,7 +75,7 @@ fail S3.
 
 ## 3. Validate
 
-    node scripts/evaluate.mjs . --json
+    npx agent-skills-toolkit evaluate . --json
 
 Look at the findings array. An S3 error means `components.commands` is out of sync
 with disk - check the declared name and path match exactly. An S7 error has three

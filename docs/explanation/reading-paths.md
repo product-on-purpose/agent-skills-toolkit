@@ -34,7 +34,7 @@ You have ten minutes and a healthy scepticism.
 **Then just run it.** Grading costs nothing and takes seconds:
 
 ```bash
-node scripts/check.mjs <any-plugin-path> --profile plain-plugin
+npx agent-skills-toolkit <any-plugin-path> --profile plain-plugin
 ```
 
 ## 2. Non-engineer working with a team that uses it
@@ -66,8 +66,8 @@ You have skills already. You want to know where you stand and what it costs.
 
 1. **Grade it first, before reading anything:**
    ```bash
-   node scripts/check.mjs <your-repo> --profile plain-plugin   # what is actually broken
-   node scripts/check.mjs <your-repo>                          # + what adopting the Standard would need
+   npx agent-skills-toolkit <your-repo> --profile plain-plugin   # what is actually broken
+   npx agent-skills-toolkit <your-repo>                          # + what adopting the Standard would need
    ```
    The gap between those two numbers is the honest scope of the work. On real repos it is often 10x.
 2. **[Adopt a foreign repo](../how-to/adopt-a-foreign-repo.md)** - the procedure, using `askit-migrate` to write the minimal manifest and produce a staged plan.

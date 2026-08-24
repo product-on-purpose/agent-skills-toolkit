@@ -34,6 +34,7 @@ The toolkit is a quality bar for AI skill libraries: it grades a plugin Bronze, 
 | v1.13.0 | 2026-08-13 | The contract you adopted: one post-resolution ceiling over `since` and `until`, config provenance, and two graduations that could not previously fire | 31 / 0.13 |
 | v1.14.0 | 2026-08-16 | Four things the gate was telling you were not true, and three files it was never reading | 34 / 0.14 |
 | v1.15.0 | 2026-08-18 | Two migration windows close on schedule, one because its subject did the work | 34 / 0.15 |
+| v1.16.1 | 2026-08-24 | Gold was unreachable for anyone who did not vendor the gate | 34 / 0.15 |
 | v1.16.0 | 2026-08-22 | The evidence gets an address, and some of it was resting on nothing | 34 / 0.15 |
 
 ("Spine" = the number of checks the gate runs. "Standard" = the version of the written specification. They were stable at 29 / 0.11 from v1.2.0 through v1.5.x; **v1.6.0 grew them to 30 / 0.12** - the first new requirement since v1.1.0, shipped under a warn-first burndown so no existing plugin newly fails.)

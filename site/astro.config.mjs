@@ -49,7 +49,7 @@ export default defineConfig({
       // generate() call at the top of this file populates those directories before this config is
       // evaluated, so they always exist here regardless of how Astro was invoked.
       sidebar: [
-        { label: 'Start here', items: [{ slug: 'overview' }, { slug: 'getting-started' }] },
+        { label: 'Start here', items: [{ slug: 'overview' }, { slug: 'getting-started' }, { slug: 'explanation/glossary', label: 'Glossary' }] },
         { label: 'The Standard', items: [{ slug: 'the-standard' }, { slug: 'tiers' }] },
         { label: 'The catalog', items: [{ slug: 'catalog' }] },
         { label: 'Tutorials', items: [{ autogenerate: { directory: 'tutorials' } }] },

@@ -12,7 +12,7 @@ run the craft pass once it is clean.
 
 ```mermaid
 flowchart LR
-  C["1. Create<br/>askit-build-skill (create)<br/>scaffolds SKILL.md from template"] --> E["2. Evaluate<br/>node scripts/evaluate.mjs<br/>per-rule findings + tier"]
+  C["1. Create<br/>askit-build-skill (create)<br/>scaffolds SKILL.md from template"] --> E["2. Evaluate<br/>npx agent-skills-toolkit evaluate<br/>per-rule findings + tier"]
   E --> I["3. Improve<br/>askit-build-skill (improve)<br/>fixes what evaluate flagged"]
   I --> E
   E -->|0 errors| D["Done: a conformant skill"]
@@ -29,7 +29,7 @@ from the template (`templates/SKILL.md`).
 
 Run the assessment:
 
-    node scripts/evaluate.mjs skills/<name>
+    npx agent-skills-toolkit evaluate skills/<name>
 
 You get per-rule findings, and - for a whole plugin - the tier and what blocks the
 next one. A single skill directory is assessed at the component level (the

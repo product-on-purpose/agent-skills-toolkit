@@ -8,15 +8,24 @@ Nothing. No Codex release entry announced anything about which component types a
 
 ## What the documentation page said
 
-Fetching the Codex plugins page - **via a 308 redirect from `developers.openai.com/codex/plugins.md` to `learn.chatgpt.com/docs/plugins.md`** - produced this, verbatim:
+Fetching the Codex plugins page - **via a 308 redirect from `developers.openai.com/codex/plugins.md` to `learn.chatgpt.com/docs/plugins.md`** - produced this. It is a lead-in followed by a **list**, and it is reproduced here as a list for that reason:
 
-> "A plugin can contain one or more of these parts: Skills, Connectors, MCP servers, Browser extensions, Hooks, [and] Scheduled task templates."
+> A plugin can contain one or more of these parts:
+>
+> - **Skills**
+> - **Connectors**
+> - **MCP servers**
+> - **Browser extensions**
+> - **Hooks**
+> - **Scheduled task templates**
 
-## Why that one sentence is worth a survey
+**Re-read 2026-08-23; the structure above is what the page carries.** An earlier version of this example flattened the list into a single sentence and labelled it `verbatim`, inserting a bracketed `[and]` to make the run-on read. That is a **reconstruction**, and the bracket is the tell. A flattened list is not a quote: it cannot be found on the page by a later reader, and a `quote` claim pinned to it would go `MISSING` the first time anyone checked. **Quote the structure the page uses, or do not call it a quote.**
+
+## Why that one passage is worth a survey
 
 It carries three separate findings, and a release-note-only sweep would have caught none of them.
 
-**It corroborates something this repository knew only by experiment.** The list contains **no subagents**. That matches what round-trip testing established and what `capability-matrix.md` records as "Codex subagents are `config.toml` only; the plugin manifest has no `agents` field" - but until now that rested on a probe. It is now a **quotable sentence**, so it can become a `quote` claim in `vendor-claims.json` and stop costing a recurring re-verification.
+**It corroborates something this repository knew only by experiment.** The list contains **no subagents**. That matches what round-trip testing established and what `capability-matrix.md` records as "Codex subagents are `config.toml` only; the plugin manifest has no `agents` field" - but until now that rested on a probe. It is now **quotable**, so it can become a `quote` claim in `vendor-claims.json` and stop costing a recurring re-verification.
 
 **It names three component types this Standard may not model at all**: Connectors, Browser extensions, Scheduled task templates. Whether any of them should be modelled is not this skill's call - it routes to `askit-capability-gap-analysis` - but nothing would have raised the question otherwise.
 
@@ -28,9 +37,11 @@ It carries three separate findings, and a release-note-only sweep would have cau
 ### Capability findings
 
 - **[codex, no release entry] The documented plugin component list has no subagents, and names three
-  types we may not model.** Verbatim: "A plugin can contain one or more of these parts: Skills,
-  Connectors, MCP servers, Browser extensions, Hooks, [and] Scheduled task templates."
-  Source: learn.chatgpt.com/docs/plugins.md, read 2026-08-18.
+  types we may not model.** Verbatim lead-in: "A plugin can contain one or more of these parts:" followed
+  by a list, in order: Skills, Connectors, MCP servers, Browser extensions, Hooks, Scheduled task
+  templates. **Recorded as lead-in plus list because that is what the page carries** - flattening it into
+  one sentence would make the "Verbatim:" label false.
+  Source: learn.chatgpt.com/docs/plugins.md, read 2026-08-18, re-read 2026-08-23.
   Touches: capability-matrix Codex column (subagent row corroborated); three unmodelled types.
   -> gap analysis.
 

@@ -15,8 +15,8 @@ Claude-native; no Codex artifact.
   -> fill frontmatter (`description`, `maps-to`, optional `argument-hint`/
   `allowed-tools`/`model`, `metadata.version`) -> write a body invoking the backing
   skill via `$ARGUMENTS` -> declare in `library.json components.commands` -> run
-  `node scripts/evaluate.mjs . --json` to 0 errors (S3 + S7 must be clean).
-- **improve:** consume `node scripts/evaluate.mjs . --json` -> resolve findings
+  `npx agent-skills-toolkit evaluate . --json` to 0 errors (S3 + S7 must be clean).
+- **improve:** consume `npx agent-skills-toolkit evaluate . --json` -> resolve findings
   (S3 index drift, S7 missing `maps-to`/unresolved target/empty description) ->
   re-evaluate to 0 errors.
 - **Files touched:** `commands/<name>.md` (created or edited), `library.json`

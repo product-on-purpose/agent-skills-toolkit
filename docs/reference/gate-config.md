@@ -87,11 +87,11 @@ Every trust action is reported with a `trustNotice` naming which of the subject'
 Both `scripts/check.mjs` and `scripts/evaluate.mjs` read `askit.config.json` automatically. A `--mode <local|published-verdict>` and a `--profile <name>` flag override the file for one run, so you can grade a plugin you do not own under a chosen profile without writing a config file into its tree (an explicit per-rule override in a present config still wins):
 
 ```
-node scripts/check.mjs .
-node scripts/check.mjs . --mode published-verdict
-node scripts/check.mjs <path> --profile plain-plugin
-node scripts/evaluate.mjs <path> --json
-node scripts/evaluate.mjs <path> --format=html --profile plain-plugin --out report.html
+npx agent-skills-toolkit .
+npx agent-skills-toolkit . --mode published-verdict
+npx agent-skills-toolkit <path> --profile plain-plugin
+npx agent-skills-toolkit evaluate <path> --json
+npx agent-skills-toolkit evaluate <path> --format=html --profile plain-plugin --out report.html
 ```
 
 An unknown `--profile` or `--mode` is rejected with exit code 2.

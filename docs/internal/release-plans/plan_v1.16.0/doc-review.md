@@ -158,7 +158,7 @@ index pages of five long index lines each; the number is a small-sample artifact
 ## State after this pass
 
 - Gate: **Advanced, 0 errors, 0 warnings**
-- Suite: **1388 tests, 0 failures**
+- Suite: **1397 tests, 0 failures** (**1388** when this review was written, which is also what v1.16.0 was tagged at; the later E53/E54/E55 pass added six)
 - `check-doc-enumerations`: every spine claim in the public docs matches the registry
 - `check-release-counts`: agrees everywhere checked, version 1.16.0
 - Site route parity: 88 of 88

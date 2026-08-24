@@ -23,7 +23,7 @@ Add the hook to `library.json` `components.hooks` as `{ name, version, tier, sta
 
 ## 4. Validate
 
-    node scripts/evaluate.mjs . --json
+    npx agent-skills-toolkit evaluate . --json
 
 Hook documentation and idempotency are graded at the Advanced tier; the deterministic hook check arrives with Gold self-hosting (Phase 5).
 

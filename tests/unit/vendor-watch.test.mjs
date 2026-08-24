@@ -377,3 +377,38 @@ test("W2-H3: the reversal cases are honest - each really does retain the claim's
   }
 });
 
+
+// --- E54: a claim pointing at a source that was never declared ---------------------------------------
+
+test("a claim naming an UNDECLARED source id blocks the run instead of exiting 0 (E54)", () => {
+  // sourcesFailed iterates pin.sources, so an id that is not IN pin.sources contributes nothing to it,
+  // and exitCodeFor counts only missing and stale toward 1. A single-character typo in a claim's source
+  // therefore made that claim permanently UNCHECKABLE while the gate reported success - and vendor-watch
+  // is one of the five gates release-ready blocks a tag on.
+  const pin = { sources: [{ id: "s", url: "x" }], claims: [quote({ source: "s-typo" })] };
+  const report = buildReport(pin, { s: "the pinned sentence" }, "2026-08-15");
+  assert.notEqual(exitCodeFor(report), 0, "a claim nothing can ever check must not report a clean run");
+});
+
+test("the undeclared-source failure is exit 1, NOT 2, so no reason string can wave it through (E54)", () => {
+  // release-ready's --allow-vendor-unreachable excuses code 2 ONLY, because code 2 means somebody else's
+  // outage. A dangling source id is a defect in THIS repository's own claims file, so it must land in the
+  // class no override can excuse. Exit 2 here would hand the operator a legitimate-looking way past it.
+  const pin = { sources: [{ id: "s", url: "x" }], claims: [quote({ source: "nope" })] };
+  assert.equal(exitCodeFor(buildReport(pin, { s: "the pinned sentence" }, "2026-08-15")), 1);
+});
+
+test("the report NAMES the offending claim and the id it points at (E54)", () => {
+  const pin = { sources: [{ id: "s", url: "x" }], claims: [quote({ id: "q-oops", source: "typo-id" })] };
+  const out = renderReport(buildReport(pin, { s: "the pinned sentence" }, "2026-08-15"));
+  assert.match(out, /q-oops/, "an operator cannot fix what the report does not name");
+  assert.match(out, /typo-id/);
+});
+
+test("a source declared with no claim is NOT an error (E54 must not overreach)", () => {
+  // cx-hooks is declared and deliberately carries no claim: the v1.16.0 review landed three table-row
+  // claims against it and removed them the same day, because pinning markdown pipes would have blocked
+  // every release on a re-render. The obvious symmetric check would fire on that recorded decision.
+  const pin = { sources: [{ id: "s", url: "x" }, { id: "unused", url: "y" }], claims: [quote()] };
+  assert.equal(exitCodeFor(buildReport(pin, { s: "the pinned sentence", unused: "text" }, "2026-08-15")), 0);
+});

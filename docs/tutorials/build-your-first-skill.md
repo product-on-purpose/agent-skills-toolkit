@@ -111,7 +111,7 @@ If your description ever scores below the bar, the fix is mechanical: name the a
 Now prove it. From your working directory, run the validator against just this skill:
 
 ```bash
-node scripts/evaluate.mjs skills/summarize-meeting-notes
+npx agent-skills-toolkit evaluate skills/summarize-meeting-notes
 ```
 
 (This is the same engine the `askit-evaluate` skill runs for you; you can also just ask your agent to "evaluate this skill.") You get a list of per-rule findings. A lone skill directory is assessed at the **component level** - the skill-applicable rules only. You will not see a tier reported, and that is correct: a tier belongs to a *plugin*, and a single skill is not yet a plugin (it has no manifest). The tier comes in the next tutorial.

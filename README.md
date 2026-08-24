@@ -19,7 +19,7 @@ Most skill collections are a flat, single-agent, ungoverned pile. This is the St
 <p>
   <img src="https://img.shields.io/badge/status-active-success?style=flat-square" alt="Status: Active">
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-Apache--2.0-blue?style=flat-square" alt="License: Apache-2.0"></a>
-  <img src="https://img.shields.io/badge/version-1.16.0-blue?style=flat-square" alt="Version 1.16.0">
+  <img src="https://img.shields.io/badge/version-1.16.1-blue?style=flat-square" alt="Version 1.16.0">
   <a href="https://product-on-purpose.github.io/agent-skills-toolkit/badges/tier.json"><img src="https://img.shields.io/endpoint?url=https%3A%2F%2Fproduct-on-purpose.github.io%2Fagent-skills-toolkit%2Fbadges%2Ftier.json&style=flat-square" alt="Tier badge, generated in CI at the graded commit sha - click through for the raw JSON (tier, sha, Standard pin, date)"></a>
   <a href="#the-catalog"><img src="https://img.shields.io/badge/skills-26-brightgreen?style=flat-square" alt="Skills: 26"></a>
   <img src="https://img.shields.io/badge/checks-34-brightgreen?style=flat-square" alt="Validation checks: 34">
@@ -87,7 +87,11 @@ npx agent-skills-toolkit /path/to/your-plugin   # one-shot, grades the given pat
 npm install --save-dev agent-skills-toolkit     # or add it to your own toolchain / CI
 ```
 
-`npx agent-skills-toolkit` (or `agent-skills-toolkit` once installed) runs `check` by default, so a bare path is enough to get a tier back; `evaluate` and `tier-report` are also available as subcommands. There is no `askit` bin alias - that name belongs to an unrelated package already on the npm registry. The npm package ships the gate and `STANDARD.md` only, not the `askit-*` authoring skills or the maintainer-only eval-run tooling; see [Install and run via npm](docs/how-to/install-and-run-via-npm.md) for the full command reference and exactly what is and is not included.
+`npx agent-skills-toolkit` (or `agent-skills-toolkit` once installed) runs `check` by default, so a bare path is enough to get a tier back. `evaluate` and `tier-report` are also available as subcommands.
+
+There is no `askit` bin alias. That name belongs to an unrelated package already on the npm registry.
+
+**The npm package ships the gate and `STANDARD.md` only** - not the `askit-*` authoring skills, and not the maintainer-only eval-run tooling. [Install and run via npm](docs/how-to/install-and-run-via-npm.md) has the full command reference and exactly what is and is not included.
 
 <div align="right">(<a href="#readme-top">back to top</a>)</div>
 
@@ -216,7 +220,11 @@ No single dimension is uniquely ours; the unoccupied position is the **combinati
 
 A bare folder of agentskills.io skills is just **loose components**: the skills work a la carte, but the collection is not yet a plugin. The three tiers are the ladder that turns it into a best-in-class library, one rung at a time. They are **monotonic** - each tier includes everything below it - so a Bronze plugin grows into Silver and Gold without rework. The bar rises, and the earlier work still counts.
 
-A tier is reported only when its checks actually pass; the tooling flags any claim above what is met. The spine is **34 checks** total (`U1-U9`, `U11-U17`, `S1-S8`, `G1-G10`); the `G7` slot is the `docs-frontmatter` check (assigned in Standard v0.10), `U13` (`skill-registration`) was added in Standard v0.12, and `U14` (`agent-restricted-fields`) in Standard v0.13. Tier inclusion (a Gold plugin satisfies every Bronze and Silver requirement) is a structural property of the monotonic tiers, not a numbered check.
+A tier is reported only when its checks actually pass, and the tooling flags any claim above what is met.
+
+The spine is **34 checks**: `U1-U9` and `U11-U17` (Universal), `S1-S8` (Convergent), `G1-G10` (Advanced). The gap at `U10` is a check retired in Standard v0.11. Which check arrived in which Standard version is recorded in [`universal-checks.md`](docs/reference/universal-checks.md), so this list cannot go stale beside it.
+
+Tier inclusion - a Gold plugin satisfies every Bronze and Silver requirement - is a structural property of the monotonic tiers, not a numbered check. It was numbered `G7` before Standard v0.10, and that slot now holds `docs-frontmatter`.
 
 ### At a glance
 
@@ -256,7 +264,7 @@ Three rungs, monotonic - each includes everything below it (per-tier detail foll
   - `S4-S5` - valid chain contracts in `agents/_chain-permitted.yaml` with no orphans or phantoms, and workflow steps that reference skills that exist
   - `S6-S7` - per-target emission, with a native manifest and a command contract present for each declared target
   - plus governance stepping up: per-component `HISTORY.md`, a `CHANGELOG`, and semver throughout
-- **Why it matters:** Claude and Codex support the same concepts in different file formats, so a single file cannot serve both - per-target emission (`S6`) is what keeps a plugin genuinely cross-agent instead of secretly Claude-only. The prefix (`S2`) stops generic names like `init` from colliding on agents that lack plugin namespacing. The index mirroring disk (`S3`, `S8`) keeps the manifest honest as the single source of truth, and chain contracts (`S4`) make inter-component calls explicit and safe.
+- **Why it matters:** Claude and Codex support the same concepts in different file formats, so a single file cannot serve both. Per-target emission (`S6`) is what keeps a plugin genuinely cross-agent instead of secretly Claude-only. The prefix (`S2`) stops generic names like `init` from colliding on agents that lack plugin namespacing. The index mirroring disk (`S3`, `S8`) keeps the manifest honest as the single source of truth. Chain contracts (`S4`) make inter-component calls explicit and safe.
 - **Payoff:** a Silver plugin delivers the same intent across Claude and Codex with verified format parity and collision-proof names.
 
 ### Gold - Advanced - the self-proving summit
@@ -390,9 +398,13 @@ The Claude slash commands that give the core flows an explicit `/command` entry 
 
 ## Status
 
-**`v1.16.0`, Gold grade, installable.** The repository declares `tier: advanced` and self-validates at Advanced in CI: the full gate is green and `tier-report` prints `advanced` with an empty burndown, so the toolkit is a self-proving example of the Standard it defines. Gold check `G1` (hooks) now grades the toolkit's own demonstrative no-dash `PreToolUse` hook; `G6` (deprecation) is still satisfied without exercise, since the toolkit ships no deprecated components yet. The toolkit installs from the `product-on-purpose` marketplace (see [Install](#install)).
+**`v1.16.1`, Gold grade, installable.** The toolkit is a self-proving example of the Standard it defines: it declares `tier: advanced`, and CI grades it there - the gate is green and `tier-report` prints `advanced` with an empty burndown.
 
-- **Version** - `1.16.0` (Standard `v0.15`).
+Two Gold checks are worth naming. `G1` (hooks) grades the toolkit's own demonstrative no-dash `PreToolUse` hook. `G6` (deprecation) is satisfied without exercise, because the toolkit ships no deprecated components yet.
+
+Install from the `product-on-purpose` marketplace (see [Install](#install)).
+
+- **Version** - `1.16.1` (Standard `v0.15`).
 - **Tier** - Advanced (Gold), self-validated.
 - **Install** - `product-on-purpose` marketplace (`agent-plugins`).
 - **Components** - 26 skills, 7 subagents, 2 commands.

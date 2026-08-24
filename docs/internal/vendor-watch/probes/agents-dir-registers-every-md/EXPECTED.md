@@ -79,3 +79,15 @@ preference; it was preventing a measurable per-session tax on every conforming p
 
 Add a row every time. A run that CONFIRMS is as much a result as one that does not, and the confirming
 runs are what make the date meaningful.
+
+## 2026-08-24: re-run, unchanged
+
+Instrument: `claude plugin details probe-agents-scan`, Claude Code's own component inventory, after installing the fixture with `--scope local`.
+
+```
+Component inventory
+  Skills (0)
+  Agents (3)  README, real-agent, _README
+```
+
+**Three of four, the same three.** `README.md` and `_README.md` both registered; `README.txt` did not. The underscore prefix still protects nothing, and only the non-`.md` extension is skipped. `verifiedOn` advances to 2026-08-24.

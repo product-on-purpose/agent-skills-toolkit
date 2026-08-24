@@ -2,19 +2,58 @@
 
 Curated, user-facing highlights. For the full technical history see [`CHANGELOG.md`](CHANGELOG.md).
 
+## 1.16.1 - 2026-08-24
+
+**If you installed this toolkit from npm rather than cloning it, you could not reach Gold. Now you can.**
+
+### Do you need to do anything?
+
+**Almost certainly not.** No check is added, none is removed, the spine stays at **34** and the Standard stays at **0.15**. Five plugins were graded before and after this change and not one moved.
+
+**The exception is if you were chasing Gold and `G2` kept failing.** Nothing to change on your side: re-run your pipeline, and a CI file that was already correct should now pass.
+
+### The bug
+
+`G2` asks for CI that runs the conformance gate. It recognised one way of writing that: `node scripts/check.mjs`, a path that exists only if you cloned this repository.
+
+Our own install instructions tell you to use npm or the plugin marketplace. Do that, and you have no `scripts/` folder at all. The command you *can* run was the one `G2` refused. **So Gold was unreachable for anyone who followed the documentation.**
+
+`G2` now accepts five ways of running the same gate:
+
+- `npx agent-skills-toolkit .`
+- the installed command on its own, if you added the package as a dependency
+- an `agent-skills-toolkit` GitHub Action
+- `node scripts/check.mjs`, if you do vendor the gate
+- an npm script that runs any of the above
+
+Installing the package still does not count. Running it is the point.
+
+**Nothing about the rules changed.** The Standard already asked for CI that runs the suite *via the portable scripts*, and `npx` runs exactly those from the published package. Only the checker disagreed with it.
+
+### Three more fixes, all in our own guards
+
+- **A vendor-claim watcher reported a clean run on a claim nothing could ever check.** One mistyped character in a claim's source made it permanently unverifiable while the gate said everything was fine. It is one of five gates that block a release here.
+- **A parity check treated a corrupt file and a missing file as the same event.** They are not: one is a defect, the other is nothing to compare.
+- **A worked example labelled a rewritten sentence as a direct quote.** The page it came from carries a list; the example had flattened it into prose and still called it verbatim.
+
+### The documentation got a plain-language pass
+
+**Eighty-eight commands across 37 pages did not work for the reader they were written for.** They all said `node scripts/...`, which needs a clone, while the install guide sends you to npm. They now use a command you can actually run.
+
+One page had been **false for three months**: it told readers to wait for something that had already shipped. And the glossary is now reachable from every section rather than buried in one.
+
+The rules behind those fixes are now built into the skill that writes our documentation, so new pages start from them.
 ## 1.16.0 - 2026-08-22
 
 **The evidence this Standard rests on gets an address - and the release found that some of it was resting on nothing.**
 
-The tier ladder is defined in terms of what Claude Code and Codex support. That makes every tier boundary a claim about software this project does not control. Until now those claims lived scattered across one skill's private folder and three separate directories, and **no artifact recorded which vendor fact any boundary actually depended on.**
+### Do you need to do anything?
 
-### Upgrade
+**No.** No check was added, none was removed, the spine stays at **34**, and the Standard stays at **0.15**. All six reference-family plugins were graded before and after. Every one came back **byte-identical**.
 
-**Nothing here changes your grade.** No check is added, no check is removed, the spine stays at 34, and the Standard stays at 0.15. Every one of the six reference-family plugins was graded before and after and came back **byte-identical**.
+**Installing changes nothing either way.** Files moved inside the repository. The npm tarball ships the gate and `STANDARD.md`; the plugin install carries the whole tree. Both paths carry them as before.
 
-**If you consume the npm package or the plugin, nothing changes for you.** The tarball ships the gate and `STANDARD.md`; the plugin install carries the whole tree. Files moved inside the repository, and both delivery paths carry them either way.
-
-**If you pinned the GitHub Action to a tag**, note that `action.yml`'s example now reads `@v1.16.0`. Pin a released tag or a commit sha - the example is an example, not a recommendation to track.
+**One exception, if you pin the GitHub Action to a tag.** `action.yml`'s example now reads `@v1.16.0`. Pin a released tag or a commit sha - the example is an example, not a recommendation to track.
 
 ### One thing worth re-reading
 
@@ -31,6 +70,11 @@ Four Universal checks therefore had **no description anywhere in the README**:
 
 Eight public files carried a stale version of that list. All are corrected, and `scripts/check-doc-enumerations.mjs` now expands every check range in the documentation and compares it against the registry, so prose and gate cannot drift apart again without the suite failing.
 
+### Why this release exists
+
+The tier ladder is defined by what Claude Code and Codex support. That makes **every tier boundary a claim about software this project does not control.**
+
+Those claims used to live scattered across one skill's private folder and three separate directories. **No artifact recorded which vendor fact any boundary actually depended on.**
 ### What is new
 
 **A `foundation/` folder** holding what the Standard rests on, in three layers: verified first-party sources, the machine-checkable claims, and the conclusions drawn from them. Every source record carries what was read, which version, when, and **by what method** - because "confirmed on the 19th" describes a page-read and a live experiment identically while distinguishing neither.

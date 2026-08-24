@@ -21,7 +21,9 @@ Verbose, generated-looking AGENTS.md files measurably reduce agent task success 
 
     node scripts/generators/sync-agents-md.mjs
 
-renders the component list from `library.json` so it does not drift. Regenerate it when components change instead of hand-editing.
+renders the component list from `library.json` so it cannot drift. Regenerate it when components change instead of hand-editing.
+
+**This generator ships with the plugin, not with the npm package.** The npm package carries the grading gate and `STANDARD.md` only. If you installed that way and want the component section kept current, ask your agent to run `askit-build-agents-md` in improve mode instead.
 
 ## 4. Validate
 

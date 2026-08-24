@@ -18,7 +18,7 @@ title: "v1.16.0 - what is implemented, and what the release still owes"
 | Standard | **0.15**, unchanged. No Standard revision in this release |
 | Spine | **34**, unchanged. **No check added, none removed** |
 | Skills | **26**, unchanged |
-| Suite | **1388 tests, 0 failures**, 1 skipped. It read **1359** at the `v1.15.0` tag; the seventeen added are the capability-matrix drift guard: eleven at W4, three when adversarial wave 1 found gaps in it, and three when a direct probe of the review's own fixes found three more |
+| Suite | **1397 tests, 0 failures**, 1 skipped. It read **1359** at the `v1.15.0` tag; the seventeen added are the capability-matrix drift guard: eleven at W4, three when adversarial wave 1 found gaps in it, and three when a direct probe of the review's own fixes found three more |
 | Gate on this repository | **Advanced, 0 errors, 0 warnings** |
 | `foundation/` | **14 tracked files** across three layers plus `surveys.md` |
 

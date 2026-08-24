@@ -27,11 +27,11 @@ flowchart LR
 Each tier is cumulative: Silver includes every Universal check, Gold includes every Silver check. `tier-report` reports the highest tier a plugin fully satisfies and lists what blocks the next.
 
 The toolkit is itself built to this Standard and validates itself in CI: it declares
-`tier: advanced` and satisfies Gold (G1-G10, on top of Bronze + Silver), so `node scripts/tier-report.mjs --json`
+`tier: advanced` and satisfies Gold (G1-G10, on top of Bronze + Silver), so `npx agent-skills-toolkit tier-report --json`
 reports `tier: advanced` with an empty `blocked` - a self-proving example of the Standard. See
 [`STANDARD.md`](../../STANDARD.md) for the normative rules.
 
-## Silver checks (added in Phase 3A)
+## Silver checks
 
 Convergent (Silver) reqIds carry the `S` prefix. The current set:
 

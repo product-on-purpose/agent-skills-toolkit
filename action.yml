@@ -24,7 +24,7 @@
 #
 #   - name: Grade this plugin against the Advanced Skill Library Standard
 #     id: gate
-#     uses: product-on-purpose/agent-skills-toolkit@v1.16.0   # pin a released tag or a commit sha
+#     uses: product-on-purpose/agent-skills-toolkit@v1.16.1   # pin a released tag or a commit sha
 #     with:
 #       path: .
 #       fail-on-error: true
