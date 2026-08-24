@@ -617,6 +617,13 @@ One entry, from adversarial wave 1 over the v1.16.0 implementation. Its six othe
 - **Why NOT fixed in v1.16.0:** it is shipped gate code and the change alters an exit-code contract, which is release-scoped and needs its own acceptance criteria.
 - **Status:** **RESOLVED 2026-08-23**, unversioned. `undeclaredSources(pin)` validates claim-to-source shape up front, before any fetch; the runner fails fast with no network call and `exitCodeFor` enforces the same rule for any caller building a report directly. **Exit 1, not 2, and checked BEFORE the refusal tests**: `--allow-vendor-unreachable` excuses code 2 only, so returning 2 would have let a dangling id riding along with a real outage be waved through by the reason string written for the outage. Validated as SHAPE rather than by counting `UNCHECKABLE`, which is legitimate for probe claims and real outages. **Verified before fixing: all 8 live claims resolve**, so the gate that cleared v1.16.0 was latent-broken and never exploited. Deliberately not symmetric - a declared source with no claim stays legal, and a test pins that, because `cx-hooks` is exactly that case by a recorded v1.16.0 decision.
 
+### E56 - `G2` counts a workflow that only MENTIONS the gate in a string  [correctness, effort S, found by the v1.16.1 false-PASS lens]
+
+- **Target:** `scripts/checks/self-hosting.mjs`.
+- **The defect:** `stripComments` removes whole-line YAML comments, so a gate named in a `#` comment correctly does not count. It does not look at what a `run:` line DOES with the text, so `- run: echo "we should add npx agent-skills-toolkit one day"` satisfies `G2`. Reproduce with exactly that workflow and a minimal `library.json`.
+- **Not introduced by the v1.16.1 widening.** Verified against the pre-change matcher: `- run: echo "one day we should run node scripts/check.mjs here"` passed the OLD `G2` too. The widening adds a phrase more likely to appear in prose than a file path, which raises the odds rather than the class. Recorded here rather than fixed in a patch cut, because a real fix means parsing the YAML rather than matching text, which is a different check.
+- **Why it is not urgent.** `G2` has never verified provenance: any `scripts/check.mjs`, including one the plugin wrote itself, has always counted. It asks whether CI is wired to a conformance gate, and a plugin that fakes that is failing itself. See [[askit-vendor-claims-must-be-meaning-bearing]].
+- **Status:** backlog, unversioned.
 ### E55 - check-parity's pin read fails open, and its pin-skew section cannot affect the exit code  [correctness, effort S, found by the v1.16.0 false-PASS lens]
 
 - **Target:** `scripts/check-parity.mjs`.
