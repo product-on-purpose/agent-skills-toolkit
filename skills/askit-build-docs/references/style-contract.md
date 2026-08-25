@@ -147,10 +147,20 @@ check ID, a version, a command or a link target quietly mutates.
 
 ## Two mechanical facts about editing these files
 
-- **Edit in place. Never rewrite a whole file.** Git stores this repository's markdown
-  with CRLF. Writing LF content produces a whole-file diff even when no character
-  changed, which makes the rewrite unreviewable. This was measured, not assumed:
-  `core.autocrlf=true` does not save you.
+- **Prefer editing in place over rewriting a whole file.** The working tree holds markdown
+  with CRLF, because `core.autocrlf=true` converts on checkout. A tool that writes LF
+  therefore makes `git status` report the file as modified even when no character changed.
+
+  **The content is safe.** `git diff` on such a file is empty, `git diff --numstat` reports
+  nothing, and committing it is a no-op. This is status noise, not diff churn. It is still
+  worth avoiding across a multi-file sweep, because a working tree that looks changed where
+  it is not costs a reviewer time.
+
+  Measured 2026-08-25, and recorded because an earlier version of this file got it wrong.
+  It claimed git stored this repository's markdown as CRLF and that an LF write produced a
+  whole-file diff. Both are false: `git show HEAD:<file>` returns LF, and the diff is empty.
+  The mistake came from reading `git status` alone and never running `git diff`, which is
+  this repository's own recurring lesson about checking the wrapper instead of the thing.
 - **`INDEX.md` is generated** by `gen-index.mjs` and drift-checked by `G4`. Its prose
   lives in the generator. `AGENTS.md` is partly generated: `sync-agents-md.mjs` owns the
   component-map block and the rest is hand-authored.

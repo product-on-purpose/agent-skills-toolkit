@@ -3,7 +3,8 @@
 // what-it-does: runs the test suite itself, reads the authoritative total and failure count from its
 //               TAP summary, then fails if the newest CHANGELOG.md section, the STATUS.md "Tests"
 //               row, or any file under the current version's release-plan packet states a
-//               disagreeing count
+//               disagreeing count. Once that version is TAGGED, its packet and its CHANGELOG section
+//               are both exempt as history; STATUS.md never is - see the shipped-version scope note
 // why:          v1.10.1 published a hand-typed test count that went stale FOUR separate times in one
 //               release (CHANGELOG's 647 against a true 667, STATUS.md's pre-release 613, a round-4
 //               packet snapshot, and the rebaselined packet still claiming 673 against HEAD's 682).
@@ -46,6 +47,28 @@
 // Scope note on the release-plan packet scan: only `.md` files under the current version's packet
 // directory are read. Every file in every packet this repository has shipped is Markdown; a non-
 // Markdown artifact placed there in the future would not be scanned.
+//
+// Scope note on a SHIPPED version, and why two of its three targets go exempt (backlog E52).
+//
+// STATUS.md is NEVER exempt. It is live state and must always agree with the suite. Only the two
+// targets that are RECORDS of a release stop being policed once that release is tagged: its packet
+// and its CHANGELOG section. Sweeping both at once was deliberate, because fixing the packet alone
+// would leave the identical defect on the neighbouring surface, which is the v1.15.0 lesson (one
+// stale page fixed with no sweep, and the same staleness live in eight more files one release
+// later). Four shipped CHANGELOG sections already state a live-shape count.
+//
+// The version bump is a step of
+// the CUT, so between shipping one release and cutting the next, `main` carries the next release's
+// work while `library.json` still declares the last one. Every test an in-flight branch adds
+// therefore pushed on a packet that was already tagged and published. Observed four times:
+// plan_v1.15.0's suite figure was rewritten three times in one session by work unrelated to v1.15.0,
+// and after v1.16.1 shipped, this guard exited 1 on `main` against a line stating 1399 that was
+// CORRECT for tag 1da4d16. The number was right and the scoping was wrong.
+//   So the packet's CONTENTS are skipped once `v<version>` is tagged. Its existence is still a
+// required anchor, the skip is reported in the OK line rather than applied silently, and
+// versionHasShipped fails CLOSED, so a shallow clone with no tags polices the packet exactly as
+// before. The tag is the signal rather than the CHANGELOG's release date, because that date lands
+// partway through the cut and would disable this guard at the moment it matters most.
 //
 // Scope note on number parsing: the ACTUAL regex - a complete-integer-token match with thousands-
 // separator normalization - lives in scripts/lib/stated-counts.mjs, not here, and this file does not
@@ -201,6 +224,32 @@ export function packetDir(root, version) {
   return path.join(root, "docs", "internal", "release-plans", `plan_v${version}`);
 }
 
+/**
+ * True when `version` already carries a git tag, meaning its packet is a RECORD of what was true at
+ * that tag rather than a document still being prepared (backlog E52).
+ *
+ * Why the tag and not the CHANGELOG's release date: the CHANGELOG section is dated partway THROUGH
+ * the cut, so a date-based signal would switch this guard off exactly when it is most needed. A tag
+ * exists only once the cut is complete.
+ *
+ * **Fails CLOSED.** A missing git binary, a shallow CI clone that fetched no tags, or any git error
+ * all return false, so the packet keeps being policed exactly as it was before this existed. A guard
+ * that quietly stops checking something is worse than one that cries wolf.
+ */
+export function versionHasShipped(root, version) {
+  try {
+    const result = spawnSync("git", ["tag", "--list", `v${version}`], {
+      cwd: root,
+      encoding: "utf8",
+      stdio: ["ignore", "pipe", "ignore"],
+    });
+    if (result.error || result.status !== 0 || typeof result.stdout !== "string") return false;
+    return result.stdout.trim().length > 0;
+  } catch {
+    return false;
+  }
+}
+
 /** Relative, slash-normalized paths of every `.md` file under the current version's release-plan
  *  packet, sorted for deterministic output. Returns null (distinct from an empty array) when the
  *  packet directory itself does not exist, so a missing packet fails closed rather than reading as
@@ -221,9 +270,10 @@ export function collectPacketFiles(root, version) {
  * the CHANGELOG heading, the STATUS.md Tests row, the packet directory) are all found; throws when one
  * is not, the same fail-closed shape as check-readme-version.mjs's own missing-anchor handling.
  */
-export function evaluateReleaseCounts({ root, version, tapText }) {
+export function evaluateReleaseCounts({ root, version, tapText, versionIsShipped = false }) {
   const authoritative = parseTapSummary(tapText);
   const failures = [];
+  const notes = [];
 
   function checkClaims(claims, label, sourceText, lineOffset) {
     for (const c of claims) {
@@ -248,7 +298,17 @@ export function evaluateReleaseCounts({ root, version, tapText }) {
       `to that heading; promote the release out of [Unreleased] before running it.`
     );
   }
-  checkClaims(extractStatedCounts(section.text), "CHANGELOG.md", section.text, section.startLine);
+  // The versioned CHANGELOG section is history once its tag exists, for the same reason the packet
+  // is: it states what was true at that release. Four shipped sections already state a live-shape
+  // count (v1.10.1's "743 tests, 0 failures", v1.11.0's 939, v1.11.1's 948, v1.12.0's 1004), so
+  // policing a tagged section would re-create E52 here the moment any later branch added a test.
+  // Before the tag it IS policed, which is the v1.10.1 defect this guard was built for: a CHANGELOG
+  // claiming 647 against a true 667.
+  if (versionIsShipped) {
+    notes.push(`CHANGELOG.md's [${version}] section not scanned: v${version} is tagged, so it states what was true at that release`);
+  } else {
+    checkClaims(extractStatedCounts(section.text), "CHANGELOG.md", section.text, section.startLine);
+  }
 
   const statusPath = path.join(root, "docs", "internal", "STATUS.md");
   if (!existsSync(statusPath)) {
@@ -283,12 +343,23 @@ export function evaluateReleaseCounts({ root, version, tapText }) {
       `Create the packet before running the release gate.`
     );
   }
-  for (const rel of files) {
-    const text = readFileSync(path.join(root, rel), "utf8");
-    checkClaims(extractStatedCounts(text), rel, text, 1);
+  // The packet's existence is still a required anchor above, shipped or not. Only its CONTENTS stop
+  // being policed once the version is tagged: from that moment the packet states what was true at the
+  // tag, and every test a later branch adds would otherwise force an edit to a shipped record (E52,
+  // observed four times). The skip is REPORTED rather than silent, so a maintainer can see which
+  // targets were read.
+  if (versionIsShipped) {
+    notes.push(
+      `plan_v${version}/ not scanned: v${version} is tagged, so its ${files.length} file(s) are a record of that tag rather than a live claim`
+    );
+  } else {
+    for (const rel of files) {
+      const text = readFileSync(path.join(root, rel), "utf8");
+      checkClaims(extractStatedCounts(text), rel, text, 1);
+    }
   }
 
-  return { authoritative, failures };
+  return { authoritative, failures, notes };
 }
 
 function main() {
@@ -299,7 +370,12 @@ function main() {
   try {
     version = readVersion(root);
     const tapText = runSuite(root);
-    result = evaluateReleaseCounts({ root, version, tapText });
+    result = evaluateReleaseCounts({
+      root,
+      version,
+      tapText,
+      versionIsShipped: versionHasShipped(root, version),
+    });
   } catch (e) {
     process.stderr.write(`${e.message}\n`);
     process.exitCode = 1;
@@ -315,7 +391,8 @@ function main() {
     return;
   }
   process.stdout.write(
-    `check-release-counts: OK (version ${version}, suite reports ${result.authoritative.total} tests, ${result.authoritative.failures} failures, agrees everywhere checked)\n`
+    `check-release-counts: OK (version ${version}, suite reports ${result.authoritative.total} tests, ${result.authoritative.failures} failures, agrees everywhere checked)\n` +
+    (result.notes ?? []).map((n) => `  note: ${n}\n`).join("")
   );
 }
 
