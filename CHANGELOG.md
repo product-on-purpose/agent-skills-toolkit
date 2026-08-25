@@ -9,6 +9,25 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [1.16.2] - 2026-08-25
+
+### Fixed
+
+- The reusable Action failed for every consumer before it ran a single rule. Its `Set up Node` step
+  passed `cache-dependency-path: ${{ github.action_path }}/package-lock.json`, but `setup-node`
+  resolves that input as a glob relative to `GITHUB_WORKSPACE`, and `github.action_path` is an
+  absolute path outside the workspace (`/home/runner/work/_actions/...`). The pattern never matched,
+  `setup-node` treats an unresolved path as an error, and the composite step failed, skipping both
+  the dependency install and the gate itself. The observable result was a red check whose log reads
+  "Some specified paths were not resolved, unable to cache dependencies" and no grade at all.
+- The `cache: npm` and `cache-dependency-path:` lines are removed rather than repaired. The install
+  they were caching is a single package (`yaml`), so the cache saved nothing measurable, and there is
+  no workspace-relative path that could point at the Action's own lockfile. The install itself is
+  unchanged: still `npm ci --omit=dev` from the Action's own checkout, never the consumer's.
+- Found by `prisant-labs/prisant-utilities`, the first consumer to wire the Action into CI. The
+  toolkit's own CI never caught it because the toolkit runs its gate directly rather than through the
+  Action it publishes.
+
 ## [1.16.1] - 2026-08-24
 
 ### Fixed

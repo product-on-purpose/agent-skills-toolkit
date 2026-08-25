@@ -2,6 +2,33 @@
 
 Curated, user-facing highlights. For the full technical history see [`CHANGELOG.md`](CHANGELOG.md).
 
+## 1.16.2 - 2026-08-25
+
+**If you used the reusable Action, your gate never ran. It does now.**
+
+### Do you need to do anything?
+
+**Yes, if you consume the Action.** Bump your `uses:` pin to `v1.16.2`. Nothing else changes: no check
+is added or removed, the spine stays at **34**, and the Standard stays at **0.15**. Grades are
+unaffected, because the broken step failed before any grading happened.
+
+### What was broken
+
+The Action's `Set up Node` step asked `setup-node` to cache npm using a `cache-dependency-path` built
+from `github.action_path`. That is an absolute path outside the workspace, and `setup-node` resolves
+the input as a glob relative to `GITHUB_WORKSPACE`, so it never matched. An unresolved path is an
+error there, so the composite step failed and took the gate with it.
+
+The failure was maximally confusing: a red required check, a log complaining about dependency caching,
+and no findings, no tier, and no SARIF, because the grader never executed. Anyone reading it would
+reasonably conclude their repository had a problem.
+
+### Why the cache is gone rather than fixed
+
+The install being cached is one package. There is also no workspace-relative path that can point at
+the Action's own lockfile, which is the whole reason the absolute form was reached for. Removing the
+cache costs a second or two per run and removes an entire failure mode.
+
 ## 1.16.1 - 2026-08-24
 
 **If you installed this toolkit from npm rather than cloning it, you could not reach Gold. Now you can.**

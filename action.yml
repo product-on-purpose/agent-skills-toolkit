@@ -24,7 +24,7 @@
 #
 #   - name: Grade this plugin against the Advanced Skill Library Standard
 #     id: gate
-#     uses: product-on-purpose/agent-skills-toolkit@v1.16.1   # pin a released tag or a commit sha
+#     uses: product-on-purpose/agent-skills-toolkit@v1.16.2   # pin a released tag or a commit sha
 #     with:
 #       path: .
 #       fail-on-error: true
@@ -100,12 +100,16 @@ outputs:
 runs:
   using: "composite"
   steps:
+    # No `cache: npm` here, deliberately. setup-node resolves cache-dependency-path as a glob
+    # relative to GITHUB_WORKSPACE, and github.action_path is an absolute path OUTSIDE the
+    # workspace (/home/runner/work/_actions/...), so the pattern never matched. setup-node treats
+    # an unresolved path as an error, which failed this step and skipped the gate entirely: every
+    # consumer repo saw a red check that never ran a single rule. Caching bought nothing anyway,
+    # since the install below is one package.
     - name: Set up Node
       uses: actions/setup-node@v7
       with:
         node-version: ${{ inputs.node-version }}
-        cache: npm
-        cache-dependency-path: ${{ github.action_path }}/package-lock.json
 
     # Installs only this Action's own runtime dependency ("yaml", check.mjs's single dependency) from
     # its OWN checked-out package.json/package-lock.json at github.action_path - never from the
