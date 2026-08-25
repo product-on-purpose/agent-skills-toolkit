@@ -13,6 +13,7 @@ import {
   isolateStatusTestsRows,
   collectPacketFiles,
   evaluateReleaseCounts,
+  versionHasShipped,
 } from "../../scripts/check-release-counts.mjs";
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
@@ -536,4 +537,191 @@ test("extractStatedCounts: blanking a fence does not shift the reported line num
   const claims = extractStatedCounts(doc);
   assert.equal(claims.length, 1);
   assert.equal(doc.slice(0, claims[0].index).split("\n").length, 4, 'the claim must report line 4');
+});
+
+// --- E52: a SHIPPED packet is a record of its tag, not a live claim. ---
+//
+// The paired positive and negative cases are the point. Before this, the guard exited 1 on `main`
+// against plan_v1.16.1/README.md stating 1399, which was CORRECT for tag 1da4d16 and disagreed only
+// with a later branch's suite. Exempting a shipped packet must NOT weaken the guard anywhere else,
+// so CHANGELOG and STATUS are still policed below, and an UNSHIPPED packet still fails.
+
+const PACKET_DRIFT = { "README.md": "| Suite | **1399 tests, 0 failures** |\n" };
+
+test("evaluateReleaseCounts: a SHIPPED packet's disagreeing count is not reported", () => {
+  const dir = mkRoot({ version: "9.7.0", packetFiles: PACKET_DRIFT });
+  try {
+    const r = evaluateReleaseCounts({
+      root: dir,
+      version: "9.7.0",
+      tapText: tapText({ total: 7, failures: 0 }),
+      versionIsShipped: true,
+    });
+    assert.deepEqual(r.failures, [], "a tagged version's packet must not be policed");
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test("evaluateReleaseCounts: the SAME packet drift IS reported when the version is not shipped", () => {
+  const dir = mkRoot({ version: "9.7.1", packetFiles: PACKET_DRIFT });
+  try {
+    const r = evaluateReleaseCounts({
+      root: dir,
+      version: "9.7.1",
+      tapText: tapText({ total: 7, failures: 0 }),
+      versionIsShipped: false,
+    });
+    assert.equal(r.failures.length, 1, "an unshipped packet must still be policed");
+    assert.match(r.failures[0], /README\.md/);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test("evaluateReleaseCounts: defaults to policing the packet when versionIsShipped is not supplied", () => {
+  const dir = mkRoot({ version: "9.7.2", packetFiles: PACKET_DRIFT });
+  try {
+    const r = evaluateReleaseCounts({ root: dir, version: "9.7.2", tapText: tapText({ total: 7, failures: 0 }) });
+    assert.equal(r.failures.length, 1, "the default must be the strict, pre-E52 behaviour");
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test("evaluateReleaseCounts: a shipped version exempts its two RECORDS and nothing else", () => {
+  // The boundary in one case. Packet and CHANGELOG section state what was true at the tag, so both
+  // go quiet. STATUS.md is live state, so it stays policed and is the only reported failure.
+  const dir = mkRoot({
+    version: "9.7.3",
+    changelogSection: "**999 tests, 0 failures**.",
+    statusRow: "998, 0 failures",
+    packetFiles: PACKET_DRIFT,
+  });
+  try {
+    const r = evaluateReleaseCounts({
+      root: dir,
+      version: "9.7.3",
+      tapText: tapText({ total: 7, failures: 0 }),
+      versionIsShipped: true,
+    });
+    assert.equal(r.failures.length, 1, "exempting the records must never exempt live state");
+    assert.ok(r.failures[0].startsWith("docs/internal/STATUS.md"));
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test("evaluateReleaseCounts: a shipped packet still has to EXIST (the fail-closed anchor is kept)", () => {
+  const dir = mkRoot({ version: "9.7.4" });
+  try {
+    rmSync(path.join(dir, "docs", "internal", "release-plans"), { recursive: true, force: true });
+    assert.throws(
+      () => evaluateReleaseCounts({
+        root: dir,
+        version: "9.7.4",
+        tapText: tapText({ total: 7, failures: 0 }),
+        versionIsShipped: true,
+      }),
+      /no release-plan packet found/,
+    );
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test("evaluateReleaseCounts: skipping a shipped packet is REPORTED, never silent", () => {
+  const dir = mkRoot({ version: "9.7.5", packetFiles: PACKET_DRIFT });
+  try {
+    const r = evaluateReleaseCounts({
+      root: dir,
+      version: "9.7.5",
+      tapText: tapText({ total: 7, failures: 0 }),
+      versionIsShipped: true,
+    });
+    assert.equal(r.notes.length, 2, "both exemptions are reported, so neither is silent");
+    assert.ok(r.notes.some((n) => /plan_v9\.7\.5\/ not scanned/.test(n)));
+    assert.ok(r.notes.some((n) => /CHANGELOG\.md's \[9\.7\.5\] section not scanned/.test(n)));
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+// --- versionHasShipped: the tag lookup, and its fail-closed behaviour. ---
+
+test("versionHasShipped: true for a version this repository has actually tagged", () => {
+  assert.equal(versionHasShipped(path.resolve(HERE, "../.."), "1.16.1"), true);
+});
+
+test("versionHasShipped: false for a version with no tag", () => {
+  assert.equal(versionHasShipped(path.resolve(HERE, "../.."), "99.99.99"), false);
+});
+
+test("versionHasShipped: FAILS CLOSED outside a git repository, so the packet keeps being policed", () => {
+  const dir = mkdtempSync(path.join(tmpdir(), "askit-notgit-"));
+  try {
+    assert.equal(
+      versionHasShipped(dir, "1.16.1"),
+      false,
+      "no git context must read as not-shipped, never as shipped",
+    );
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+// --- E52, second surface: the CHANGELOG's versioned section is history once tagged, for the same
+// reason the packet is. STATUS.md is deliberately NOT exempt: it is live state. ---
+
+test("evaluateReleaseCounts: a SHIPPED version's CHANGELOG section is not policed", () => {
+  const dir = mkRoot({ version: "9.8.0", changelogSection: "**1004 tests, 0 failures**, gate Advanced 0/0." });
+  try {
+    const r = evaluateReleaseCounts({
+      root: dir,
+      version: "9.8.0",
+      tapText: tapText({ total: 7, failures: 0 }),
+      versionIsShipped: true,
+    });
+    assert.deepEqual(r.failures, [], "a tagged release's CHANGELOG section states what was true then");
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test("evaluateReleaseCounts: the SAME CHANGELOG drift IS policed before the tag exists", () => {
+  const dir = mkRoot({ version: "9.8.1", changelogSection: "**1004 tests, 0 failures**, gate Advanced 0/0." });
+  try {
+    const r = evaluateReleaseCounts({
+      root: dir,
+      version: "9.8.1",
+      tapText: tapText({ total: 7, failures: 0 }),
+      versionIsShipped: false,
+    });
+    assert.equal(r.failures.length, 1, "this is the v1.10.1 defect the guard exists for");
+    assert.ok(r.failures[0].startsWith("CHANGELOG.md"));
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test("evaluateReleaseCounts: STATUS.md is policed even for a shipped version (live state is never exempt)", () => {
+  const dir = mkRoot({
+    version: "9.8.2",
+    changelogSection: "**1004 tests, 0 failures**.",
+    statusRow: "1004, 0 failures",
+    packetFiles: { "README.md": "| Suite | **1004 tests, 0 failures** |\n" },
+  });
+  try {
+    const r = evaluateReleaseCounts({
+      root: dir,
+      version: "9.8.2",
+      tapText: tapText({ total: 7, failures: 0 }),
+      versionIsShipped: true,
+    });
+    assert.equal(r.failures.length, 1, "exactly one target stays policed: STATUS.md");
+    assert.ok(r.failures[0].startsWith("docs/internal/STATUS.md"));
+    assert.equal(r.notes.length, 2, "both exemptions are reported");
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
 });
