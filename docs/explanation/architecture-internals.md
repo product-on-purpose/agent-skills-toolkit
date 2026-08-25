@@ -6,13 +6,37 @@ level: advanced
 doc-role: architecture-detailed
 ---
 
-This is the contributor-level walkthrough of how the validation spine is actually built: the literal shape of a check module, how the deterministic boundary is enforced by a test rather than a convention, how a tier and its burndown are computed, what the loader hands every check, how the generators produce the native manifests and `INDEX.md`, and how drift checks turn a hand-edit into an error. It assumes you have read [the architecture overview](./architecture.md) and want the source-accurate detail to extend or debug `scripts/`.
+This page is for someone extending or debugging `scripts/` who wants detail that matches the source rather than a summary. It assumes you have read [the architecture overview](./architecture.md) first.
 
-Everything here lives under `scripts/`. The two entrypoints are `scripts/check.mjs` (the gate, exit code is load-bearing) and `scripts/tier-report.mjs` (the tier plus burndown). Both run the same checks; only the framing differs.
+The **spine** is the 34 checks the toolkit ships, and this is the contributor-level walkthrough of how that spine is actually built. Coined terms like that one are defined in [the glossary](./glossary.md).
+
+It covers six things:
+
+- The literal shape of a check module.
+- How the deterministic boundary is enforced by a test rather than by a convention.
+- How a tier and its burndown are computed.
+- What the loader hands every check.
+- How the generators produce the native manifests and `INDEX.md`.
+- How drift checks turn a hand-edit into an error.
+
+By the end you should be able to read any check under `scripts/checks/` and write one of your own.
+
+Everything here lives under `scripts/`. There are two entrypoints:
+
+- `scripts/check.mjs` is the gate. Its exit code is load-bearing.
+- `scripts/tier-report.mjs` reports the tier plus the burndown.
+
+Both run the same checks. Only the framing differs.
 
 ## A check module's shape
 
-A conformance check is a small ES module under `scripts/checks/` with exactly two exports: a `meta` object and a synchronous `check(ctx)` function. The contract is uniform across all 34 spine checks. Here is `scripts/checks/library-json.mjs` (the `U1` manifest check), trimmed to its shape:
+A check is one small file that answers a single question about a plugin, such as "is there a valid `library.json` here". It hands back a list of the problems it found, and an empty list means the plugin passed that question.
+
+That is worth stating plainly, because the gate has no other machinery. It is 34 of these files run in order, and the tier a plugin earns is decided by which of them came back empty. If you are adding a requirement to the Standard, a check module is the file you write, and the shape below is the whole contract you have to satisfy.
+
+Concretely, a check is an ES module under `scripts/checks/` with exactly two exports: a `meta` object and a synchronous `check(ctx)` function. That contract is uniform across all 34 spine checks.
+
+Here is `scripts/checks/library-json.mjs`, the `U1` manifest check, trimmed to its shape:
 
 ```js
 import { finding, SEVERITY } from "../lib/findings.mjs";
@@ -38,13 +62,23 @@ The `check(ctx)` function MUST be synchronous and MUST return an array of `findi
 finding(check, severity, message, { file, reqId })
 ```
 
-`severity` is `"error"` or `"warn"` (the helper throws on anything else, so a typo cannot produce an unclassified result). `file` and `reqId` are optional metadata. By convention every finding carries its check's `reqId` so the report can group by requirement. The severity split is the gate's behavioral contract: an `error` can fail the gate; a `warn` is surfaced but never blocks (Standard sec 4.5). For example, `manifest-drift` (`U8`) and `description-score` (`U5`) emit warnings precisely because their judgments should inform without hard-gating.
+`severity` is `"error"` or `"warn"`. The helper throws on anything else, so a typo cannot produce an unclassified result. `file` and `reqId` are optional metadata, and by convention every finding carries its check's `reqId` so the report can group by requirement.
 
-Checks are fail-safe by design. They read from the already-loaded context (next section), never from the filesystem at check time except for a few that read auxiliary files directly (for example `library-regression` reads `evals/` and the chain contract, `self-hosting` reads `.github/workflows/`). When a check reads a file it wraps the read so a missing or malformed file becomes a finding, not a thrown exception. A thrown exception in one check would abort the whole gate, which is why the pattern is "catch and report" rather than "let it throw."
+The severity split is the gate's behavioral contract. An `error` can fail the gate. A `warn` is surfaced but never blocks (Standard sec 4.5). `manifest-drift` (`U8`) and `description-score` (`U5`) emit warnings for exactly that reason: their judgments should inform without hard-gating.
+
+Checks are fail-safe by design. They read from the already-loaded context described in the next section, not from the filesystem at check time.
+
+A few checks are deliberate exceptions and read auxiliary files directly. `library-regression` reads `evals/` and the chain contract. `self-hosting` reads `.github/workflows/`.
+
+When a check does read a file, it wraps the read so a missing or malformed file becomes a finding rather than a thrown exception. A thrown exception in one check would abort the whole gate. That is why the pattern is "catch and report" rather than "let it throw."
 
 ## The deterministic / no-model boundary
 
-The single most important architectural invariant is that the gate is deterministic: no check may call a model. This is not enforced by reviewer discipline alone - it is enforced by a test, `tests/unit/registry-sync.test.mjs`:
+The gate never asks a language model anything. Given the same files it returns the same findings, on your machine and in CI, today and in a year.
+
+This is the most important invariant in the system, because it is what lets a tier mean anything to a third party. A grade that depended on a model's judgment could not be reproduced by the person you showed it to, and could not be defended when they disputed it.
+
+The rule itself is narrow and absolute: no check may call a model. That is not left to reviewer discipline. It is enforced by a test, `tests/unit/registry-sync.test.mjs`:
 
 ```js
 test("every registered check returns an array synchronously (deterministic gate)", () => {
@@ -57,11 +91,19 @@ test("every registered check returns an array synchronously (deterministic gate)
 });
 ```
 
-A check that called a model (or did any async work) would return a `Promise`, not an array, and this assertion would fail. Because the test runs in CI, a future check that crosses the line cannot reach a green build. This is the mechanical realization of the design principle that the gate is a portable, reproducible function of files on disk - the same input always yields the same findings, locally or in CI (Standard sec 4.4). Judgment-based evaluation exists, but it lives in a different place (`askit-evaluate`'s behavioral and review modes, backed by the `askit-quality-grader` subagent) and sits beside the gate as opt-in evidence; it never decides a pass or fail. The synchronous-array test is the wall between the two.
+A check that called a model would return a `Promise` rather than an array, and this assertion would fail. The same is true of any async work. Because the test runs in CI, a future check that crosses the line cannot reach a green build.
+
+That makes a design principle mechanical. The gate is a portable, reproducible function of files on disk: the same input always yields the same findings, locally or in CI (Standard sec 4.4).
+
+Judgment-based evaluation does exist, but it lives somewhere else. It is `askit-evaluate`'s behavioral and review modes, backed by the `askit-quality-grader` subagent. It sits beside the gate as opt-in evidence and never decides a pass or fail. The synchronous-array test is the wall between the two.
 
 ## The check registry
 
-`scripts/lib/registry.mjs` is the ordered list of every check. It imports each module namespace and assembles them into a `CHECKS` array, then exposes `runAllChecks(ctx)`:
+The registry is the single place that knows which checks exist. Nothing scans `scripts/checks/` looking for modules, so a check file that is not listed in the registry simply does not run.
+
+That is deliberate. Turning a check on becomes a visible, reviewable edit rather than a side effect of creating a file, and the size of the spine is something you can read off one array instead of counting files.
+
+`scripts/lib/registry.mjs` holds that list. It imports each module namespace, assembles them into a `CHECKS` array, then exposes `runAllChecks(ctx)`:
 
 ```js
 export const CHECKS = [
@@ -80,7 +122,9 @@ export function runAllChecks(ctx) {
 }
 ```
 
-Adding a check is two edits: write the module under `scripts/checks/`, then register it here. `registry-sync.test.mjs` then validates the new module satisfies the synchronous-array contract. The registry order is the order findings appear in output; it has no effect on pass/fail (every check runs, results are flattened).
+Adding a check is two edits. Write the module under `scripts/checks/`, then register it here. `registry-sync.test.mjs` then validates that the new module satisfies the synchronous-array contract.
+
+The registry order is the order findings appear in output. It has no effect on pass or fail, because every check runs and the results are flattened.
 
 ## The tier registry and the burndown
 
@@ -102,7 +146,9 @@ export function ceilingIndex(declared) {
 }
 ```
 
-`tierForReq` maps a finding's `reqId` to a tier by its letter prefix, so a Gold check's `G3` finding is an `advanced` blocker. `ceilingIndex` resolves the plugin's *declared* tier (from `library.json`) to an index; an absent or unknown tier means "no ceiling" (check everything).
+`tierForReq` maps a finding's `reqId` to a tier by its letter prefix, so a Gold check's `G3` finding is an `advanced` blocker.
+
+`ceilingIndex` resolves the plugin's *declared* tier, read from `library.json`, to an index. An absent or unknown tier means there is no ceiling, so everything is checked.
 
 The burndown is computed in `scripts/tier-report.mjs` by `computeTierReport(root, ctx, findings)`:
 
@@ -111,7 +157,9 @@ The burndown is computed in `scripts/tier-report.mjs` by `computeTierReport(root
 3. The achieved `tier` is the last satisfied tier (or `"none"`).
 4. `blocked` is `{ <next tier>: [ "<reqId>: <message>", ... ] }` - the actionable list of exactly what stands between the plugin and the next rung.
 
-This is why the report is a worklist, not a grade: the `blocked` array is the to-do list keyed to requirement IDs, exactly the machine form the Standard specifies (sec 2.4). The human one-liner comes from `humanLine(r)`, for example `Tier: Advanced (no blockers detected)` or `Tier: Silver (Gold blocked: 1 issue)`.
+This is why the report is a worklist rather than a grade. The `blocked` array is a to-do list keyed to requirement IDs, which is exactly the machine form the Standard specifies (sec 2.4).
+
+The human one-liner comes from `humanLine(r)`. It reads `Tier: Advanced (no blockers detected)`, or `Tier: Silver (Gold blocked: 1 issue)`.
 
 ### The declared-tier ceiling
 
@@ -127,49 +175,49 @@ export function gateExitFromFindings(findings, declaredTier) {
 }
 ```
 
-This is what makes the tiers a genuine climb. A plugin that declares `tier: convergent` is *not* failed by a `G3` Gold error - it sees that error as a Gold burndown item in the tier report, but its gate stays green because the Silver-and-below errors are clean. A plugin that declares `tier: advanced` (as this repository does) gates on everything. `scripts/evaluate.mjs` reuses the same `gateExitFromFindings`, so the `askit-evaluate` CLI and the gate CLI agree on pass/fail to the byte.
+This is what makes the tiers a genuine climb.
+
+A plugin that declares `tier: convergent` is *not* failed by a `G3` Gold error. It sees that error as a Gold burndown item in the tier report, and its gate stays green because the Silver-and-below errors are clean. A plugin that declares `tier: advanced`, as this repository does, gates on everything.
+
+`scripts/evaluate.mjs` reuses the same `gateExitFromFindings`, so the `askit-evaluate` CLI and the gate CLI agree on pass/fail to the byte.
 
 ### The Standard ceiling, and why checks stopped knowing their own history
 
-The declared-tier ceiling answers *does this finding gate THIS plugin*. A second ceiling answers *does
-this finding apply at the Standard this plugin PINNED*, and since Standard 0.13 there is exactly one of
-them. `scripts/lib/standard-ceiling.mjs` computes it and `resolveFindings` applies it **last**.
+These are two different questions, and each has its own ceiling.
 
-The inversion underneath is the part worth reading twice. **A check now emits its TARGET severity,
-always, and the ceiling lowers it per pin.** Checks used to encode their own migration state - emitting
-`warn` while a tightening was pending and `error` afterwards - and that quietly made scheduled
-tightenings impossible. `chain-contract.mjs` emitted `warn` on both string-derived branches under a
-`warn` cap, so lifting the cap produced a warning: **removing a ceiling cannot promote anything.** A
-graduation scheduled that way was incapable of firing, and one had been sitting scheduled.
+- The **declared-tier ceiling** answers: does this finding gate THIS plugin.
+- The **Standard ceiling** answers: does this finding apply at the Standard this plugin PINNED.
 
-Two inputs, one ceiling. `since` governs an INTRODUCTION - a check that did not exist at the pinned
-Standard cannot fail a plugin that adopted an earlier one. `migration.until` governs a TIGHTENING - a
-rule whose severity rises at a named version. They are separate questions and they produce one cap,
-compared **by rank, never lexically**, because `min("error", "warn")` is `"error"` in string order and
-would invert the whole mechanism.
+Since Standard 0.13 there is exactly one Standard ceiling. `scripts/lib/standard-ceiling.mjs` computes it, and `resolveFindings` applies it **last**.
 
-The ceiling is a ceiling and never a floor: a severity already at or below a cap is left as resolved, so
-`off` and suppression still win. It is also recorded only when it BINDS - a version condition that
-changes no outcome is not debt, and recording it anyway would print a due date for a finding that was
-never held.
+The inversion underneath is the part worth reading twice. **A check now emits its TARGET severity, always, and the ceiling lowers it per pin.**
+
+Checks used to encode their own migration state instead. A check emitted `warn` while a tightening was pending, then `error` once it landed. That quietly made scheduled tightenings impossible.
+
+Here is the case that proved it. `chain-contract.mjs` emitted `warn` on both string-derived branches under a `warn` cap. Lifting the cap therefore still produced a warning, because **removing a ceiling cannot promote anything.** A graduation scheduled that way was incapable of firing, and one had been sitting scheduled.
+
+Two inputs produce that one ceiling.
+
+- `since` governs an INTRODUCTION. A check that did not exist at the pinned Standard cannot fail a plugin that adopted an earlier one.
+- `migration.until` governs a TIGHTENING. It is a rule whose severity rises at a named version.
+
+They are separate questions and they produce a single cap. The two are compared **by rank, never lexically**, because `min("error", "warn")` is `"error"` in string order and would invert the whole mechanism.
+
+The ceiling is a ceiling and never a floor. A severity already at or below a cap is left as resolved, so `off` and suppression still win.
+
+It is also recorded only when it BINDS. A version condition that changes no outcome is not debt, and recording it anyway would print a due date for a finding that was never held.
 
 ### The published-verdict trust step
 
-`resolveFindings` runs four ordered steps: profile, per-rule override and suppression; then the trust
-step; then the ceiling. The trust step exists because a report published ABOUT a subject cannot be
-configured BY that subject. In `published-verdict` mode it re-resolves each finding with every
-subject-owned setting absent and **raises only**, so a subject being stricter about itself survives
-while a subject-owned reduction of an objective or vendor-cited finding does not.
+`resolveFindings` runs four ordered steps: the profile, then per-rule override and suppression, then the trust step, then the ceiling.
 
-Suppression is cleared **independently of severity**, and that is not a detail: a gate needs `error`
-AND `not suppressed`, so a step that restored severity alone would still publish green behind a
-subject-owned waiver.
+The trust step exists because a report published ABOUT a subject cannot be configured BY that subject. In `published-verdict` mode it re-resolves each finding with every subject-owned setting absent, and it **raises only**. So a subject being stricter about itself survives, and a subject-owned reduction of an objective or vendor-cited finding does not.
 
-This deliberately REVERSES a guarantee the resolver used to make - that enabling the mode could never
-flip a passing gate to failing. It now can. ADR 0044 records that as a decision rather than a
-consequence: a guarantee protecting the subject is the wrong guarantee in the one mode built to publish
-a verdict about the subject. Local mode is untouched, and a subject's own config remains authoritative
-about its own repository.
+Suppression is cleared **independently of severity**, and that is not a detail. A gate needs `error` AND `not suppressed`. A step that restored severity alone would still publish green behind a subject-owned waiver.
+
+This deliberately REVERSES a guarantee the resolver used to make, which was that enabling the mode could never flip a passing gate to failing. It now can.
+
+[ADR 0044 (one Standard ceiling, and the deliberate published-verdict reversal)](../internal/decisions/0044-one-post-resolution-standard-ceiling-and-config-provenance.md) records that as a decision rather than as a consequence. A guarantee that protects the subject is the wrong guarantee in the one mode built to publish a verdict about the subject. Local mode is untouched, and a subject's own config remains authoritative about its own repository.
 
 ## The load-plugin context (`ctx`)
 
@@ -184,7 +232,9 @@ about its own repository.
 - `ctx.mcpServers` - the portable `.mcp.json` flattened to a list of `{ name, def }`, plus `ctx.mcpPath`, `ctx.mcpParseError`, and `ctx.mcpMalformed` so `mcp-valid` (`U11`) can fail closed on a present-but-malformed file.
 - `ctx.agentsMdPath` - the path to root `AGENTS.md` when present, else `null`.
 
-Frontmatter parsing runs once in the loader via `scripts/lib/frontmatter.mjs` (the YAML parser is the toolkit's single runtime dependency). The loader is the only place that touches component files for the common case, which keeps the checks pure and the whole run a single pass over the tree.
+Frontmatter parsing runs once in the loader, via `scripts/lib/frontmatter.mjs`. The YAML parser it uses is the toolkit's single runtime dependency.
+
+For the common case, the loader is the only place that touches component files. That keeps the checks pure, and it makes the whole run a single pass over the tree.
 
 ## The generators and the drift checks
 
@@ -192,9 +242,9 @@ Three artifacts are generated, never hand-authored, from the canonical `library.
 
 `scripts/generators/gen-manifest.mjs` produces three files:
 
-- `.claude-plugin/plugin.json` - the Claude native manifest (`renderClaudeNativeManifest`): the shared spine (name, version, description, license, author, homepage, repository, keywords) sourced from `library.json`, plus an `mcpServers` pointer to `./.mcp.json` when present.
-- `.codex-plugin/plugin.json` - the Codex native manifest (`renderCodexNativeManifest`): the same spine plus a `skills: "./skills/"` pointer and an `interface` block (`displayName`, `category`) derived from `library.json`. The skills pointer is load-bearing - it is how Codex actually ingests the bundled skills.
-- `manifest.generated.json` - the resolved agent index (`renderManifest`): name/version/tier/standard plus expanded skill and command entries (name, path, description) and, when present, an MCP server summary.
+- `.claude-plugin/plugin.json` is the Claude native manifest, rendered by `renderClaudeNativeManifest`. It carries the shared spine sourced from `library.json`: name, version, description, license, author, homepage, repository and keywords. When an MCP config is present, it also carries an `mcpServers` pointer to `./.mcp.json`.
+- `.codex-plugin/plugin.json` is the Codex native manifest, rendered by `renderCodexNativeManifest`. It carries the same spine, plus a `skills: "./skills/"` pointer and an `interface` block of `displayName` and `category` derived from `library.json`. That skills pointer is load-bearing: it is how Codex actually ingests the bundled skills.
+- `manifest.generated.json` is the resolved agent index, rendered by `renderManifest`. It carries name, version, tier and standard, plus expanded skill and command entries of name, path and description. When present, it also carries an MCP server summary.
 
 Run it with `node scripts/generators/gen-manifest.mjs . --write --target=all` (the `all` target requires `--write` because it writes multiple files).
 
@@ -203,9 +253,16 @@ Run it with `node scripts/generators/gen-manifest.mjs . --write --target=all` (t
 The generators do not enforce anything on their own. Two checks close the loop and make a hand-edit an error:
 
 - **`U8` manifest-drift** (`scripts/checks/manifest-drift.mjs`) compares each native manifest's `name` and `version` against `library.json`. A mismatch is a `warn` (it surfaces drift without hard-gating) and the message hands back the exact regenerate command.
-- **`G4` index-drift** (`scripts/checks/index-drift.mjs`) re-renders `INDEX.md` in memory via `renderIndex(ctx)` and compares it (line-ending- and trailing-whitespace-normalized) to the file on disk. A mismatch - or a missing `INDEX.md` - is an `error` at Gold. Because the check imports the generator and renders fresh, the on-disk file is correct iff it equals what the generator would produce right now. There is no way to hand-edit `INDEX.md` and stay green at Gold; the only fix is to edit the source and regenerate.
+- **`G4` index-drift** (`scripts/checks/index-drift.mjs`) re-renders `INDEX.md` in memory via `renderIndex(ctx)` and compares it to the file on disk, normalizing line endings and trailing whitespace first. A mismatch is an `error` at Gold, and so is a missing `INDEX.md`. Because the check imports the generator and renders fresh, the on-disk file is correct only if it equals what the generator would produce right now. There is no way to hand-edit `INDEX.md` and stay green at Gold. The only fix is to edit the source and regenerate.
 
-This is the dual-representation rule from the Standard (sec 10.3) made executable: structured facts live in exactly one canonical place (`library.json` plus frontmatter), every other view is generated, and drift between the two is a CI failure rather than a slow rot. The manifest entries are also mirrored against frontmatter: `S3` components-index checks that the `library.json` index and on-disk skills agree in both directions, and `S8` components-mirror checks that an entry's `status` and `tier` equal the component's `metadata.status` / `metadata.tier` when the frontmatter declares them - so a frontmatter-only deprecation cannot slip past the `G6` deprecation contract.
+This is the dual-representation rule from the Standard (sec 10.3) made executable. Structured facts live in exactly one canonical place, which is `library.json` plus component frontmatter. Every other view is generated. Drift between the two is a CI failure rather than a slow rot.
+
+The manifest entries are mirrored against frontmatter as well.
+
+- `S3` components-index checks that the `library.json` index and the on-disk skills agree in both directions.
+- `S8` components-mirror checks that an entry's `status` and `tier` equal the component's `metadata.status` and `metadata.tier`, whenever the frontmatter declares them.
+
+That second one is what stops a frontmatter-only deprecation slipping past the `G6` deprecation contract.
 
 ## The eval set format and `G3` library-regression
 
@@ -231,7 +288,15 @@ The `covers` object is the contract. It declares exactly one of:
 2. The hook events that have at least one registered hook in `hooks/hooks.json`.
 3. Every `evals/*.eval.json` set.
 
-It then enforces coverage in both directions. Every permitted chain edge and every registered hook event MUST be covered by some eval set, or the gate fails with a "no eval/regression case" error naming exactly what to add. Conversely, an eval that `covers` a chain the contract no longer permits, or a hook that is no longer registered, is a *stale* case - this is the regression signal itself: a component or edge changed and a consumer's eval now dangles. Malformed eval JSON is always reported, independent of whether a contract or hooks exist, so eval hygiene is never silently suppressed by an absent contract. Like all Gold checks, `G3` respects the declared-tier ceiling: a plugin that declares universal or convergent sees these as a Gold burndown item, not a gate failure.
+It then enforces coverage in both directions.
+
+Going one way, every permitted chain edge and every registered hook event MUST be covered by some eval set. If one is not, the gate fails with a "no eval/regression case" error naming exactly what to add.
+
+Going the other way catches a *stale* case. An eval that `covers` a chain the contract no longer permits, or a hook that is no longer registered, is the regression signal itself: a component or an edge changed, and a consumer's eval now dangles.
+
+Malformed eval JSON is always reported, whether or not a contract or hooks exist, so eval hygiene is never silently suppressed by an absent contract.
+
+Like all Gold checks, `G3` respects the declared-tier ceiling. A plugin that declares universal or convergent sees these as a Gold burndown item rather than as a gate failure.
 
 The baseline `G3` requires *presence and execution* of cases, not a particular judging engine. The multi-tier eval engine (static, LLM-judge, Monte-Carlo) is roadmap; the structural coverage check is what ships and gates.
 

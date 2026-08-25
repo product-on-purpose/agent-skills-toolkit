@@ -22,6 +22,7 @@ The shared library the checks, generators, and gate import: findings, frontmatte
 - `md-escape.mjs` - escapeMdCell(): the one Markdown table-cell escape, backslashes before pipes.
 - `migrate-report.mjs` - migrateReport(): the migration (gap-by-tier) report object, a staged current-to-target bring-to-conformance plan.
 - `profiles.mjs` - the built-in gate profiles (askit-library, plain-plugin, house-style).
+- `prose-metrics.mjs` - measureText() over a markdown page: stacked sentences, heavy parentheticals, overlong paragraphs, and the mechanical vocabulary rules. Used by `doc-style-report.mjs`, never by a check. Sentence length is deliberately not the signal: the corpus already measures plain at a 12-word median and still read as hard, because the defect is one sentence carrying several ideas with its reason buried in brackets.
 - `registry.mjs` - the ordered CHECKS array, runAllChecks(), REQ_IDS, and provenanceByReq().
 - `release-ready.mjs` - the deterministic half of release-ready: the gate list, which exit codes block, and the one override (unreachability only, never a gone-or-stale claim and never a disagreeing pin label). Pure, so the decision table is testable without a tag or a network.
 - `release-report.mjs` - releaseReport(): the release-readiness report object, a deterministic go / no-go verdict.

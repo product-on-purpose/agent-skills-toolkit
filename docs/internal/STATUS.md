@@ -18,7 +18,7 @@
 | Spine | 34 checks |
 | Scopes | 3 (plugin, component, marketplace) |
 | Skills | **26** |
-| Tests | 1399, 0 failures (1 skipped; local suite run **2026-08-22**, after v1.16.0 W4 added the capability-matrix drift guard and adversarial wave 1 grew it by three). It read **1359 at the shipped tag `9133014`**, confirmed there by `npm run release-ready` exiting 0 on the release runner |
+| Tests | 1421, 0 failures (1 skipped; local suite run **2026-08-24**, after the documentation style contract added 22 prose-metrics cases). It read **1399 at the shipped tag `1da4d16`** and **1359 at `9133014`**, each confirmed there by `npm run release-ready` exiting 0 on the release runner |
 | Self-proving | `node scripts/check.mjs .` exits 0 at Advanced, 0 errors, 0 warnings |
 
 ## v1.16.1 SHIPPED 2026-08-24

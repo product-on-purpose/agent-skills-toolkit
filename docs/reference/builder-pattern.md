@@ -7,7 +7,15 @@ level: advanced
 
 # The builder pattern (reference)
 
-Every `askit-build-<type>` skill follows one shape. There is no per-component code "render engine": across Claude and Codex, skills and MCP are portable files (wired by the native manifests), subagents and output styles are Claude-only, and a command's Codex form is its backing skill. So the shared thing is the builder SKILL pattern, captured here once.
+Every `askit-build-<type>` skill follows one shape.
+
+There is no per-component "render engine". What a component becomes on each agent is fixed by its type:
+
+- **Skills and MCP servers** are portable files. The native manifests wire them up.
+- **Subagents and output styles** are Claude-only.
+- **A command** has no separate Codex file. On Codex, its backing skill is the invocable form.
+
+So the shared thing is the builder skill pattern, and it is captured here once.
 
 ## The shape (create mode)
 1. Interview the component's inputs (or read them from context).
