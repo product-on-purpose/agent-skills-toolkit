@@ -9,6 +9,19 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [1.16.3] - 2026-08-25
+
+### Fixed
+
+- The SARIF example in `action.yml`'s usage comment told consumers to use
+  `github/codeql-action/upload-sarif@v3`. That action targets Node 20, which GitHub runners now force
+  onto Node 24 with a deprecation warning, and the v3 line deprecates in December 2026. The example
+  now says `@v4`.
+- This repository's own `.github/workflows/codeql.yml` was already on the v4 line. The Action was
+  therefore documenting a pin the toolkit itself had moved off, so every consumer copying the example
+  inherited two deprecation warnings the toolkit had already avoided for itself. Same shape as the
+  v1.16.2 defect: the path used internally and the path handed to consumers had diverged.
+
 ## [1.16.2] - 2026-08-25
 
 ### Fixed

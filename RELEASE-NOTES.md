@@ -2,6 +2,22 @@
 
 Curated, user-facing highlights. For the full technical history see [`CHANGELOG.md`](CHANGELOG.md).
 
+## 1.16.3 - 2026-08-25
+
+**If you copied the SARIF step from the Action's usage comment, change `@v3` to `@v4`.**
+
+### Do you need to do anything?
+
+**Only if you enabled SARIF upload.** The example told you to use `github/codeql-action/upload-sarif@v3`. That action targets Node 20, which runners now force onto Node 24 with a deprecation warning, and the v3 line deprecates in December 2026. Change the pin to `@v4` and both warnings go away.
+
+Nothing else changes. No check is added or removed, the spine stays at **34**, the Standard stays at **0.15**, and no grade moves.
+
+### What was wrong
+
+This repository's own CodeQL workflow was already on the v4 line. The usage comment, which exists to be copied, was still on v3. The toolkit had updated the path it uses itself and left the path it hands other people behind.
+
+That is the second instance of that shape in one day. v1.16.2 fixed an Action that failed before it graded anything, for the same underlying reason: internal path maintained, consumer-facing path not.
+
 ## 1.16.2 - 2026-08-25
 
 **If you used the reusable Action, your gate never ran. It does now.**
