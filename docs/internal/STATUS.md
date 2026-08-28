@@ -578,9 +578,10 @@ this file); the conclusions are stated here directly.
   [`release-plans/plan_v1.16.0/RELEASE-PLAN.md`](release-plans/plan_v1.16.0/RELEASE-PLAN.md).
   **Scope addition 2026-08-20, SUPERSEDED the same day:** the **onboarding and documentation resource
   plan** and the **Astro documentation site** were admitted here, then moved to **v1.17.0** once their
-  plan was written and the maintainer asked for the funnel to be a release centrepiece. v1.16.0 keeps
+  plan was written and the maintainer asked for the funnel to be a release centrepiece (a number the
+  funnel later lost in turn; see its bullet below). v1.16.0 keeps
   the four `foundation/` workstreams it was specified with. See the annotated scope note in the packet
-  and [`release-plans/plan_v1.17.0/RELEASE-PLAN.md`](release-plans/plan_v1.17.0/RELEASE-PLAN.md).
+  and [`release-plans/plan_onboarding-funnel/RELEASE-PLAN.md`](release-plans/plan_onboarding-funnel/RELEASE-PLAN.md).
   **This line described a different v1.16.0 until 2026-08-20**, namely the eval-instrument batch below.
   The packet was written and merged (#247, #261) while this line went unrefreshed; the packet wins.
 - **Unscheduled, and explicitly NOT dropped - the eval-instrument batch.** Fix the measurement instrument
@@ -592,10 +593,12 @@ this file); the conclusions are stated here directly.
   1.1.0 with no change to the advisory. **It carried the v1.16.0 label from 2026-08-18 to 2026-08-20** and
   now carries no version, because assigning it one it will not get is how a line goes stale unnoticed. All
   five entries stay live in [`backlog/enhancements.md`](backlog/enhancements.md).
-- **v1.17.0 "what are you trying to do?":** the onboarding funnel - a `docs/adoption/` router, nine
-  job-shaped runbooks, a capability map, and `docs/how-to/grade-in-ci.md`, which is the first public
-  documentation of the shipped GitHub Action. Packet at
-  [`release-plans/plan_v1.17.0/RELEASE-PLAN.md`](release-plans/plan_v1.17.0/RELEASE-PLAN.md).
+- **The onboarding funnel, "what are you trying to do?" - UNVERSIONED as of 2026-08-28:** a
+  `docs/adoption/` router, nine job-shaped runbooks, a capability map, and `docs/how-to/grade-in-ci.md`,
+  which would be the first public documentation of the shipped GitHub Action. It held v1.17.0 until the
+  2026-08-28 cut took that number, the same displacement it inflicted on the graded cohort on
+  2026-08-22, so the same rule now applies to it: no version until implementation starts. Packet at
+  [`release-plans/plan_onboarding-funnel/RELEASE-PLAN.md`](release-plans/plan_onboarding-funnel/RELEASE-PLAN.md).
 - **The graded-cohort work carries NO version**, as of 2026-08-22. It held v1.17.0 until the onboarding
   funnel took that number. Left unversioned deliberately rather than pushed to v1.18.0: assigning a line
   a version it will not get is how it goes stale unnoticed, which is the same call made for the

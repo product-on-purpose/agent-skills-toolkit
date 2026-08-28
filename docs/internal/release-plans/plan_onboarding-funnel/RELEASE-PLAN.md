@@ -1,4 +1,4 @@
-# Release plan - v1.17.0 "what are you trying to do?"
+# Release plan - the onboarding funnel, "what are you trying to do?"
 
 - **Type:** MINOR. No Standard version change, no new spine check, **no verdict movement for any plugin.** One new documentation section, one new public how-to that closes a real capability gap, and cross-links from three existing front doors.
 - **Baseline:** `main` at `65c4740`. Gate Advanced 0 errors / 0 warnings, spine 34, Standard 0.15, 26 skills, **suite 1359 / 0** (1 skipped). **Measured at `65c4740` on 2026-08-20, not inherited.** The v1.16.0 plan carried a suite number taken while it was drafted, before the commit it named existed, and it read wrong for two weeks. A baseline measured at the commit it names is legitimate; one measured ahead of it is a forward-dated claim. Final counts are still written LAST, at cut time, per the packet convention.
@@ -40,6 +40,18 @@ Settled by the maintainer on **2026-08-20**. Recorded here so the workstreams ca
 **This is v1.17.0 and not v1.16.0.** The onboarding scope was admitted to v1.16.0 as a dated note on 2026-08-20, before its plan existed. Decision 3 asks for the funnel to be a release **centerpiece**, and v1.16.0 already carries four fully specified `foundation/` workstreams whose ADR (0055, the `foundation/` layout) was ratified 2026-08-20 to unblock its migration. A release cannot have two centerpieces.
 
 **Reversing this is a folder rename and one cross-reference.** If the maintainer would rather displace `foundation/`, say so and this packet renumbers; nothing in the workstreams below depends on the number.
+
+> **Displacement note, 2026-08-28.** The assumption above was reversed by events rather than by a
+> `foundation/` preference: **v1.17.0 was taken by the cut of the 2026-08-25..28 work** (the
+> documentation style contract, the E52 record-scoping fix, ADR 0056, and tag-triggered npm
+> publishing), ratified in the 2026-08-28 wrap. This packet now carries **no version**, per the
+> precedent `STATUS.md` recorded for the graded-cohort work on 2026-08-22: assigning a line a
+> version it will not get is how a line goes stale unnoticed. v1.17.0 has now been assigned to
+> three bodies of work (the graded cohort, this funnel, the shipped cut), and only the third
+> shipped under it, which is that precedent proven rather than merely followed. The folder renamed
+> from `plan_v1.17.0/` to `plan_onboarding-funnel/`; the funnel takes the next free minor when its
+> implementation actually starts. Nothing in the workstreams below depends on the number, exactly
+> as this section said.
 
 ## The nine doors
 
