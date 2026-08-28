@@ -123,6 +123,21 @@ function parseInventory(text) {
  * reuse of index-drift (string equality) or manifest-drift (scalar compares). Vacuous on a plugin with
  * no allowlisted folders. Advanced tier.
  */
+/**
+ * ACTIVATION-NEUTRAL, following catalogue-manifest-shape.mjs: it states what the migration is ABOUT and
+ * never claims a cap is currently in force, because under `--strict` no pin binds and the finding is a
+ * live error while this static metadata is still visible in `--json`.
+ *
+ * Capped at warn for two Standard minors rather than one, which is deliberate generosity: the census
+ * behind ADR 0056 found ZERO instances across 213 README.md files in the six reference-family members,
+ * so the window costs nothing and a longer one removes any argument that third parties were rushed.
+ */
+const UNREADABLE_MIGRATION = Object.freeze({
+  capAt: "warn",
+  until: "0.17",
+  reason: "G8 reporting an unreadable folder README is introduced at Standard 0.15 and gates at 0.17",
+});
+
 export function check(ctx) {
   const root = ctx.root;
   if (!root || !existsSync(root)) return [];
@@ -135,7 +150,22 @@ export function check(ctx) {
       continue;
     }
     let text;
-    try { text = readFileSync(readmePath, "utf8"); } catch { continue; }
+
+    let readError = null;
+    try {
+      text = readFileSync(readmePath, "utf8");
+    } catch (err) {
+      readError = err;
+    }
+    if (readError) {
+      // E51. This branch used to be `catch { continue; }`, which disabled BOTH the folder-guide and
+      // the inventory check for this folder while the run reported success. The asymmetry is the
+      // argument: eight lines above, a MISSING README is an ERROR, so the check already knows this
+      // folder requires a readable one. A README that exists and cannot be read was the only way to
+      // make G8 report a pass for a folder it never examined.
+      out.push(finding(meta.id, SEVERITY.ERROR, `folder README exists but could NOT BE READ (${readError.code || "unknown error"}); the folder-guide and inventory checks for this folder did not run. A folder that was never examined must not report as a pass.`, { file: relReadme, reqId: meta.reqId, migration: UNREADABLE_MIGRATION }));
+      continue;
+    }
     const { frontmatter } = parseFrontmatter(text);
     if (!frontmatter || typeof frontmatter.title !== "string" || frontmatter.title.trim() === "") {
       out.push(finding(meta.id, SEVERITY.ERROR, `folder README must carry a non-empty frontmatter "title" (ADR 0024 D1.1).`, { file: relReadme, reqId: meta.reqId }));

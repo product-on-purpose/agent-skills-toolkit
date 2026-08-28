@@ -197,3 +197,70 @@ test("a plugin that still has agents/README.md is not failed for it either", () 
     rmSync(dir, { recursive: true, force: true });
   }
 });
+
+// --- E51: a README that exists but cannot be READ ---
+//
+// The reproduction from the backlog entry, and the one that works identically on Windows and Linux:
+// make the folder's README.md a DIRECTORY. `existsSync` succeeds, `readFileSync` throws EISDIR, and
+// before this fix `check()` returned ZERO findings for that folder while the run reported success.
+//
+// The negative case is the point, per the house rule. A guard that has only ever been seen passing is
+// not a guard, so the readable twin of the same fixture is asserted to produce no unreadable finding.
+
+function g8Fixture(kind) {
+  const dir = mkdtempSync(path.join(tmpdir(), `g8-${kind}-`));
+  writeFileSync(path.join(dir, "library.json"), '{ "name": "x", "version": "0.1.0" }\n');
+  mkdirSync(path.join(dir, "evals"), { recursive: true });
+  writeFileSync(path.join(dir, "evals", "a.eval.json"), "{}\n");
+  return dir;
+}
+
+test("E51: a folder README that exists but cannot be read emits a finding instead of silently passing", () => {
+  const dir = g8Fixture("unreadable");
+  try {
+    // A directory named README.md: exists, cannot be read.
+    mkdirSync(path.join(dir, "evals", "README.md"), { recursive: true });
+    const f = check({ root: dir });
+    assert.ok(f.length > 0, "an unreadable README must not report as a pass (this returned 0 before E51)");
+    const unreadable = f.filter((x) => /could NOT BE READ/.test(x.message));
+    assert.equal(unreadable.length, 1, "expected exactly one unreadable finding");
+    assert.equal(unreadable[0].reqId, "G8");
+    assert.match(unreadable[0].file, /evals[\/]README\.md$/);
+    // It says the dependent checks did not run, rather than claiming a content failure it never observed.
+    assert.match(unreadable[0].message, /did not run/);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test("E51: the unreadable finding is capped at warn until Standard 0.17, so no verdict moves today", () => {
+  const dir = g8Fixture("migration");
+  try {
+    mkdirSync(path.join(dir, "evals", "README.md"), { recursive: true });
+    const f = check({ root: dir }).filter((x) => /could NOT BE READ/.test(x.message));
+    assert.equal(f.length, 1);
+    assert.ok(f[0].migration, "the finding must carry migration metadata");
+    assert.equal(f[0].migration.capAt, "warn");
+    assert.equal(f[0].migration.until, "0.17");
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test("E51 negative case: a READABLE folder README emits no unreadable finding", () => {
+  const dir = g8Fixture("readable");
+  try {
+    writeFileSync(
+      path.join(dir, "evals", "README.md"),
+      '---\ntitle: Evals\n---\n\n## TL;DR\n\nEvals.\n\n## Contents\n\n- `a.eval.json` - a fixture\n'
+    );
+    const f = check({ root: dir });
+    assert.equal(
+      f.filter((x) => /could NOT BE READ/.test(x.message)).length,
+      0,
+      "a readable README must never trip the unreadable branch"
+    );
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
