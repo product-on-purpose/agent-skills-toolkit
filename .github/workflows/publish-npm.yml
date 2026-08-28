@@ -1,21 +1,39 @@
 # Publish agent-skills-toolkit to the npm registry.
 #
-# Trigger: workflow_dispatch ONLY. A tag push does NOT publish - this is deliberately more
-# conservative than release.yml's "push: tags: v*" (which only cuts the GitHub release). Publishing
-# to a public registry is a one-way door (a version can be unpublished only within npm's 72-hour
-# window and never re-published under the same number afterward), so it stays behind an explicit
-# human dispatch rather than firing automatically off the same tag push that creates the GitHub
-# release. If a future maintainer wants tag-triggered publishing, the safe way to add it is a
-# `deployment` environment with a required reviewer, not a bare "on: push: tags" trigger here.
+# Trigger: a pushed tag "v*", OR an explicit workflow_dispatch. Publishing to a public registry is a
+# one-way door (a version can be unpublished only within npm's 72-hour window and never re-published
+# under the same number afterward), so the one-way step is never automatic: the `publish` job below is
+# bound to the `npm-publish` GitHub environment, which carries a REQUIRED REVIEWER. On a tag push the
+# run reaches that gate and waits for a human to approve or reject, and nothing reaches the registry
+# until someone clicks. Verified live 2026-08-28: that environment carries both a `required_reviewers`
+# rule and the `main`-only branch policy.
+#
+# THE REQUIRED REVIEWER IS LOAD-BEARING, and this is the one line to read before changing it. Until
+# 2026-08-28 the trigger here was dispatch-only, and an earlier version of this docblock said that if a
+# maintainer ever wanted tag-triggered publishing, the safe way to add it was "a `deployment`
+# environment with a required reviewer, not a bare on: push: tags trigger here". This is that. If the
+# required reviewer is ever removed from the `npm-publish` environment, this trigger silently becomes an
+# automatic publish on every tag. Removing it is therefore a decision about publishing policy, not an
+# environment tidy-up.
+#
+# Why it changed: v1.16.2 and v1.16.3 were tagged and GitHub-released on 2026-08-25 and never reached
+# npm, because dispatch-only publishing depends on a human remembering to dispatch, with the right tag
+# typed into a form. Three days later npm `latest` still served 1.16.1, so two fixes to the reusable
+# Action had not reached the consumers they were written for, and the same two releases were also still
+# unpinned in the `agent-plugins` registry. A forgotten publish is a SILENT failure. An unapproved
+# deployment is a VISIBLE one that sits in the Actions tab until someone rules on it. This trades the
+# first failure mode for the second deliberately.
 #
 # Two modes, structurally distinct rather than a flag on one code path:
-#   - dry_run: true  (default) -> "npm pack --dry-run" (and "npm pack") only, inside the shared
-#     `prepare` job below. The literal string "npm publish" does not appear anywhere in this mode's
-#     execution path, so a typo'd flag can never turn a preview into a real publish - and this mode
-#     never runs in a job holding `id-token: write` (see the SECURITY note below).
-#   - dry_run: false -> a SEPARATE `publish` job runs "npm publish" for real via trusted publishing
-#     `needs: prepare` succeeding. Requires typing "false" into the dispatch form; there is no way to
-#     reach this job by accident.
+#   - dry_run: true  (the workflow_dispatch default) -> "npm pack --dry-run" (and "npm pack") only,
+#     inside the shared `prepare` job below. The literal string "npm publish" does not appear anywhere
+#     in this mode's execution path, so a typo'd flag can never turn a preview into a real publish, and
+#     this mode never runs in a job holding `id-token: write` (see the SECURITY note below).
+#   - dry_run: false, or ANY tag push -> a SEPARATE `publish` job runs "npm publish" for real via
+#     trusted publishing, and only after BOTH `needs: prepare` succeeds AND the `npm-publish`
+#     environment's required reviewer approves the deployment. On the dispatch path this additionally
+#     requires typing "false" into the form. There is no way to reach this job by accident, and no way
+#     to reach it without a human approving.
 #
 # Per Standard sec 4.1/4.4, holds no validation logic of its own: every decision (tag format,
 # scripts/verify-release-tag.mjs; tag ancestry, scripts/verify-tag-ancestry.mjs; tag/manifest
@@ -85,6 +103,10 @@
 name: Publish to npm
 
 on:
+  # A pushed tag reaches the approval gate; it does not reach the registry on its own.
+  push:
+    tags:
+      - "v*"
   workflow_dispatch:
     inputs:
       tag:
@@ -129,7 +151,7 @@ jobs:
     # references it as the shell variable "$TAG", which Bash treats as DATA (a single string value),
     # never as source text to re-parse.
     env:
-      TAG: ${{ inputs.tag }}
+      TAG: ${{ inputs.tag || github.ref_name }}
     outputs:
       sha: ${{ steps.resolve-tag.outputs.sha }}
     steps:
@@ -256,7 +278,7 @@ jobs:
 
       # --- dry_run: true (default) --------------------------------------------------------------
       - name: "Dry run: npm pack (no publish - the word 'publish' does not appear on this path)"
-        if: ${{ inputs.dry_run }}
+        if: ${{ github.event_name == 'workflow_dispatch' && inputs.dry_run }}
         working-directory: candidate
         run: |
           npm pack
@@ -276,7 +298,7 @@ jobs:
     # enough - it must be unambiguous on inspection that a failed `prepare` (a rejected tag, a failed
     # ancestry check, a failed test run, a failed gate) can never let this job run regardless of
     # dry_run's value.
-    if: ${{ success() && !inputs.dry_run }}
+    if: ${{ success() && (github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && !inputs.dry_run)) }}
     runs-on: ubuntu-latest
     timeout-minutes: 20
     # Configure this environment once in repo Settings -> Environments (name: npm-publish) with a
