@@ -2,7 +2,7 @@
 
 - **Type:** MINOR. No Standard version change, no new spine check, **no verdict movement for any plugin.** One new documentation section, one new public how-to that closes a real capability gap, and cross-links from three existing front doors.
 - **Baseline:** `main` at `65c4740`. Gate Advanced 0 errors / 0 warnings, spine 34, Standard 0.15, 26 skills, **suite 1359 / 0** (1 skipped). **Measured at `65c4740` on 2026-08-20, not inherited.** The v1.16.0 plan carried a suite number taken while it was drafted, before the commit it named existed, and it read wrong for two weeks. A baseline measured at the commit it names is legitimate; one measured ahead of it is a forward-dated claim. Final counts are still written LAST, at cut time, per the packet convention.
-- **Branch:** `release/v1.17.0`, cut from `main` after the implementation PRs merge.
+- **Branch:** `release/<the version assigned at cut time>`, cut from `main` after the implementation PRs merge. (This line read `release/v1.17.0` until 2026-08-28; that number was taken by another cut. See the displacement note under "The version assignment".)
 - **Thesis:** this project's problem is not capability, it is **discoverability**. The corpus audit found six of nine adopter jobs already fully covered by existing pages, and the two that are not covered are the two deepest capabilities the toolkit ships. An adopter cannot find what they cannot name, and nothing in this repository asks them what they are trying to do.
 
 > **How this document is written.** It states **intent and acceptance criteria**, written before the work.
