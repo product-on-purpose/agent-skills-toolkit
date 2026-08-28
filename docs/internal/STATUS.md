@@ -18,7 +18,7 @@
 | Spine | 34 checks |
 | Scopes | 3 (plugin, component, marketplace) |
 | Skills | **26** |
-| Tests | 1436, 0 failures (1 skipped; local suite run **2026-08-28**, after the documentation style contract added 22 prose-metrics cases, the E52 fix added 12, and the publish-trigger change added 3 structural assertions to `publish-npm-yml`). It read **1399 at `1da4d16` (v1.16.1)** and **1359 at `9133014` (v1.15.0)**, each confirmed there by `npm run release-ready` exiting 0 on the release runner. `v1.16.2` and `v1.16.3` left it at **1399**: neither touched `tests/`, verified by diff |
+| Tests | 1439, 0 failures (1 skipped; local suite run **2026-08-28**, after the documentation style contract added 22 prose-metrics cases, the E52 fix added 12, the publish-trigger change added 3 structural assertions to `publish-npm-yml`, and E51 added 3). It read **1399 at `1da4d16` (v1.16.1)** and **1359 at `9133014` (v1.15.0)**, each confirmed there by `npm run release-ready` exiting 0 on the release runner. `v1.16.2` and `v1.16.3` left it at **1399**: neither touched `tests/`, verified by diff |
 | Self-proving | `node scripts/check.mjs .` exits 0 at Advanced, 0 errors, 0 warnings |
 
 ## v1.16.2 and v1.16.3 SHIPPED 2026-08-25, DISTRIBUTION CLOSED 2026-08-28
