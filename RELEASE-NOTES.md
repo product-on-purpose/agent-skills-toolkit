@@ -2,6 +2,68 @@
 
 Curated, user-facing highlights. For the full technical history see [`CHANGELOG.md`](CHANGELOG.md).
 
+## 1.17.0 - 2026-08-28
+
+**Releases now reach npm on their own, and your gate stops swallowing one class of failure.**
+
+### Do you need to do anything?
+
+**No.** No check is added or removed, the spine stays at **34**, the Standard stays at **0.15**, and
+no verdict moves. One new warning can appear: if a folder's `README.md` exists but cannot be read (a
+directory carrying that name, a permissions failure, a corrupt checkout object), `G8` now reports
+that instead of silently skipping the folder. A warning cannot move your tier, and the escalation to
+`error` is scheduled for Standard 0.17, not now.
+
+### A tagged release publishes itself, through a human approval
+
+`v1.16.2` and `v1.16.3` were tagged and GitHub-released on 2026-08-25 and were still absent from npm
+three days later, because publishing required someone to remember to dispatch a workflow. Two fixes
+written for consumers of the reusable Action reached those consumers by no route at all.
+
+Now a pushed `v*` tag runs every release gate and stops at a **required reviewer** on the
+`npm-publish` deployment environment. Nothing reaches the registry until a human approves, and
+nothing depends on a human remembering. A forgotten publish is a silent failure; an unapproved
+deployment is a visible one that sits in the Actions tab until someone rules on it. This release is
+the first to ship through that path.
+
+### `G8` stops reporting success for folders it never examined
+
+If a folder's README existed but could not be read, `G8` caught the error and emitted nothing: the
+folder-guide and inventory checks were silently disabled for that folder while the run reported
+success. That is the "reports success while checking nothing" class this toolkit grades other tools
+on, and it sat in the spine since 2026-06-03. It now emits a finding naming the path, the error
+code, and the fact that the dependent checks did not run - at `warn` until Standard 0.17, per
+[ADR 0056 (an unreadable folder README is a finding, not a silent pass)](docs/internal/decisions/0056-an-unreadable-folder-readme-is-a-finding-not-a-silent-pass.md).
+The window was measured before being trusted: 213 READMEs across the six reference-family members,
+zero affected today.
+
+### Shipped records stop being rewritten
+
+The count guard used to keep policing a release's packet and CHANGELOG section after that release
+shipped, so every test the NEXT release added pushed on numbers that were already tagged history. By
+2026-08-24 this blocked the pre-cut gate outright, on a number that was correct for the tag it
+described. Once `v<version>` exists, its packet and CHANGELOG section are now exempt as records;
+`STATUS.md` never is, because it is live state. The guard fails closed on a clone with no tags.
+
+### A documentation style contract, with a report instead of a gate
+
+The repository's own documentation passes had satisfied a sentence-length metric and still read as
+hard. The defect was structural: one sentence carrying three ideas, the reason buried in brackets, a
+specification arriving before the thing it specifies. There is now a written contract per
+documentation quadrant and `npm run doc-style`, a report that measures all 88 published pages
+against the checkable half of it and ranks them. Report-only, deliberately not wired into the gate.
+The rewritten `docs/explanation/architecture-internals.md` is the exemplar: measured debt fell from
+122 to 32 while the page got 17 percent longer, which is the intended trade on an explanation page.
+
+### How this release was verified
+
+Suite **1439 tests, 0 failures** (1 skipped, POSIX-only); the conformance gate at **Advanced, 0
+errors, 0 warnings**; `release-ready` green on all five release-blocking gates. **The Codex
+round-trip was run for this tag**: the emitted `.codex-plugin/plugin.json` was exercised against
+`codex-cli 0.144.5` on 2026-08-28 and the skills were confirmed ingested, not merely listed - the
+first release since v1.14.0 to record this check. The publish itself ran through the new
+tag-triggered path described above, as its first live exercise.
+
 ## 1.16.3 - 2026-08-25
 
 **If you copied the SARIF step from the Action's usage comment, change `@v3` to `@v4`.**

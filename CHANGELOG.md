@@ -9,6 +9,8 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [1.17.0] - 2026-08-28
+
 ### Added
 
 - **A documentation style contract, and a report that measures the checkable half of it.** [`skills/askit-build-docs/references/style-contract.md`](skills/askit-build-docs/references/style-contract.md) fixes a required page shape per Diataxis quadrant, a measurable floor per quadrant, and a named exemplar page. `scripts/doc-style-report.mjs` measures all 88 published pages against it and ranks them; `npm run doc-style`. **Report-only and deliberately not wired into the gate.** It exists because the previous documentation passes were asked for in the word "plain", turned that into a sentence-length metric, and satisfied it: the corpus now has a **median sentence of 12 words and 4 percent of sentences over 35**, and still read as hard. The defect that remained was structural, one sentence carrying three or four ideas with its reason buried in brackets, and a section giving the specification of a thing before saying what the thing was.
@@ -1379,9 +1381,33 @@ promoted Standard. Not installable; not self-validating yet (see
 - `.github/workflows/ci.yml` - CI stub that will shell out only to scripts.
 - `skills/`, `scripts/`, `templates/` - placeholders for later phases.
 
-[Unreleased]: https://github.com/product-on-purpose/agent-skills-toolkit/compare/v1.14.0...HEAD
+[Unreleased]: https://github.com/product-on-purpose/agent-skills-toolkit/compare/v1.17.0...HEAD
+[1.17.0]: https://github.com/product-on-purpose/agent-skills-toolkit/compare/v1.16.3...v1.17.0
+[1.16.3]: https://github.com/product-on-purpose/agent-skills-toolkit/compare/v1.16.2...v1.16.3
+[1.16.2]: https://github.com/product-on-purpose/agent-skills-toolkit/compare/v1.16.1...v1.16.2
+[1.16.1]: https://github.com/product-on-purpose/agent-skills-toolkit/compare/v1.16.0...v1.16.1
+[1.16.0]: https://github.com/product-on-purpose/agent-skills-toolkit/compare/v1.15.0...v1.16.0
+[1.15.0]: https://github.com/product-on-purpose/agent-skills-toolkit/compare/v1.14.0...v1.15.0
 [1.14.0]: https://github.com/product-on-purpose/agent-skills-toolkit/compare/v1.13.0...v1.14.0
+[1.13.0]: https://github.com/product-on-purpose/agent-skills-toolkit/compare/v1.12.1...v1.13.0
+[1.12.1]: https://github.com/product-on-purpose/agent-skills-toolkit/compare/v1.12.0...v1.12.1
+[1.12.0]: https://github.com/product-on-purpose/agent-skills-toolkit/compare/v1.11.1...v1.12.0
+[1.11.1]: https://github.com/product-on-purpose/agent-skills-toolkit/compare/v1.11.0...v1.11.1
+[1.11.0]: https://github.com/product-on-purpose/agent-skills-toolkit/compare/v1.10.1...v1.11.0
+[1.10.1]: https://github.com/product-on-purpose/agent-skills-toolkit/compare/v1.10.0...v1.10.1
+[1.10.0]: https://github.com/product-on-purpose/agent-skills-toolkit/compare/v1.9.0...v1.10.0
+[1.9.0]: https://github.com/product-on-purpose/agent-skills-toolkit/compare/v1.8.0...v1.9.0
+[1.8.0]: https://github.com/product-on-purpose/agent-skills-toolkit/compare/v1.7.0...v1.8.0
+[1.7.0]: https://github.com/product-on-purpose/agent-skills-toolkit/compare/v1.6.1...v1.7.0
+[1.6.1]: https://github.com/product-on-purpose/agent-skills-toolkit/compare/v1.6.0...v1.6.1
+[1.6.0]: https://github.com/product-on-purpose/agent-skills-toolkit/compare/v1.5.2...v1.6.0
+[1.5.2]: https://github.com/product-on-purpose/agent-skills-toolkit/compare/v1.5.1...v1.5.2
+[1.5.1]: https://github.com/product-on-purpose/agent-skills-toolkit/compare/v1.5.0...v1.5.1
+[1.5.0]: https://github.com/product-on-purpose/agent-skills-toolkit/compare/v1.4.1...v1.5.0
+[1.4.1]: https://github.com/product-on-purpose/agent-skills-toolkit/compare/v1.4.0...v1.4.1
+[1.4.0]: https://github.com/product-on-purpose/agent-skills-toolkit/compare/v1.3.0...v1.4.0
+[1.3.0]: https://github.com/product-on-purpose/agent-skills-toolkit/compare/v1.2.0...v1.3.0
+[1.2.0]: https://github.com/product-on-purpose/agent-skills-toolkit/compare/v1.1.0...v1.2.0
 [1.1.0]: https://github.com/product-on-purpose/agent-skills-toolkit/compare/v1.0.0...v1.1.0
 [1.0.0]: https://github.com/product-on-purpose/agent-skills-toolkit/releases/tag/v1.0.0
 [0.2.0]: https://github.com/product-on-purpose/agent-skills-toolkit/releases/tag/v0.2.0
-[0.1.0]: https://github.com/product-on-purpose/agent-skills-toolkit/releases/tag/v0.1.0

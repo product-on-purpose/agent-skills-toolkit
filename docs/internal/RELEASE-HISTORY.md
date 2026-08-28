@@ -38,6 +38,7 @@ The toolkit is a quality bar for AI skill libraries: it grades a plugin Bronze, 
 | v1.16.1 | 2026-08-24 | Gold was unreachable for anyone who did not vendor the gate | 34 / 0.15 |
 | v1.16.2 | 2026-08-25 | The reusable Action failed for every consumer before it graded anything | 34 / 0.15 |
 | v1.16.3 | 2026-08-25 | The Action documented a pin the toolkit itself had moved off | 34 / 0.15 |
+| v1.17.0 | 2026-08-28 | A tag reaches npm through an approval, and shipped records stop being rewritten | 34 / 0.15 |
 
 ("Spine" = the number of checks the gate runs. "Standard" = the version of the written specification. They were stable at 29 / 0.11 from v1.2.0 through v1.5.x; **v1.6.0 grew them to 30 / 0.12** - the first new requirement since v1.1.0, shipped under a warn-first burndown so no existing plugin newly fails.)
 
@@ -171,7 +172,7 @@ rendering at warn until 0.14 so nobody is gated on our defect.
 baseline, except two that gain one capped warning each from the `G4` migration. Zero verdicts moved.
 
 ## Where we are now
-- Version **1.16.3**, Standard **0.15**, **34-check spine**, **3 scopes** (plugin, component, marketplace), **26 skills**, suite **1436 / 0 failures**, gate **Advanced 0/0**, `release-ready` all five green. Self-grading Gold on every CI build. **Fully distributed as of 2026-08-28**: npm `latest` serves **1.16.3** with SLSA provenance and `agent-plugins` is pinned to `v1.16.3` at registry 1.70.0. `v1.16.2` was deliberately never published to npm, the second such skip after 1.12.0; the registry pins by git sha, so its Action fix ships regardless. **This line went stale exactly as it warned it would**: it read `1.13.0` from 2026-08-14 to 2026-08-28, unrefreshed through six releases and three Standard cuts. What changed on 2026-08-28 is that keeping it true is no longer only a habit: a pushed tag now runs every gate and stops at a required reviewer before publishing, and `repin-watch` notices registry drift daily.
+- Version **1.17.0**, Standard **0.15**, **34-check spine**, **3 scopes** (plugin, component, marketplace), **26 skills**, suite **1439 / 0 failures**, gate **Advanced 0/0**, `release-ready` all five green. Self-grading Gold on every CI build. **Distribution in flight at the cut (2026-08-28)**: npm `latest` serves **1.16.3** with SLSA provenance and `agent-plugins` is pinned to `v1.16.3` at registry 1.71.0; the pushed `v1.17.0` tag is the first through the approval-gated publish path, and this line is rewritten when distribution closes. `v1.16.2` was deliberately never published to npm, the second such skip after 1.12.0; the registry pins by git sha, so its Action fix ships regardless. **This line went stale exactly as it warned it would**: it read `1.13.0` from 2026-08-14 to 2026-08-28, unrefreshed through six releases and three Standard cuts. What changed on 2026-08-28 is that keeping it true is no longer only a habit: a pushed tag now runs every gate and stops at a required reviewer before publishing, and `repin-watch` notices registry drift daily.
 
 ## What's next, and why (the roadmap, in priority order)
 The v1.6.0 headline (the manifest-vs-disk drift check) and the report glossary + Bronze reference page both shipped above. The remaining v1.6.0-program work lands as continuous supporting effort:
@@ -311,3 +312,28 @@ against protected `main`, manifest agreement, the suite, the conformance gate, `
 and waits for a human to approve or reject. **The human decision is preserved and the forgetting is removed.**
 A forgotten publish is a silent failure; an unapproved deployment is a visible one that sits in the Actions tab
 until someone rules on it.
+
+### v1.17.0 - a tag reaches npm through an approval, and shipped records stop being rewritten (2026-08-28)
+
+**What:** the minor that promoted two sessions of merged work, and the first release to ship through the
+tag-triggered publish path the v1.16.3 entry describes. Three things are new: a documentation style contract
+with `npm run doc-style` as its report (deliberately not a gate), a `G8` finding for folder READMEs that exist
+but cannot be read (at `warn` until Standard 0.17, per ADR 0056, an unreadable folder README is a finding, not
+a silent pass), and the E52 scoping fix that stops the count guard from policing a release's packet and
+CHANGELOG section after that release has shipped.
+
+**Value, plainly:** releases now reach the people they are written for without anyone remembering to send
+them, and the project's own records stop being quietly rewritten by later work. The gate also stops doing the
+one thing this toolkit grades other tools for doing: reporting success on a folder it never actually examined.
+
+**Value, for engineers:** `versionHasShipped()` fails closed, so a shallow CI clone with no tags polices
+everything exactly as before rather than going quiet. The `G8` finding names the path, the error code, and the
+fact that the dependent checks did not run, instead of claiming a content failure nobody observed; the
+escalation window to `error` was measured free (213 READMEs across the six reference-family members, zero
+affected) rather than assumed. The style layer ships as an instrument plus a contract rather than a gate,
+because the previous documentation passes had satisfied a sentence-length metric and still read as hard - the
+report ranks all 88 published pages so the worst page is always the next one in the queue. The Codex
+round-trip (Q-E) was run and recorded for this tag for the first time since v1.14.0: skills ingested against
+`codex-cli 0.144.5`, not merely listed. And the version number itself carries a small governance story: v1.17.0
+had been assigned to two earlier bodies of work (the graded cohort, then the onboarding funnel), and only this
+cut shipped under it, so the funnel packet went unversioned per the no-version-until-it-ships precedent.
