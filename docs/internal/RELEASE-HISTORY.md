@@ -34,8 +34,10 @@ The toolkit is a quality bar for AI skill libraries: it grades a plugin Bronze, 
 | v1.13.0 | 2026-08-13 | The contract you adopted: one post-resolution ceiling over `since` and `until`, config provenance, and two graduations that could not previously fire | 31 / 0.13 |
 | v1.14.0 | 2026-08-16 | Four things the gate was telling you were not true, and three files it was never reading | 34 / 0.14 |
 | v1.15.0 | 2026-08-18 | Two migration windows close on schedule, one because its subject did the work | 34 / 0.15 |
-| v1.16.1 | 2026-08-24 | Gold was unreachable for anyone who did not vendor the gate | 34 / 0.15 |
 | v1.16.0 | 2026-08-22 | The evidence gets an address, and some of it was resting on nothing | 34 / 0.15 |
+| v1.16.1 | 2026-08-24 | Gold was unreachable for anyone who did not vendor the gate | 34 / 0.15 |
+| v1.16.2 | 2026-08-25 | The reusable Action failed for every consumer before it graded anything | 34 / 0.15 |
+| v1.16.3 | 2026-08-25 | The Action documented a pin the toolkit itself had moved off | 34 / 0.15 |
 
 ("Spine" = the number of checks the gate runs. "Standard" = the version of the written specification. They were stable at 29 / 0.11 from v1.2.0 through v1.5.x; **v1.6.0 grew them to 30 / 0.12** - the first new requirement since v1.1.0, shipped under a warn-first burndown so no existing plugin newly fails.)
 
@@ -169,7 +171,7 @@ rendering at warn until 0.14 so nobody is gated on our defect.
 baseline, except two that gain one capped warning each from the `G4` migration. Zero verdicts moved.
 
 ## Where we are now
-- Version **1.13.0**, Standard **0.13**, **31-check spine**, **3 scopes** (plugin, component, marketplace), **24 skills**, gate **Advanced 0/0**. Self-grading Gold on every CI build; installable from the `product-on-purpose` marketplace and from npm as `agent-skills-toolkit`, which has served **1.12.1** since 2026-08-12 via trusted publishing (OIDC) with no stored credential. Nothing checks that this line stays current - a maintainer updates it by hand at each release cut, the same failure mode the v1.10.1 `STATUS.md` rewrite corrected elsewhere in the repository, and it went stale exactly that way twice: between v1.10.1 and v1.12.0 (both v1.11 releases shipped without an entry here) and again at v1.12.1, which was found missing by round 7 of the v1.13.0 pre-implementation review rather than by anything in the release process.
+- Version **1.16.3**, Standard **0.15**, **34-check spine**, **3 scopes** (plugin, component, marketplace), **26 skills**, suite **1433 / 0 failures**, gate **Advanced 0/0**, `release-ready` all five green. Self-grading Gold on every CI build. **Distribution is behind the tag**: npm `latest` serves **1.16.1** and the `agent-plugins` registry is pinned to **v1.16.1**, while the repository is at 1.16.3, so v1.16.2 and v1.16.3 reach consumers by neither route. `docs/internal/STATUS.md` carries the live detail. **This line went stale exactly as it warned it would**: it read `1.13.0` from 2026-08-14 to 2026-08-28, unrefreshed through the v1.14.0, v1.15.0, v1.16.0, v1.16.1, v1.16.2 and v1.16.3 cuts, which is six releases and three Standard cuts. The v1.16.3 entry below describes the automation added so the npm half of this stops depending on anyone remembering.
 
 ## What's next, and why (the roadmap, in priority order)
 The v1.6.0 headline (the manifest-vs-disk drift check) and the report glossary + Bronze reference page both shipped above. The remaining v1.6.0-program work lands as continuous supporting effort:
@@ -258,3 +260,54 @@ for. Adversarial review caught it, and the release records say so plainly.
 **The durable lesson, and it is not new here, only sharper:** the code written in *response* to a review is unreviewed. This release is the first to run a review pass against its own corrections, and that pass found three more defects.
 
 **And then the same shape turned up in the documentation.** A pre-tag review of what a stranger actually reads found that **ten claims across eight public files described a gate this toolkit does not ship** - the Universal tier named as `U11-U13` or `U11-U14` where it runs to `U17`. `README.md` contradicted itself six lines apart, correct on one line and calling Bronze "12 checks" on the next. `U1-U9` plus `U11-U13` really is 12, so the count and its list agreed with each other perfectly and nothing ever compared either to the registry. Four checks - including the `agents/` phantom-subagent rule this project had made a headline of two releases running - had no description in the front door at all. It is the v1.15.0 defect exactly: that release fixed one stale page and shipped the fix with no sweep and no guard. This one swept, wrote the guard, and put the correction in the release notes where a reader who had built on the wrong number will see it.
+
+### v1.16.2 - the Action failed before it graded anything (2026-08-25)
+
+**The problem, in one sentence.** The reusable GitHub Action this project publishes failed for every consumer
+before it ran a single rule, so the observable result was a red check with no grade at all.
+
+**Value, plainly:** the gate is the product, and the Action is how most people are meant to run it in CI. A
+consumer who wired it up got a failure that told them nothing about their own plugin. **The grade they came
+for was never computed.**
+
+**Value, for engineers:** the `Set up Node` step passed `cache-dependency-path: ${{ github.action_path }}/package-lock.json`.
+`setup-node` resolves that input as a glob relative to `GITHUB_WORKSPACE`, while `github.action_path` is an
+absolute path outside the workspace, so the pattern never matched, `setup-node` treats an unresolved path as an
+error, and the composite step failed - skipping both the dependency install and the gate itself. The cache lines
+were removed rather than repaired: the install they cached is a single package, so they saved nothing measurable,
+and there is no workspace-relative path that could point at the Action's own lockfile.
+
+**The part worth keeping.** It was found by `prisant-labs/prisant-utilities`, the first consumer to wire the
+Action into CI. **This project's own CI never caught it, because it runs its gate directly rather than through
+the Action it publishes.** A self-grading tool proves the gate works. It does not prove the doorway to the gate
+works, and those are different claims. It is the same shape as v1.16.1, where Gold was unreachable for anyone
+who installed the documented way: both defects lived in the gap between how the project uses itself and how it
+tells everyone else to use it.
+
+### v1.16.3 - the documented pin was one the toolkit had moved off (2026-08-25)
+
+**The problem, in one sentence.** The SARIF example in `action.yml`'s usage comment told consumers to use
+`github/codeql-action/upload-sarif@v3`, a pin this repository had already stopped using in its own workflow.
+
+**Value, plainly:** every consumer who copied the example inherited two deprecation warnings the toolkit had
+already avoided for itself. The advice was worse than the practice.
+
+**Value, for engineers:** the v3 line targets Node 20, which GitHub runners now force onto Node 24 with a
+deprecation warning, and it deprecates in December 2026. This repository's own `codeql.yml` was already on v4.
+**Same shape as v1.16.2 twice over:** the path used internally and the path handed to consumers had diverged,
+and nothing compared them.
+
+**What was added afterwards, and why it belongs in this entry.** Both of these releases were tagged and
+GitHub-released on 2026-08-25 and then **sat unpublished**. Three days later npm `latest` still served 1.16.1
+and the `agent-plugins` registry was still pinned to v1.16.1, so two fixes written specifically for Action
+consumers had reached those consumers by neither route. The publish workflow was `workflow_dispatch` only, by a
+deliberate and well-argued decision: an npm publish is a one-way door and should not fire automatically off a
+tag push. **That reasoning was right about the risk and wrong about the failure mode.** What actually went wrong
+was not an accidental publish; it was no publish at all, silently, for three days.
+
+So the trigger now fires on a pushed tag, and the one-way step sits behind a **required reviewer** on the
+`npm-publish` deployment environment. A tag push runs every existing gate - tag format, the ancestry proof
+against protected `main`, manifest agreement, the suite, the conformance gate, `release-ready` - and then stops
+and waits for a human to approve or reject. **The human decision is preserved and the forgetting is removed.**
+A forgotten publish is a silent failure; an unapproved deployment is a visible one that sits in the Actions tab
+until someone rules on it.
