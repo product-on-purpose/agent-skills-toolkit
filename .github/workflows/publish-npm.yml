@@ -5,8 +5,18 @@
 # under the same number afterward), so the one-way step is never automatic: the `publish` job below is
 # bound to the `npm-publish` GitHub environment, which carries a REQUIRED REVIEWER. On a tag push the
 # run reaches that gate and waits for a human to approve or reject, and nothing reaches the registry
-# until someone clicks. Verified live 2026-08-28: that environment carries both a `required_reviewers`
-# rule and the `main`-only branch policy.
+# until someone clicks. Verified live 2026-08-28: that environment carries a `required_reviewers`
+# rule and a deployment branch/tag policy allowing `main` (branch) and `v*` (tag).
+#
+# THE TAG POLICY IS AS LOAD-BEARING AS THE REVIEWER, in the opposite direction. The first tag ever
+# pushed through this trigger (v1.17.0, 2026-08-28) was REJECTED before the reviewer gate could
+# engage: the environment's custom branch policy listed only `main`, and a custom policy admits tag
+# refs only through an explicit type:tag entry, so the publish job failed with zero steps and no log
+# ("Tag \"v1.17.0\" is not allowed to deploy to npm-publish"). The earlier "verified live" claim had
+# checked that the rules EXISTED, never that a tag could pass them - a path that has never been
+# exercised is not a verified path. Fixed by adding the `v*` type:tag policy; the rerun then waited
+# at the reviewer exactly as designed. If that tag policy is ever removed, every tag-triggered
+# publish fails the same way, silently from this file's point of view.
 #
 # THE REQUIRED REVIEWER IS LOAD-BEARING, and this is the one line to read before changing it. Until
 # 2026-08-28 the trigger here was dispatch-only, and an earlier version of this docblock said that if a

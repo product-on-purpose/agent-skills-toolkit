@@ -9,6 +9,10 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Fixed
+
+- **The first tag through the approval-gated publish path was rejected before the reviewer gate could engage.** The `npm-publish` environment's custom deployment branch policy listed only `main`, and a custom policy admits tag refs only through an explicit type:tag entry, so the `v1.17.0` publish job failed with zero steps and no log ("Tag \"v1.17.0\" is not allowed to deploy"). The tag trigger shipped in this state because its verification had checked that the reviewer rule and branch policy EXISTED, never that a tag could pass them - the path had simply never been exercised (v1.16.3 published via dispatch from `main`, which the policy allowed). Fixed by adding a `v*` type:tag policy to the environment; the rerun then waited at the required reviewer exactly as designed, and v1.17.0 published through it. `publish-npm.yml`'s docblock now records both load-bearing environment rules and what removing each one silently does.
+
 ## [1.17.0] - 2026-08-28
 
 ### Added

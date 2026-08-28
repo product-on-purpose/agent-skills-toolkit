@@ -6,13 +6,13 @@
 > technical history), and `docs/internal/release-plans/` (the per-release spec + implementation
 > packets). Do not add accretive per-release paragraphs here; append them to those instead.
 >
-> Last updated: 2026-08-28 (v1.17.0 cut; first tag through the approval-gated publish path).
+> Last updated: 2026-08-28 (v1.17.0 fully shipped through the approval-gated publish path, first tag to do so).
 
 ## Current state
 
 | Fact | Value |
 |---|---|
-| Version | **1.17.0, CUT 2026-08-28; publish in flight.** All four manifests read 1.17.0. The pushed tag `v1.17.0` fires `publish-npm.yml`, which runs every gate and stops at the `npm-publish` required-reviewer approval - the first tag through the new path. Distribution at cut time: npm `latest` **1.16.3** (SLSA provenance), registry `agent-plugins` **1.71.0** with the toolkit pinned `v1.16.3`. **`v1.16.2` was deliberately never published to npm** (maintainer decision 2026-08-28); 1.12.0 is the precedent. This row is rewritten when distribution closes. |
+| Version | **1.17.0, FULLY SHIPPED 2026-08-28.** Tagged `v1.17.0` at `fd5286b`, GitHub release **Latest**, npm `1.17.0` on `latest` with SLSA provenance, registry `agent-plugins` **1.72.0** via [PR #91](https://github.com/product-on-purpose/agent-plugins/pull/91) (prepared by `repin-watch`, issue #90 auto-closed). All four manifests and the `action.yml` advertised pin read 1.17.0. **First tag through the approval-gated publish path**, which its first exercise also debugged: the `npm-publish` environment's branch policy admitted only `main` and rejected the tag before the reviewer gate; a `v*` type:tag policy was added and the rerun waited at the reviewer as designed. Consumer-position verified: `npx agent-skills-toolkit@1.17.0` from a clean directory grades this repository Advanced 0/0. Nothing outstanding. |
 | Declared tier | Advanced (Gold) - `library.json` `tier: advanced` |
 | Standard pin | **0.15** |
 | Spine | 34 checks |
@@ -396,9 +396,9 @@ blocked its own first real run** - on 7 failing tests and a stale count that had
   whether a plugin can be held to a collision with a sibling it does not know it is catalogued beside -
   has no ADR, and no release should graduate the set wholesale merely because it happens to be carrying
   a Standard bump.
-- **npm is CURRENT: the registry serves 1.16.3**, published 2026-08-28 via trusted publishing, and
-  `agent-plugins` is pinned to **v1.16.3** at registry 1.71.0 (the 1.71.0 bump was `repin-watch`'s
-  second run re-pinning `product-lifecycle-templates`, not this toolkit). **`v1.16.2` was deliberately skipped**,
+- **npm is CURRENT: the registry serves 1.17.0**, published 2026-08-28 via trusted publishing through
+  the tag-triggered approval gate (its first live exercise), and `agent-plugins` is pinned to
+  **v1.17.0** (`fd5286b`) at registry 1.72.0 via PR #91, prepared by `repin-watch`. **`v1.16.2` was deliberately skipped**,
   the second time this repository has done that (1.12.0 was the first); the registry pins by git sha,
   so the v1.16.2 Action fix reaches marketplace consumers even though no npm tarball carries it.
   **The publish is no longer a thing anyone has to remember.** A pushed `v*` tag now runs every gate
