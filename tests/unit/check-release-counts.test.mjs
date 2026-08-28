@@ -649,8 +649,39 @@ test("evaluateReleaseCounts: skipping a shipped packet is REPORTED, never silent
 
 // --- versionHasShipped: the tag lookup, and its fail-closed behaviour. ---
 
-test("versionHasShipped: true for a version this repository has actually tagged", () => {
-  assert.equal(versionHasShipped(path.resolve(HERE, "../.."), "1.16.1"), true);
+// A repository this test builds itself, with a tag it creates. The previous version of this
+// assertion read the tags of whatever repository the suite happened to be running inside, which
+// is a developer checkout locally and a SHALLOW, TAGLESS checkout on CI. It therefore passed on a
+// workstation and failed on every runner. The production code was correct throughout: no tags
+// visible is exactly the fail-closed case versionHasShipped is designed for.
+function makeTaggedRepo(tag) {
+  const dir = mkdtempSync(path.join(tmpdir(), "askit-tagged-"));
+  const git = (...args) => {
+    const r = spawnSync("git", args, { cwd: dir, encoding: "utf8" });
+    if (r.error || r.status !== 0) throw new Error(`git ${args.join(" ")}: ${r.stderr || r.error}`);
+    return r.stdout;
+  };
+  git("init", "-q", "-b", "main");
+  writeFileSync(path.join(dir, "seed.txt"), "seed");
+  git("add", "-A");
+  git(
+    "-c", "user.email=test@example.com", "-c", "user.name=askit test", "-c", "commit.gpgsign=false",
+    "commit", "-q", "-m", "seed",
+  );
+  git("tag", tag);
+  return dir;
+}
+
+test("versionHasShipped: true for a version tagged in the repository it is handed", () => {
+  const dir = makeTaggedRepo("v1.16.1");
+  try {
+    assert.equal(versionHasShipped(dir, "1.16.1"), true);
+    // The negative case in the SAME repository. Without it this assertion would pass in any
+    // environment that simply has no tags at all, which is precisely what a CI checkout is.
+    assert.equal(versionHasShipped(dir, "1.16.2"), false);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
 });
 
 test("versionHasShipped: false for a version with no tag", () => {
