@@ -6,20 +6,36 @@
 > technical history), and `docs/internal/release-plans/` (the per-release spec + implementation
 > packets). Do not add accretive per-release paragraphs here; append them to those instead.
 >
-> Last updated: 2026-08-24 (v1.16.1 fully shipped).
+> Last updated: 2026-08-28 (v1.16.3 tagged and GitHub-released; npm and the registry both still carry 1.16.1).
 
 ## Current state
 
 | Fact | Value |
 |---|---|
-| Version | **1.16.1, FULLY SHIPPED 2026-08-24.** Tagged `v1.16.1` at `1da4d16`, GitHub release Latest, npm `1.16.1` on `latest` with SLSA provenance, registry `agent-plugins` **1.69.0** via [PR #84](https://github.com/product-on-purpose/agent-plugins/pull/84). Nothing outstanding. |
+| Version | **1.16.3, TAGGED AND GITHUB-RELEASED 2026-08-25. NOT fully shipped.** All four manifests read 1.16.3. `v1.16.2` -> `dd1b3bf` and `v1.16.3` -> `249513b`, both GitHub releases published, `v1.16.3` marked **Latest**. **npm `latest` still serves 1.16.1**, and **`agent-plugins` is still pinned to v1.16.1** (registry 1.69.0, [PR #84](https://github.com/product-on-purpose/agent-plugins/pull/84)). Two Action fixes have therefore reached consumers by neither route. Last version shipped end to end: **1.16.1** (2026-08-24). Publishing and re-pinning are maintainer actions and are **open**. |
 | Declared tier | Advanced (Gold) - `library.json` `tier: advanced` |
 | Standard pin | **0.15** |
 | Spine | 34 checks |
 | Scopes | 3 (plugin, component, marketplace) |
 | Skills | **26** |
-| Tests | 1433, 0 failures (1 skipped; local suite run **2026-08-25**, after the documentation style contract added 22 prose-metrics cases and the E52 fix added 12). It read **1399 at the shipped tag `1da4d16`** and **1359 at `9133014`**, each confirmed there by `npm run release-ready` exiting 0 on the release runner |
+| Tests | 1433, 0 failures (1 skipped; local suite run **2026-08-28** on the rebased style-contract work, after the documentation style contract added 22 prose-metrics cases and the E52 fix added 12). It read **1399 at `1da4d16` (v1.16.1)** and **1359 at `9133014` (v1.15.0)**, each confirmed there by `npm run release-ready` exiting 0 on the release runner. `v1.16.2` and `v1.16.3` left it at **1399**: neither touched `tests/`, verified by diff |
 | Self-proving | `node scripts/check.mjs .` exits 0 at Advanced, 0 errors, 0 warnings |
+
+## v1.16.2 and v1.16.3 SHIPPED 2026-08-25, DISTRIBUTION OPEN
+
+Two Action fixes cut the same evening, outside the normal release-plan flow. Neither changed the
+suite: it read 1399 at both tags, the same figure as `v1.16.1`, and neither touched `tests/`.
+
+| Step | State |
+| --- | --- |
+| v1.16.2 fixed | the reusable Action failed for every consumer before it graded anything. `cache-dependency-path` resolved as a glob relative to `GITHUB_WORKSPACE` while `github.action_path` is an absolute path outside it, so `setup-node` errored and the composite step skipped both the install and the gate |
+| v1.16.3 fixed | the SARIF example in `action.yml` told consumers to use `github/codeql-action/upload-sarif@v3`, a pin this repository's own workflow had already moved off |
+| Found by | `prisant-labs/prisant-utilities`, the first consumer to wire the Action into CI. The toolkit's own CI never caught it, because it runs its gate directly rather than through the Action it publishes |
+| Bump | done, all four manifests at 1.16.3 |
+| Tag | `v1.16.2` -> `dd1b3bf`, `v1.16.3` -> `249513b` |
+| GitHub release | both published, `v1.16.3` is **Latest** |
+| npm | **NOT PUBLISHED.** `latest` still serves 1.16.1. The Publish workflow is dispatch-triggered, so this is a maintainer action |
+| Registry | **NOT RE-PINNED.** `agent-plugins` is still on v1.16.1 (registry 1.69.0, [PR #84](https://github.com/product-on-purpose/agent-plugins/pull/84)) |
 
 ## v1.16.1 SHIPPED 2026-08-24
 
@@ -380,9 +396,13 @@ blocked its own first real run** - on 7 failing tests and a stale count that had
   whether a plugin can be held to a collision with a sibling it does not know it is catalogued beside -
   has no ADR, and no release should graduate the set wholesale merely because it happens to be carrying
   a Standard bump.
-- **npm is CURRENT: the registry serves 1.15.0**, published 2026-08-20 via trusted publishing.
-  **This line read `1.13.0` from 2026-08-14 to 2026-08-20**, having gone unrefreshed through the v1.14.0
-  cut; the mechanism described below did not change, only the version it last carried. The mechanism, from
+- **npm is BEHIND: the registry serves 1.16.1**, published 2026-08-24 via trusted publishing, while this
+  repository is at **1.16.3**. `v1.16.2` and `v1.16.3` are tagged and GitHub-released but were never published,
+  so two Action fixes have not reached npm consumers. Publishing is a dispatch-triggered maintainer action.
+  **This is open.** `agent-plugins` is likewise still pinned to v1.16.1.
+  **This line has now gone stale twice.** It read `1.13.0` from 2026-08-14 to 2026-08-20, unrefreshed through the
+  v1.14.0 cut, then `1.15.0` from 2026-08-20 to 2026-08-28, unrefreshed through the v1.16.0, v1.16.1, v1.16.2 and
+  v1.16.3 cuts. Neither time did the mechanism described below change, only the version it carried. The mechanism, from
   the 1.13.0 publish onward: trusted publishing
   (OIDC) with **no stored credential of any kind** - the repository holds zero Actions secrets, and
   authentication is the runner's short-lived OIDC token alone. The published tarball carries an
