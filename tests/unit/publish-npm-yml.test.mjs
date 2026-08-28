@@ -113,15 +113,63 @@ test("the manifest-agreement guard invokes main's own copy of the script, readin
   assert.match(manifestCheck.run, /candidate/, "must point the check's root argument at the candidate's checked-out files");
 });
 
-test('"${{ inputs.tag }}" appears exactly once outside comments: the job-level env: TAG assignment', () => {
+// The tag reaching this workflow is attacker-influenceable from EITHER source: a dispatched input,
+// or the name of a pushed tag. Both are read exactly once, into the job-level env: TAG, and every
+// step below refers to the shell variable "$TAG" - which Bash treats as one string value, never as
+// source text to re-parse. A second interpolation anywhere in a run: block would re-open the round-1
+// injection finding, so the count is asserted rather than trusted.
+test("an untrusted tag is interpolated exactly once outside comments: the job-level env: TAG assignment", () => {
   const raw = readFileSync(WORKFLOW_PATH, "utf8");
   const codeLines = raw.split("\n").filter((line) => !line.trim().startsWith("#"));
-  const occurrences = codeLines.join("\n").split("${{ inputs.tag }}").length - 1;
+  const code = codeLines.join("\n");
+  for (const expr of ["inputs.tag", "github.ref_name"]) {
+    const occurrences = code.split(expr).length - 1;
+    assert.equal(
+      occurrences,
+      1,
+      `expected exactly one "${expr}" reference outside comments (the env: TAG assignment); prose in header comments may still mention it`
+    );
+  }
+  const wf = loadWorkflow();
   assert.equal(
-    occurrences,
-    1,
-    'expected exactly one raw "${{ inputs.tag }}" expression outside comments (the env: TAG assignment) - prose in header comments may still mention it when explaining history'
+    wf.jobs.prepare.env.TAG,
+    "${{ inputs.tag || github.ref_name }}",
+    "TAG must cover both event sources in the single env assignment"
   );
+});
+
+// A pushed tag now reaches this workflow. The control that keeps npm a deliberate act rather than an
+// automatic one is the required reviewer on the `npm-publish` environment, so the binding to that
+// environment is the load-bearing line in the file and is asserted here. The environment rule itself
+// lives in repo settings and cannot be asserted from the tree; this test pins the half that can be.
+test("a tag push triggers the workflow, and the publish job is bound to the reviewer-gated environment", () => {
+  const wf = loadWorkflow();
+  assert.ok(wf.on.push, "a pushed tag must trigger this workflow");
+  assert.deepEqual(wf.on.push.tags, ["v*"], "the tag trigger must be scoped to v*");
+  assert.ok(wf.on.workflow_dispatch, "manual dispatch must remain available");
+  assert.equal(
+    wf.jobs.publish.environment?.name,
+    "npm-publish",
+    "the publish job must stay bound to npm-publish; that binding is what requires a human approval"
+  );
+});
+
+// The negative cases the trigger change must not break: a dispatch asking for a dry run must still
+// be unable to reach the publish job, and a failed prepare must still stop everything.
+test("publish stays unreachable on a dry-run dispatch and on a failed prepare", () => {
+  const cond = loadWorkflow().jobs.publish.if;
+  assert.match(cond, /success\(\)/, "a failed prepare must never let publish run");
+  assert.match(cond, /!inputs\.dry_run/, "a dry-run dispatch must never reach publish");
+  assert.match(cond, /github\.event_name == 'push'/, "a tag push must reach publish (via the approval gate)");
+});
+
+// The severity fix from round 1: even a successful injection earlier in the file lands in a job that
+// cannot mint an OIDC token. Adding a trigger must not quietly widen that permission.
+test("id-token: write lives only on the publish job, never on prepare or at workflow level", () => {
+  const wf = loadWorkflow();
+  assert.equal(wf.permissions?.["id-token"], undefined, "no id-token at workflow level");
+  assert.equal(wf.jobs.prepare.permissions?.["id-token"], undefined, "prepare must never hold id-token");
+  assert.equal(wf.jobs.publish.permissions?.["id-token"], "write", "publish needs id-token for provenance");
 });
 
 test("publish-npm.yml carries no em-dashes or en-dashes anywhere in the file", () => {
