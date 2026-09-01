@@ -31,6 +31,11 @@ export const SOURCE_KINDS = Object.freeze({
   npm: { locallyDiscoverable: false, remote: true },
   archive: { locallyDiscoverable: false, remote: true },
   "git-subdir": { locallyDiscoverable: true, remote: true },
+  // `command` (Claude Code v2.1.229+) runs a command that produces the plugin. Its member directory
+  // cannot be guessed from the source the way a url or github entry's can, so it is NOT locally
+  // discoverable - the same shape as npm, and `locallyDiscoverable` is read in exactly one place
+  // (resolve.mjs) to choose which not-graded reason a member gets.
+  command: { locallyDiscoverable: false, remote: true },
 });
 
 const nonEmptyString = (v) => typeof v === "string" && v.trim() !== "";
@@ -76,6 +81,15 @@ export function classifySource(raw) {
       if (!nonEmptyString(raw.url)) return { kind: null, reason: 'source kind "git-subdir" requires a non-empty "url"' };
       if (!nonEmptyString(raw.path)) return { kind: null, reason: 'source kind "git-subdir" requires a "path" naming the subdirectory the plugin lives in' };
       return { kind: "git-subdir", url: raw.url, sha: nonEmptyString(raw.sha) ? raw.sha : null, subdir: raw.path, reason: null };
+    case "command":
+      // Pin semantics: NONE, and that is settled by this file's own precedent rather than by choice.
+      // `archive` requires sha256 because a downloadable artifact CAN be digest-verified and an
+      // undigested one advertises integrity it lacks. A command source has no artifact to digest, so
+      // it takes the npm branch - well-formed but not locally resolvable - and `pinShaOf` returns null
+      // for it by falling through, exactly as it does for npm.
+      return nonEmptyString(raw.command)
+        ? { kind: "command", command: raw.command, reason: null }
+        : { kind: null, reason: 'source kind "command" requires a non-empty "command"' };
     default:
       return {
         kind: null,

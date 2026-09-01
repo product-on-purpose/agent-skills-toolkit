@@ -104,6 +104,35 @@ test("classifySource: the three new kinds (npm, archive, git-subdir) are recogni
   assert.equal(classifySource({ source: "git-subdir", url: "https://x/y.git", path: "packages/foo" }).kind, "git-subdir");
 });
 
+test("classifySource: the `command` kind (Claude Code v2.1.229+) is accepted and carries its command", () => {
+  // The one verified false-FAIL this repository's own gate had: a valid marketplace shipping a
+  // `command` entry fell to the default branch, and per ADR 0039 a rejection here reds the whole
+  // collection. Accepting the kind is what closes it.
+  const r = classifySource({ source: "command", command: "npx make-plugin --out ." });
+  assert.equal(r.kind, "command");
+  assert.equal(r.command, "npx make-plugin --out .");
+  assert.equal(r.reason, null);
+  assert.equal(pinShaOf(r), null, "a command source has no artifact to digest, so it carries no pin - the npm shape");
+});
+
+test("classifySource: a `command` entry with no command field still REDS, with a kind-specific reason", () => {
+  // Proven able to fail: accepting the kind must not accept a malformed entry of that kind.
+  for (const bad of [{ source: "command" }, { source: "command", command: "" }, { source: "command", command: "   " }]) {
+    const r = classifySource(bad);
+    assert.equal(r.kind, null, `expected rejection for ${JSON.stringify(bad)}`);
+    assert.match(r.reason, /source kind "command" requires a non-empty "command"/);
+  }
+});
+
+test("classifySource: a typo'd kind still reds, and now lists `command` among the known kinds", () => {
+  // The known-kinds reason string is derived from SOURCE_KINDS rather than hand-written, so this
+  // asserts the user-facing text stopped understating the vendor's schema.
+  const r = classifySource({ source: "comand", command: "npx make-plugin" });
+  assert.equal(r.kind, null);
+  assert.match(r.reason, /unknown source kind/);
+  assert.match(r.reason, /command/, "the known-kinds list must name the kind the author nearly typed");
+});
+
 test("classifySource: an archive with no sha256 is REJECTED, not merely unpinned", () => {
   // The one new kind where a missing field is a real defect: an archive with no digest is an
   // unverifiable download, and accepting it would let a catalogue advertise integrity it does not have.
@@ -121,10 +150,11 @@ test("classifySource: malformed sources are rejected with a reason, never thrown
   }
 });
 
-test("pinShaOf: url/github/git-subdir report sha, archive reports its digest, npm and local report none", () => {
+test("pinShaOf: url/github/git-subdir report sha, archive reports its digest, npm/command and local report none", () => {
   assert.equal(pinShaOf({ kind: "url", sha: "a1" }), "a1");
   assert.equal(pinShaOf({ kind: "archive", sha256: "d1" }), "d1");
   assert.equal(pinShaOf({ kind: "npm" }), null);
+  assert.equal(pinShaOf({ kind: "command", command: "npx make-plugin" }), null);
   assert.equal(pinShaOf({ kind: "local-path" }), null);
   assert.equal(pinShaOf(null), null);
 });
