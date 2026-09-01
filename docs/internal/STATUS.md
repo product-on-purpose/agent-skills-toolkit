@@ -12,7 +12,7 @@
 
 | Fact | Value |
 |---|---|
-| Version | **1.17.1 CUT 2026-09-01** - the records patch, cut 1 of the resolution plan ratified 2026-08-31. All four manifests and the `action.yml` advertised pin read 1.17.1. Distribution state is recorded below this row as it completes. Previously: **1.17.0, FULLY SHIPPED 2026-08-28.** Tagged `v1.17.0` at `fd5286b`, GitHub release **Latest**, npm `1.17.0` on `latest` with SLSA provenance, registry `agent-plugins` **1.72.0** via [PR #91](https://github.com/product-on-purpose/agent-plugins/pull/91) (prepared by `repin-watch`, issue #90 auto-closed). All four manifests and the `action.yml` advertised pin read 1.17.0. **First tag through the approval-gated publish path**, which its first exercise also debugged: the `npm-publish` environment's branch policy admitted only `main` and rejected the tag before the reviewer gate; a `v*` type:tag policy was added and the rerun waited at the reviewer as designed. Consumer-position verified: `npx agent-skills-toolkit@1.17.0` from a clean directory grades this repository Advanced 0/0. Nothing outstanding. |
+| Version | **1.17.1, FULLY SHIPPED 2026-09-01.** The records patch, cut 1 of the resolution plan ratified 2026-08-31. Tagged `v1.17.1` at `4ba1ae6`, GitHub release **Latest**, npm `1.17.1` on `latest` with SLSA provenance, registry `agent-plugins` **1.73.0** via [PR #93](https://github.com/product-on-purpose/agent-plugins/pull/93) (prepared by `repin-watch`, issue #92 closed). All four manifests and the `action.yml` advertised pin read 1.17.1. Consumer-position verified: `npx agent-skills-toolkit@1.17.1` from a clean directory grades this repository Advanced 0/0. **Second exercise of the tag-triggered publish path and the first to reach the reviewer on its first try.** One defect found in the release path itself and filed as E57: `RELEASE-NOTES.md`'s heading shipped into the tag as a literal format placeholder, caught by `release.yml` AFTER the tag and publish rather than by `release-ready` before them; the npm tarball was unaffected (the file is not in `package.json`'s `files`). Previously: Previously: **1.17.0, FULLY SHIPPED 2026-08-28.** Tagged `v1.17.0` at `fd5286b`, GitHub release **Latest**, npm `1.17.0` on `latest` with SLSA provenance, registry `agent-plugins` **1.72.0** via [PR #91](https://github.com/product-on-purpose/agent-plugins/pull/91) (prepared by `repin-watch`, issue #90 auto-closed). All four manifests and the `action.yml` advertised pin read 1.17.0. **First tag through the approval-gated publish path**, which its first exercise also debugged: the `npm-publish` environment's branch policy admitted only `main` and rejected the tag before the reviewer gate; a `v*` type:tag policy was added and the rerun waited at the reviewer as designed. Consumer-position verified: `npx agent-skills-toolkit@1.17.0` from a clean directory grades this repository Advanced 0/0. Nothing outstanding. |
 | Declared tier | Advanced (Gold) - `library.json` `tier: advanced` |
 | Standard pin | **0.15** |
 | Spine | 34 checks |
@@ -46,8 +46,14 @@ measured before it shipped.
 sharpest: the documentation for the anti-phantom-reference guard contained a phantom reference, in the
 one place that guard structurally cannot look.
 
-**Still open from this cut:** RS-A3's acceptance criterion that the LIVE DEPLOYED registry page shows
-the new measurement date, checkable only after the docs deploy runs on `main`.
+**RS-A3's last criterion is now CLOSED.** The live deployed page was checked from outside the
+repository after the docs deploy: it shows `Measured 2026-09-01`, the registry sha `81dbbde`, all six
+rows `in sync`, and names its own staleness episode. Every item in cut 1 is therefore complete.
+
+**One defect the cut found in the release path itself,** filed as E57: `release-ready` has no gate that
+reads `RELEASE-NOTES.md`'s section for the version being cut, so `release.yml`'s (correct) refusal to
+publish a malformed notes body fires only after the tag is pushed and the publish approved. Same shape
+as the v1.17.0 publish-environment defect - a correct rule exercised one step too late.
 
 ## v1.16.2 and v1.16.3 SHIPPED 2026-08-25, DISTRIBUTION CLOSED 2026-08-28
 

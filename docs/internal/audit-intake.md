@@ -41,7 +41,7 @@ Twenty-five recommendations. The resolution plan mapping all of them was ratifie
 | Six (in fact nine) execution files call E4 and E9 "stretch" | RESOLVED 2026-09-01, cut 1 | RS-A4; [`execution/`](execution/) |
 | No forward version numbers on unshipped phases | RESOLVED 2026-09-01, cut 1 | RS-F1; [ADR 0057](decisions/0057-unshipped-work-carries-a-name-never-a-version-number.md) |
 | Adopt the audit-intake index | RESOLVED 2026-09-01, cut 1 | RS-F2; this page |
-| family-registry regeneration (manual) | OPEN - cut 1 | RS-A3 |
+| family-registry regeneration (manual) | RESOLVED 2026-09-01, cut 1 - **verified on the LIVE deployed page**, which shows `Measured 2026-09-01`, the registry sha `81dbbde`, all six rows `in sync`, and names its own staleness episode | RS-A3; [`../reference/family-registry.md`](../reference/family-registry.md) |
 | family-registry regeneration (scheduled or CI-produced) | OPEN | RS-D3 |
 | Rule on E16 (multi-entry credit gap), then E17 / E20 / E15 | RULED 2026-08-31 (option a'), implementation OPEN | RS-B1; [`backlog/enhancements.md`](backlog/enhancements.md) |
 | Mutation-proof the check spine | OPEN | RS-B2 |
