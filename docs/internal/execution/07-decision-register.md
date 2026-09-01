@@ -109,5 +109,5 @@ Two classes of decision anchor this program. **Maintainer rulings (AU-1 through 
 
 - Whether SP4's step-orphan validation ships as a spine check or a non-spine validator (its ADR decides; warn-first if spine).
 - Whether the marketplace-scope collection verdict is worst-member or a policy knob (its ADR decides).
-- Whether E4 (SARIF output) and E9 (provenance contract) make the R4 cut as stretch riders or return to the backlog.
+- Whether E4 (SARIF output) and E9 (provenance contract) make the R4 cut as optional riders or return to the backlog. **Settled by shipping: both landed in v1.11.0 on 2026-08-11.**
 - CodeQL include-vs-decline confirmation when the R1 CI PR lands (OR-9 recommends include).

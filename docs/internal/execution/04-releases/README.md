@@ -16,7 +16,7 @@ One plan per release of the askit uplift program. Each carries its feature specs
 - [R1-v1.7.0-trust-and-craft.md](R1-v1.7.0-trust-and-craft.md) - H1 (hygiene batch), SP1 (builder craft pass), F2 (eval-run pipeline).
 - [R2-v1.8.0-deep-builders-measured-advisory.md](R2-v1.8.0-deep-builders-measured-advisory.md) - SP2 (deepen the builders), F3 (advisory quality measurement), F5 (authoring token measurements), corpus batch 3, evals/ fixtures.
 - [R3-v1.9.0-marketplace-scope.md](R3-v1.9.0-marketplace-scope.md) - marketplace-scope evaluation (the headline), SP3 (coherent-plugin authoring journey).
-- [R4-v1.10.0-manage-and-studio.md](R4-v1.10.0-manage-and-studio.md) - SP4 (Manage gaps), the GUI read-only studio slice, stretch riders E4 (SARIF output) and E9 (provenance contract).
+- [R4-v1.10.0-manage-and-studio.md](R4-v1.10.0-manage-and-studio.md) - SP4 (Manage gaps), the GUI read-only studio slice, optional riders E4 (SARIF output) and E9 (provenance contract), both SHIPPED in v1.11.0, 2026-08-11.
 
 
 ## Renumbered 2026-07-27

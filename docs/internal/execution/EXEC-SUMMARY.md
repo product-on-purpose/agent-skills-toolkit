@@ -1,9 +1,15 @@
 ---
 title: "askit uplift program - executive summary"
 description: "The one page to review before saying go - what ships, what it costs, what waits for you, and the risks"
-status: draft
-last-updated: "2026-08-11"
+status: historical
+last-updated: "2026-09-01"
 ---
+
+> **This document is a RECORD, not the live plan (resolved 2026-09-01).** It carried
+> `status: draft` and a 2026-08-11 date for three weeks after the program it summarises had
+> finished shipping. The live state of this project lives in
+> [`../STATUS.md`](../STATUS.md), which is what the roadmap's own closing already concluded.
+> Everything below is preserved as it was scoped, with shipped outcomes annotated in place.
 
 # Executive summary: the askit uplift program
 
@@ -35,7 +41,7 @@ After this program: the front page is true and cannot silently drift again; the 
 | **v1.7.0 "trust and craft"** | Every stale surface fixed; the stalled craft-pass thread shipped | H1 (hygiene batch: README + comparison + subagents reference + QUICKSTART + branch pruning + small correctness fixes + CI hardening), SP1 (builder craft pass - the consent-gated advisory review you designed 2026-06-25), F2 (eval-run pipeline) |
 | **v1.8.0 "deep builders, measured advisory"** | Builders become teachers; advisory becomes a number | SP2 (craft references + working golden/anti examples for the four complex builders), F3 (advisory quality measurement - seeded defects, precision/recall per model and effort), F5 (authoring token measurements, riding SP2's runs), corpus batch 3, first real evals/ fixtures |
 | **v1.12.0 "marketplace scope"** (was v1.9.0, then v1.10.0 - see the note above) | The program headline | Marketplace-scope evaluation (one run grades all members + collection findings; ADR-first; built relocation-friendly), SP3 (guided author-a-coherent-plugin journey) |
-| **Deferred indefinitely "manage and studio"** (was v1.10.0, then v1.11.0 - see the note above) | Manage gaps closed; the product gets a face | SP4 (deprecate removal automation + workflow step-orphan check), the read-only studio dashboard (local launch via `npm run ui`, localhost-only; npm publish stays out of scope under AU-2); stretch: E4 (SARIF output), E9 (provenance contract) |
+| **Deferred indefinitely "manage and studio"** (was v1.10.0, then v1.11.0 - see the note above) | Manage gaps closed; the product gets a face | SP4 (deprecate removal automation + workflow step-orphan check), the read-only studio dashboard (local launch via `npm run ui`, localhost-only; npm publish stays out of scope under AU-2); optional riders: E4 (SARIF output), E9 (provenance contract), both SHIPPED in v1.11.0, 2026-08-11 |
 
 ## What happens on "go" - and what waits for you
 
