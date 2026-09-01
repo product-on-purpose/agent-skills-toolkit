@@ -42,6 +42,29 @@ Unshipped work carries:
 
 It does not carry a version number. The number is assigned at cut time, by the release process, and lands first in the release packet being cut.
 
+## The compliance run, dated and classified
+
+The acceptance criterion for this ADR is not "the grep returns nothing" - that criterion was tried and
+rejected, because the obvious grep fires on prose that EXPLAINS a number was deliberately not assigned,
+which is the policy being obeyed. The criterion is: run the grep, classify every hit, and record the
+classification here.
+
+**Run 2026-09-01**, verbatim:
+
+```bash
+grep -nE "v1\.1[89]|v1\.2[0-9]" docs/internal/STATUS.md docs/internal/backlog/enhancements.md
+```
+
+**One hit, zero assignments.**
+
+| Hit | Text | Classification |
+|---|---|---|
+| `docs/internal/STATUS.md:604` | "Left unversioned deliberately rather than pushed to v1.18.0: assigning a line..." | **Prose ABOUT an assignment that was declined.** The policy being obeyed and explained, not breached. No action. |
+| `docs/internal/backlog/enhancements.md` | no hits | - |
+
+The tree complies. This table is the record the criterion asks for, and the next run appends to it rather
+than re-deriving the classification.
+
 ## Implementation sites
 
 - **[`../RELEASE.md`](../RELEASE.md)** - the process statement, in "How releases work here": the number is assigned at cut time.

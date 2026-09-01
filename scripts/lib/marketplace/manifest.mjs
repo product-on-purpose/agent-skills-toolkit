@@ -1,6 +1,6 @@
 // what-it-is:   the marketplace catalogue reader (ADR 0039, marketplace scope)
 // what-it-does: parses and shape-validates a .claude-plugin/marketplace.json, classifies every entry's
-//               source kind (local-path, url, github, npm, archive, git-subdir), reads the optional
+//               source kind (local-path, url, github, npm, archive, git-subdir, command), reads the optional
 //               `renames` field, and answers whether a manifest is the marketplace-OF-PLUGINS shape this
 //               scope grades or the marketplace-OF-SKILLS shape U13 already owns
 // why:          a catalogue is graded by hand today, one member at a time, so everything that exists only

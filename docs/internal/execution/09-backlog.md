@@ -25,7 +25,7 @@ scope now, and a suggested future home so re-triage is fast. Nothing should fall
 the cracks just because it did not make the current cut.
 
 One important conditional: E4 (SARIF output) and E9 (provenance contract) are listed
-here only as fallback entries. Both are earmarked as Release 4 (v1.10.0) stretch riders.
+here only as fallback entries. Both were earmarked as Release 4 (v1.10.0) optional riders, and both SHIPPED in v1.11.0 on 2026-08-11.
 If they land in R4, their entries here become stale and should be struck at the
 post-program re-triage.
 

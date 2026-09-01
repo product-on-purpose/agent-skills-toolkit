@@ -24,7 +24,9 @@
 //               The mechanical vocabularies are the point: they cannot drift from the tree, so
 //               the committed list stays small and every entry in it is a deliberate statement.
 // known-limits: a claim id cited without backticks is invisible here; a citation on a line that
-//               never says "claim" or "pin" is invisible here; and a genuinely new kind of
+//               never says "claim" or "pin" is invisible here; case is NOT a blind spot (the token
+//               match is case-insensitive, closed after a review planted a mixed-case phantom and
+//               watched this guard pass it); and a genuinely new kind of
 //               kebab-case name reds once until it is either recognized mechanically or added to
 //               KNOWN_NON_CLAIM with a reason. That last is the intended failure direction for a
 //               records guard: a false positive costs one line of vocabulary, a false negative
@@ -65,8 +67,15 @@ const KNOWN_NON_CLAIM = new Map([
 
 /** A line is about claims or pins if it says so. */
 const CITATION_CONTEXT = /\bclaim|\bpin(?:s|ned|ning)?\b/i;
-/** Two or more lowercase-alphanumeric segments joined by hyphens, inside backticks. */
-const BACKTICKED_KEBAB = /`([a-z0-9]+(?:-[a-z0-9]+)+)`/g;
+/**
+ * Two or more alphanumeric segments joined by hyphens, inside backticks. Case-INSENSITIVE on purpose:
+ * an earlier version matched lowercase only, and an adversarial review planted `Phantom-Attack-E-Id`
+ * on a line asserting it was pinned, which the guard passed in silence. Ledger ids are lowercase by
+ * convention, so a mixed-case token can never RESOLVE - which is exactly why it must still be SCOOPED,
+ * or the convention becomes a way to smuggle a phantom past the guard. Measured before widening: zero
+ * additional findings on the governed files, so the blind spot closed at no false-positive cost.
+ */
+const BACKTICKED_KEBAB = /`([A-Za-z0-9]+(?:-[A-Za-z0-9]+)+)`/g;
 
 const read = (p) => fs.readFileSync(p, "utf8");
 const exists = (p) => fs.existsSync(p);

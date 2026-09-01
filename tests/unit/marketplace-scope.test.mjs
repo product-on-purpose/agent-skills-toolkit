@@ -124,6 +124,44 @@ test("classifySource: a `command` entry with no command field still REDS, with a
   }
 });
 
+test("collection: a catalogue carrying a `command` entry is NOT red - the appendix-A reproduction", () => {
+  // AC1's end-to-end half, which the classifySource() unit tests above do not reach. The defect this
+  // closes did not manifest at the function; it manifested at the COLLECTION, because ADR 0039 makes a
+  // source rejection red the whole catalogue. An adversarial review of this cut found the unit tests
+  // covered the function and left this path uncovered, so a regression anywhere between classifySource
+  // and the collection report would have passed the suite.
+  //
+  // The catalogue holds ONLY the command entry on purpose: a second member would raise findings of its
+  // own (identity confirmation), and an assertion that counted those would pass or fail for reasons
+  // that have nothing to do with the source kind under test. The first draft of this test did exactly
+  // that and failed on an unrelated warning.
+  const root = tmp();
+  try {
+    writeCatalogue(root, [
+      { name: "built", version: "0.1.0", source: { source: "command", command: "npx make-plugin --out ." } },
+    ]);
+    const r = evaluateMarketplace(root, { searchRoots: [] });
+
+    assert.deepEqual(r.findings, [], "a well-formed `command` entry raises no collection finding at all");
+
+    const built = r.members.find((m) => m.name === "built");
+    assert.ok(built, "the command-sourced entry still appears in the member ledger");
+    assert.doesNotMatch(
+      built.reason ?? "",
+      /unknown source kind/,
+      "before this fix the entry read as an unknown kind, which per ADR 0039 reds the whole collection",
+    );
+    assert.match(
+      built.reason ?? "",
+      /not locally resolvable/,
+      "a command source is well-formed but not locally resolvable - the npm shape, not the archive shape",
+    );
+    assert.equal(built.pinSha ?? null, null, "a command source has no artifact to digest, so it carries no pin");
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
 test("classifySource: a typo'd kind still reds, and now lists `command` among the known kinds", () => {
   // The known-kinds reason string is derived from SOURCE_KINDS rather than hand-written, so this
   // asserts the user-facing text stopped understating the vendor's schema.
