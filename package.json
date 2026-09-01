@@ -61,7 +61,7 @@
     "STANDARD.md"
   ],
   "scripts": {
-    "test": "node scripts/check-readme-version.mjs . && node scripts/check-doc-enumerations.mjs . && node --test",
+    "test": "node scripts/check-readme-version.mjs . && node scripts/check-doc-enumerations.mjs . && node scripts/check-claim-citations.mjs . && node --test",
     "check": "node scripts/check.mjs",
     "tier-report": "node scripts/tier-report.mjs",
     "evaluate": "node scripts/evaluate.mjs",

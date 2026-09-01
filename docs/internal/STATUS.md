@@ -524,7 +524,7 @@ blocked its own first real run** - on 7 failing tests and a stale count that had
 
 ## Where this is going
 
-One line per release; version numbers beyond v1.10.1 name a shape, not a promise. This
+One line per phase, **by NAME rather than by version number** ([ADR 0057](decisions/0057-unshipped-work-carries-a-name-never-a-version-number.md), adopted 2026-09-01): unshipped work here carries a phase name and its workstream or backlog IDs, and takes its number at cut time. Lines below that still name a forward version predate the ADR and are being read as shapes rather than promises until they are rewritten or ship. This
 sequencing came from a dated internal audit (2026-08-10, held locally, not a followable link from
 this file); the conclusions are stated here directly.
 

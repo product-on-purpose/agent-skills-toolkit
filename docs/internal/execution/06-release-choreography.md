@@ -168,7 +168,7 @@ Do not delete a published GitHub release. Open a new tag on the correct commit f
 | **v1.7.0** | trust and craft | H1 (hygiene batch), SP1 (builder craft pass), F2 (eval-run pipeline; E11) | allocated at land |
 | **v1.8.0** | deep builders, measured advisory | SP2 (deepen complex builders + golden/anti examples), F3 (advisory quality measurement), F5 (authoring token measurements), corpus batch 3, real `evals/` fixtures, U6 message wording fix (sensor reading 8) | allocated at land |
 | **v1.9.0** | marketplace scope | Marketplace-scope evaluation (ADR-first; the headline), SP3 (coherent-plugin authoring journey) | allocated at land |
-| **v1.10.0** | manage and studio | SP4 (Manage gaps: `askit-deprecate` removal automation + build-workflow step-orphan check, ADR-gated), GUI read-only studio slice; stretch riders E4 (SARIF output), E9 (provenance output contract) | allocated at land |
+| **v1.10.0** | manage and studio | SP4 (Manage gaps: `askit-deprecate` removal automation + build-workflow step-orphan check, ADR-gated), GUI read-only studio slice; optional riders E4 (SARIF output), E9 (provenance output contract), both SHIPPED in v1.11.0, 2026-08-11 | allocated at land |
 
 **Relocation interlock.** If the standards program in agent-plugins fires its B2 (PR-C: askit re-adopt) mid-program, pause, reconcile engine-adjacent code against the relocated runner path per `relocation-addendum.md`, and re-verify the `node scripts/check.mjs .` invocation in Step 1 reflects the new path before proceeding.
 

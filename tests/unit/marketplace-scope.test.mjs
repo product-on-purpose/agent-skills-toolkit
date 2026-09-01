@@ -104,6 +104,73 @@ test("classifySource: the three new kinds (npm, archive, git-subdir) are recogni
   assert.equal(classifySource({ source: "git-subdir", url: "https://x/y.git", path: "packages/foo" }).kind, "git-subdir");
 });
 
+test("classifySource: the `command` kind (Claude Code v2.1.229+) is accepted and carries its command", () => {
+  // The one verified false-FAIL this repository's own gate had: a valid marketplace shipping a
+  // `command` entry fell to the default branch, and per ADR 0039 a rejection here reds the whole
+  // collection. Accepting the kind is what closes it.
+  const r = classifySource({ source: "command", command: "npx make-plugin --out ." });
+  assert.equal(r.kind, "command");
+  assert.equal(r.command, "npx make-plugin --out .");
+  assert.equal(r.reason, null);
+  assert.equal(pinShaOf(r), null, "a command source has no artifact to digest, so it carries no pin - the npm shape");
+});
+
+test("classifySource: a `command` entry with no command field still REDS, with a kind-specific reason", () => {
+  // Proven able to fail: accepting the kind must not accept a malformed entry of that kind.
+  for (const bad of [{ source: "command" }, { source: "command", command: "" }, { source: "command", command: "   " }]) {
+    const r = classifySource(bad);
+    assert.equal(r.kind, null, `expected rejection for ${JSON.stringify(bad)}`);
+    assert.match(r.reason, /source kind "command" requires a non-empty "command"/);
+  }
+});
+
+test("collection: a catalogue carrying a `command` entry is NOT red - the appendix-A reproduction", () => {
+  // AC1's end-to-end half, which the classifySource() unit tests above do not reach. The defect this
+  // closes did not manifest at the function; it manifested at the COLLECTION, because ADR 0039 makes a
+  // source rejection red the whole catalogue. An adversarial review of this cut found the unit tests
+  // covered the function and left this path uncovered, so a regression anywhere between classifySource
+  // and the collection report would have passed the suite.
+  //
+  // The catalogue holds ONLY the command entry on purpose: a second member would raise findings of its
+  // own (identity confirmation), and an assertion that counted those would pass or fail for reasons
+  // that have nothing to do with the source kind under test. The first draft of this test did exactly
+  // that and failed on an unrelated warning.
+  const root = tmp();
+  try {
+    writeCatalogue(root, [
+      { name: "built", version: "0.1.0", source: { source: "command", command: "npx make-plugin --out ." } },
+    ]);
+    const r = evaluateMarketplace(root, { searchRoots: [] });
+
+    assert.deepEqual(r.findings, [], "a well-formed `command` entry raises no collection finding at all");
+
+    const built = r.members.find((m) => m.name === "built");
+    assert.ok(built, "the command-sourced entry still appears in the member ledger");
+    assert.doesNotMatch(
+      built.reason ?? "",
+      /unknown source kind/,
+      "before this fix the entry read as an unknown kind, which per ADR 0039 reds the whole collection",
+    );
+    assert.match(
+      built.reason ?? "",
+      /not locally resolvable/,
+      "a command source is well-formed but not locally resolvable - the npm shape, not the archive shape",
+    );
+    assert.equal(built.pinSha ?? null, null, "a command source has no artifact to digest, so it carries no pin");
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test("classifySource: a typo'd kind still reds, and now lists `command` among the known kinds", () => {
+  // The known-kinds reason string is derived from SOURCE_KINDS rather than hand-written, so this
+  // asserts the user-facing text stopped understating the vendor's schema.
+  const r = classifySource({ source: "comand", command: "npx make-plugin" });
+  assert.equal(r.kind, null);
+  assert.match(r.reason, /unknown source kind/);
+  assert.match(r.reason, /command/, "the known-kinds list must name the kind the author nearly typed");
+});
+
 test("classifySource: an archive with no sha256 is REJECTED, not merely unpinned", () => {
   // The one new kind where a missing field is a real defect: an archive with no digest is an
   // unverifiable download, and accepting it would let a catalogue advertise integrity it does not have.
@@ -121,10 +188,11 @@ test("classifySource: malformed sources are rejected with a reason, never thrown
   }
 });
 
-test("pinShaOf: url/github/git-subdir report sha, archive reports its digest, npm and local report none", () => {
+test("pinShaOf: url/github/git-subdir report sha, archive reports its digest, npm/command and local report none", () => {
   assert.equal(pinShaOf({ kind: "url", sha: "a1" }), "a1");
   assert.equal(pinShaOf({ kind: "archive", sha256: "d1" }), "d1");
   assert.equal(pinShaOf({ kind: "npm" }), null);
+  assert.equal(pinShaOf({ kind: "command", command: "npx make-plugin" }), null);
   assert.equal(pinShaOf({ kind: "local-path" }), null);
   assert.equal(pinShaOf(null), null);
 });

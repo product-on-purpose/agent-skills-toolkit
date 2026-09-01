@@ -20,7 +20,7 @@ Work is grouped into four releases, ordered by dependency and by trust value:
 1. **R1 v1.7.0 "trust and craft"** - H1 (hygiene batch) restores every stale trust surface; SP1 (builder craft pass) resumes the maintainer's 2026-06-25 thread; F2 (eval-run pipeline) is the multiplier everything later uses.
 2. **R2 v1.8.0 "deep builders, measured advisory"** - SP2 (deepen builders) plus F3 (advisory quality) plus F5 (authoring tokens, riding SP2's authoring runs) plus corpus batch 3 (on the F2 runner) plus real evals/ fixtures.
 3. **R3 v1.9.0 "marketplace scope"** - the headline: marketplace-scope evaluation, plus SP3 (coherent-plugin journey).
-4. **R4 v1.10.0 "manage and studio"** - SP4 (Manage gaps) plus the GUI read-only studio slice; stretch riders E4 (SARIF output) and E9 (provenance contract).
+4. **R4 v1.10.0 "manage and studio"** - SP4 (Manage gaps) plus the GUI read-only studio slice; optional riders E4 (SARIF output) and E9 (provenance contract), both SHIPPED in v1.11.0, 2026-08-11.
 
 ## 2. The dependency spine
 

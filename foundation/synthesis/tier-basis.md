@@ -71,7 +71,7 @@ Component types the tier adds: hooks, output styles, statusline, self-hosting CI
 
 | Boundary | The vendor fact it rests on | Status | Pinned where | Confirmed |
 | --- | --- | --- | --- | --- |
-| **Hooks: Codex supports a SUBSET of Claude Code's events** | Claude Code has 31 events; **Codex has 11**, enumerated on the vendor's hook reference | **partly pinned.** One event pinned by quote; the SET is a dated `read` | `codex-sessionend-hook-exists` pins `SessionEnd`. The eleven-event enumeration is recorded in [`../sources/codex.md`](../sources/codex.md), `method: read` | 2026-08-22 |
+| **Hooks: Codex supports a SUBSET of Claude Code's events** | Claude Code has 31 events; **Codex has 11**, enumerated on the vendor's hook reference | **not pinned; a dated `read`.** The ledger holds no Codex claim | No claim pins `SessionEnd`: a prose candidate was drafted and rejected, and the `cx-hooks` source note records the absence deliberately (corrected 2026-08-31; this cell previously named a claim id that has never existed in the ledger). The eleven-event enumeration is recorded in [`../sources/codex.md`](../sources/codex.md), `method: read` | 2026-08-22 |
 | Output styles are Claude-only | Codex has no output-style feature | **`unverified`** | nothing | - |
 | Statusline differs | Codex configures a built-in picker via `config.toml` `tui.status_line`, not a shipped script | **`unverified`** | nothing | - |
 | Self-hosting CI | none - this Standard's own requirement | **n/a, house** | - | - |
