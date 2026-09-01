@@ -2,7 +2,7 @@
 
 Curated, user-facing highlights. For the full technical history see [`CHANGELOG.md`](CHANGELOG.md).
 
-## %s - %s
+## 1.17.1 - 2026-09-01
 
 **Three defects in the records are fixed, one of them a gate that was failing a valid marketplace.**
 

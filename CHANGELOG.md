@@ -9,7 +9,9 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
-Nothing yet.
+### Fixed
+
+- **`RELEASE-NOTES.md`'s v1.17.1 heading shipped into the tag as a literal `## %s - %s`.** The script that wrote the entry never applied its own string formatting. `release.yml` caught it and refused to create the GitHub release - correctly, since that step exists so a malformed notes file cannot publish the whole changelog as a release body - but it caught it AFTER the tag was pushed and the npm publish approved. The published npm tarball is unaffected: `RELEASE-NOTES.md` is not in `package.json`'s `files` list, so no consumer received the malformed file. The heading is repaired and the GitHub release for v1.17.1 was created from the corrected text. The underlying gap is filed as E57: `release-ready` has no gate that reads the notes section for the version being cut, so the tag can outrun the check that would have stopped it - the same shape as the v1.17.0 publish-environment defect, a correct rule exercised one step too late.
 
 ## [1.17.1] - 2026-09-01
 
