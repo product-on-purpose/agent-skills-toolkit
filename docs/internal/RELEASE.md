@@ -6,12 +6,15 @@
 
 A public `0.x` tag ships at every wave boundary (RELEASE-PLAN v0.2 Section 5); `v1.0.0` is the Gold capstone. Each tag is a real, gate-green release. The release-readiness gate (`scripts/release-ready.mjs`, landed in v1.14.0; `scripts/checks/` is reserved for Standard spine checks) is a hard precondition: a release cannot be tagged until it passes.
 
+**The version number is assigned HERE, at cut time, and nowhere earlier** ([ADR 0057](decisions/0057-unshipped-work-carries-a-name-never-a-version-number.md)). Unshipped work carries a phase NAME and its workstream or backlog IDs; a semver class (patch, minor, major) is fine, because that describes the change rather than its place in a queue. Before tagging, the number appears in exactly one place: the release packet being cut. Three consecutive forward assignments were falsified before this became a rule, the last of them promising one number to three different bodies of work.
+
 ## Checklist (each item is a gated check, not a reminder)
 
 - [ ] **Version consistent** across `library.json`, `package.json`, the git tag, and the CHANGELOG section. (version-equality check, Wave A.)
 - [ ] **CHANGELOG** has a dated section for this version (the `[Unreleased]` content promoted), Keep a Changelog format.
 - [ ] **RELEASE-NOTES.md** has a curated, user-facing entry for this version, distinct from the CHANGELOG (sec 10.6 / G5).
 - [ ] **README "Status"** matches the declared tier + version (drift = error).
+- [ ] **[Audit intake](audit-intake.md)** - if this release resolves any audit-origin row, that row is updated in THIS change rather than afterwards. Not a gated check; a one-line read that exists because six recommendations went zero-trace between two audit generations.
 - [ ] **INDEX.md + native manifests** regenerated and drift-free; no hand-edits (G4).
 - [ ] **Architecture docs** (`docs/explanation/architecture-overview.md` + `architecture-detailed.md`) present and current.
 - [ ] **Decisions** recorded: any decision made this release is an ADR carrying its `## TL;DR` (ADR 0021 convention).
