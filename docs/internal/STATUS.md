@@ -12,14 +12,42 @@
 
 | Fact | Value |
 |---|---|
-| Version | **1.17.0, FULLY SHIPPED 2026-08-28.** Tagged `v1.17.0` at `fd5286b`, GitHub release **Latest**, npm `1.17.0` on `latest` with SLSA provenance, registry `agent-plugins` **1.72.0** via [PR #91](https://github.com/product-on-purpose/agent-plugins/pull/91) (prepared by `repin-watch`, issue #90 auto-closed). All four manifests and the `action.yml` advertised pin read 1.17.0. **First tag through the approval-gated publish path**, which its first exercise also debugged: the `npm-publish` environment's branch policy admitted only `main` and rejected the tag before the reviewer gate; a `v*` type:tag policy was added and the rerun waited at the reviewer as designed. Consumer-position verified: `npx agent-skills-toolkit@1.17.0` from a clean directory grades this repository Advanced 0/0. Nothing outstanding. |
+| Version | **1.17.1 CUT 2026-09-01** - the records patch, cut 1 of the resolution plan ratified 2026-08-31. All four manifests and the `action.yml` advertised pin read 1.17.1. Distribution state is recorded below this row as it completes. Previously: **1.17.0, FULLY SHIPPED 2026-08-28.** Tagged `v1.17.0` at `fd5286b`, GitHub release **Latest**, npm `1.17.0` on `latest` with SLSA provenance, registry `agent-plugins` **1.72.0** via [PR #91](https://github.com/product-on-purpose/agent-plugins/pull/91) (prepared by `repin-watch`, issue #90 auto-closed). All four manifests and the `action.yml` advertised pin read 1.17.0. **First tag through the approval-gated publish path**, which its first exercise also debugged: the `npm-publish` environment's branch policy admitted only `main` and rejected the tag before the reviewer gate; a `v*` type:tag policy was added and the rerun waited at the reviewer as designed. Consumer-position verified: `npx agent-skills-toolkit@1.17.0` from a clean directory grades this repository Advanced 0/0. Nothing outstanding. |
 | Declared tier | Advanced (Gold) - `library.json` `tier: advanced` |
 | Standard pin | **0.15** |
 | Spine | 34 checks |
 | Scopes | 3 (plugin, component, marketplace) |
 | Skills | **26** |
-| Tests | 1439, 0 failures (1 skipped; local suite run **2026-08-28**, after the documentation style contract added 22 prose-metrics cases, the E52 fix added 12, the publish-trigger change added 3 structural assertions to `publish-npm-yml`, and E51 added 3). It read **1399 at `1da4d16` (v1.16.1)** and **1359 at `9133014` (v1.15.0)**, each confirmed there by `npm run release-ready` exiting 0 on the release runner. `v1.16.2` and `v1.16.3` left it at **1399**: neither touched `tests/`, verified by diff |
+| Tests | **1446, 0 failures** (1 skipped; local suite run **2026-09-01**). It read **1439 at `fd5286b` (v1.17.0)**; the seven added by the records patch are 4 for the `command` marketplace source kind (three unit, one catalogue-level) and 3 for the claim-citation guard. Earlier: **1399 at `1da4d16` (v1.16.1)** and **1359 at `9133014` (v1.15.0)**, each confirmed there by `npm run release-ready` exiting 0 on the release runner |
 | Self-proving | `node scripts/check.mjs .` exits 0 at Advanced, 0 errors, 0 warnings |
+
+## v1.17.1 CUT 2026-09-01 - the records patch
+
+**Cut 1 of the resolution plan ratified 2026-08-31**, and the first execution of anything from the
+2026-08-28 audit. Patch class by the v1.10.1 "trust patch" precedent: every item is a defect fix, a
+records fix, or an internal guard. Spine **34** unchanged, Standard **0.15** unchanged, skills **26**
+unchanged, and the only verdict movement possible is a catalogue going from failing to passing.
+
+**Three P0 defects closed.** The `command` marketplace source kind (Claude Code v2.1.229) was falsely
+redding valid catalogues; four tracked surfaces asserted a vendor claim that never existed in the
+ledger; the published family registry described a toolkit six releases old and graded trees the
+catalogue does not pin.
+
+**Two standing policies adopted.** [ADR 0057](decisions/0057-unshipped-work-carries-a-name-never-a-version-number.md)
+(unshipped work carries a name, never a version number) and [the audit-intake index](audit-intake.md).
+
+**Three corrections to the audit that commissioned the work**, recorded rather than absorbed: the
+registry's "false RED" was not false - the catalogue pins a commit predating the member's fix, so the
+stale thing is the PIN, not the verdict; the "six" stretch-label files are nine; and the specified
+scoop for the claim-citation guard would have caught one phantom citation in four, which is why it was
+measured before it shipped.
+
+**The adversarial review found three defects in what the cut wrote down**, all fixed before merge. The
+sharpest: the documentation for the anti-phantom-reference guard contained a phantom reference, in the
+one place that guard structurally cannot look.
+
+**Still open from this cut:** RS-A3's acceptance criterion that the LIVE DEPLOYED registry page shows
+the new measurement date, checkable only after the docs deploy runs on `main`.
 
 ## v1.16.2 and v1.16.3 SHIPPED 2026-08-25, DISTRIBUTION CLOSED 2026-08-28
 

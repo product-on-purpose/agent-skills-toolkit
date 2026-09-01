@@ -9,6 +9,10 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+Nothing yet.
+
+## [1.17.1] - 2026-09-01
+
 ### Added
 
 - **A claim-id reference guard, because four surfaces spent six days citing a claim that never existed.** `scripts/check-claim-citations.mjs` runs in `npm test`: in `foundation/**` and the backlog, every backticked kebab-case token on a line that talks about claims or pins must resolve to a claim id in `foundation/claims/vendor-claims.json`. It is not a Standard spine check - it polices this repository's records, not a graded plugin's shape. The scoop was measured twice rather than assumed. An earlier design keyed off the words immediately preceding the id and, run against the four real phantom lines, caught ONE of them, because three read "pinned in prose** (`id`)" or put the id before the verb. The opposite extreme - any backticked kebab token - is 80 distinct tokens in the governed files of which 8 are claim ids, since skill names, check names, source ids, script names and GitHub Action names all share the shape. What ships is line context minus the vocabularies the repository can enumerate from its own tree, minus a short committed list of names that are none of those, each saying what it actually is. `tests/fixtures/claim-citations/pre-fix/` carries the four offending lines captured verbatim, and the guard names all four - a durable regression corpus rather than a one-time demonstration.
@@ -1396,7 +1400,8 @@ promoted Standard. Not installable; not self-validating yet (see
 - `.github/workflows/ci.yml` - CI stub that will shell out only to scripts.
 - `skills/`, `scripts/`, `templates/` - placeholders for later phases.
 
-[Unreleased]: https://github.com/product-on-purpose/agent-skills-toolkit/compare/v1.17.0...HEAD
+[unreleased]: https://github.com/product-on-purpose/agent-skills-toolkit/compare/v1.17.1...HEAD
+[1.17.1]: https://github.com/product-on-purpose/agent-skills-toolkit/compare/v1.17.0...v1.17.1
 [1.17.0]: https://github.com/product-on-purpose/agent-skills-toolkit/compare/v1.16.3...v1.17.0
 [1.16.3]: https://github.com/product-on-purpose/agent-skills-toolkit/compare/v1.16.2...v1.16.3
 [1.16.2]: https://github.com/product-on-purpose/agent-skills-toolkit/compare/v1.16.1...v1.16.2
