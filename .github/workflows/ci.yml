@@ -201,25 +201,38 @@ jobs:
   # applied a single rule. STATUS.md recorded that as "its own CI never caught it". These two jobs
   # are what retires that sentence.
   #
-  # THERE ARE TWO, AND NEITHER SUBSUMES THE OTHER. RS-D1 as ratified named `uses: ./` and treated
-  # `uses: <repo>@main` as a FALLBACK to reach for only if the local form did not work. Reading the
-  # actual v1.16.2 fix shows that is a false either/or, so both ship (spec amended, see the packet):
+  # THERE ARE TWO. RS-D1 as ratified named `uses: ./` and offered `uses: <repo>@main` only as a fallback
+  # if the local form did not work. The local form works. Both ship anyway, and the reason is a MEASURED
+  # one - an earlier version of this comment argued the point instead and was wrong.
   #
-  #   `uses: ./`      runs the WORKING TREE's action.yml, so a PR that breaks the Action fails on the
-  #                   PR that breaks it. But GitHub sets `github.action_path` to the WORKSPACE for a
-  #                   local action - and "action_path is an absolute path OUTSIDE the workspace" is
-  #                   precisely the geometry v1.16.2 depended on. Reintroduce those two lines here
-  #                   and the glob resolves against the workspace's own lockfile and PASSES. This
-  #                   job structurally CANNOT reproduce that class. It catches everything else.
+  # WHAT WAS ARGUED, AND FALSIFIED: that `uses: ./` structurally could not reproduce the v1.16.2 class,
+  # since `github.action_path` IS the workspace for a local action while the defect depended on it being
+  # outside. PR #298 reintroduced those exact two lines on a scratch branch. BOTH jobs went red (the
+  # direct-script jobs stayed green), so the claim was simply false.
   #
-  #   `uses: @main`   runs action.yml AS PUBLISHED, downloaded into the runner's `_actions/` tree
-  #                   outside the workspace - the real consumer geometry, which does reproduce the
-  #                   v1.16.2 class. The cost is that on a PR it exercises main's Action against the
-  #                   PR's content, so an action.yml break is caught one push late rather than on
-  #                   the PR. One push late is not "not at all", and it is the only form that sees
-  #                   this class at all.
+  # WHAT THE RUN MEASURED - one mutation, two different mechanisms:
+  #
+  #   gate-via-action            action_path = /home/runner/work/agent-skills-toolkit/agent-skills-toolkit/.
+  #                              -> pattern `.../agent-skills-toolkit/.//package-lock.json`
+  #                              -> "Invalid pattern ... Relative pathing '.' and '..' is not allowed"
+  #
+  #   gate-via-published-action  action_path = /home/runner/work/_actions/product-on-purpose/
+  #                                            agent-skills-toolkit/<ref>
+  #                              -> "Some specified paths were not resolved, unable to cache dependencies"
+  #                                 which is the v1.16.2 error VERBATIM, in the geometry consumers hit
+  #
+  # `uses: ./` leaves a trailing `/.` in action_path, so the pattern is syntactically invalid and gets
+  # rejected before resolution is attempted. The local job reds by accident of this defect's shape meeting
+  # this `uses:` form - not by reproducing its cause.
+  #
+  # So the second job is kept on that measurement and nothing more: those two action_path values are
+  # different environments, and the published-ref job is the only thing in this repository's CI that
+  # exercises remote `uses: owner/repo@ref` resolution and the `_actions/` tree at all. No claim is made
+  # here about which hypothetical future defects each job would catch. That is the shape of claim the run
+  # just falsified, and it is not worth making twice.
   #
   # Sec 4.1/4.4 holds in both: each job invokes the Action, which invokes the portable scripts. No
+  # grading decision is made in this YAML.
   # grading decision is made in this YAML.
   #
   # NOTE: both are NEW required-check candidates, the same caveat `validate-windows` carries above -
