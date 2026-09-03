@@ -42,7 +42,7 @@ Twenty-five recommendations. The resolution plan mapping all of them was ratifie
 | No forward version numbers on unshipped phases | RESOLVED 2026-09-01, cut 1 | RS-F1; [ADR 0057](decisions/0057-unshipped-work-carries-a-name-never-a-version-number.md) |
 | Adopt the audit-intake index | RESOLVED 2026-09-01, cut 1 | RS-F2; this page |
 | family-registry regeneration (manual) | RESOLVED 2026-09-01, cut 1 - **verified on the LIVE deployed page**, which shows `Measured 2026-09-01`, the registry sha `81dbbde`, all six rows `in sync`, and names its own staleness episode | RS-A3; [`../reference/family-registry.md`](../reference/family-registry.md) |
-| family-registry regeneration (scheduled or CI-produced) | OPEN | RS-D3 |
+| family-registry regeneration (scheduled or CI-produced) | **SHIPPED cut 2** - generated on every Pages deploy, at the catalogue's pins; the committed page keeps the meaning and the episode record | RS-D3 |
 | Rule on E16 (multi-entry credit gap), then E17 / E20 / E15 | RULED 2026-08-31 (option a'), implementation OPEN | RS-B1; [`backlog/enhancements.md`](backlog/enhancements.md) |
 | Mutation-proof the check spine | OPEN | RS-B2 |
 | E56 - G2 credits a mention rather than an executed gate | OPEN - Standard 0.16 train | RS-B3 |
@@ -52,15 +52,15 @@ Twenty-five recommendations. The resolution plan mapping all of them was ratifie
 | Claude Code re-survey; relevance-block decision | OPEN - Standard 0.16 train | RS-C4 |
 | ADR: stance on the vendor's plugin eval | RULED 2026-08-31 (adopt, with a scope tripwire), ADR OPEN | RS-C5 |
 | ADR: Agent Plugins root manifest | RULED 2026-08-31 (spike first), spike OPEN | RS-C6 |
-| Consume the published Action in this repo's own CI | OPEN - cut 2 | RS-D1 |
+| Consume the published Action in this repo's own CI | **SHIPPED cut 2** (two jobs, not one; spec amended by measurement 2026-09-02) | RS-D1 |
 | GitHub Marketplace listing for the Action | OPEN - cut 2 (moved off cut 1 by ruling 2026-08-31) | RS-D2 |
-| Auto-publish the full verdict beside the badge | OPEN - cut 2 | RS-D3 |
+| Auto-publish the full verdict beside the badge | **SHIPPED cut 2** - tier-report.json, report.html and an index carrying the sha, date and tier-scope sentence. Live-site check is post-merge | RS-D3 |
 | Cross-tool corroboration run | OPEN - out-of-band research | RS-E1 |
 | The graded cohort | RULED 2026-08-31 (notify before publish), OPEN | RS-E2 |
-| Tier-scope routing line on every tier surface | OPEN - cut 2 | RS-E3 |
+| Tier-scope routing line on every tier surface | **SHIPPED cut 2** - five placements (README status, report index, family-registry header, SARIF `helpUri`, release-notes standing header), all inheriting one exported constant. The sixth, the cohort page header, ships at cut 5 with the page | RS-E3 |
 | E6 - prompt-injection and curl-pipe-bash scan | OPEN - Standard 0.16 train if its catalog is ready | RS-E4 |
 | npm package ownership | RULED 2026-08-31 (grant the org team), OPEN | RS-E5 |
-| Schedule standards-watch | RULED 2026-08-31 (cron, no gate), OPEN - cut 2 | RS-F3 |
+| Schedule standards-watch | **SHIPPED cut 2** (cron `0 7 15 * *`, no gate; the no-gate deferral is E58). First SCHEDULED run 2026-09-15 - AC1 open until then | RS-F3 |
 
 ## 2026-08-10 generation
 
@@ -78,7 +78,7 @@ With its 2026-08-18 annotation. The six zero-trace rows below are why this page 
 | G1 vocabulary refresh | ZERO-TRACE, revived by the 2026-08-28 generation | RS-C1 / RS-C2 |
 | The graded cohort | OPEN, slipped six releases | RS-E2 |
 | Quarterly competitive refresh | OPEN | RS-E1 / the comparison page |
-| standards-watch scheduling | OPEN | RS-F3 |
+| standards-watch scheduling | **SHIPPED cut 2** - see the 2026-08-28 row | RS-F3 |
 | EXEC-SUMMARY "stretch" labels | RESOLVED 2026-09-01 | RS-A4 |
 
 ## 2026-07-19 generation

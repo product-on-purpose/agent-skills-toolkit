@@ -18,7 +18,7 @@
 | Spine | 34 checks |
 | Scopes | 3 (plugin, component, marketplace) |
 | Skills | **26** |
-| Tests | **1446, 0 failures** (1 skipped; local suite run **2026-09-01**). It read **1439 at `fd5286b` (v1.17.0)**; the seven added by the records patch are 4 for the `command` marketplace source kind (three unit, one catalogue-level) and 3 for the claim-citation guard. Earlier: **1399 at `1da4d16` (v1.16.1)** and **1359 at `9133014` (v1.15.0)**, each confirmed there by `npm run release-ready` exiting 0 on the release runner |
+| Tests | **1485, 0 failures** (1 skipped; local suite run **2026-09-02**). It read **1446 at `4ba1ae6` (v1.17.1)**; of the thirty-nine added since, twelve are E57's, covering the RELEASE-NOTES section gate: the tagged-and-published tree captured as a fixture, its repaired twin, the extraction rules the awk used to hold, and the assertions that both callers stay wired to one implementation, six are RS-F3's, asserting that the new standards-watch schedule cannot quietly become an aspiration again, and nineteen are RS-D3's, over the deploy-time report publisher and the family-registry generator - the latter mostly about what happens when the network does not cooperate; and two are RS-E3's, pinning the tier-scope sentence across its five cut-2 placements. Earlier: **1439 at `fd5286b` (v1.17.0)**, **1399 at `1da4d16` (v1.16.1)** and **1359 at `9133014` (v1.15.0)**, each confirmed there by `npm run release-ready` exiting 0 on the release runner |
 | Self-proving | `node scripts/check.mjs .` exits 0 at Advanced, 0 errors, 0 warnings |
 
 ## v1.17.1 CUT 2026-09-01 - the records patch
@@ -64,7 +64,7 @@ suite: it read 1399 at both tags, the same figure as `v1.16.1`, and neither touc
 | --- | --- |
 | v1.16.2 fixed | the reusable Action failed for every consumer before it graded anything. `cache-dependency-path` resolved as a glob relative to `GITHUB_WORKSPACE` while `github.action_path` is an absolute path outside it, so `setup-node` errored and the composite step skipped both the install and the gate |
 | v1.16.3 fixed | the SARIF example in `action.yml` told consumers to use `github/codeql-action/upload-sarif@v3`, a pin this repository's own workflow had already moved off |
-| Found by | `prisant-labs/prisant-utilities`, the first consumer to wire the Action into CI. The toolkit's own CI never caught it, because it runs its gate directly rather than through the Action it publishes |
+| Found by | `prisant-labs/prisant-utilities`, the first consumer to wire the Action into CI. The toolkit's own CI never caught it, because at the time it ran its gate directly rather than through the Action it publishes. **Closed 2026-09-02 by RS-D1 (self-consume the Action), cut 2:** `ci.yml` now also grades this repository through the Action itself, in both positions - `gate-via-action` (`uses: ./`, the working tree's own definition) and `gate-via-published-action` (`uses: ...@main`, the consumer's geometry). Both were shown red against the reintroduced v1.16.2 defect on [PR #298](https://github.com/product-on-purpose/agent-skills-toolkit/pull/298) while the direct-script jobs stayed green, but by different mechanisms - only the published-ref job reproduces the error consumers actually saw, and it is the only job exercising remote `uses:` resolution at all. The block comment in `ci.yml` carries both measured `action_path` values |
 | Bump | done, all four manifests at 1.16.3 |
 | Tag | `v1.16.2` -> `dd1b3bf`, `v1.16.3` -> `249513b` |
 | GitHub release | both published, `v1.16.3` is **Latest** |

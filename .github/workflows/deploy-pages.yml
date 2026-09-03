@@ -130,7 +130,7 @@ jobs:
       # scripts/gen-tier-badge.mjs needs to run the gate (scripts/check.mjs's full check registry) it
       # is built on. --prefix targets ../package.json without leaving this job's `site` working
       # directory.
-      - name: Install root dependencies (for scripts/gen-tier-badge.mjs)
+      - name: Install root dependencies (for the gate the two generators below run)
         run: npm ci --prefix ..
       - name: Build site
         run: npm run build
@@ -140,6 +140,25 @@ jobs:
       # the docs pages at that path.
       - name: Generate the CI tier badge (workstream 3, v1.11.0 "reach")
         run: node ../scripts/gen-tier-badge.mjs .. --out dist/badges/tier.json
+      # RS-D3. The badge above is 8 fields; this publishes the verdict BEHIND those fields - the full
+      # report, the machine-readable tier report, and an index page carrying the sha, the date and the
+      # tier-scope sentence, which is what the badge clicks through to. Same build and same sha as the
+      # badge deliberately: two artifacts published by one deploy must not be able to name different
+      # commits. Runs after `astro build` for the same reason the badge does - the build owns dist/.
+      # RS-D3, the registry half. Fetches the catalogue, checks every member out at the sha the
+      # catalogue PINS (never a branch tip - grading a drifted checkout is the exact defect the
+      # 2026-09-01 hand regeneration fixed), grades the collection with the shipped evaluator, and
+      # writes the dated page. Generated here rather than committed so its measurement date IS the
+      # deploy date and cannot drift from its numbers.
+      #
+      # IT CANNOT FAIL THIS BUILD. Every network failure is a page STATE: an unreachable catalogue
+      # writes a dated could-not-measure page, and an unreachable member degrades one row, because the
+      # marketplace scope already reports an absent member as not-graded rather than red. Somebody
+      # else's outage must not be able to take the documentation site down.
+      - name: Generate the family registry at the catalogue's pins (RS-D3)
+        run: node ../scripts/gen-family-registry.mjs --out dist/reports/registry.html --work-dir "${RUNNER_TEMP}/registry"
+      - name: Publish the full verdict beside the badge (RS-D3)
+        run: node ../scripts/gen-site-reports.mjs .. --out-dir dist/reports --with-registry
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v5
         with:

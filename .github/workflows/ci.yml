@@ -139,6 +139,17 @@ jobs:
         if: ${{ !cancelled() && steps.build.outcome == 'success' }}
         run: node scripts/check-route-parity.mjs dist scripts/route-manifest.txt
 
+      # RS-D3's generators run ONLY in deploy-pages.yml, which fires on push to main - so without this
+      # step no pull request ever exercises them and a break would be found by the deploy that publishes
+      # it. That is the shape of both escaped Action defects (self-CI never ran the path that mattered),
+      # so the generator runs here too, into this job's throwaway dist/. Nothing is uploaded; the job
+      # proves the generator RUNS, and its own unit tests prove what it writes.
+      - name: Publish the full verdict (RS-D3; proves the generator runs on a PR, uploads nothing)
+        if: ${{ !cancelled() && steps.build.outcome == 'success' }}
+        run: |
+          npm ci --prefix ..
+          node ../scripts/gen-site-reports.mjs .. --out-dir dist/reports
+
   # Validator-parity harness (ADR 0042 - validator parity is report-only and checks parsed values):
   # runs the first-party validators (claude plugin validate, the skills-ref reference validator) and
   # reports where they disagree with what this repository claims, plus a parsed-values round-trip of
@@ -189,3 +200,117 @@ jobs:
 
       - name: Validator parity (gating since v1.12.0 - see ADR 0042 and PARITY_MODE in scripts/check-parity.mjs)
         run: node scripts/check-parity.mjs .
+
+  # ---------------------------------------------------------------------------------------------
+  # RS-D1: grade this repository THROUGH the Action it publishes, not just by calling the scripts.
+  #
+  # The `validate` jobs above run `node scripts/check.mjs` directly. That is the fast path and the
+  # clean-room baseline, and it stays. What it cannot see is the Action's own wiring, and the Action
+  # shipped broken to every consumer twice while those jobs stayed green: v1.16.1's G2 defect, and
+  # v1.16.2 (dd1b3bf), where `cache-dependency-path: ${{ github.action_path }}/package-lock.json`
+  # made setup-node fail and skipped the gate entirely - consumers saw a red check that had never
+  # applied a single rule. STATUS.md recorded that as "its own CI never caught it". These two jobs
+  # are what retires that sentence.
+  #
+  # THERE ARE TWO. RS-D1 as ratified named `uses: ./` and offered `uses: <repo>@main` only as a fallback
+  # if the local form did not work. The local form works. Both ship anyway, and the reason is a MEASURED
+  # one - an earlier version of this comment argued the point instead and was wrong.
+  #
+  # WHAT WAS ARGUED, AND FALSIFIED: that `uses: ./` structurally could not reproduce the v1.16.2 class,
+  # since `github.action_path` IS the workspace for a local action while the defect depended on it being
+  # outside. PR #298 reintroduced those exact two lines on a scratch branch. BOTH jobs went red (the
+  # direct-script jobs stayed green), so the claim was simply false.
+  #
+  # WHAT THE RUN MEASURED - one mutation, two different mechanisms:
+  #
+  #   gate-via-action            action_path = /home/runner/work/agent-skills-toolkit/agent-skills-toolkit/.
+  #                              -> pattern `.../agent-skills-toolkit/.//package-lock.json`
+  #                              -> "Invalid pattern ... Relative pathing '.' and '..' is not allowed"
+  #
+  #   gate-via-published-action  action_path = /home/runner/work/_actions/product-on-purpose/
+  #                                            agent-skills-toolkit/<ref>
+  #                              -> "Some specified paths were not resolved, unable to cache dependencies"
+  #                                 which is the v1.16.2 error VERBATIM, in the geometry consumers hit
+  #
+  # `uses: ./` leaves a trailing `/.` in action_path, so the pattern is syntactically invalid and gets
+  # rejected before resolution is attempted. The local job reds by accident of this defect's shape meeting
+  # this `uses:` form - not by reproducing its cause.
+  #
+  # So the second job is kept on that measurement and nothing more: those two action_path values are
+  # different environments, and the published-ref job is the only thing in this repository's CI that
+  # exercises remote `uses: owner/repo@ref` resolution and the `_actions/` tree at all. No claim is made
+  # here about which hypothetical future defects each job would catch. That is the shape of claim the run
+  # just falsified, and it is not worth making twice.
+  #
+  # Sec 4.1/4.4 holds in both: each job invokes the Action, which invokes the portable scripts. No
+  # grading decision is made in this YAML.
+  # grading decision is made in this YAML.
+  #
+  # NOTE: both are NEW required-check candidates, the same caveat `validate-windows` carries above -
+  # branch protection does not adopt a new job by itself.
+  gate-via-action:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      security-events: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      # `uses: ./` - the working tree's action.yml, so this PR's Action is the one under test.
+      - name: Grade through the working-tree Action
+        id: gate
+        uses: ./
+        with:
+          path: .
+          fail-on-error: true
+          annotations: true
+          sarif: true
+
+      # A distinct `category` is required: codeql.yml already uploads SARIF for these same commits,
+      # and two uploads sharing a category overwrite each other's results in the Security tab.
+      - name: Upload SARIF to the Security tab
+        if: ${{ !cancelled() && steps.gate.outputs.sarif-path != '' }}
+        uses: github/codeql-action/upload-sarif@ff2f1c621b7f889edc0d3c761ac2e6a3f8cdb0dd # v4.37.7 pinned 2026-08-16
+        with:
+          sarif_file: ${{ steps.gate.outputs.sarif-path }}
+          category: askit-gate-working-tree
+
+      - name: Echo what the Action returned
+        if: ${{ !cancelled() }}
+        run: |
+          echo "tier=${{ steps.gate.outputs.tier }} errors=${{ steps.gate.outputs.errors }} warnings=${{ steps.gate.outputs.warnings }}"
+
+  # The consumer-position mirror. See the block above for why this exists alongside `gate-via-action`
+  # rather than instead of it.
+  #
+  # `fail-on-error: false` DELIBERATELY. This job is an Action-HEALTH probe, not a second grader:
+  # `gate-via-action` above already grades the working tree and fails on a real finding. Here the
+  # Action's own scripts are main's, not this PR's, so a grading disagreement between the two jobs is
+  # ordinary (a PR that adds a check runs it in one job and not the other) and is not this job's
+  # signal. Its signal is whether the published Action can RUN AT ALL from the consumer's position -
+  # and a v1.16.2-class break fails the composite step itself, which reds this job regardless of
+  # fail-on-error. That is exactly the separation the flag exists for.
+  gate-via-published-action:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Grade through the Action as published on main
+        id: gate
+        uses: product-on-purpose/agent-skills-toolkit@main
+        with:
+          path: .
+          fail-on-error: false
+          annotations: false
+          sarif: false
+
+      - name: Echo what the published Action returned
+        if: ${{ !cancelled() }}
+        run: |
+          echo "tier=${{ steps.gate.outputs.tier }} errors=${{ steps.gate.outputs.errors }} warnings=${{ steps.gate.outputs.warnings }}"
