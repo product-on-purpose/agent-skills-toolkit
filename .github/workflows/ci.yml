@@ -139,6 +139,17 @@ jobs:
         if: ${{ !cancelled() && steps.build.outcome == 'success' }}
         run: node scripts/check-route-parity.mjs dist scripts/route-manifest.txt
 
+      # RS-D3's generators run ONLY in deploy-pages.yml, which fires on push to main - so without this
+      # step no pull request ever exercises them and a break would be found by the deploy that publishes
+      # it. That is the shape of both escaped Action defects (self-CI never ran the path that mattered),
+      # so the generator runs here too, into this job's throwaway dist/. Nothing is uploaded; the job
+      # proves the generator RUNS, and its own unit tests prove what it writes.
+      - name: Publish the full verdict (RS-D3; proves the generator runs on a PR, uploads nothing)
+        if: ${{ !cancelled() && steps.build.outcome == 'success' }}
+        run: |
+          npm ci --prefix ..
+          node ../scripts/gen-site-reports.mjs .. --out-dir dist/reports
+
   # Validator-parity harness (ADR 0042 - validator parity is report-only and checks parsed values):
   # runs the first-party validators (claude plugin validate, the skills-ref reference validator) and
   # reports where they disagree with what this repository claims, plus a parsed-values round-trip of
