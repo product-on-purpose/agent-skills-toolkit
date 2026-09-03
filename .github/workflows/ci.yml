@@ -279,7 +279,7 @@ jobs:
 
       - name: Grade through the Action as published on main
         id: gate
-        uses: product-on-purpose/agent-skills-toolkit@main
+        uses: product-on-purpose/agent-skills-toolkit@scratch/v1162-mutation
         with:
           path: .
           fail-on-error: false
