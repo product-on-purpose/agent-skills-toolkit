@@ -13,4 +13,5 @@ The CI and release automation: the conformance gate and a non-deploying site bui
 - `deploy-pages.yml` - builds the Astro site and deploys it to GitHub Pages.
 - `publish-npm.yml` - the workflow_dispatch-only npm publish (dry-run by default; never fires on a tag push).
 - `release.yml` - the tag-driven release: re-runs the gate and `release-ready`, then publishes the GitHub release.
+- `standards-watch.yml` - monthly re-verification of the pinned UPSTREAM standard (agentskills.io), on the 15th so it straddles the month with `vendor-watch`'s 1st. Opens a deduplicated issue on drift or refusal, exactly as `vendor-watch` does, and deliberately does NOT gate `release-ready` - see the closing note in the file, and E58.
 - `vendor-watch.yml` - monthly re-verification of the pinned vendor claims; opens an issue rather than editing anything, because deciding what a vendor change MEANS is an ADR.

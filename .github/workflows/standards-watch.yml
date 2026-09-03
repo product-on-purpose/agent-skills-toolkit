@@ -1,0 +1,157 @@
+name: standards-watch
+
+# Re-verify, on a schedule, the UPSTREAM standard this repository pins itself against.
+#
+# STANDARD.md sec 6 obliges the Universal tier to track agentskills.io. `npm run standards-watch` has
+# existed and worked for several releases, and nothing ran it: no schedule, no workflow, no release
+# gate, and one row on the roadmap as the only surface that remembered it existed. Its twin,
+# `vendor-watch`, has had a monthly cron since v1.14.0. RS-F3 (schedule standards-watch the way
+# vendor-watch is scheduled) exists because "one working twin and one aspiration" is not a watch
+# programme, and the pin re-staled silently between manual refreshes.
+#
+# CLONED FROM vendor-watch.yml ON PURPOSE, including its dedup design and its two hard-won corrections
+# (see the comments at each). A second implementation of "open an issue, and do not open it twice"
+# would be a second place for that bug to live.
+
+on:
+  schedule:
+    # 07:00 UTC on the 15th. Mid-month, deliberately OFFSET from vendor-watch's `0 7 1 * *`, so the two
+    # watches straddle the month: a single runner outage, or a bad day for the hosts being fetched,
+    # cannot blank both. Monthly rather than weekly because upstream moves on release cadence, and a
+    # watch that cries more often than its subject changes is a watch people learn to close unread.
+    - cron: "0 7 15 * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+# Two runs must never overlap - a manual dispatch during the scheduled run would race the dedup lookup
+# and both would open an issue. `cancel-in-progress` is FALSE for the same reason vendor-watch's is:
+# the running job already holds its fetch results, and cancelling it to start a fresh fetch throws away
+# a completed verification to redo it.
+concurrency:
+  group: standards-watch
+  cancel-in-progress: false
+
+jobs:
+  watch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+
+      # scripts/standards-watch.mjs imports only node builtins and local modules, so there is nothing to
+      # install and no node_modules for a cache to hold. Same reasoning as vendor-watch's job.
+      - uses: actions/setup-node@v7
+        with:
+          node-version: "22.12.0"
+
+      # Exit codes, from the CLI's own contract: 0 unchanged or cosmetic-only, 1 a human must look,
+      # 2 REFUSED (could not verify). 2 is not a pass and is not treated as one - a run that could not
+      # read the upstream proved nothing about it, which is exactly the vendor-watch principle.
+      - name: Run standards-watch
+        id: watch
+        run: |
+          set +e
+          node scripts/standards-watch.mjs . > watch-report.txt 2>&1
+          echo "exit=$?" >> "$GITHUB_OUTPUT"
+          cat watch-report.txt
+        # Never fails the job on a finding. A red X on a scheduled run is noise nobody reads; an issue
+        # with the report in it is a thing somebody answers.
+        continue-on-error: true
+
+      # github-script v9 constraints, carried over from vendor-watch.yml verbatim because they are
+      # properties of the action rather than of either watch: v9's @actions/github is ESM-only, so
+      # `require('@actions/github')` throws at runtime (the `require('fs')` below is a NODE BUILTIN and
+      # is untouched); and v9 injects `getOctokit` as a script parameter, so declaring one is a
+      # SyntaxError. Anything added here uses the injected `github`, `context` and `core`.
+      - name: Open an issue when the upstream moved, or could not be read
+        if: steps.watch.outputs.exit != '0'
+        uses: actions/github-script@v9
+        with:
+          script: |
+            const fs = require('fs');
+            const report = fs.readFileSync('watch-report.txt', 'utf8');
+            const exit = '${{ steps.watch.outputs.exit }}';
+            const refused = exit === '2';
+            const title = refused
+              ? 'standards-watch REFUSED: the upstream standard could not be verified'
+              : 'standards-watch: the upstream standard has moved';
+            // The dedup key is a marker in the BODY, never a label filter. vendor-watch shipped with a
+            // `labels:` filter naming a label that had never been provisioned on this repository; a
+            // label filter matching a nonexistent label matches nothing, so every monthly run would
+            // have opened a NEW issue while the comment beside it claimed the opposite. A marker in the
+            // body cannot be missing, because the step that looks for it is the step that writes it.
+            const MARKER = '<!-- askit:standards-watch -->';
+            const body = [
+              MARKER,
+              refused
+                ? 'The watch could not verify at least one upstream artifact, so this run proved **nothing** about the pin. That is a refusal, not a pass.'
+                : 'The upstream standard this repository pins itself against has changed in a way a human must look at.',
+              '',
+              '**Do not re-pin first.** Decide what the change MEANS before recording it: amending a check or STANDARD.md requires an ADR and the sec 7.7 warn-first burndown, and a red-ward change needs a migration window (ADR 0044). `--adr-draft` emits the skeleton; `--emit-pin` emits the proposed re-pin for you to review and commit yourself. The tool never writes a file.',
+              '',
+              '```',
+              report.trim(),
+              '```',
+              '',
+              `Reproduce locally: \`npm run standards-watch\` (add \`--json\` for the machine report, or \`--snapshot-dir <dir>\` to run offline against a saved mirror). Exit code was ${exit}.`,
+            ].join('\n');
+
+            // Provision the label if absent so the issue is still filterable by a human. Best-effort and
+            // never fatal: the marker above is what correctness rests on, and a repository whose token
+            // cannot create labels must still get its issue.
+            try {
+              await github.rest.issues.getLabel({
+                owner: context.repo.owner, repo: context.repo.repo, name: 'standards-watch',
+              });
+            } catch {
+              try {
+                await github.rest.issues.createLabel({
+                  owner: context.repo.owner, repo: context.repo.repo,
+                  name: 'standards-watch', color: '0e8a16',
+                  description: 'The pinned upstream standard has moved, or could not be verified',
+                });
+              } catch (e) {
+                core.warning(`could not provision the standards-watch label: ${e.message}`);
+              }
+            }
+
+            // Reuse the open issue if one exists. Paginated and matched on the MARKER, so it works on
+            // the very first run before any label exists, and keeps working if someone strips the label
+            // off while triaging.
+            const open = await github.paginate(github.rest.issues.listForRepo, {
+              owner: context.repo.owner, repo: context.repo.repo, state: 'open', per_page: 100,
+            });
+            const existing = open.find((i) => !i.pull_request && (i.body ?? '').includes(MARKER));
+            if (existing) {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner, repo: context.repo.repo,
+                issue_number: existing.number, body,
+              });
+              core.notice(`standards-watch: commented on the open issue #${existing.number}`);
+            } else {
+              const created = await github.rest.issues.create({
+                owner: context.repo.owner, repo: context.repo.repo,
+                title, body, labels: ['standards-watch'],
+              });
+              core.notice(`standards-watch: opened issue #${created.data.number}`);
+            }
+
+# NO RELEASE GATE, DELIBERATELY, AND THIS IS THE DECISION RECORD FOR THAT (decision queue 8, ruled
+# 2026-08-31; RS-F3 acceptance criterion 3).
+#
+# vendor-watch gates `release-ready`; this one does not, and the asymmetry is the point. vendor-watch
+# asserts that a sentence THIS repository publishes as fact is still on the vendor's page - a false
+# statement here, with a remedy always available (edit the sentence). standards-watch asserts something
+# about SOMEBODY ELSE'S release cadence. Gating a tag on upstream freshness is a stale-by-date blocker
+# whose remedy may not exist on the day it fires: the early vendor-watch design had exactly that shape
+# and it was removed for it. A release gate with no available remedy is a trap, not a gate.
+#
+# REVISIT TRIGGER, so this is a decision rather than a permanent excuse: reconsider after THREE clean
+# SCHEDULED runs - not dispatched ones - i.e. no earlier than the 2026-11-15 run. If all three are green
+# and the cadence has proven itself, the gate becomes an ADR with a stated remedy for the blocked-tag
+# case. If any of the three refuses or finds drift, the revisit waits for three more, because a gate
+# built on a watch that is still finding things would block tags on the finding rather than on the
+# repository's own readiness. Filed as E58 in docs/internal/backlog/enhancements.md.
