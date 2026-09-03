@@ -19,7 +19,7 @@ Most skill collections are a flat, single-agent, ungoverned pile. This is the St
 <p>
   <img src="https://img.shields.io/badge/status-active-success?style=flat-square" alt="Status: Active">
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-Apache--2.0-blue?style=flat-square" alt="License: Apache-2.0"></a>
-  <img src="https://img.shields.io/badge/version-1.17.1-blue?style=flat-square" alt="Version 1.17.1">
+  <img src="https://img.shields.io/badge/version-1.18.0-blue?style=flat-square" alt="Version 1.18.0">
   <a href="https://product-on-purpose.github.io/agent-skills-toolkit/badges/tier.json"><img src="https://img.shields.io/endpoint?url=https%3A%2F%2Fproduct-on-purpose.github.io%2Fagent-skills-toolkit%2Fbadges%2Ftier.json&style=flat-square" alt="Tier badge, generated in CI at the graded commit sha - click through for the raw JSON (tier, sha, Standard pin, date)"></a>
   <a href="#the-catalog"><img src="https://img.shields.io/badge/skills-26-brightgreen?style=flat-square" alt="Skills: 26"></a>
   <img src="https://img.shields.io/badge/checks-34-brightgreen?style=flat-square" alt="Validation checks: 34">
@@ -165,6 +165,32 @@ flowchart LR
 
 <div align="right">(<a href="#readme-top">back to top</a>)</div>
 
+## Grade it in CI
+
+The gate ships as a **GitHub Action**. Add it to a workflow and every push grades your library,
+reports the tier it earns, and puts each finding on the line that caused it.
+
+```yaml
+- uses: actions/checkout@v7
+
+- uses: product-on-purpose/agent-skills-toolkit@v1.18.0   # pin a tag or a sha
+  with:
+    path: .
+```
+
+That is the whole thing. The job fails if the library does not meet the tier it declares, and passes
+if it does. Set `fail-on-error: false` to report without blocking while you climb, and `sarif: true`
+to publish findings to your repository's **Security tab** - every rule links what the tier does and
+does not certify.
+
+The Action does **not** install this package from npm. `uses:` checks out this repository at the ref
+you pinned and runs the scripts committed there, so the version you pin is exactly the version that
+grades you.
+
+Full inputs, outputs and troubleshooting: **[run the gate in GitHub Actions](docs/how-to/run-the-gate-in-github-actions.md)**.
+Not on GitHub Actions? See [install and run via npm](docs/how-to/install-and-run-via-npm.md).
+
+<div align="right">(<a href="#readme-top">back to top</a>)</div>
 ## What makes it different
 
 Cross-agent emission is increasingly common. The defensible, less-occupied position is **grading a whole library, deterministically, against a tier you can climb and verify**. The gate is a portable pipeline: the plugin on disk feeds one check module per requirement, each emits findings, and they roll up to the tier earned plus the burndown to the next.
@@ -398,13 +424,13 @@ The Claude slash commands that give the core flows an explicit `/command` entry 
 
 ## Status
 
-**`v1.17.1`, Gold grade, installable.** The toolkit is a self-proving example of the Standard it defines: it declares `tier: advanced`, and CI grades it there - the gate is green and `tier-report` prints `advanced` with an empty burndown.
+**`v1.18.0`, Gold grade, installable.** The toolkit is a self-proving example of the Standard it defines: it declares `tier: advanced`, and CI grades it there - the gate is green and `tier-report` prints `advanced` with an empty burndown.
 
 Two Gold checks are worth naming. `G1` (hooks) grades the toolkit's own demonstrative no-dash `PreToolUse` hook. `G6` (deprecation) is satisfied without exercise, because the toolkit ships no deprecated components yet.
 
 Install from the `product-on-purpose` marketplace (see [Install](#install)).
 
-- **Version** - `1.17.1` (Standard `v0.15`).
+- **Version** - `1.18.0` (Standard `v0.15`).
 - **Tier** - Advanced (Gold), self-validated. *This tier reports structural conformance to a written Standard - deterministic and reproducible; it is not a content review, a safety audit, or a statement that the skills work.* See [what a tier does not certify](docs/explanation/limitations.md).
 - **Install** - `product-on-purpose` marketplace (`agent-plugins`).
 - **Components** - 26 skills, 7 subagents, 2 commands.

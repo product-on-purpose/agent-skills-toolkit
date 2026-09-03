@@ -24,7 +24,7 @@
 #
 #   - name: Grade this plugin against the Advanced Skill Library Standard
 #     id: gate
-#     uses: product-on-purpose/agent-skills-toolkit@v1.17.1   # pin a released tag or a commit sha
+#     uses: product-on-purpose/agent-skills-toolkit@v1.18.0   # pin a released tag or a commit sha
 #     with:
 #       path: .
 #       fail-on-error: true
@@ -41,7 +41,7 @@
 #       echo "Earned tier: ${{ steps.gate.outputs.tier }}"
 #       echo "${{ steps.gate.outputs.errors }} error(s), ${{ steps.gate.outputs.warnings }} warning(s)"
 
-name: "Advanced Skill Library Standard Gate"
+name: "Agent Skills Toolkit Grader"
 description: >-
   Grades a Claude Code / Codex agent-skills plugin against the Advanced Skill Library Standard and
   reports the Bronze/Silver/Gold tier it earns. Emits GitHub Actions annotations inline on the diff

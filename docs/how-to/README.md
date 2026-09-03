@@ -35,6 +35,7 @@ Task-oriented guides for building each component type and climbing from one tier
 - `manage-multiple-plugins.md` - the "manage-multiple-plugins" page.
 - `manage-the-backlog.md` - the "manage the backlog" page.
 - `record-a-decision.md` - the "record a decision" page.
+- `run-the-gate-in-github-actions.md` - the "run the gate in GitHub Actions" page.
 - `scaffold-a-plugin.md` - the "scaffold a plugin" page.
 - `stand-up-a-docs-site.md` - the "stand up a docs site" page.
 - `stand-up-a-marketplace.md` - the "stand up a marketplace" page.
