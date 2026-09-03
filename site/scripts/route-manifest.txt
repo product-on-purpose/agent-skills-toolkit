@@ -36,6 +36,7 @@
 /how-to/manage-templates/index.html
 /how-to/manage-the-backlog/index.html
 /how-to/record-a-decision/index.html
+/how-to/run-the-gate-in-github-actions/index.html
 /how-to/scaffold-a-plugin/index.html
 /how-to/stand-up-a-docs-site/index.html
 /how-to/stand-up-a-marketplace/index.html

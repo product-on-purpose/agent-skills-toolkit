@@ -4,6 +4,59 @@ Curated, user-facing highlights. For the full technical history see [`CHANGELOG.
 
 Every tier named below carries the same scope. *This tier reports structural conformance to a written Standard - deterministic and reproducible; it is not a content review, a safety audit, or a statement that the skills work.* See [what a tier does not certify](docs/explanation/limitations.md). This note is deliberately in the STANDING header rather than a footer: a footer would sit inside the oldest release's section and be extracted into that release's body by `check-release-notes-section.mjs`.
 
+## 1.18.0 - 2026-09-03
+
+**This release is mostly about the toolkit checking its own work in the places it previously could not.**
+
+### Do you need to do anything?
+
+**Almost certainly not.** No check is added or removed, the spine stays at **34**, the Standard stays at
+**0.15**, and no verdict moves. Two things are worth a glance:
+
+- **The GitHub Action has a new display name**, *Agent Skills Toolkit Grader*. If you pin it with
+  `uses: product-on-purpose/agent-skills-toolkit@<tag>`, **nothing changes for you** - `uses:` resolves the
+  repository, never the display name.
+- **If you run the gate in GitHub Actions, there is finally documentation for it.** See
+  [run the gate in GitHub Actions](docs/how-to/run-the-gate-in-github-actions.md).
+
+### The Action is now tested the way you use it
+
+This Action shipped **broken to every consumer twice** - once in v1.16.1 and again in v1.16.2 - while this
+repository's own CI stayed green. The reason was simple and embarrassing: CI called the underlying scripts
+directly and never went through the Action at all, so the path you use was the one path nobody tested.
+
+CI now grades this repository **through its own published Action**, in both positions a consumer can
+occupy: the working tree's definition, and the Action as published. Both were proven to catch the v1.16.2
+failure by deliberately reintroducing it.
+
+### The published verdict is no longer eight fields
+
+Until now the only machine-readable thing published was a badge payload. You could learn the tier and
+nothing else. The site now serves the whole verdict, regenerated on every deploy:
+
+- **[The full report](https://product-on-purpose.github.io/agent-skills-toolkit/reports/report.html)** - every check, its status, and the findings behind it
+- **[The machine-readable tier report](https://product-on-purpose.github.io/agent-skills-toolkit/reports/tier-report.json)** - stamped with the commit and date it graded
+- **[The family registry](https://product-on-purpose.github.io/agent-skills-toolkit/reports/registry.html)** - the whole marketplace, graded at the shas its catalogue pins
+
+The registry used to be a hand-run snapshot that went twenty days stale carrying two wrong claims. It is
+now measured at deploy time, so **its date and its numbers cannot drift apart**. If the catalogue cannot be
+reached, the page says so with a date rather than showing yesterday's numbers under today's.
+
+### Every tier now says what it does not certify
+
+One sentence, defined once and inherited by every surface that presents a tier - the README, the published
+report, the registry, the release notes above, and **every rule in the SARIF** your Security tab renders:
+
+> This tier reports structural conformance to a written Standard - deterministic and reproducible; it is
+> not a content review, a safety audit, or a statement that the skills work.
+
+### Two internal fixes worth naming
+
+- **The release-notes check now runs before the tag, not after it.** v1.17.1 was tagged and published to
+  npm with an unexpanded placeholder for its heading, because the check that catches exactly that ran one
+  step too late. It is now a pre-tag gate, proven against that exact tree.
+- **`standards-watch` runs on a schedule.** It had worked for several releases and nothing ever ran it.
+
 ## 1.17.1 - 2026-09-01
 
 **Three defects in the records are fixed, one of them a gate that was failing a valid marketplace.**
