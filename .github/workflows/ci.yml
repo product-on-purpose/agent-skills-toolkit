@@ -189,3 +189,104 @@ jobs:
 
       - name: Validator parity (gating since v1.12.0 - see ADR 0042 and PARITY_MODE in scripts/check-parity.mjs)
         run: node scripts/check-parity.mjs .
+
+  # ---------------------------------------------------------------------------------------------
+  # RS-D1: grade this repository THROUGH the Action it publishes, not just by calling the scripts.
+  #
+  # The `validate` jobs above run `node scripts/check.mjs` directly. That is the fast path and the
+  # clean-room baseline, and it stays. What it cannot see is the Action's own wiring, and the Action
+  # shipped broken to every consumer twice while those jobs stayed green: v1.16.1's G2 defect, and
+  # v1.16.2 (dd1b3bf), where `cache-dependency-path: ${{ github.action_path }}/package-lock.json`
+  # made setup-node fail and skipped the gate entirely - consumers saw a red check that had never
+  # applied a single rule. STATUS.md recorded that as "its own CI never caught it". These two jobs
+  # are what retires that sentence.
+  #
+  # THERE ARE TWO, AND NEITHER SUBSUMES THE OTHER. RS-D1 as ratified named `uses: ./` and treated
+  # `uses: <repo>@main` as a FALLBACK to reach for only if the local form did not work. Reading the
+  # actual v1.16.2 fix shows that is a false either/or, so both ship (spec amended, see the packet):
+  #
+  #   `uses: ./`      runs the WORKING TREE's action.yml, so a PR that breaks the Action fails on the
+  #                   PR that breaks it. But GitHub sets `github.action_path` to the WORKSPACE for a
+  #                   local action - and "action_path is an absolute path OUTSIDE the workspace" is
+  #                   precisely the geometry v1.16.2 depended on. Reintroduce those two lines here
+  #                   and the glob resolves against the workspace's own lockfile and PASSES. This
+  #                   job structurally CANNOT reproduce that class. It catches everything else.
+  #
+  #   `uses: @main`   runs action.yml AS PUBLISHED, downloaded into the runner's `_actions/` tree
+  #                   outside the workspace - the real consumer geometry, which does reproduce the
+  #                   v1.16.2 class. The cost is that on a PR it exercises main's Action against the
+  #                   PR's content, so an action.yml break is caught one push late rather than on
+  #                   the PR. One push late is not "not at all", and it is the only form that sees
+  #                   this class at all.
+  #
+  # Sec 4.1/4.4 holds in both: each job invokes the Action, which invokes the portable scripts. No
+  # grading decision is made in this YAML.
+  #
+  # NOTE: both are NEW required-check candidates, the same caveat `validate-windows` carries above -
+  # branch protection does not adopt a new job by itself.
+  gate-via-action:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      security-events: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      # `uses: ./` - the working tree's action.yml, so this PR's Action is the one under test.
+      - name: Grade through the working-tree Action
+        id: gate
+        uses: ./
+        with:
+          path: .
+          fail-on-error: true
+          annotations: true
+          sarif: true
+
+      # A distinct `category` is required: codeql.yml already uploads SARIF for these same commits,
+      # and two uploads sharing a category overwrite each other's results in the Security tab.
+      - name: Upload SARIF to the Security tab
+        if: ${{ !cancelled() && steps.gate.outputs.sarif-path != '' }}
+        uses: github/codeql-action/upload-sarif@ff2f1c621b7f889edc0d3c761ac2e6a3f8cdb0dd # v4.37.7 pinned 2026-08-16
+        with:
+          sarif_file: ${{ steps.gate.outputs.sarif-path }}
+          category: askit-gate-working-tree
+
+      - name: Echo what the Action returned
+        if: ${{ !cancelled() }}
+        run: |
+          echo "tier=${{ steps.gate.outputs.tier }} errors=${{ steps.gate.outputs.errors }} warnings=${{ steps.gate.outputs.warnings }}"
+
+  # The consumer-position mirror. See the block above for why this exists alongside `gate-via-action`
+  # rather than instead of it.
+  #
+  # `fail-on-error: false` DELIBERATELY. This job is an Action-HEALTH probe, not a second grader:
+  # `gate-via-action` above already grades the working tree and fails on a real finding. Here the
+  # Action's own scripts are main's, not this PR's, so a grading disagreement between the two jobs is
+  # ordinary (a PR that adds a check runs it in one job and not the other) and is not this job's
+  # signal. Its signal is whether the published Action can RUN AT ALL from the consumer's position -
+  # and a v1.16.2-class break fails the composite step itself, which reds this job regardless of
+  # fail-on-error. That is exactly the separation the flag exists for.
+  gate-via-published-action:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Grade through the Action as published on main
+        id: gate
+        uses: product-on-purpose/agent-skills-toolkit@main
+        with:
+          path: .
+          fail-on-error: false
+          annotations: false
+          sarif: false
+
+      - name: Echo what the published Action returned
+        if: ${{ !cancelled() }}
+        run: |
+          echo "tier=${{ steps.gate.outputs.tier }} errors=${{ steps.gate.outputs.errors }} warnings=${{ steps.gate.outputs.warnings }}"

@@ -64,7 +64,7 @@ suite: it read 1399 at both tags, the same figure as `v1.16.1`, and neither touc
 | --- | --- |
 | v1.16.2 fixed | the reusable Action failed for every consumer before it graded anything. `cache-dependency-path` resolved as a glob relative to `GITHUB_WORKSPACE` while `github.action_path` is an absolute path outside it, so `setup-node` errored and the composite step skipped both the install and the gate |
 | v1.16.3 fixed | the SARIF example in `action.yml` told consumers to use `github/codeql-action/upload-sarif@v3`, a pin this repository's own workflow had already moved off |
-| Found by | `prisant-labs/prisant-utilities`, the first consumer to wire the Action into CI. The toolkit's own CI never caught it, because it runs its gate directly rather than through the Action it publishes |
+| Found by | `prisant-labs/prisant-utilities`, the first consumer to wire the Action into CI. The toolkit's own CI never caught it, because at the time it ran its gate directly rather than through the Action it publishes. **Closed 2026-09-02 by RS-D1 (self-consume the Action), cut 2:** `ci.yml` now also grades this repository through the Action itself, in both positions - `gate-via-action` (`uses: ./`, the working tree's own definition) and `gate-via-published-action` (`uses: ...@main`, the consumer's geometry). They catch different classes and neither alone is enough; the block comment in `ci.yml` says why |
 | Bump | done, all four manifests at 1.16.3 |
 | Tag | `v1.16.2` -> `dd1b3bf`, `v1.16.3` -> `249513b` |
 | GitHub release | both published, `v1.16.3` is **Latest** |
