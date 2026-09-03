@@ -98,7 +98,8 @@ test("RS-D3: the index offers the registry only when a registry was actually mea
 test("RS-D3: --out-dir is required, and an unknown flag is refused rather than ignored", () => {
   assert.ok(parseArgs(["."]).error, "writing the artifacts somewhere is the whole job; there is no sensible default");
   assert.ok(parseArgs([".", "--out-dir", "x", "--wat"]).error, "a silently ignored flag is a silently wrong run");
-  assert.deepEqual(parseArgs([".", "--out-dir", "x"]), { root: ".", outDir: "x" });
+  assert.deepEqual(parseArgs([".", "--out-dir", "x"]), { root: ".", outDir: "x", withRegistry: false });
+  assert.equal(parseArgs([".", "--out-dir", "x", "--with-registry"]).withRegistry, true);
   assert.equal(run(["."]).code, 2, "bad arguments exit 2, distinct from the 1 that means it could not write");
 });
 
@@ -121,8 +122,12 @@ test("RS-D3: the deploy publishes the reports, in the same job and after the bui
   assert.ok(reports !== -1, "nothing publishes the reports");
   assert.ok(build < reports, "astro build owns dist/ and would wipe anything written before it");
   assert.ok(reports < upload, "written after the artifact is uploaded is written nowhere");
-  // Same job as the badge, so one deploy cannot publish a badge and a report naming different commits.
-  assert.ok(badge !== -1 && Math.abs(badge - reports) === 1, "the badge and the reports must be published together");
+  // Same JOB as the badge, so one deploy cannot publish a badge and a report naming different commits.
+  // Asserted as co-location in the step list rather than adjacency: the registry generator legitimately
+  // sits between them (it must write the page before the index that links it), and an adjacency check
+  // would call that correct ordering a failure.
+  assert.ok(badge !== -1, "the badge is generated in some other job now; the two can drift apart");
+  assert.ok(build < badge && badge < upload, "the badge must be published from this same build");
 });
 
 test("RS-D3: a PULL REQUEST exercises the generator, not only the deploy that publishes it", () => {

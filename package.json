@@ -57,6 +57,7 @@
     "!scripts/lib/vendor-watch.mjs",
     "!scripts/lib/release-ready.mjs",
     "!scripts/lib/release-notes-section.mjs",
+    "!scripts/lib/fetch-members.mjs",
     "!scripts/lib/action-pin-watch.mjs",
     "!scripts/lib/prose-metrics.mjs",
     "STANDARD.md"

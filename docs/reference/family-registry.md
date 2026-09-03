@@ -13,10 +13,19 @@ than one plugin at a time. It is produced by [marketplace scope](marketplace-sco
 deterministic: every number below comes from running one command, and running it again on the same
 commits produces the same numbers.
 
-> **Read this as a dated snapshot, not a live registry.** It records what the graded shas below
-> contained on the date stamped in the table. It is not refreshed automatically, it does not report what
-> installers receive, and it does not certify anything. The reproduction command is given so you never
-> have to take this page's word for any of it.
+> **The live measurement is generated; this page is what it means.** Since cut 2 the numbers are
+> re-measured on every deploy and published at
+> [the generated registry](https://product-on-purpose.github.io/agent-skills-toolkit/reports/registry.html),
+> whose measurement date IS its deploy date and therefore cannot drift from its own numbers. **Read that
+> page for the current verdict, and this one for what the verdict means:** what the columns are, why the
+> collection reads as it does, what would turn it green, and the record of the episode below in which an
+> earlier hand-run version of this page carried claims that were wrong. None of that is derivable from a
+> run, so no generator writes it and none can overwrite it.
+>
+> **The table further down is the last HAND-RUN measurement**, kept as the record of the regeneration
+> that ended the staleness episode. It is not refreshed automatically, it does not report what installers
+> receive, and it does not certify anything. The reproduction command is given so you never have to take
+> either page's word for any of it.
 
 ## What the columns mean, for a non-engineer
 

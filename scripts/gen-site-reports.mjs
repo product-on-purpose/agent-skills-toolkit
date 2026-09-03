@@ -114,11 +114,15 @@ ${rows.map(([href, title, desc]) => `  <li><a href="${esc(href)}">${esc(title)}<
 }
 
 export function parseArgs(argv) {
-  const opts = { root: null, outDir: null };
+  const opts = { root: null, outDir: null, withRegistry: false };
   for (let i = 0; i < argv.length; i += 1) {
     const a = argv[i];
     if (a === "-h" || a === "--help") return { help: true };
     else if (a === "--out-dir") opts.outDir = argv[++i] ?? null;
+    // Passed only where gen-family-registry.mjs also runs. Safe to promise unconditionally there,
+    // because that generator ALWAYS writes a page - a measured one, or a dated could-not-measure one -
+    // so the link can never point at a file the deploy did not create.
+    else if (a === "--with-registry") opts.withRegistry = true;
     else if (!a.startsWith("--") && opts.root === null) opts.root = a;
     else return { error: `unrecognized argument: ${a}` };
   }
@@ -130,6 +134,7 @@ const USAGE = `Usage: node scripts/gen-site-reports.mjs <root> --out-dir <dir>
 
   <root>          the plugin to grade (the repository root)
   --out-dir <dir> where to write report.html, tier-report.json and index.html
+  --with-registry link the family registry from the index (pass where gen-family-registry.mjs also runs)
 
 Exit: 0 the artifacts were written | 1 they could not be | 2 the arguments were unusable`;
 
@@ -169,7 +174,7 @@ export function main(argv = process.argv.slice(2)) {
   writeFileSync(path.join(outDir, "report.html"), html.text);
   writeFileSync(
     path.join(outDir, "index.html"),
-    renderIndex({ tier: report.tier, sha, gradedAt, standard, registryAvailable: false }),
+    renderIndex({ tier: report.tier, sha, gradedAt, standard, registryAvailable: opts.withRegistry }),
   );
 
   console.log(`gen-site-reports: wrote tier-report.json, report.html and index.html to ${opts.outDir} (tier ${report.tier} @ ${sha})`);
