@@ -23,7 +23,7 @@ permissions:
 jobs:
   release:
     runs-on: ubuntu-latest
-    timeout-minutes: 50
+    timeout-minutes: 55
     steps:
       - name: Checkout
         uses: actions/checkout@v7
@@ -83,19 +83,15 @@ jobs:
             exit 1
           fi
 
+      # E57. The extraction MOVED out of this file into scripts/check-release-notes-section.mjs; it was
+      # not copied. Standard sec 4.1/4.4 forbids CI configuration from holding validation logic of its own,
+      # and an inline awk program deciding whether a release may publish was exactly that. Being in YAML it
+      # was also unreachable from `release-ready`, the gate that runs BEFORE the tag - so this correct
+      # refusal fired only after the tag was pushed and the npm publish approved. v1.17.1 shipped its notes
+      # heading as a literal `## %s - %s` that way. The same script is now release-ready's sixth gate, and
+      # this step STAYS as the second line of defence rather than being replaced by it.
       - name: Extract this version's RELEASE-NOTES section
-        run: |
-          set -euo pipefail
-          VERSION="${GITHUB_REF_NAME#v}"
-          awk -v ver="## ${VERSION}" '
-            ($0 == ver) || index($0, ver " ") == 1 { flag=1; print; next }
-            /^## [0-9]+\.[0-9]+\.[0-9]+/ && flag { flag=0 }
-            flag { print }
-          ' RELEASE-NOTES.md > RELEASE_BODY.md
-          if [ ! -s RELEASE_BODY.md ]; then
-            echo "::error::no RELEASE-NOTES.md section for ${VERSION}; add a '## ${VERSION}' heading before tagging (refusing to publish the whole changelog as the release body)"
-            exit 1
-          fi
+        run: node scripts/check-release-notes-section.mjs --extract "${GITHUB_REF_NAME#v}" --out RELEASE_BODY.md
 
       - name: Create GitHub release
         uses: softprops/action-gh-release@3d0d9888cb7fd7b750713d6e236d1fcb99157228 # v3.0.2 pinned 2026-07-26

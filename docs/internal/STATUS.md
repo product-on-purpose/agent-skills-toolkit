@@ -18,7 +18,7 @@
 | Spine | 34 checks |
 | Scopes | 3 (plugin, component, marketplace) |
 | Skills | **26** |
-| Tests | **1446, 0 failures** (1 skipped; local suite run **2026-09-01**). It read **1439 at `fd5286b` (v1.17.0)**; the seven added by the records patch are 4 for the `command` marketplace source kind (three unit, one catalogue-level) and 3 for the claim-citation guard. Earlier: **1399 at `1da4d16` (v1.16.1)** and **1359 at `9133014` (v1.15.0)**, each confirmed there by `npm run release-ready` exiting 0 on the release runner |
+| Tests | **1458, 0 failures** (1 skipped; local suite run **2026-09-02**). It read **1446 at `4ba1ae6` (v1.17.1)**; the twelve added since are all E57's, covering the RELEASE-NOTES section gate: the tagged-and-published tree captured as a fixture, its repaired twin, the extraction rules the awk used to hold, and the assertions that both callers stay wired to one implementation. Earlier: **1439 at `fd5286b` (v1.17.0)**, **1399 at `1da4d16` (v1.16.1)** and **1359 at `9133014` (v1.15.0)**, each confirmed there by `npm run release-ready` exiting 0 on the release runner |
 | Self-proving | `node scripts/check.mjs .` exits 0 at Advanced, 0 errors, 0 warnings |
 
 ## v1.17.1 CUT 2026-09-01 - the records patch
