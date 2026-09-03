@@ -8,6 +8,8 @@ tags: [marketplace, registry, collection, evidence]
 
 # Reference: the family registry
 
+*This tier reports structural conformance to a written Standard - deterministic and reproducible; it is not a content review, a safety audit, or a statement that the skills work.* See [what a tier does not certify](../explanation/limitations.md).
+
 This is the first artifact this project has published that grades a **whole portfolio at once** rather
 than one plugin at a time. It is produced by [marketplace scope](marketplace-scope.md), which is
 deterministic: every number below comes from running one command, and running it again on the same

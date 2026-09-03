@@ -5,6 +5,7 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { renderSarif } from "../../scripts/lib/sarif-render.mjs";
+import { LIMITATIONS_URL } from "../../scripts/lib/tier-scope.mjs";
 import { runGate } from "../../scripts/check.mjs";
 import { loadPlugin } from "../../scripts/lib/load-plugin.mjs";
 import { CHECKS } from "../../scripts/lib/registry.mjs";
@@ -102,6 +103,11 @@ test("renderSarif's rule catalog covers every registered check, deduplicated by 
       assert.ok(rule, `expected a reportingDescriptor for ${m.meta.reqId}`);
       assert.equal(rule.properties.provenance, m.meta.provenance, `${m.meta.reqId} rule must carry the check's real provenance`);
       assert.match(rule.properties.provenance, /^(objective|vendor-cited|house)$/);
+      // RS-E3. SARIF is rendered in a consumer's Security tab - the surface furthest from this
+      // repository's own documentation, and so the one where an unqualified tier claim would travel
+      // furthest unaccompanied. helpUri is SARIF's own field for saying what the finding's standard
+      // does and does not certify, and every rule carries it or some rules overclaim by silence.
+      assert.equal(rule.helpUri, LIMITATIONS_URL, `${m.meta.reqId} rule must link what a tier does not certify`);
     }
   });
 });

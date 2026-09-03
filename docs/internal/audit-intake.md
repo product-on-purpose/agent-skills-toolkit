@@ -57,7 +57,7 @@ Twenty-five recommendations. The resolution plan mapping all of them was ratifie
 | Auto-publish the full verdict beside the badge | **SHIPPED cut 2** - tier-report.json, report.html and an index carrying the sha, date and tier-scope sentence. Live-site check is post-merge | RS-D3 |
 | Cross-tool corroboration run | OPEN - out-of-band research | RS-E1 |
 | The graded cohort | RULED 2026-08-31 (notify before publish), OPEN | RS-E2 |
-| Tier-scope routing line on every tier surface | OPEN - cut 2 | RS-E3 |
+| Tier-scope routing line on every tier surface | **SHIPPED cut 2** - five placements (README status, report index, family-registry header, SARIF `helpUri`, release-notes standing header), all inheriting one exported constant. The sixth, the cohort page header, ships at cut 5 with the page | RS-E3 |
 | E6 - prompt-injection and curl-pipe-bash scan | OPEN - Standard 0.16 train if its catalog is ready | RS-E4 |
 | npm package ownership | RULED 2026-08-31 (grant the org team), OPEN | RS-E5 |
 | Schedule standards-watch | **SHIPPED cut 2** (cron `0 7 15 * *`, no gate; the no-gate deferral is E58). First SCHEDULED run 2026-09-15 - AC1 open until then | RS-F3 |

@@ -405,7 +405,7 @@ Two Gold checks are worth naming. `G1` (hooks) grades the toolkit's own demonstr
 Install from the `product-on-purpose` marketplace (see [Install](#install)).
 
 - **Version** - `1.17.1` (Standard `v0.15`).
-- **Tier** - Advanced (Gold), self-validated.
+- **Tier** - Advanced (Gold), self-validated. *This tier reports structural conformance to a written Standard - deterministic and reproducible; it is not a content review, a safety audit, or a statement that the skills work.* See [what a tier does not certify](docs/explanation/limitations.md).
 - **Install** - `product-on-purpose` marketplace (`agent-plugins`).
 - **Components** - 26 skills, 7 subagents, 2 commands.
 - **Validation spine** - 34 checks (`U1-U9`, `U11-U17`, `S1-S8`, `G1-G10`), graded against the Standard version a plugin PINS: a requirement introduced or tightened after your pin is surfaced as Standard debt, never a gate failure, until you adopt it.

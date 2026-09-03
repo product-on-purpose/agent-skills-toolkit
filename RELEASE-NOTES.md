@@ -2,6 +2,8 @@
 
 Curated, user-facing highlights. For the full technical history see [`CHANGELOG.md`](CHANGELOG.md).
 
+Every tier named below carries the same scope. *This tier reports structural conformance to a written Standard - deterministic and reproducible; it is not a content review, a safety audit, or a statement that the skills work.* See [what a tier does not certify](docs/explanation/limitations.md). This note is deliberately in the STANDING header rather than a footer: a footer would sit inside the oldest release's section and be extracted into that release's body by `check-release-notes-section.mjs`.
+
 ## 1.17.1 - 2026-09-01
 
 **Three defects in the records are fixed, one of them a gate that was failing a valid marketplace.**

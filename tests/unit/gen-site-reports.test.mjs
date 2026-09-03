@@ -88,6 +88,36 @@ test("RS-E3: the scope sentence is ONE canonical wording, not a paraphrase per s
   );
 });
 
+test("RS-E3: all five cut-2 placements carry the sentence, and they carry the SAME one", () => {
+  // The item's own numbers disagreed three ways - audit row 19 said four placements, its change list six,
+  // its acceptance criterion five - which is what a count maintained by hand does. The fix is not a better
+  // count: it is one exported constant, so a surface either imports it or is caught here. The sixth
+  // placement, the cohort page header, ships at cut 5 because that page does not exist yet.
+  const has = (rel) => readFileSync(path.join(REPO, rel), "utf8").includes(TIER_SCOPE_SENTENCE);
+  assert.ok(has("README.md"), "the README status block presents a tier and must qualify it");
+  assert.ok(has("RELEASE-NOTES.md"), "release notes name a tier to the least technical audience this project has");
+  assert.ok(has("docs/reference/family-registry.md"), "the registry presents six tiers at once");
+  // The badge's click-through target, and the SARIF rule metadata, are asserted where they are produced:
+  // renderIndex above, and tests/unit/sarif-render.test.mjs's rule-catalog test.
+  assert.ok(renderIndex({ tier: "advanced", sha: "a", gradedAt: "b", standard: null, registryAvailable: false }).includes(TIER_SCOPE_SENTENCE));
+
+  // And the same one. A paraphrase per surface is the failure this item exists to prevent, so the
+  // constant is the single definition and these files quote it verbatim.
+  const sarifSrc = readFileSync(path.join(REPO, "scripts/lib/sarif-render.mjs"), "utf8");
+  assert.match(sarifSrc, /helpUri: LIMITATIONS_URL/, "SARIF must link the constant, not a hardcoded URL that can drift");
+});
+
+test("RS-E3: the standing note stays OUT of any extracted release body", () => {
+  // Interaction with E57. A literal FOOTER would sit inside the oldest release's section, and
+  // check-release-notes-section.mjs would extract it into that release's GitHub body - attaching a
+  // standing caveat to one arbitrary historical release. The header is outside every version section.
+  const notes = readFileSync(path.join(REPO, "RELEASE-NOTES.md"), "utf8");
+  const firstHeading = notes.indexOf("\n## ");
+  assert.ok(firstHeading > 0, "expected at least one version section");
+  assert.ok(notes.slice(0, firstHeading).includes(TIER_SCOPE_SENTENCE), "the note must precede every version section");
+  assert.ok(!notes.slice(firstHeading).includes(TIER_SCOPE_SENTENCE), "and appear in none of them");
+});
+
 test("RS-D3: the index offers the registry only when a registry was actually measured", () => {
   const without = renderIndex({ tier: "advanced", sha: "a", gradedAt: "2026-09-02", standard: null, registryAvailable: false });
   const with_ = renderIndex({ tier: "advanced", sha: "a", gradedAt: "2026-09-02", standard: null, registryAvailable: true });

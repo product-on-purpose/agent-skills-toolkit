@@ -27,20 +27,14 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { resolveGradedSha } from "./gen-tier-badge.mjs";
 import { readJsonSafe } from "./lib/fs-utils.mjs";
+import { TIER_SCOPE_SENTENCE, LIMITATIONS_URL } from "./lib/tier-scope.mjs";
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 
-/**
- * The tier-scope sentence (RS-E3). ONE canonical wording, exported so every surface that presents a tier
- * inherits the same words rather than paraphrasing them. `docs/explanation/limitations.md` and
- * `conformance-and-tiers.md` have always said this; nothing that PRESENTED a tier ever linked them, so
- * the concession did not travel with the claim.
- */
-export const TIER_SCOPE_SENTENCE =
-  "This tier reports structural conformance to a written Standard - deterministic and reproducible; " +
-  "it is not a content review, a safety audit, or a statement that the skills work.";
-
-export const LIMITATIONS_URL = "https://product-on-purpose.github.io/agent-skills-toolkit/explanation/limitations/";
+// The tier-scope sentence lives in scripts/lib/tier-scope.mjs, not here: sarif-render.mjs SHIPS in the
+// npm tarball and cannot import a deploy-time generator. Re-exported so this module stays the import
+// site the other generators already use.
+export { TIER_SCOPE_SENTENCE, LIMITATIONS_URL } from "./lib/tier-scope.mjs";
 
 /**
  * Run one report CLI and return its stdout.
