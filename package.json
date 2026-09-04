@@ -59,6 +59,7 @@
     "!scripts/lib/release-notes-section.mjs",
     "!scripts/lib/fetch-members.mjs",
     "!scripts/lib/action-pin-watch.mjs",
+    "!scripts/lib/audit-report.mjs",
     "!scripts/lib/prose-metrics.mjs",
     "STANDARD.md"
   ],

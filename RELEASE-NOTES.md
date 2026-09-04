@@ -6,56 +6,76 @@ Every tier named below carries the same scope. *This tier reports structural con
 
 ## 1.18.0 - 2026-09-03
 
-**This release is mostly about the toolkit checking its own work in the places it previously could not.**
+[![npm](https://img.shields.io/npm/v/agent-skills-toolkit?label=npm&color=cb3837)](https://www.npmjs.com/package/agent-skills-toolkit)
+[![tier](https://img.shields.io/endpoint?url=https://product-on-purpose.github.io/agent-skills-toolkit/badges/tier.json)](https://product-on-purpose.github.io/agent-skills-toolkit/reports/report.html)
+[![checks](https://img.shields.io/badge/checks-34-6b4fa8)](https://product-on-purpose.github.io/agent-skills-toolkit/reference/gold-checks/)
+[![standard](https://img.shields.io/badge/Standard-0.15-6b4fa8)](https://product-on-purpose.github.io/agent-skills-toolkit/explanation/conformance-and-tiers/)
 
-### Do you need to do anything?
+> **New here?** This toolkit checks a library of agent skills - the kind Claude Code and Codex load - against a written standard, and tells you what it meets and what it does not. It runs the same way on your laptop and in CI, and gives the same answer both times, because nothing about the grading involves a model.
 
-**Almost certainly not.** No check is added or removed, the spine stays at **34**, the Standard stays at
-**0.15**, and no verdict moves. Two things are worth a glance:
+---
 
-- **The GitHub Action has a new display name**, *Agent Skills Toolkit Grader*. If you pin it with
-  `uses: product-on-purpose/agent-skills-toolkit@<tag>`, **nothing changes for you** - `uses:` resolves the
-  repository, never the display name.
-- **If you run the gate in GitHub Actions, there is finally documentation for it.** See
-  [run the gate in GitHub Actions](docs/how-to/run-the-gate-in-github-actions.md).
+### What changed for you
 
-### The Action is now tested the way you use it
+| | What | Why it matters |
+| --- | --- | --- |
+| **📘** | **The GitHub Action is documented** | It existed before, explained nowhere except a comment in its own config file |
+| **🏷️** | **It has a clearer name** | *Agent Skills Toolkit Grader*, was *Advanced Skill Library Standard Gate*. Nothing breaks |
+| **📊** | **The full result is published** | Previously you got a badge. Now you get the whole report |
+| **⚖️** | **Every grade states its own limits** | A tier says the structure matches a standard. It does not say the skills are good |
 
-This Action shipped **broken to every consumer twice** - once in v1.16.1 and again in v1.16.2 - while this
-repository's own CI stayed green. The reason was simple and embarrassing: CI called the underlying scripts
-directly and never went through the Action at all, so the path you use was the one path nobody tested.
+**Do you need to do anything? No.** No check was added, changed or removed, so nothing that passed before will start failing. The Standard stays at 0.15 and the check count stays at 34.
 
-CI now grades this repository **through its own published Action**, in both positions a consumer can
-occupy: the working tree's definition, and the Action as published. Both were proven to catch the v1.16.2
-failure by deliberately reintroducing it.
+---
 
-### The published verdict is no longer eight fields
+### Add it to your CI
 
-Until now the only machine-readable thing published was a badge payload. You could learn the tier and
-nothing else. The site now serves the whole verdict, regenerated on every deploy:
+Two lines in a workflow and every push gets checked. Full guide: **[run the gate in GitHub Actions](https://product-on-purpose.github.io/agent-skills-toolkit/how-to/run-the-gate-in-github-actions/)**.
 
-- **[The full report](https://product-on-purpose.github.io/agent-skills-toolkit/reports/report.html)** - every check, its status, and the findings behind it
-- **[The machine-readable tier report](https://product-on-purpose.github.io/agent-skills-toolkit/reports/tier-report.json)** - stamped with the commit and date it graded
-- **[The family registry](https://product-on-purpose.github.io/agent-skills-toolkit/reports/registry.html)** - the whole marketplace, graded at the shas its catalogue pins
+```yaml
+- uses: actions/checkout@v7
+- uses: product-on-purpose/agent-skills-toolkit@v1.18.0
+  with:
+    path: .
+```
 
-The registry used to be a hand-run snapshot that went twenty days stale carrying two wrong claims. It is
-now measured at deploy time, so **its date and its numbers cannot drift apart**. If the catalogue cannot be
-reached, the page says so with a date rather than showing yesterday's numbers under today's.
+The rename does not affect this. `uses:` points at the repository, not the display name, so existing workflows keep working untouched.
 
-### Every tier now says what it does not certify
+### Read the full result online
 
-One sentence, defined once and inherited by every surface that presents a tier - the README, the published
-report, the registry, the release notes above, and **every rule in the SARIF** your Security tab renders:
+These are regenerated automatically on every deploy, so their date and their numbers cannot drift apart.
 
-> This tier reports structural conformance to a written Standard - deterministic and reproducible; it is
-> not a content review, a safety audit, or a statement that the skills work.
+- **[The full report](https://product-on-purpose.github.io/agent-skills-toolkit/reports/report.html)** - every check, whether it passed, and what to do about the ones that did not
+- **[The same thing as data](https://product-on-purpose.github.io/agent-skills-toolkit/reports/tier-report.json)** - if you want to script against it
+- **[The family registry](https://product-on-purpose.github.io/agent-skills-toolkit/reports/registry.html)** - every plugin in the marketplace, graded together
 
-### Two internal fixes worth naming
+---
 
-- **The release-notes check now runs before the tag, not after it.** v1.17.1 was tagged and published to
-  npm with an unexpanded placeholder for its heading, because the check that catches exactly that ran one
-  step too late. It is now a pre-tag gate, proven against that exact tree.
-- **`standards-watch` runs on a schedule.** It had worked for several releases and nothing ever ran it.
+### Where to start
+
+| If you want to | Go here |
+| --- | --- |
+| Understand what this is | [What the tiers mean](https://product-on-purpose.github.io/agent-skills-toolkit/explanation/conformance-and-tiers/) |
+| Try it without installing anything | [Install and run via npm](https://product-on-purpose.github.io/agent-skills-toolkit/how-to/install-and-run-via-npm/) |
+| Add it to CI | [Run the gate in GitHub Actions](https://product-on-purpose.github.io/agent-skills-toolkit/how-to/run-the-gate-in-github-actions/) |
+| Understand a failure | [Troubleshoot the gate](https://product-on-purpose.github.io/agent-skills-toolkit/how-to/troubleshoot-the-gate/) |
+| Know the limits of the claim | [What a tier does not certify](https://product-on-purpose.github.io/agent-skills-toolkit/explanation/limitations/) |
+| Read everything | [The documentation site](https://product-on-purpose.github.io/agent-skills-toolkit/) |
+
+<details>
+<summary><b>Under the hood</b> - what we fixed about our own process</summary>
+
+Most of this release is the toolkit checking its own work in places it previously could not.
+
+**We now test the Action the way you use it.** It had shipped broken to everyone twice, because our own CI called the underlying scripts directly and never went through the Action itself. The path you use was the one path nobody tested.
+
+**The marketplace report is measured fresh on every deploy** rather than being a snapshot someone ran by hand. The old one had gone three weeks stale carrying two claims that were no longer true.
+
+**A release can no longer be tagged with broken release notes.** The check that catches that used to run after publishing, which is how the previous release went out with a formatting placeholder as its heading.
+
+**A monthly job now watches the upstream specification** we track. It had existed for several releases and nothing ever ran it.
+
+</details>
 
 ## 1.17.1 - 2026-09-01
 
