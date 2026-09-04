@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import path from "node:path";
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
+import { parse as parseYaml } from "yaml";
 import {
   PIN_SCHEMA, PIN_REL, StandardsWatchError, buildReport, diffSurface, emitPin, exitCodeFor,
   extractSurface, gitBlobSha, normalizeBody, readPin, renderAdrDraft, renderReport, reqIdIndex, validatePin,
@@ -408,3 +409,91 @@ test("the ADR draft is a Proposed MADR skeleton with the judgment left to a huma
   const todo = (adr.match(/TO BE COMPLETED/g) ?? []).length;
   assert.ok(todo >= 4, `expected the judgment sections to be left explicitly open, found ${todo}`);
 });
+
+/* ------------------------------------------------------------------------
+ * RS-F3: the watch is SCHEDULED, not merely available.
+ *
+ * `npm run standards-watch` worked for several releases and nothing ran it -
+ * no cron, no workflow, one roadmap row as the only surface that remembered
+ * it existed - while its twin `vendor-watch` had been on a monthly schedule
+ * since v1.14.0. These assert the properties that make the difference, so a
+ * later edit cannot quietly return this to an aspiration.
+ * ---------------------------------------------------------------------- */
+
+const WF = path.join(REPO_ROOT, ".github/workflows/standards-watch.yml");
+
+test("RS-F3: standards-watch runs on a cron, OFFSET from vendor-watch's day", () => {
+  const doc = parseYaml(readFileSync(WF, "utf8"));
+  // `on` is the YAML 1.1 boolean `true`; the parser may key it either way depending on version.
+  const triggers = doc.on ?? doc[true];
+  const crons = (triggers.schedule ?? []).map((s) => s.cron);
+  assert.deepEqual(crons, ["0 7 15 * *"], "the schedule is the whole point of this item");
+  assert.ok("workflow_dispatch" in triggers, "a watch nobody can run by hand cannot be demonstrated");
+
+  const vendorCrons = ((parseYaml(readFileSync(path.join(REPO_ROOT, ".github/workflows/vendor-watch.yml"), "utf8")).on ?? {}).schedule ?? [])
+    .map((s) => s.cron);
+  assert.ok(vendorCrons.length > 0, "vendor-watch's cron is the thing this one is offset FROM; it is gone");
+  const day = (c) => c.split(" ")[2];
+  assert.notEqual(day(crons[0]), day(vendorCrons[0]),
+    "the two watches must straddle the month, so one runner outage cannot blank both");
+});
+
+test("RS-F3: the watch can open an issue, and cannot edit anything", () => {
+  const doc = parseYaml(readFileSync(WF, "utf8"));
+  assert.equal(doc.permissions?.["issues"], "write", "it reports by opening an issue");
+  assert.equal(doc.permissions?.["contents"], "read",
+    "deciding what an upstream change MEANS is an ADR, not a commit a robot makes at 07:00");
+});
+
+test("RS-F3: a non-zero exit opens an issue, and exit 2 is NOT treated as a pass", () => {
+  const text = readFileSync(WF, "utf8");
+  const doc = parseYaml(text);
+  const issueStep = doc.jobs.watch.steps.find((s) => String(s.uses ?? "").startsWith("actions/github-script"));
+  assert.ok(issueStep, "no github-script step, so nothing opens an issue");
+  assert.match(String(issueStep.if), /outputs\.exit != '0'/,
+    "the condition must fire on ANY non-zero exit; a run that could not verify proved nothing and is not a pass");
+  assert.match(text, /refused = exit === '2'/, "the refusal case must be distinguishable in the issue it opens");
+});
+
+test("RS-F3: the scheduled watcher deduplicates on something that EXISTS", () => {
+  // The exact trap vendor-watch shipped with and W2-H4 caught there: dedup was implemented as a
+  // `labels:` filter naming a label that had never been provisioned on this repository. A label filter
+  // matching a nonexistent label matches nothing, so every monthly run would have opened a fresh issue
+  // while the comment beside it claimed the opposite. This file is a clone of that one; the correction
+  // has to be cloned with it, and asserted, or the bug comes back with the shape.
+  const text = readFileSync(WF, "utf8");
+  assert.match(text, /askit:standards-watch/, "the dedup marker must be written into the issue body");
+  assert.doesNotMatch(text, /listForRepo,?\s*\{[^}]*labels:/,
+    "dedup must not depend on a label: it can be absent, renamed, or stripped during triage");
+  assert.match(text, /^concurrency:/m, "a manual dispatch during the scheduled run would double-open");
+});
+
+test("RS-F3: the two watches do not share a dedup marker, or each would silence the other", () => {
+  const mine = readFileSync(WF, "utf8").match(/askit:[a-z-]+/g) ?? [];
+  const theirs = readFileSync(path.join(REPO_ROOT, ".github/workflows/vendor-watch.yml"), "utf8").match(/askit:[a-z-]+/g) ?? [];
+  assert.ok(mine.length > 0 && theirs.length > 0);
+  assert.equal(new Set(mine).size, 1);
+  assert.equal(new Set(theirs).size, 1);
+  assert.notEqual(mine[0], theirs[0],
+    `both watches match on ${mine[0]}, so whichever ran second would comment on the other's issue instead of opening its own`);
+});
+
+test("RS-F3: standards-watch does NOT gate release-ready yet, and says why in as many words", () => {
+  // Decision queue 8, ruled 2026-08-31: cron and issues now, no release gate yet. Asserted rather than
+  // trusted, because "we decided not to yet" is exactly the kind of decision that gets quietly reversed
+  // by someone tidying up the gate list. The revisit trigger has to survive with it or the deferral
+  // becomes permanent by default.
+  const ids = GATES_IDS();
+  assert.ok(!ids.includes("standards-watch"),
+    "gating a tag on somebody else's release cadence is a stale-by-date blocker whose remedy may not exist on the day it fires");
+  const text = readFileSync(WF, "utf8");
+  assert.match(text, /NO RELEASE GATE, DELIBERATELY/, "the decision must be recorded where the next editor will read it");
+  assert.match(text, /REVISIT TRIGGER/, "a deferral with no revisit trigger is a permanent excuse");
+  assert.match(text, /E58/, "the revisit must be filed somewhere with an owner, not just commented");
+});
+
+/** The release-ready gate ids, read at call time so this file does not import the gate list at module load. */
+function GATES_IDS() {
+  const text = readFileSync(path.join(REPO_ROOT, "scripts/lib/release-ready.mjs"), "utf8");
+  return [...text.matchAll(/^\s*id:\s*"([^"]+)"/gm)].map((m) => m[1]);
+}

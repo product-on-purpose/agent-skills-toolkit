@@ -6,12 +6,15 @@
 
 A public `0.x` tag ships at every wave boundary (RELEASE-PLAN v0.2 Section 5); `v1.0.0` is the Gold capstone. Each tag is a real, gate-green release. The release-readiness gate (`scripts/release-ready.mjs`, landed in v1.14.0; `scripts/checks/` is reserved for Standard spine checks) is a hard precondition: a release cannot be tagged until it passes.
 
+**The version number is assigned HERE, at cut time, and nowhere earlier** ([ADR 0057](decisions/0057-unshipped-work-carries-a-name-never-a-version-number.md)). Unshipped work carries a phase NAME and its workstream or backlog IDs; a semver class (patch, minor, major) is fine, because that describes the change rather than its place in a queue. Before tagging, the number appears in exactly one place: the release packet being cut. Three consecutive forward assignments were falsified before this became a rule, the last of them promising one number to three different bodies of work.
+
 ## Checklist (each item is a gated check, not a reminder)
 
 - [ ] **Version consistent** across `library.json`, `package.json`, the git tag, and the CHANGELOG section. (version-equality check, Wave A.)
 - [ ] **CHANGELOG** has a dated section for this version (the `[Unreleased]` content promoted), Keep a Changelog format.
 - [ ] **RELEASE-NOTES.md** has a curated, user-facing entry for this version, distinct from the CHANGELOG (sec 10.6 / G5).
 - [ ] **README "Status"** matches the declared tier + version (drift = error).
+- [ ] **[Audit intake](audit-intake.md)** - if this release resolves any audit-origin row, that row is updated in THIS change rather than afterwards. Not a gated check; a one-line read that exists because six recommendations went zero-trace between two audit generations.
 - [ ] **INDEX.md + native manifests** regenerated and drift-free; no hand-edits (G4).
 - [ ] **Architecture docs** (`docs/explanation/architecture-overview.md` + `architecture-detailed.md`) present and current.
 - [ ] **Decisions** recorded: any decision made this release is an ADR carrying its `## TL;DR` (ADR 0021 convention).
@@ -71,6 +74,7 @@ A public `0.x` tag ships at every wave boundary (RELEASE-PLAN v0.2 Section 5); `
   docs contradict, five days after an internal audit had already found it, because nothing was re-reading the page.
 - [ ] **Codex round-trip** run manually for this tag (Q-E gate): `CODEX_REQUIRED=1 npm test`; record the result in the release notes.
 - [ ] **npm publish**, for any release that changes shipped code. The gate is a published package (`agent-skills-toolkit` on npm) as of v1.11.0, and until v1.12.0 this checklist did not mention it at all - so a release could be tagged, GitHub-released and marketplace re-pinned while npm consumers silently stayed on the previous version.
+- [x] **GitHub Marketplace listing - DONE 2026-09-03, and it does not need doing again.** The Action is listed at [agent-skills-toolkit-grader](https://github.com/marketplace/actions/agent-skills-toolkit-grader) under **Code quality** (primary) and **Continuous integration**. **The first opt-in was manual and could not have been otherwise:** it is a checkbox plus a terms acceptance on the GitHub Release edit screen, and the REST release API exposes no marketplace, category or listing field - verified 2026-09-03 against the live release object. Every release after the first is added to the listing automatically, so there is nothing to do here per release. Recorded because the absence of an API is not discoverable from this repository, and the next person to look will otherwise go hunting for the automation. **Two constraints learned by being refused:** the Marketplace validator requires `action.yml`'s `description` to be under 125 characters (ours was 350; a test now asserts this), and it validates against the default branch rather than the release tag, so a fix on `main` cleared the block on an already-published release without moving its tag.
 
   **Publishing is fully automated and uses no stored credential.** Dispatch `publish-npm.yml` with the tag and `dry_run: false`. It re-runs the suite and the gate from the trust root, proves the tag is an ancestor of `main`, and publishes via **npm trusted publishing (OIDC)**: the runner mints a short-lived identity token that npm verifies against a publisher registered once on npmjs.com. Provenance attestations are generated automatically; `--provenance` is deliberately not passed and its absence is not an omission.
 

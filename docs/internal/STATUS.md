@@ -12,14 +12,48 @@
 
 | Fact | Value |
 |---|---|
-| Version | **1.17.0, FULLY SHIPPED 2026-08-28.** Tagged `v1.17.0` at `fd5286b`, GitHub release **Latest**, npm `1.17.0` on `latest` with SLSA provenance, registry `agent-plugins` **1.72.0** via [PR #91](https://github.com/product-on-purpose/agent-plugins/pull/91) (prepared by `repin-watch`, issue #90 auto-closed). All four manifests and the `action.yml` advertised pin read 1.17.0. **First tag through the approval-gated publish path**, which its first exercise also debugged: the `npm-publish` environment's branch policy admitted only `main` and rejected the tag before the reviewer gate; a `v*` type:tag policy was added and the rerun waited at the reviewer as designed. Consumer-position verified: `npx agent-skills-toolkit@1.17.0` from a clean directory grades this repository Advanced 0/0. Nothing outstanding. |
+| Version | **1.18.0, CUT 2026-09-03, tag and publish pending.** "Reach, second act" - cut 2 of the resolution plan. Merged as [PR #297](https://github.com/product-on-purpose/agent-skills-toolkit/pull/297) at `167fdbc`; five items (RS-D1 self-consume the Action, RS-D3 published verdicts and deploy-generated registry, RS-F3 standards-watch cron, RS-E3 tier-scope routing, plus E57 out of band). The Action is renamed **Agent Skills Toolkit Grader** and documented for the first time. `release-ready` now runs **six** gates. Live site verified serving the new reports at `167fdbc`. **RS-D2 (Marketplace listing) is DONE 2026-09-03**, closing the last open item of cut 2: [agent-skills-toolkit-grader](https://github.com/marketplace/actions/agent-skills-toolkit-grader), Code quality + Continuous integration, naming v1.18.0. The first opt-in was manual because there is no API for it; every later release is added automatically. Previously: **1.17.1, FULLY SHIPPED 2026-09-01.** The records patch, cut 1 of the resolution plan ratified 2026-08-31. Tagged `v1.17.1` at `4ba1ae6`, GitHub release **Latest**, npm `1.17.1` on `latest` with SLSA provenance, registry `agent-plugins` **1.73.0** via [PR #93](https://github.com/product-on-purpose/agent-plugins/pull/93) (prepared by `repin-watch`, issue #92 closed). All four manifests and the `action.yml` advertised pin read 1.17.1. Consumer-position verified: `npx agent-skills-toolkit@1.17.1` from a clean directory grades this repository Advanced 0/0. **Second exercise of the tag-triggered publish path and the first to reach the reviewer on its first try.** One defect found in the release path itself and filed as E57: `RELEASE-NOTES.md`'s heading shipped into the tag as a literal format placeholder, caught by `release.yml` AFTER the tag and publish rather than by `release-ready` before them; the npm tarball was unaffected (the file is not in `package.json`'s `files`). Previously: Previously: **1.17.0, FULLY SHIPPED 2026-08-28.** Tagged `v1.17.0` at `fd5286b`, GitHub release **Latest**, npm `1.17.0` on `latest` with SLSA provenance, registry `agent-plugins` **1.72.0** via [PR #91](https://github.com/product-on-purpose/agent-plugins/pull/91) (prepared by `repin-watch`, issue #90 auto-closed). All four manifests and the `action.yml` advertised pin read 1.17.0. **First tag through the approval-gated publish path**, which its first exercise also debugged: the `npm-publish` environment's branch policy admitted only `main` and rejected the tag before the reviewer gate; a `v*` type:tag policy was added and the rerun waited at the reviewer as designed. Consumer-position verified: `npx agent-skills-toolkit@1.17.0` from a clean directory grades this repository Advanced 0/0. Nothing outstanding. |
 | Declared tier | Advanced (Gold) - `library.json` `tier: advanced` |
 | Standard pin | **0.15** |
 | Spine | 34 checks |
 | Scopes | 3 (plugin, component, marketplace) |
 | Skills | **26** |
-| Tests | 1439, 0 failures (1 skipped; local suite run **2026-08-28**, after the documentation style contract added 22 prose-metrics cases, the E52 fix added 12, the publish-trigger change added 3 structural assertions to `publish-npm-yml`, and E51 added 3). It read **1399 at `1da4d16` (v1.16.1)** and **1359 at `9133014` (v1.15.0)**, each confirmed there by `npm run release-ready` exiting 0 on the release runner. `v1.16.2` and `v1.16.3` left it at **1399**: neither touched `tests/`, verified by diff |
+| Tests | **1506, 0 failures** (1 skipped; local suite run **2026-09-04**). The nineteen added since 1487 are #310's, over `scripts/audit-deps.mjs`: the three captured npm outage shapes each classified as unreachable rather than as a finding, the blocking path shown at `high` and at `critical` (the threshold is an index comparison, so `critical` must block a `high` gate), a below-threshold advisory reported without gating, an unrecognised `--level` refusing rather than silently gating nothing, and two assertions over `ci.yml` itself - that the audit runs after the suite and the conformance gate, and that it runs through the script rather than a bare `npm audit`. It read **1487 at `9552c0d`**, and **1446 at `4ba1ae6` (v1.17.1)**; of the thirty-nine added since, twelve are E57's, covering the RELEASE-NOTES section gate: the tagged-and-published tree captured as a fixture, its repaired twin, the extraction rules the awk used to hold, and the assertions that both callers stay wired to one implementation, six are RS-F3's, asserting that the new standards-watch schedule cannot quietly become an aspiration again, and nineteen are RS-D3's, over the deploy-time report publisher and the family-registry generator - the latter mostly about what happens when the network does not cooperate; and two are RS-E3's, pinning the tier-scope sentence across its five cut-2 placements. Earlier: **1439 at `fd5286b` (v1.17.0)**, **1399 at `1da4d16` (v1.16.1)** and **1359 at `9133014` (v1.15.0)**, each confirmed there by `npm run release-ready` exiting 0 on the release runner |
 | Self-proving | `node scripts/check.mjs .` exits 0 at Advanced, 0 errors, 0 warnings |
+
+## v1.17.1 CUT 2026-09-01 - the records patch
+
+**Cut 1 of the resolution plan ratified 2026-08-31**, and the first execution of anything from the
+2026-08-28 audit. Patch class by the v1.10.1 "trust patch" precedent: every item is a defect fix, a
+records fix, or an internal guard. Spine **34** unchanged, Standard **0.15** unchanged, skills **26**
+unchanged, and the only verdict movement possible is a catalogue going from failing to passing.
+
+**Three P0 defects closed.** The `command` marketplace source kind (Claude Code v2.1.229) was falsely
+redding valid catalogues; four tracked surfaces asserted a vendor claim that never existed in the
+ledger; the published family registry described a toolkit six releases old and graded trees the
+catalogue does not pin.
+
+**Two standing policies adopted.** [ADR 0057](decisions/0057-unshipped-work-carries-a-name-never-a-version-number.md)
+(unshipped work carries a name, never a version number) and [the audit-intake index](audit-intake.md).
+
+**Three corrections to the audit that commissioned the work**, recorded rather than absorbed: the
+registry's "false RED" was not false - the catalogue pins a commit predating the member's fix, so the
+stale thing is the PIN, not the verdict; the "six" stretch-label files are nine; and the specified
+scoop for the claim-citation guard would have caught one phantom citation in four, which is why it was
+measured before it shipped.
+
+**The adversarial review found three defects in what the cut wrote down**, all fixed before merge. The
+sharpest: the documentation for the anti-phantom-reference guard contained a phantom reference, in the
+one place that guard structurally cannot look.
+
+**RS-A3's last criterion is now CLOSED.** The live deployed page was checked from outside the
+repository after the docs deploy: it shows `Measured 2026-09-01`, the registry sha `81dbbde`, all six
+rows `in sync`, and names its own staleness episode. Every item in cut 1 is therefore complete.
+
+**One defect the cut found in the release path itself,** filed as E57: `release-ready` has no gate that
+reads `RELEASE-NOTES.md`'s section for the version being cut, so `release.yml`'s (correct) refusal to
+publish a malformed notes body fires only after the tag is pushed and the publish approved. Same shape
+as the v1.17.0 publish-environment defect - a correct rule exercised one step too late.
 
 ## v1.16.2 and v1.16.3 SHIPPED 2026-08-25, DISTRIBUTION CLOSED 2026-08-28
 
@@ -30,7 +64,7 @@ suite: it read 1399 at both tags, the same figure as `v1.16.1`, and neither touc
 | --- | --- |
 | v1.16.2 fixed | the reusable Action failed for every consumer before it graded anything. `cache-dependency-path` resolved as a glob relative to `GITHUB_WORKSPACE` while `github.action_path` is an absolute path outside it, so `setup-node` errored and the composite step skipped both the install and the gate |
 | v1.16.3 fixed | the SARIF example in `action.yml` told consumers to use `github/codeql-action/upload-sarif@v3`, a pin this repository's own workflow had already moved off |
-| Found by | `prisant-labs/prisant-utilities`, the first consumer to wire the Action into CI. The toolkit's own CI never caught it, because it runs its gate directly rather than through the Action it publishes |
+| Found by | `prisant-labs/prisant-utilities`, the first consumer to wire the Action into CI. The toolkit's own CI never caught it, because at the time it ran its gate directly rather than through the Action it publishes. **Closed 2026-09-02 by RS-D1 (self-consume the Action), cut 2:** `ci.yml` now also grades this repository through the Action itself, in both positions - `gate-via-action` (`uses: ./`, the working tree's own definition) and `gate-via-published-action` (`uses: ...@main`, the consumer's geometry). Both were shown red against the reintroduced v1.16.2 defect on [PR #298](https://github.com/product-on-purpose/agent-skills-toolkit/pull/298) while the direct-script jobs stayed green, but by different mechanisms - only the published-ref job reproduces the error consumers actually saw, and it is the only job exercising remote `uses:` resolution at all. The block comment in `ci.yml` carries both measured `action_path` values |
 | Bump | done, all four manifests at 1.16.3 |
 | Tag | `v1.16.2` -> `dd1b3bf`, `v1.16.3` -> `249513b` |
 | GitHub release | both published, `v1.16.3` is **Latest** |
@@ -524,7 +558,7 @@ blocked its own first real run** - on 7 failing tests and a stale count that had
 
 ## Where this is going
 
-One line per release; version numbers beyond v1.10.1 name a shape, not a promise. This
+One line per phase, **by NAME rather than by version number** ([ADR 0057](decisions/0057-unshipped-work-carries-a-name-never-a-version-number.md), adopted 2026-09-01): unshipped work here carries a phase name and its workstream or backlog IDs, and takes its number at cut time. Lines below that still name a forward version predate the ADR and are being read as shapes rather than promises until they are rewritten or ship. This
 sequencing came from a dated internal audit (2026-08-10, held locally, not a followable link from
 this file); the conclusions are stated here directly.
 

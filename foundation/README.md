@@ -40,6 +40,8 @@ So the tier boundaries are a **synthesis of vendor capability**, and the quality
 
 **A missing boundary gets a row saying `unverified`, never an omitted row.** An absent row reads as "no boundary here"; an `unverified` row reads as "a boundary nobody has grounded", which is the finding.
 
+**A backticked claim id near the words "claim" or "pin" is a CITATION, and it must resolve.** Added 2026-08-31 after four surfaces in this directory and the backlog spent six days asserting that a claim id was pinned when `git log -S` shows it never existed in the ledger at any commit. `scripts/check-claim-citations.mjs` now runs in `npm test` and exits 1 on a citation naming no claim. Two practical consequences for anyone writing here: **name a claim id in backticks only when you mean the ledger entry**, and when a pin was attempted and withdrawn, say that in words rather than leaving the id in backticks - a citation that survives its claim is exactly the failure this guard exists to stop. If a kebab-case name that is NOT a claim id trips it, the remedy is one line in that script's `KNOWN_NON_CLAIM` map saying what the name actually is.
+
 ## What is deliberately NOT here
 
 ADRs, the backlog, release plans and `STATUS.md` stay in [`../docs/internal/`](../docs/internal/). They are **maintainer working material, not evidence.**

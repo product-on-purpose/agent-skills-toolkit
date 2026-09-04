@@ -1,6 +1,6 @@
 {
   "name": "agent-skills-toolkit",
-  "version": "1.17.0",
+  "version": "1.18.0",
   "description": "A deterministic, portable gate that grades an agent skill library (Claude Code and Codex plugins) against the Advanced Skill Library Standard and reports the Bronze/Silver/Gold tier it earns.",
   "license": "Apache-2.0",
   "homepage": "https://product-on-purpose.github.io/agent-skills-toolkit/",
@@ -56,12 +56,15 @@
     "!scripts/lib/standards-watch.mjs",
     "!scripts/lib/vendor-watch.mjs",
     "!scripts/lib/release-ready.mjs",
+    "!scripts/lib/release-notes-section.mjs",
+    "!scripts/lib/fetch-members.mjs",
     "!scripts/lib/action-pin-watch.mjs",
+    "!scripts/lib/audit-report.mjs",
     "!scripts/lib/prose-metrics.mjs",
     "STANDARD.md"
   ],
   "scripts": {
-    "test": "node scripts/check-readme-version.mjs . && node scripts/check-doc-enumerations.mjs . && node --test",
+    "test": "node scripts/check-readme-version.mjs . && node scripts/check-doc-enumerations.mjs . && node scripts/check-claim-citations.mjs . && node --test",
     "check": "node scripts/check.mjs",
     "tier-report": "node scripts/tier-report.mjs",
     "evaluate": "node scripts/evaluate.mjs",

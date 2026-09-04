@@ -103,6 +103,15 @@ export const GATES = Object.freeze([
     // actually applied to, so reusing one flag cannot hide which refusal was excused.
     overridableCodes: [2],
   }),
+  Object.freeze({
+    id: "release-notes-section",
+    argv: ["scripts/check-release-notes-section.mjs"],
+    why: "the version being cut must already have its own section in RELEASE-NOTES.md, or release.yml refuses to publish - correctly, but on the PUSHED TAG, after npm has already published (E57)",
+    // NOT overridable at any exit code, unlike vendor-watch and action-pins. Nothing this gate reads lives
+    // on somebody else's server - it reads two files in this repository - so there is no outage that can
+    // make it refuse, and therefore nothing for an outage override to excuse. The remedy is also always
+    // available, because writing the missing heading IS the fix.
+  }),
 ]);
 
 /**

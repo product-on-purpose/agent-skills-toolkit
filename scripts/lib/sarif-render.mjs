@@ -31,6 +31,7 @@ import { readFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { CHECKS } from "./registry.mjs";
+import { LIMITATIONS_URL } from "./tier-scope.mjs";
 import { metaFor } from "./report-meta.mjs";
 
 const TOOL_NAME = "agent-skills-toolkit";
@@ -69,6 +70,10 @@ function buildRules() {
       name: m.meta.id,
       shortDescription: { text: why },
       fullDescription: { text: why },
+      // RS-E3. SARIF is read in a consumer's Security tab, which is the surface furthest from this
+      // repository's own documentation and therefore the one where an unqualified tier claim travels
+      // furthest unaccompanied. helpUri is SARIF's own field for exactly this.
+      helpUri: LIMITATIONS_URL,
       properties: { provenance: m.meta.provenance, tier: m.meta.tier },
     };
   });

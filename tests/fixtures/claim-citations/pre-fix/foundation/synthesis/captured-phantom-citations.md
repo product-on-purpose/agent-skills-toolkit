@@ -1,0 +1,16 @@
+<!-- Verbatim capture of the four phantom citations as they stood at b99e5ee, before the
+     RS-A2 repair. This file is the regression corpus for check-claim-citations.mjs: the
+     checker must name all four. Do not edit these lines; they are a historical record. -->
+
+<!-- from docs/internal/backlog/enhancements.md:652 -->
+- **PARTLY RESOLVED 2026-08-22, and the partial is the interesting half.** Done as prescribed: opened `https://developers.openai.com/codex/hooks.md`, counted, pinned - against a new `cx-hooks` source, **the first Codex source this repository pins.** Three claims quoting the event TABLE landed and were **removed the same day**: a pipe is rendering rather than vendor prose, so a re-render would have reported all three `MISSING` at once, and `MISSING` is exit 1 with no soft path. It also broke this file's own stated convention that a quote claim must be a complete semantic sentence. **One event is now pinned in prose** (`codex-sessionend-hook-exists`), and the eleven-event set is a dated `read` in `foundation/sources/codex.md`. **An enumeration that exists only as a table is not quotable by this mechanism**, which is the same shape as `E49`.
+
+<!-- from foundation/sources/codex.md:35 -->
+- **Hooks are a subset of Claude Code's events, and the subset is now PINNED.** Read 2026-08-22 from `https://developers.openai.com/codex/hooks.md`, `method: read`. **The enumeration is a TABLE, and a table row cannot safely be a `quote` claim** - the pipe is rendering rather than vendor prose, so a re-render blanks the claim and `MISSING` blocks every release. Three such claims landed on 2026-08-22 and were removed the same day. **One event is pinned in prose** (`codex-sessionend-hook-exists`); the set below is this record's own dated reading. **Codex documents ELEVEN events**, not the nine or ten this repository had recorded: `PreToolUse`, `PermissionRequest`, `PostToolUse`, `PreCompact`, `PostCompact`, `UserPromptSubmit`, `SubagentStop`, `Stop`, `SessionStart`, `SubagentStart`, and `SessionEnd`.
+
+<!-- from foundation/synthesis/capability-matrix.md:17 -->
+| Hook | 3.5 (Advanced) | yes (31 events) | subset, **11 events** | Codex supports a smaller set: `PreToolUse`, `PermissionRequest`, `PostToolUse`, `PreCompact`, `PostCompact`, `UserPromptSubmit`, `SubagentStop`, `Stop`, `SessionStart`, `SubagentStart`, `SessionEnd` (which does not run for subagents). **Read 2026-08-22**; `SessionEnd` is pinned by `codex-sessionend-hook-exists` in [`../claims/vendor-claims.json`](../claims/vendor-claims.json), while the SET is a dated reading in [`../sources/codex.md`](../sources/codex.md) - the enumeration is a table, and a table row pins rendering rather than prose. **`SessionEnd` was absent from this row until then** - the drift `E48` predicted, found by reading the page. |
+
+<!-- from foundation/synthesis/tier-basis.md:74 -->
+| **Hooks: Codex supports a SUBSET of Claude Code's events** | Claude Code has 31 events; **Codex has 11**, enumerated on the vendor's hook reference | **partly pinned.** One event pinned by quote; the SET is a dated `read` | `codex-sessionend-hook-exists` pins `SessionEnd`. The eleven-event enumeration is recorded in [`../sources/codex.md`](../sources/codex.md), `method: read` | 2026-08-22 |
+

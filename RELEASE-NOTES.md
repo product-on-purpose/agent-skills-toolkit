@@ -2,6 +2,112 @@
 
 Curated, user-facing highlights. For the full technical history see [`CHANGELOG.md`](CHANGELOG.md).
 
+Every tier named below carries the same scope. *This tier reports structural conformance to a written Standard - deterministic and reproducible; it is not a content review, a safety audit, or a statement that the skills work.* See [what a tier does not certify](docs/explanation/limitations.md). This note is deliberately in the STANDING header rather than a footer: a footer would sit inside the oldest release's section and be extracted into that release's body by `check-release-notes-section.mjs`.
+
+## 1.18.0 - 2026-09-03
+
+[![npm](https://img.shields.io/npm/v/agent-skills-toolkit?label=npm&color=cb3837)](https://www.npmjs.com/package/agent-skills-toolkit)
+[![tier](https://img.shields.io/endpoint?url=https://product-on-purpose.github.io/agent-skills-toolkit/badges/tier.json)](https://product-on-purpose.github.io/agent-skills-toolkit/reports/report.html)
+[![checks](https://img.shields.io/badge/checks-34-6b4fa8)](https://product-on-purpose.github.io/agent-skills-toolkit/reference/gold-checks/)
+[![standard](https://img.shields.io/badge/Standard-0.15-6b4fa8)](https://product-on-purpose.github.io/agent-skills-toolkit/explanation/conformance-and-tiers/)
+
+> **New here?** This toolkit checks a library of agent skills - the kind Claude Code and Codex load - against a written standard, and tells you what it meets and what it does not. It runs the same way on your laptop and in CI, and gives the same answer both times, because nothing about the grading involves a model.
+
+---
+
+### What changed for you
+
+| | What | Why it matters |
+| --- | --- | --- |
+| **📘** | **The GitHub Action is documented** | It existed before, explained nowhere except a comment in its own config file |
+| **🏷️** | **It has a clearer name** | *Agent Skills Toolkit Grader*, was *Advanced Skill Library Standard Gate*. Nothing breaks |
+| **📊** | **The full result is published** | Previously you got a badge. Now you get the whole report |
+| **⚖️** | **Every grade states its own limits** | A tier says the structure matches a standard. It does not say the skills are good |
+
+**Do you need to do anything? No.** No check was added, changed or removed, so nothing that passed before will start failing. The Standard stays at 0.15 and the check count stays at 34.
+
+---
+
+### Add it to your CI
+
+Two lines in a workflow and every push gets checked. Full guide: **[run the gate in GitHub Actions](https://product-on-purpose.github.io/agent-skills-toolkit/how-to/run-the-gate-in-github-actions/)**.
+
+```yaml
+- uses: actions/checkout@v7
+- uses: product-on-purpose/agent-skills-toolkit@v1.18.0
+  with:
+    path: .
+```
+
+The rename does not affect this. `uses:` points at the repository, not the display name, so existing workflows keep working untouched.
+
+### Read the full result online
+
+These are regenerated automatically on every deploy, so their date and their numbers cannot drift apart.
+
+- **[The full report](https://product-on-purpose.github.io/agent-skills-toolkit/reports/report.html)** - every check, whether it passed, and what to do about the ones that did not
+- **[The same thing as data](https://product-on-purpose.github.io/agent-skills-toolkit/reports/tier-report.json)** - if you want to script against it
+- **[The family registry](https://product-on-purpose.github.io/agent-skills-toolkit/reports/registry.html)** - every plugin in the marketplace, graded together
+
+---
+
+### Where to start
+
+| If you want to | Go here |
+| --- | --- |
+| Understand what this is | [What the tiers mean](https://product-on-purpose.github.io/agent-skills-toolkit/explanation/conformance-and-tiers/) |
+| Try it without installing anything | [Install and run via npm](https://product-on-purpose.github.io/agent-skills-toolkit/how-to/install-and-run-via-npm/) |
+| Add it to CI | [Run the gate in GitHub Actions](https://product-on-purpose.github.io/agent-skills-toolkit/how-to/run-the-gate-in-github-actions/) |
+| Understand a failure | [Troubleshoot the gate](https://product-on-purpose.github.io/agent-skills-toolkit/how-to/troubleshoot-the-gate/) |
+| Know the limits of the claim | [What a tier does not certify](https://product-on-purpose.github.io/agent-skills-toolkit/explanation/limitations/) |
+| Read everything | [The documentation site](https://product-on-purpose.github.io/agent-skills-toolkit/) |
+
+<details>
+<summary><b>Under the hood</b> - what we fixed about our own process</summary>
+
+Most of this release is the toolkit checking its own work in places it previously could not.
+
+**We now test the Action the way you use it.** It had shipped broken to everyone twice, because our own CI called the underlying scripts directly and never went through the Action itself. The path you use was the one path nobody tested.
+
+**The marketplace report is measured fresh on every deploy** rather than being a snapshot someone ran by hand. The old one had gone three weeks stale carrying two claims that were no longer true.
+
+**A release can no longer be tagged with broken release notes.** The check that catches that used to run after publishing, which is how the previous release went out with a formatting placeholder as its heading.
+
+**A monthly job now watches the upstream specification** we track. It had existed for several releases and nothing ever ran it.
+
+</details>
+
+## 1.17.1 - 2026-09-01
+
+**Three defects in the records are fixed, one of them a gate that was failing a valid marketplace.**
+
+### Do you need to do anything?
+
+**No.** No check is added or removed, the spine stays at **34**, the Standard stays at **0.15**, and no
+verdict moves. One class of verdict can only get BETTER: if your marketplace carries a `command`-source
+entry, it stopped being falsely rejected.
+
+### What changed
+
+- **A valid marketplace stops being falsely failed.** Claude Code v2.1.229 added `command` as a
+  marketplace plugin-entry source kind. The gate did not know it, so such an entry read as an unknown
+  kind - and a source rejection reds the whole catalogue. If that was you, your collection was red for a
+  reason that was this tool's fault, and it is not any more. Nothing else moves: all six members of the
+  reference family grade byte-identically before and after.
+- **The provenance ledger's cross-references are trustworthy again.** Four documents claimed a vendor
+  claim was pinned when it had never existed. They now say what actually happened, and a new guard
+  (`npm test`) makes the class impossible to reintroduce quietly.
+- **Two published records stopped contradicting reality.** The family registry now grades every member at
+  the sha the catalogue pins, so all six rows are reproducible from the commands the page prints. And
+  nine internal planning files stopped describing two long-shipped features as undecided stretch goals.
+
+### For maintainers of this repository
+
+Two standing policies were adopted: unshipped work carries a phase name rather than a version number
+([ADR 0057](docs/internal/decisions/0057-unshipped-work-carries-a-name-never-a-version-number.md)), and
+every audit-origin item now has a tracked row in
+[the audit-intake index](docs/internal/audit-intake.md).
+
 ## 1.17.0 - 2026-08-28
 
 **Releases now reach npm on their own, and your gate stops swallowing one class of failure.**

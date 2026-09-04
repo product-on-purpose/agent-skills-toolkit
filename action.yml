@@ -24,7 +24,7 @@
 #
 #   - name: Grade this plugin against the Advanced Skill Library Standard
 #     id: gate
-#     uses: product-on-purpose/agent-skills-toolkit@v1.17.0   # pin a released tag or a commit sha
+#     uses: product-on-purpose/agent-skills-toolkit@v1.18.0   # pin a released tag or a commit sha
 #     with:
 #       path: .
 #       fail-on-error: true
@@ -41,12 +41,12 @@
 #       echo "Earned tier: ${{ steps.gate.outputs.tier }}"
 #       echo "${{ steps.gate.outputs.errors }} error(s), ${{ steps.gate.outputs.warnings }} warning(s)"
 
-name: "Advanced Skill Library Standard Gate"
-description: >-
-  Grades a Claude Code / Codex agent-skills plugin against the Advanced Skill Library Standard and
-  reports the Bronze/Silver/Gold tier it earns. Emits GitHub Actions annotations inline on the diff
-  and an optional SARIF document for the Security tab; exposes the tier and error/warning counts as
-  outputs so a workflow can branch on them.
+name: "Agent Skills Toolkit Grader"
+# GitHub Marketplace enforces a 125-character limit on this field, and the listing validator refuses the
+# release until it fits. The long form that used to live here - annotations, SARIF, outputs, branching -
+# is not lost: it is the header comment above and docs/how-to/run-the-gate-in-github-actions.md, which is
+# where a reader who wants detail is actually going. A storefront tagline is not the place for it.
+description: "Grades a Claude Code or Codex agent-skills plugin: the Bronze, Silver or Gold tier it earns, inline annotations, SARIF."
 author: "product-on-purpose"
 
 branding:

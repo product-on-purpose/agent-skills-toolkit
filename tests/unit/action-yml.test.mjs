@@ -26,6 +26,26 @@ test("action.yml parses as valid YAML and declares a composite action", () => {
   assert.equal(typeof action.description, "string");
 });
 
+test("action.yml's description fits GitHub Marketplace's 125-character limit", () => {
+  // Learned the hard way on 2026-09-03. The Marketplace listing validator REFUSES to publish an
+  // Action whose `description` is 125 characters or longer, and it only says so on the release edit
+  // screen - after the release exists, at the one moment a human is trying to finish the job. The
+  // description had been 350 characters since the Action shipped, so nothing in this repository could
+  // have told anyone until someone stood at that screen.
+  //
+  // Asserted here rather than remembered, because the failure mode is a person blocked mid-task with
+  // no way to have known. The long form lives in the file's header comment and in
+  // docs/how-to/run-the-gate-in-github-actions.md; this field is a storefront tagline, not the manual.
+  const MARKETPLACE_LIMIT = 125;
+  const action = loadAction();
+  const d = action.description.replace(/\s+/g, " ").trim();
+  assert.ok(
+    d.length < MARKETPLACE_LIMIT,
+    `action.yml description is ${d.length} characters; GitHub Marketplace refuses to list at ${MARKETPLACE_LIMIT} or more:\n  ${d}`,
+  );
+  assert.ok(d.length > 40, "a tagline this short says nothing; the limit is a ceiling, not a target");
+});
+
 test("action.yml declares the minimum required inputs: path, profile, fail-on-error, and machine-output toggles", () => {
   const action = loadAction();
   for (const name of ["path", "profile", "strict", "fail-on-error", "annotations", "sarif"]) {
