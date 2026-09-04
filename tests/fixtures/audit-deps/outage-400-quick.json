@@ -1,0 +1,8 @@
+{
+  "message": "400 Bad Request - POST https://registry.npmjs.org/-/npm/v1/security/audits/quick - Bad Request",
+  "error": {
+    "code": "E400",
+    "summary": "Bad Request",
+    "detail": ""
+  }
+}
