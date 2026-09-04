@@ -274,6 +274,13 @@ const MEANING_REVERSALS = Object.freeze({
     "Plugin agents/ directories are no longer scanned recursively; only top-level files are registered.",
   "agent-filename-colon-excluded":
     "Claude Code loads a file whose name contains one and logs a warning to the debug log.",
+  // Identical vocabulary, swapped subjects - the strongest reversal shape available here. Every content
+  // word of the claim survives (`command`, `mcp_tool`, `prompt`, `agent`, handlers, supported, parsed,
+  // skipped); only WHICH pair is which has flipped. A watch that still reported "holds" against this page
+  // would be matching the sentence's words rather than its meaning, and G1's handler-type table would be
+  // built on a claim that cannot tell the supported set from the skipped one.
+  "cx-hook-handler-support":
+    "`prompt` and `agent` handlers are supported. `command` and `mcp_tool` handlers are parsed but skipped.",
 });
 
 test("W2-H3: every quote claim has a reversal recorded, so no fragment can be added unnoticed", () => {
