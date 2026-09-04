@@ -1,0 +1,31 @@
+{
+  "auditReportVersion": 2,
+  "vulnerabilities": {
+    "minimatch": {
+      "name": "minimatch",
+      "severity": "high",
+      "isDirect": false,
+      "via": [
+        {
+          "source": 1096466,
+          "name": "minimatch",
+          "dependency": "minimatch",
+          "title": "minimatch ReDoS vulnerability",
+          "url": "https://github.com/advisories/GHSA-f8q6-p94x-37v3",
+          "severity": "high",
+          "cwe": ["CWE-400"],
+          "cvss": { "score": 7.5, "vectorString": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:N/A:H" },
+          "range": "<3.0.5"
+        }
+      ],
+      "effects": [],
+      "range": "<3.0.5",
+      "nodes": ["node_modules/minimatch"],
+      "fixAvailable": true
+    }
+  },
+  "metadata": {
+    "vulnerabilities": { "info": 0, "low": 1, "moderate": 0, "high": 1, "critical": 0, "total": 2 },
+    "dependencies": { "prod": 2, "dev": 0, "optional": 0, "peer": 0, "peerOptional": 0, "total": 1 }
+  }
+}

@@ -48,9 +48,6 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Audit dependencies (blocking at high severity)
-        run: npm audit --audit-level=high
-
       - name: Unit tests
         run: npm test
 
@@ -59,6 +56,31 @@ jobs:
 
       - name: Conformance gate (self-validation)
         run: node scripts/check.mjs
+
+      # LAST on purpose (#310). This step used to run FIRST, and on 2026-09-03 an npm incident made it
+      # fail three times - which skipped the unit tests, the coverage report and the conformance gate
+      # outright, while `validate` is a required check on `main`. A run that graded this repository is
+      # worth having even when the audit could not be performed, so the audit now runs after everything
+      # it used to be able to skip.
+      #
+      # The exit-code split lives in the script, not here (Standard sec 4.1/4.4): 1 is a real advisory
+      # and reds the job, 2 is "the registry could not be read" and is reported as a warning, the same
+      # posture vendor-watch and action-pin-watch exit 2 already carry (ADR 0053 - a pin's label is a
+      # claim this repository makes). This step maps 2 to an annotation and nothing else.
+      - name: Audit dependencies (blocking at high severity)
+        run: |
+          # `set +e` around the call on purpose: GitHub runs this with `bash -e`, so an unguarded
+          # non-zero exit would end the step before the code could be read - and reading the code is
+          # the entire point.
+          set +e
+          node scripts/audit-deps.mjs --level high
+          code=$?
+          set -e
+          if [ "$code" -eq 2 ]; then
+            echo "::warning title=Dependency audit could not be performed::npm could not be read; the suite and the conformance gate above still ran. Re-run this job once the registry recovers."
+            exit 0
+          fi
+          exit "$code"
 
   # Windows platform guard: proves the suite and the gate pass on native win32 path handling (backslash
   # separators, CommandLineToArgvW argv parsing), which ubuntu-latest cannot exercise. A single Node
