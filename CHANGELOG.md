@@ -9,6 +9,10 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Fixed
+
+- **The Action could not be listed on GitHub Marketplace: its description was 350 characters and the limit is 125.** The listing validator only reports this on the release edit screen, after a release exists, at the moment a human is trying to finish the job - and the description had been that long since the Action shipped, so nothing in this repository could have told anyone sooner. The field is now a 119-character tagline; the long form it replaced was never the manual and now lives in `action.yml`'s header comment and [the how-to](docs/how-to/run-the-gate-in-github-actions.md). **A test asserts the limit**, proven able to fail by restoring the old text, so the constraint is enforced rather than remembered by whoever happened to be standing at that screen.
+
 ## [1.18.0] - 2026-09-03
 
 ### Added
