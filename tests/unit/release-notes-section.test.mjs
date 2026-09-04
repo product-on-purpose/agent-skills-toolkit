@@ -60,6 +60,36 @@ test("E57: the two fixtures differ ONLY in the heading line", () => {
 // The extraction itself - the half release.yml used to hold in awk.
 // ---------------------------------------------------------------------------------------------
 
+test("the NEWEST release's notes are not hard-wrapped, or GitHub renders them as fixed-width text", () => {
+  // GitHub renders a single newline INSIDE a paragraph as a hard <br> in release bodies, issues and
+  // comments. So source wrapped at 100 characters - the convention everywhere else in this repository -
+  // becomes ragged fixed-width text on the release page that cannot reflow on a phone or a narrow
+  // window. The maintainer caught this on v1.18.0's published notes.
+  //
+  // The rule: in the newest section, a paragraph is ONE line. Detected precisely rather than by
+  // guessing at line length - two consecutive plain-prose lines mean a wrapped paragraph. Tables,
+  // lists, fences, HTML, blockquotes, badges and headings are legitimately multi-line and are
+  // excluded. Only the NEWEST section is checked; older ones are shipped records.
+  const notes = readFileSync(path.join(REPO, "RELEASE-NOTES.md"), "utf8").split(/\r?\n/);
+  const first = notes.findIndex((l) => /^## \d+\.\d+\.\d+/.test(l));
+  const next = notes.findIndex((l, i) => i > first && /^## \d+\.\d+\.\d+/.test(l));
+  const section = notes.slice(first, next === -1 ? notes.length : next);
+
+  const isProse = (l) => l.trim() !== "" && !/^\s*([#|\-*>`]|<|\[!|\d+\.)/.test(l) && !l.startsWith("    ");
+
+  let inFence = false;
+  const offenders = [];
+  for (let i = 0; i < section.length - 1; i += 1) {
+    if (/^\s*```/.test(section[i])) { inFence = !inFence; continue; }
+    if (inFence) continue;
+    if (isProse(section[i]) && isProse(section[i + 1])) offenders.push(`line ${first + i + 1}: ${section[i].slice(0, 60)}...`);
+  }
+  assert.deepEqual(
+    offenders, [],
+    `hard-wrapped paragraph(s) found. GitHub will render these as fixed-width text that cannot reflow; put each paragraph on ONE line:\n  ${offenders.join("\n  ")}`,
+  );
+});
+
 test("the section is the heading plus its body, and STOPS at the next version heading", () => {
   const notes = readFileSync(path.join(FIX, "repaired/RELEASE-NOTES.md"), "utf8");
   const { found, text } = extractSection(notes, "1.17.1");

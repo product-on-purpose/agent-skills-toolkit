@@ -6,17 +6,31 @@ Every tier named below carries the same scope. *This tier reports structural con
 
 ## 1.18.0 - 2026-09-03
 
-**New here?** This toolkit checks a library of agent skills - the kind Claude Code and Codex load -
-against a written standard, and tells you what it does and does not meet. It runs the same way on your
-laptop and in CI, and it gives the same answer both times because there is no model involved in the
-grading. Start with [what the tiers mean](https://product-on-purpose.github.io/agent-skills-toolkit/explanation/conformance-and-tiers/).
+[![npm](https://img.shields.io/npm/v/agent-skills-toolkit?label=npm&color=cb3837)](https://www.npmjs.com/package/agent-skills-toolkit)
+[![tier](https://img.shields.io/endpoint?url=https://product-on-purpose.github.io/agent-skills-toolkit/badges/tier.json)](https://product-on-purpose.github.io/agent-skills-toolkit/reports/report.html)
+[![checks](https://img.shields.io/badge/checks-34-6b4fa8)](https://product-on-purpose.github.io/agent-skills-toolkit/reference/gold-checks/)
+[![standard](https://img.shields.io/badge/Standard-0.15-6b4fa8)](https://product-on-purpose.github.io/agent-skills-toolkit/explanation/conformance-and-tiers/)
 
-### If you use this, here is what changed
+> **New here?** This toolkit checks a library of agent skills - the kind Claude Code and Codex load - against a written standard, and tells you what it meets and what it does not. It runs the same way on your laptop and in CI, and gives the same answer both times, because nothing about the grading involves a model.
 
-**You can now run the checks in GitHub Actions, and there are finally instructions for it.** The Action
-existed before this release but was documented nowhere except a comment inside its own config file. It
-now has a proper guide: **[run the gate in GitHub Actions](https://product-on-purpose.github.io/agent-skills-toolkit/how-to/run-the-gate-in-github-actions/)**.
-Roughly, you add this to a workflow and every push gets checked:
+---
+
+### What changed for you
+
+| | What | Why it matters |
+| --- | --- | --- |
+| **📘** | **The GitHub Action is documented** | It existed before, explained nowhere except a comment in its own config file |
+| **🏷️** | **It has a clearer name** | *Agent Skills Toolkit Grader*, was *Advanced Skill Library Standard Gate*. Nothing breaks |
+| **📊** | **The full result is published** | Previously you got a badge. Now you get the whole report |
+| **⚖️** | **Every grade states its own limits** | A tier says the structure matches a standard. It does not say the skills are good |
+
+**Do you need to do anything? No.** No check was added, changed or removed, so nothing that passed before will start failing. The Standard stays at 0.15 and the check count stays at 34.
+
+---
+
+### Add it to your CI
+
+Two lines in a workflow and every push gets checked. Full guide: **[run the gate in GitHub Actions](https://product-on-purpose.github.io/agent-skills-toolkit/how-to/run-the-gate-in-github-actions/)**.
 
 ```yaml
 - uses: actions/checkout@v7
@@ -25,42 +39,17 @@ Roughly, you add this to a workflow and every push gets checked:
     path: .
 ```
 
-**The Action has a new display name: _Agent Skills Toolkit Grader_.** It was called *Advanced Skill
-Library Standard Gate*, which said nothing useful to anyone who had not already read the docs.
-**Nothing breaks** - the `uses:` line above points at the repository, not the name, so existing
-workflows keep working untouched.
+The rename does not affect this. `uses:` points at the repository, not the display name, so existing workflows keep working untouched.
 
-**You can now read the full result online, not just a badge.** Previously the only published output was
-a small badge. Now the whole verdict is published and refreshed automatically:
+### Read the full result online
+
+These are regenerated automatically on every deploy, so their date and their numbers cannot drift apart.
 
 - **[The full report](https://product-on-purpose.github.io/agent-skills-toolkit/reports/report.html)** - every check, whether it passed, and what to do about the ones that did not
 - **[The same thing as data](https://product-on-purpose.github.io/agent-skills-toolkit/reports/tier-report.json)** - if you want to script against it
 - **[The family registry](https://product-on-purpose.github.io/agent-skills-toolkit/reports/registry.html)** - every plugin in the marketplace, graded together
 
-**Every place that shows a tier now says what the tier does not mean.** A grade here says the structure
-matches a written standard. It does not say the skills are good, safe, or that they work. That sentence
-now appears with the grade everywhere it is shown, including in the findings GitHub puts in your
-Security tab. The longer version: **[what a tier does not certify](https://product-on-purpose.github.io/agent-skills-toolkit/explanation/limitations/)**.
-
-### Do you need to do anything?
-
-**No.** No check was added, changed or removed. Nothing you were passing will start failing. The
-standard version is unchanged at 0.15 and the check count is unchanged at 34.
-
-### Under the hood, in plain terms
-
-Most of this release is the toolkit checking its own work in places it previously could not.
-
-- **We now test the Action the way you use it.** It had shipped broken to everyone twice, because our
-  own CI called the underlying scripts directly and never went through the Action itself. The path you
-  use was the one path nobody tested. It is tested now.
-- **The marketplace report is measured fresh on every deploy** rather than being a snapshot someone ran
-  by hand. The old one had gone three weeks stale carrying two claims that were no longer true.
-- **A release can no longer be tagged with broken release notes.** The check that catches that used to
-  run after publishing, which is how the previous release went out with a formatting placeholder as its
-  heading.
-- **A monthly job now watches the upstream specification** we track. It had existed for several releases
-  and nothing ever ran it.
+---
 
 ### Where to start
 
@@ -72,6 +61,21 @@ Most of this release is the toolkit checking its own work in places it previousl
 | Understand a failure | [Troubleshoot the gate](https://product-on-purpose.github.io/agent-skills-toolkit/how-to/troubleshoot-the-gate/) |
 | Know the limits of the claim | [What a tier does not certify](https://product-on-purpose.github.io/agent-skills-toolkit/explanation/limitations/) |
 | Read everything | [The documentation site](https://product-on-purpose.github.io/agent-skills-toolkit/) |
+
+<details>
+<summary><b>Under the hood</b> - what we fixed about our own process</summary>
+
+Most of this release is the toolkit checking its own work in places it previously could not.
+
+**We now test the Action the way you use it.** It had shipped broken to everyone twice, because our own CI called the underlying scripts directly and never went through the Action itself. The path you use was the one path nobody tested.
+
+**The marketplace report is measured fresh on every deploy** rather than being a snapshot someone ran by hand. The old one had gone three weeks stale carrying two claims that were no longer true.
+
+**A release can no longer be tagged with broken release notes.** The check that catches that used to run after publishing, which is how the previous release went out with a formatting placeholder as its heading.
+
+**A monthly job now watches the upstream specification** we track. It had existed for several releases and nothing ever ran it.
+
+</details>
 
 ## 1.17.1 - 2026-09-01
 
