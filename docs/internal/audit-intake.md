@@ -53,7 +53,7 @@ Twenty-five recommendations. The resolution plan mapping all of them was ratifie
 | ADR: stance on the vendor's plugin eval | RULED 2026-08-31 (adopt, with a scope tripwire), ADR OPEN | RS-C5 |
 | ADR: Agent Plugins root manifest | RULED 2026-08-31 (spike first), spike OPEN | RS-C6 |
 | Consume the published Action in this repo's own CI | **SHIPPED cut 2** (two jobs, not one; spec amended by measurement 2026-09-02) | RS-D1 |
-| GitHub Marketplace listing for the Action | OPEN - cut 2 (moved off cut 1 by ruling 2026-08-31) | RS-D2 |
+| GitHub Marketplace listing for the Action | **SHIPPED 2026-09-03** on v1.18.0's release screen, with RS-D1 green as the ruling required. Listed under Code quality + Continuous integration. Two constraints learned by being refused: a 125-char description limit (now tested) and validation against the default branch, not the tag | RS-D2 |
 | Auto-publish the full verdict beside the badge | **SHIPPED cut 2** - tier-report.json, report.html and an index carrying the sha, date and tier-scope sentence. Live-site check is post-merge | RS-D3 |
 | Cross-tool corroboration run | OPEN - out-of-band research | RS-E1 |
 | The graded cohort | RULED 2026-08-31 (notify before publish), OPEN | RS-E2 |
