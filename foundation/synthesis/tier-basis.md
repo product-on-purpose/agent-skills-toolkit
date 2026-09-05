@@ -20,7 +20,7 @@ First written 2026-08-20 (v1.16.0 W3). **Nothing in this file was filled in from
 >
 > **Three claims landed first and were removed the same day**, because they pinned the event table by quoting its rows - pipes and all - which pins rendering rather than prose. A re-render would have blanked all three at once, and `MISSING` is exit 1 with no soft path. The full eleven-event enumeration is recorded as a dated `read` in `../sources/codex.md` instead. The paragraph below is the finding as first written.
 
-**All eight pinned claims in [`../claims/vendor-claims.json`](../claims/vendor-claims.json) source from Claude Code pages** - `cc-plugins-reference`, `cc-skills`, `cc-sub-agents`. There is **no pinned claim for any Codex fact, and none for any Cowork fact.**
+**Eight of the nine pinned claims in [`../claims/vendor-claims.json`](../claims/vendor-claims.json) source from Claude Code pages** (corrected 2026-09-05: this read "all eight" until cut 4 landed `cx-hook-handler-support`, the ledger's first Codex claim, against the `cx-hooks` source) - `cc-plugins-reference`, `cc-skills`, `cc-sub-agents`. There is **no pinned claim for any Codex fact, and none for any Cowork fact.**
 
 **The Convergent tier is defined by cross-agent parity.** `STANDARD.md` sec 2.2: *"Concepts both CC and CX support, but in different formats."* So the tier whose entire definition is a statement about two agents has **pinned evidence for one of them.**
 
@@ -105,7 +105,7 @@ Cowork is not a tier boundary and is deliberately not a matrix column, but two c
 | Boundaries **not pinned** (`unverified`, so no expiry) | **10** |
 | Boundaries that are this Standard's own convention (`n/a, house`) | **3** |
 
-**Every one of the eight pinned claims is a Claude Code fact.** Every `unverified` row is a Codex fact, a Cowork fact, or a cross-agent portability claim.
+**Eight of the nine pinned claims are Claude Code facts, and the ninth is the ledger's first Codex one** (`cx-hook-handler-support`, landed in cut 4, 2026-09-04). The asymmetry this paragraph was written to describe is real but no longer total: every remaining `unverified` row is a Codex fact, a Cowork fact, or a cross-agent portability claim, and the Codex column now has exactly one pinned entry rather than none.
 
 > **`unverified` here means NOT PINNED, and that is not the same as uncited.** An earlier wording said
 > these eleven rest on "nothing first-party", which adversarial wave 2 showed is false for at least one

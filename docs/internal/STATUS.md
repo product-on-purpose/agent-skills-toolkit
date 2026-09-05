@@ -18,7 +18,7 @@
 | Spine | 35 checks |
 | Scopes | 3 (plugin, component, marketplace) |
 | Skills | **26** |
-| Tests | **1575, 0 failures** (4 skipped; local suite run **2026-09-05**). Up from 1506: nineteen for `U18` (`command-size-cap`), five for the `U6` root-relative fix, and the rest from the eight audit patches - a symlink containment suite, two ReDoS timing assertions, a piped-stdout drain harness and a bin-help table reader. **Three of the four skips are the symlink cases**, which need a privilege Windows does not grant by default and run on the Linux legs in CI; the fourth is a POSIX-only path case. |
+| Tests | **1575, 0 failures** (4 skipped; local suite run **2026-09-05**). Up from 1506: thirteen for `U18` (`command-size-cap`), five for the `U6` root-relative fix, and the rest from the eight audit patches - a symlink containment suite, two ReDoS timing assertions, a piped-stdout drain harness and a bin-help table reader. **Three of the four skips are the symlink cases**, which need a privilege Windows does not grant by default and run on the Linux legs in CI; the fourth is a POSIX-only path case. |
 | Self-proving | `node scripts/check.mjs .` exits 0 at Advanced, 0 errors, 0 warnings |
 
 ## v1.17.1 CUT 2026-09-01 - the records patch
