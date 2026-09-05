@@ -22,7 +22,7 @@ const stale = [
 
 const clean = [
   ["the current full-spine list",
-   "The spine is **34 checks** total (`U1-U9`, `U11-U17`, `S1-S8`, `G1-G10`)"],
+   "The spine is **35 checks** total (`U1-U9`, `U11-U18`, `S1-S8`, `G1-G10`)"],
   ["a subset bullet whose prose says \"every\"",
    "  - `U11-U13` - well-formed MCP entries that commit no secrets, and every shipped skill registered"],
   ["a subset bullet starting at S1",
