@@ -64,6 +64,7 @@ Usage:
   agent-skills-toolkit evaluate [path] [flags]      the structured evaluator (--format, --report, --mode, --profile, ...)
   agent-skills-toolkit tier-report [path] [--json]  the tier-earned-plus-burndown report
   agent-skills-toolkit gen-index [path] [--write]   regenerate INDEX.md from library.json + frontmatter
+  agent-skills-toolkit gen-manifest [path] [--write] [--target=<resolved|claude|codex|all>]  regenerate the native manifests from library.json
   agent-skills-toolkit --help, -h                   show this help
   agent-skills-toolkit --version, -v                print the installed version
 
