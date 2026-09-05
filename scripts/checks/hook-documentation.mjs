@@ -5,6 +5,12 @@
 import { finding, SEVERITY } from "../lib/findings.mjs";
 import { existsSync, readFileSync, statSync } from "node:fs";
 import path from "node:path";
+import {
+  codexSkipsHandler,
+  targetsCodex,
+  CODEX_HANDLER_SENTENCE,
+  CODEX_HANDLER_SOURCE,
+} from "../lib/vendor-hook-handlers.mjs";
 
 export const meta = { id: "hook-documentation", tier: "advanced", reqId: "G1", since: "0.x", provenance: "house" };
 
@@ -13,6 +19,20 @@ export const meta = { id: "hook-documentation", tier: "advanced", reqId: "G1", s
 // (Stop/SessionStart/UserPromptSubmit ignore the matcher; PreCompact's manual|auto is optional).
 const MATCHER_EVENTS = new Set(["PreToolUse", "PostToolUse"]);
 const HOOK_TYPES = new Set(["command", "http", "mcp_tool", "prompt", "agent"]);
+
+// RS-C2, Standard 0.16. A TIGHTENING of an existing check, so it takes the cap ALONE and never a bump of
+// meta.since: G1 has existed since 0.x, and raising its `since` to 0.16 would cap every OTHER G1 finding
+// for any plugin pinned below 0.16 - undocumented hooks would stop being errors, which is the opposite of
+// what this item wants. The finding-level `until` caps only this new shape.
+//
+// ACTIVATION-NEUTRAL wording, per the catalogue-manifest-shape precedent: it says what the migration is
+// ABOUT and never asserts that a cap is currently in force, because under --strict nothing binds and the
+// finding is a live error while this static text is still visible in --json.
+const CODEX_HANDLER_MIGRATION = Object.freeze({
+  capAt: "warn",
+  until: "0.17",
+  reason: "the Codex handler-type support table is introduced at Standard 0.16 and gates at 0.17",
+});
 
 function isFile(p) { return existsSync(p) && statSync(p).isFile(); }
 
@@ -24,6 +44,7 @@ function isFile(p) { return existsSync(p) && statSync(p).isFile(); }
  * Advanced tier.
  */
 export function check(ctx) {
+  const shipsToCodex = targetsCodex(ctx);
   const hooksPath = path.join(ctx.root, "hooks", "hooks.json");
   if (!isFile(hooksPath)) return []; // no hooks -> nothing to document.
   let data;
@@ -62,6 +83,22 @@ export function check(ctx) {
           out.push(finding(meta.id, SEVERITY.ERROR, `a hook action under "${event}" has no "type"; every hook MUST document its type (command|http|mcp_tool|prompt|agent) (Standard sec 2.6 G1, sec 3.5).`, { file: "hooks/hooks.json", reqId: meta.reqId }));
         } else if (!HOOK_TYPES.has(leaf.type)) {
           out.push(finding(meta.id, SEVERITY.ERROR, `a hook action under "${event}" has an invalid "type" "${leaf.type}"; must be one of command, http, mcp_tool, prompt, agent (Standard sec 3.5).`, { file: "hooks/hooks.json", reqId: meta.reqId }));
+        } else if (shipsToCodex && codexSkipsHandler(leaf.type)) {
+          // A LEGAL type that does not RUN on one of the plugin's declared targets. Deliberately after
+          // the invalid-type branch, so one malformed type is reported once as malformed rather than
+          // twice - as malformed AND as unsupported.
+          out.push(
+            finding(
+              meta.id,
+              SEVERITY.ERROR,
+              `hook action under "${event}" has type "${leaf.type}", which Codex parses and then SKIPS - ` +
+                `this plugin targets Codex, so the hook silently never runs there (no error, no warning, ` +
+                `no signal at all). The vendor states: "${CODEX_HANDLER_SENTENCE}" (${CODEX_HANDLER_SOURCE}, ` +
+                `read 2026-09-04; pinned as claim cx-hook-handler-support). Use "command" or "mcp_tool" for ` +
+                `behaviour Codex must execute, or drop "codex" from agent-targets if this hook is Claude-only.`,
+              { file: "hooks/hooks.json", reqId: meta.reqId, migration: CODEX_HANDLER_MIGRATION }
+            )
+          );
         }
       }
     }

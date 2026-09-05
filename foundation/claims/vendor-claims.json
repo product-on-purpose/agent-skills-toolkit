@@ -31,11 +31,24 @@
     {
       "id": "cx-hooks",
       "vendor": "codex",
-      "url": "https://developers.openai.com/codex/hooks.md",
-      "note": "The Codex hook reference. Read 2026-08-22 and recorded in foundation/sources/codex.md; NO CLAIM IS PINNED AGAINST IT, deliberately. The eleven-event set exists on that page only as TABLE ROWS, and a table row pins rendering rather than prose - three such claims were landed and removed on 2026-08-22. The one prose sentence naming an event is about its TIMEOUT BUDGET, so pinning it would assert a default and a maximum while its dependsOn claimed it backed the event set: a page saying SessionEnd was REMOVED as a hook event, while keeping the timeout sentence, would still HOLD. Kept as a source so the URL and its reading date are recorded where the other surfaces are."
+      "url": "https://learn.chatgpt.com/docs/hooks.md",
+      "note": "The Codex hook reference. RE-READ 2026-09-04 (RS-C1): the old URL https://developers.openai.com/codex/hooks.md now 308-redirects here, the same migration the plugins page made on 2026-08-18, so the whole developers.openai.com/codex/* namespace is moving to learn.chatgpt.com/docs/*. The event count is now TWELVE (Interrupt is new since 2026-08-22). The EVENT ENUMERATION still carries no claim and never should: it exists as table rows, and a table row pins rendering rather than prose - three such claims were landed and removed on 2026-08-22. What DID become pinnable on this read is the HANDLER-TYPE sentence, which is running prose in a bullet rather than a cell: see cx-hook-handler-support, the first claim ever pinned against a Codex source."
     }
   ],
   "claims": [
+    {
+      "id": "cx-hook-handler-support",
+      "kind": "quote",
+      "source": "cx-hooks",
+      "claim": "`command` and `mcp_tool` handlers are supported. `prompt` and `agent` handlers are parsed but skipped.",
+      "dependsOn": [
+        "G1 (hook-documentation) - the per-agent handler-type support table it gains at Standard 0.16",
+        "STANDARD.md sec 3.5, whose CX row states the supported and skipped handler types",
+        "the emit path: a plugin targeting Codex that ships a prompt- or agent-type hook gets a silent no-op, and this sentence is the only vendor statement that says so"
+      ],
+      "verifiedOn": "2026-09-04",
+      "onChange": "ASYMMETRIC. A handler type MOVING INTO the supported set is green-ward: widen the table, bump the read date, note it in CHANGELOG - nothing that was passing starts failing. A type moving OUT of the supported set, or a NEW type appearing as skipped, is red-ward: it makes a previously silent-but-working hook a silent no-op, so it needs a Standard minor with finding-level migration metadata rather than a constant edit. If the sentence disappears entirely, do NOT re-pin a neighbouring sentence to keep the run green - the absence is the finding, and Codex documenting handler support less clearly is itself the thing G1's table depends on."
+    },
     {
       "id": "plugin-agent-unsupported-fields",
       "kind": "quote",
