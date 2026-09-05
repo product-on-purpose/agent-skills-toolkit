@@ -2,7 +2,7 @@
 // what-it-does: provides relPath, normalizeArgPath, the component-discovery listers (skills, agents, commands), and other fs helpers
 // why:          centralizes path normalization and component discovery so a folder README is never mistaken for a component
 // used-by:      imported by the checks, generators, the CLI entry points, and the plugin loader
-import { readFileSync, existsSync, readdirSync, statSync } from "node:fs";
+import { readFileSync, existsSync, readdirSync, statSync, realpathSync } from "node:fs";
 import path from "node:path";
 
 /**
@@ -33,6 +33,35 @@ export const SKIP_DIRS = new Set([
 /** Repo-relative, slash-normalized path. Falls back to abs if root is falsy. */
 export function relPath(root, abs) {
   return root ? path.relative(root, abs).split(path.sep).join("/") : abs;
+}
+
+/** The real path of p (symlinks resolved), or null when it cannot be resolved: missing, dangling, unreadable. */
+export function realPathOrNull(p) {
+  try {
+    return realpathSync(p);
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * True only when `abs`, with symlinks resolved, IS the resolved plugin root or lies beneath it. This is
+ * the containment guard every directory walker applies before descending into a subdirectory, and it
+ * exists because a symlink turned the gate loose on the host: `docs/esc -> /usr` made G7 report 178
+ * pages under /usr, and `docs/loop -> ..` recursed until ENAMETOOLONG (431 findings). Any resolution
+ * error - a dangling link, a path that does not exist, a permission failure - answers false, so an
+ * entry that cannot be resolved is never descended into either. The comparison is against the root
+ * plus a separator, never the bare prefix, so a sibling `plugin-2` of root `plugin` is outside.
+ *
+ * Containment is one half of the guard. The other half is a per-walk set of real paths already
+ * entered: a link back INTO the plugin (`docs/loop -> ..` resolves to the root, which is inside) is a
+ * loop, and each walker seeds that set with the root and skips a real path it has seen.
+ */
+export function isInsideRoot(root, abs) {
+  const r = realPathOrNull(root);
+  const a = realPathOrNull(abs);
+  if (r === null || a === null) return false;
+  return a === r || a.startsWith(r.endsWith(path.sep) ? r : r + path.sep);
 }
 
 /**
@@ -140,10 +169,18 @@ function walkAgentDocs(root) {
   const agentsRoot = path.join(root, "agents");
   if (!existsSync(agentsRoot) || !statSync(agentsRoot).isDirectory()) return [];
   const out = [];
+  // Real paths already entered, seeded with the plugin root so a link back up to it is a loop rather
+  // than a fresh subtree. With isInsideRoot this keeps the walk inside the plugin and finite: before,
+  // `agents/loop -> ..` recursed until readdirSync threw ENAMETOOLONG out of loadPlugin itself.
+  const seen = new Set([realPathOrNull(root), realPathOrNull(agentsRoot)]);
   const walk = (dir, prefix) => {
     for (const entry of readdirSync(dir)) {
       const abs = path.join(dir, entry);
       if (existsSync(abs) && statSync(abs).isDirectory()) {
+        if (!isInsideRoot(root, abs)) continue;
+        const real = realPathOrNull(abs);
+        if (real === null || seen.has(real)) continue;
+        seen.add(real);
         walk(abs, prefix ? `${prefix}/${entry}` : entry);
         continue;
       }
@@ -238,14 +275,29 @@ export function listWorkflowFiles(root) {
     .filter((p) => fileExists(p));
 }
 
-/** Recursively list file paths under dir (absolute). [] if dir missing. */
+/**
+ * Recursively list file paths under dir (absolute). [] if dir missing. A subdirectory whose real path
+ * lies outside `dir` (a symlink escaping it) or was already entered (a symlink loop) is skipped: this
+ * helper knows no plugin root of its own, so the directory it was given is the containment root.
+ */
 export function walkFiles(dir) {
   if (!existsSync(dir)) return [];
   const out = [];
-  for (const entry of readdirSync(dir)) {
-    const full = path.join(dir, entry);
-    if (statSync(full).isDirectory()) out.push(...walkFiles(full));
-    else out.push(full);
-  }
+  const seen = new Set([realPathOrNull(dir)]);
+  const walk = (d) => {
+    for (const entry of readdirSync(d)) {
+      const full = path.join(d, entry);
+      if (statSync(full).isDirectory()) {
+        if (!isInsideRoot(dir, full)) continue;
+        const real = realPathOrNull(full);
+        if (real === null || seen.has(real)) continue;
+        seen.add(real);
+        walk(full);
+      } else {
+        out.push(full);
+      }
+    }
+  };
+  walk(dir);
   return out;
 }

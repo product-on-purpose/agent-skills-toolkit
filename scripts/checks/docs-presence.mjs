@@ -5,7 +5,7 @@
 // used-by:      registered in scripts/lib/registry.mjs; run by scripts/check.mjs; covered by tests/unit/docs-presence.test.mjs
 import { readFileSync, readdirSync, statSync, existsSync } from "node:fs";
 import path from "node:path";
-import { relPath } from "../lib/fs-utils.mjs";
+import { relPath, isInsideRoot, realPathOrNull } from "../lib/fs-utils.mjs";
 import { finding, SEVERITY } from "../lib/findings.mjs";
 import { parseFrontmatter } from "../lib/frontmatter.mjs";
 
@@ -13,16 +13,25 @@ export const meta = { id: "docs-presence", tier: "advanced", reqId: "G10", since
 
 const DIATAXIS = ["tutorials", "how-to", "reference", "explanation"];
 
+// Both walks below take the plugin root and a `seen` set of real paths already entered, seeded with the
+// root and the start dir: with isInsideRoot that keeps each walk inside the plugin (a symlink out of it,
+// `docs/esc -> /usr`, is skipped) and finite (a link back up, `docs/loop -> ..`, is skipped).
+
 /** True if dir exists and contains at least one *.md (recursively). A .gitkeep-only or non-.md dir is empty. */
-function hasMarkdown(dir) {
+function hasMarkdown(root, dir, seen = new Set([realPathOrNull(root), realPathOrNull(dir)])) {
   let entries;
   try { entries = readdirSync(dir); } catch { return false; }
   for (const name of entries) {
     const full = path.join(dir, name);
     let st;
     try { st = statSync(full); } catch { continue; }
-    if (st.isDirectory()) { if (hasMarkdown(full)) return true; }
-    else if (name.endsWith(".md")) return true;
+    if (st.isDirectory()) {
+      if (!isInsideRoot(root, full)) continue;
+      const real = realPathOrNull(full);
+      if (real === null || seen.has(real)) continue;
+      seen.add(real);
+      if (hasMarkdown(root, full, seen)) return true;
+    } else if (name.endsWith(".md")) return true;
   }
   return false;
 }
@@ -37,7 +46,7 @@ function hasTldr(text) {
 }
 
 /** Collect docs/** *.md excluding docs/internal/**. */
-function collectPublic(docsDir, internal, out) {
+function collectPublic(root, docsDir, internal, out, seen = new Set([realPathOrNull(root), realPathOrNull(docsDir)])) {
   let entries;
   try { entries = readdirSync(docsDir); } catch { return; }
   for (const name of entries) {
@@ -45,8 +54,13 @@ function collectPublic(docsDir, internal, out) {
     let st;
     try { st = statSync(full); } catch { continue; }
     if (full === internal || full.startsWith(internal + path.sep)) continue;
-    if (st.isDirectory()) collectPublic(full, internal, out);
-    else if (name.endsWith(".md")) out.push(full);
+    if (st.isDirectory()) {
+      if (!isInsideRoot(root, full)) continue;
+      const real = realPathOrNull(full);
+      if (real === null || seen.has(real)) continue;
+      seen.add(real);
+      collectPublic(root, full, internal, out, seen);
+    } else if (name.endsWith(".md")) out.push(full);
   }
 }
 
@@ -68,7 +82,7 @@ export function check(ctx) {
   // Rule 1: Diataxis presence.
   for (const name of DIATAXIS) {
     const dir = path.join(docsDir, name);
-    if (!hasMarkdown(dir)) {
+    if (!hasMarkdown(root, dir)) {
       out.push(finding(meta.id, SEVERITY.ERROR, `Diataxis directory docs/${name} is missing or has no *.md page; each quadrant MUST be non-empty (Standard sec 2.6 G10).`, { file: `docs/${name}`, reqId: meta.reqId }));
     }
   }
@@ -92,7 +106,7 @@ export function check(ctx) {
 
   // Rule 3: the architecture pair exists, is marked, and the overview links the detailed page.
   const pages = [];
-  collectPublic(docsDir, internal, pages);
+  collectPublic(root, docsDir, internal, pages);
   const overviews = [], detaileds = [];
   for (const f of pages) {
     let text;

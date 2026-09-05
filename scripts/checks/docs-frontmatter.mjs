@@ -4,7 +4,7 @@
 // used-by:      registered in scripts/lib/registry.mjs; run by scripts/check.mjs and tier-report.mjs
 import { readFileSync, readdirSync, statSync, existsSync } from "node:fs";
 import path from "node:path";
-import { relPath } from "../lib/fs-utils.mjs";
+import { relPath, isInsideRoot, realPathOrNull } from "../lib/fs-utils.mjs";
 import { finding, SEVERITY } from "../lib/findings.mjs";
 import { parseFrontmatter } from "../lib/frontmatter.mjs";
 
@@ -13,8 +13,13 @@ export const meta = { id: "docs-frontmatter", tier: "advanced", reqId: "G7", sin
 const AUDIENCE = new Set(["non-engineer", "engineer", "both"]);
 const LEVEL = new Set(["beginner", "intermediate", "advanced"]);
 
-/** Collect every *.md under dir, recursively. */
-function collect(dir, out) {
+/**
+ * Collect every *.md under dir, recursively, staying inside the plugin root. `seen` holds the real path
+ * of every directory already entered, seeded with the root and the start dir: with isInsideRoot it
+ * keeps the walk inside the plugin (`docs/esc -> /usr` once made this check report 178 pages under /usr)
+ * and finite (`docs/loop -> ..` recursed until ENAMETOOLONG).
+ */
+function collect(root, dir, out, seen = new Set([realPathOrNull(root), realPathOrNull(dir)])) {
   let entries;
   try {
     entries = readdirSync(dir);
@@ -29,8 +34,13 @@ function collect(dir, out) {
     } catch {
       continue;
     }
-    if (st.isDirectory()) collect(full, out);
-    else if (name.endsWith(".md")) out.push(full);
+    if (st.isDirectory()) {
+      if (!isInsideRoot(root, full)) continue;
+      const real = realPathOrNull(full);
+      if (real === null || seen.has(real)) continue;
+      seen.add(real);
+      collect(root, full, out, seen);
+    } else if (name.endsWith(".md")) out.push(full);
   }
 }
 
@@ -52,7 +62,7 @@ export function check(ctx) {
   const internal = path.join(docsDir, "internal");
 
   const files = [];
-  collect(docsDir, files);
+  collect(root, docsDir, files);
   const out = [];
 
   for (const f of files) {

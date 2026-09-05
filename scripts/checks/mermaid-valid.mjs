@@ -17,7 +17,7 @@
 // currently tracks a line number this cheaply; retrofitting the rest is out of scope here.
 import { readFileSync, readdirSync, statSync, existsSync } from "node:fs";
 import path from "node:path";
-import { relPath, SKIP_DIRS } from "../lib/fs-utils.mjs"; // SKIP_DIRS: shared directory skip set, matched by basename at any depth
+import { relPath, SKIP_DIRS, isInsideRoot, realPathOrNull } from "../lib/fs-utils.mjs"; // SKIP_DIRS: shared directory skip set, matched by basename at any depth
 import { finding, SEVERITY } from "../lib/findings.mjs";
 
 export const meta = { id: "mermaid-valid", tier: "universal", reqId: "U12", since: "0.10", provenance: "objective" };
@@ -47,7 +47,9 @@ const SCAN = /\.(md|mdx)$/;
 // which are FILES directly under this path (not in subdirectories), stay in scope.
 const GENERATED_DOCS = ["site", "src", "content", "docs"].join("/");
 
-function collect(root, dir, out) {
+// `seen` holds the real path of every directory already entered, seeded with the root: with isInsideRoot
+// it keeps the walk inside the plugin (docs/esc -> /usr is skipped) and finite (docs/loop -> .. is skipped).
+function collect(root, dir, out, seen = new Set([realPathOrNull(root)])) {
   const relDir = path.relative(root, dir).split(path.sep).join("/");
   let entries;
   try { entries = readdirSync(dir); } catch { return; }
@@ -58,7 +60,11 @@ function collect(root, dir, out) {
     try { st = statSync(full); } catch { continue; }
     if (st.isDirectory()) {
       if (relDir === GENERATED_DOCS) continue; // skip the generated Pattern S quadrant subtrees
-      collect(root, full, out);
+      if (!isInsideRoot(root, full)) continue;
+      const real = realPathOrNull(full);
+      if (real === null || seen.has(real)) continue;
+      seen.add(real);
+      collect(root, full, out, seen);
     } else if (SCAN.test(name)) {
       out.push(full);
     }

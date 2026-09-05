@@ -6,7 +6,7 @@
 // used-by:      scripts/lib/registry.mjs (the CHECKS array), via scripts/check.mjs and tier-report.mjs
 import { readFileSync, readdirSync, statSync, existsSync } from "node:fs";
 import path from "node:path";
-import { relPath, SKIP_DIRS } from "../lib/fs-utils.mjs";
+import { relPath, SKIP_DIRS, isInsideRoot } from "../lib/fs-utils.mjs";
 import { finding, SEVERITY } from "../lib/findings.mjs";
 import { parseFrontmatter } from "../lib/frontmatter.mjs";
 
@@ -81,7 +81,9 @@ function resolveFolders(root) {
     for (const name of readdirSync(parentAbs)) {
       if (exclude.includes(name) || INVENTORY_SKIP.has(name)) continue;
       const abs = path.join(parentAbs, name);
-      if (isDir(abs)) out.push(abs);
+      // A docs/* or skills/* entry whose real path lies outside the plugin (a symlink escaping it) is
+      // not a folder of this plugin, and its README is not this plugin's to grade (see isInsideRoot).
+      if (isDir(abs) && isInsideRoot(root, abs)) out.push(abs);
     }
   }
   return out;
