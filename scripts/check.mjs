@@ -291,32 +291,32 @@ if (process.argv[1]?.endsWith("check.mjs")) {
 
   if (json) {
     console.log(JSON.stringify(buildJsonReport(root, ctx, r), null, 2));
-    process.exit(r.exitCode);
-  }
-  if (sarif) {
+  } else if (sarif) {
     console.log(JSON.stringify(renderSarif(ctx, r), null, 2));
-    process.exit(r.exitCode);
-  }
-  if (gha) {
+  } else if (gha) {
     const out = formatGithubAnnotations(r.findings, ctx?.library?.data?.tier);
     if (out) console.log(out);
-    process.exit(r.exitCode);
+  } else {
+    if (r.findings.length) {
+      const out = format(r.findings, ctx?.library?.data?.tier);
+      if (out) console.log(out);
+    }
+    console.log(`\n${humanLine(computeTierReport(root, ctx, r.findings))}`);
+    console.log(`\n${r.errorCount} error(s), ${r.warnCount} warning(s).`);
+    // A decline is not a pass, and it must not read like one (ADR 0049).
+    const notScored = notScoredCount(ctx);
+    if (notScored > 0) {
+      console.log(
+        `${notScored} description(s) NOT SCORED: U5 reads English and declines rather than failing what it cannot read (Standard sec 8.1).`
+      );
+    }
+    const debt = standardDebtLine(r.findings, ctx?.library?.data?.tier);
+    if (debt) console.log(debt);
   }
-
-  if (r.findings.length) {
-    const out = format(r.findings, ctx?.library?.data?.tier);
-    if (out) console.log(out);
-  }
-  console.log(`\n${humanLine(computeTierReport(root, ctx, r.findings))}`);
-  console.log(`\n${r.errorCount} error(s), ${r.warnCount} warning(s).`);
-  // A decline is not a pass, and it must not read like one (ADR 0049).
-  const notScored = notScoredCount(ctx);
-  if (notScored > 0) {
-    console.log(
-      `${notScored} description(s) NOT SCORED: U5 reads English and declines rather than failing what it cannot read (Standard sec 8.1).`
-    );
-  }
-  const debt = standardDebtLine(r.findings, ctx?.library?.data?.tier);
-  if (debt) console.log(debt);
-  process.exit(r.exitCode);
+  // process.exitCode, never process.exit(), once anything has been written to stdout. A pipe is written
+  // asynchronously on POSIX, and process.exit() right after a large console.log() ended the process before
+  // the write queue had drained: `check.mjs <plugin> --json | jq` received one pipe buffer (65536 bytes)
+  // of a 270 KB document while `> file` held all of it. Nothing runs after this line, so the process ends
+  // on its own as soon as stdout has drained, carrying the same exit code (tests/unit/cli-stdout-drain.test.mjs).
+  process.exitCode = r.exitCode;
 }
