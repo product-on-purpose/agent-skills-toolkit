@@ -12,6 +12,9 @@ import { finding, SEVERITY } from "../lib/findings.mjs";
 export const meta = { id: "source-doc", tier: "advanced", reqId: "G9", since: "0.10", provenance: "house" };
 
 const HEADER_LINES = 30;
+// The most of one header line fieldPresent examines. A docblock label line is never anywhere near this
+// long, and the cap is what bounds the label match below on a pathological line (see fieldPresent).
+const MAX_LINE = 2000;
 const EXT = /\.(mjs|js|py)$/;
 
 // Path fragments (slash-normalized) skipped wherever they occur: intentional fixtures and generated output.
@@ -59,7 +62,11 @@ function fieldPresent(field, headerLines) {
   for (const raw of headerLines) {
     const m = raw.match(/^\s*(\/\/|#|\*)\s*(.*)$/); // require a comment marker
     if (!m) continue;
-    const line = m[2];
+    // Trimmed and capped BEFORE either match. The label pattern ends in `\s*:\s*(.*\S)\s*$`, which is
+    // quadratic on trailing whitespace: every retreat of the greedy `\s*` re-runs `(.*\S)` over the
+    // rest of the line, so a first line of `// what-it-is:` followed by 300000 spaces never finished
+    // and hung the whole gate. Trimming removes the run entirely; the cap bounds whatever is left.
+    const line = m[2].trim().slice(0, MAX_LINE);
     // The value must be non-empty after trimming (one or more non-space chars), so `// why:` with no
     // value fails while a single-character value passes.
     const tagMatch = line.match(/^(@\w+)\s+(.*\S)\s*$/);

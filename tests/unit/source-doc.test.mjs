@@ -115,3 +115,37 @@ test("a .py inside a Python virtualenv under a scope root is ignored", () => {
     rmSync(dir, { recursive: true, force: true });
   }
 });
+
+test("a header line with 300000 trailing spaces is examined promptly and its missing fields are reported", () => {
+  // The label match `\s*:\s*(.*\S)\s*$` was quadratic on trailing whitespace: `// what-it-is:` followed
+  // by 300000 spaces never finished, and one such file hung the whole gate. fieldPresent now trims and
+  // caps the comment text before matching. The trimmed value is empty, so what-it-is is missing too.
+  const dir = mkdtempSync(path.join(tmpdir(), "g9-trailing-ws-"));
+  try {
+    mkdirSync(path.join(dir, "scripts"), { recursive: true });
+    writeFileSync(path.join(dir, "scripts", "x.mjs"), "// what-it-is:" + " ".repeat(300000) + "\nexport const x = 1;\n");
+    const t0 = performance.now();
+    const f = check({ root: dir });
+    const ms = performance.now() - t0;
+    assert.ok(ms < 500, `check() took ${ms.toFixed(0)} ms; the label match is quadratic on trailing whitespace again`);
+    assert.equal(f.length, 1, "one finding for the one file");
+    assert.match(f[0].message, /what-it-is, what-it-does, why, used-by/, "all four fields are reported missing");
+    assert.ok(/scripts[\\/]x\.mjs/.test(f[0].file), "names the offending file");
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test("trimming and capping the header line does not reject a real label with a long value", () => {
+  const dir = mkdtempSync(path.join(tmpdir(), "g9-long-value-"));
+  try {
+    mkdirSync(path.join(dir, "scripts"), { recursive: true });
+    writeFileSync(
+      path.join(dir, "scripts", "a.mjs"),
+      `// what-it-is:   a module   \n// what-it-does: ${"carries a very long value ".repeat(120)}\n// why:          z\t\n// used-by:      this test\nexport const a = 1;\n`,
+    );
+    assert.equal(check({ root: dir }).length, 0);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
