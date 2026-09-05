@@ -20,7 +20,7 @@ Nothing on this page is a caveat added to soften a claim. Each entry is a specif
 
 The deterministic gate (`npx agent-skills-toolkit`) answers one question: **does this plugin have the shape the Standard requires?** It does not, and cannot, answer whether the plugin is any good.
 
-A plugin can pass every one of the 34 spine checks at Gold and still be useless. Concretely, a Gold-passing plugin may contain:
+A plugin can pass every one of the 35 spine checks at Gold and still be useless. Concretely, a Gold-passing plugin may contain:
 
 - a skill whose instructions are wrong
 - a reference document that confidently states a falsehood

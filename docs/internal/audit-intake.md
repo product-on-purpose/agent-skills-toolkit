@@ -45,11 +45,11 @@ Twenty-five recommendations. The resolution plan mapping all of them was ratifie
 | family-registry regeneration (scheduled or CI-produced) | **SHIPPED cut 2** - generated on every Pages deploy, at the catalogue's pins; the committed page keeps the meaning and the episode record | RS-D3 |
 | Rule on E16 (multi-entry credit gap), then E17 / E20 / E15 | RULED 2026-08-31 (option a'), implementation OPEN | RS-B1; [`backlog/enhancements.md`](backlog/enhancements.md) |
 | Mutation-proof the check spine | OPEN | RS-B2 |
-| E56 - G2 credits a mention rather than an executed gate | OPEN - Standard 0.16 train | RS-B3 |
-| STANDARD.md Codex anchors refresh | OPEN - Standard 0.16 train | RS-C1 |
-| Codex-rejected hook handler types; model `mcp_tool` | OPEN - Standard 0.16 train | RS-C2 |
-| E49 plus the command-migration size cap | OPEN - Standard 0.16 train | RS-C3 |
-| Claude Code re-survey; relevance-block decision | OPEN - Standard 0.16 train | RS-C4 |
+| E56 - G2 credits a mention rather than an executed gate | **SHIPPED cut 4** (PR #314). The FIRST version of the fix was a false positive, caught by the six-member blast radius rather than by review | RS-B3; `scripts/checks/self-hosting.mjs` |
+| STANDARD.md Codex anchors refresh | **SHIPPED cut 4** (PR #314). The record was stale three ways: the page had MOVED to learn.chatgpt.com, the event count went 10 to 12, the CLI anchor was 18 releases old | RS-C1; [`../../foundation/sources/codex.md`](../../foundation/sources/codex.md) |
+| Codex-rejected hook handler types; model `mcp_tool` | **SHIPPED cut 4** (PR #314). Landed the ledger's FIRST live Codex claim, `cx-hook-handler-support` | RS-C2; `scripts/checks/hook-documentation.mjs` |
+| E49 plus the command-migration size cap | **SPLIT.** E49 REFUSED 2026-09-04 - its spec said to verify the plugin-parts enumeration is prose before landing a quote claim, and it is a bullet list whose relevant fact is an ABSENCE, so it stays a dated read and enters no ledger. The size cap **SHIPPED cut 4** (PR #317) as `U18`, and the spec's stated consequence was WRONG: the vendor SKIPS an oversized command rather than truncating it | RS-C3; [ADR 0058](decisions/0058-a-vendor-that-drops-a-component-is-a-finding-and-the-proxy-is-declared.md); `scripts/checks/command-size-cap.mjs` |
+| Claude Code re-survey; relevance-block decision | **SHIPPED cut 4** (PR #317). Surveyed 2.1.235 to **2.1.261** - a 26-version gap, wider than the item estimated. Relevance block ruled a DATED NO, on a better reason than the item set out with: the block is inert until an administrator allowlists the marketplace | RS-C4; [E59](backlog/enhancements.md); [`../../foundation/sources/claude-code.md`](../../foundation/sources/claude-code.md) |
 | ADR: stance on the vendor's plugin eval | RULED 2026-08-31 (adopt, with a scope tripwire), ADR OPEN | RS-C5 |
 | ADR: Agent Plugins root manifest | RULED 2026-08-31 (spike first), spike OPEN | RS-C6 |
 | Consume the published Action in this repo's own CI | **SHIPPED cut 2** (two jobs, not one; spec amended by measurement 2026-09-02) | RS-D1 |
@@ -62,6 +62,31 @@ Twenty-five recommendations. The resolution plan mapping all of them was ratifie
 | npm package ownership | RULED 2026-08-31 (grant the org team), OPEN | RS-E5 |
 | Schedule standards-watch | **SHIPPED cut 2** (cron `0 7 15 * *`, no gate; the no-gate deferral is E58). First SCHEDULED run 2026-09-15 - AC1 open until then | RS-F3 |
 
+## 2026-09-04 generation
+
+A max-effort external audit of the toolkit at `main` `3ad4b11` (v1.18.0, Standard 0.15), run on Linux against a purpose-built 46-item adversarial corpus. It is the first generation to arrive **with its own patches**: eight fix commits, each closing one numbered finding, each carrying a test.
+
+Its working material is gitignored under `_local/audits/2026-09-04_fable-5-1-max/` per the convention above, so **the `F-0xx` and `B-xx` identifiers it uses resolve nowhere outside this machine.** That is a known cost, recorded rather than hidden: the rows below state the CONTENT of each item, so a reader who cannot open the audit is not stranded on a bare id.
+
+| Item | Status | Carried by |
+| --- | --- | --- |
+| Piped `--json` / `--sarif` / `--gha` silently truncated at 64 KB | **RESOLVED 2026-09-05** (PR #315). `process.exit()` ran before stdout drained. The published Action was never exposed - it redirects to files under `$RUNNER_TEMP` | `scripts/check.mjs`, `scripts/evaluate.mjs` |
+| `G2`'s npx matcher backtracks exponentially and hangs the gate | **RESOLVED 2026-09-05** (PR #315). 0.1 ms on 400 flags, from unbounded. It also wrongly refused a real URL-valued invocation | `scripts/checks/self-hosting.mjs` |
+| `G9`'s label matcher is quadratic on trailing whitespace and hangs the gate | **RESOLVED 2026-09-05** (PR #315) | `scripts/checks/source-doc.mjs` |
+| Every directory walker follows symlinks out of the plugin root | **RESOLVED 2026-09-05** (PR #315). A link to a system directory produced 178 findings from outside the plugin; a link to the parent recursed to `ENAMETOOLONG` | `scripts/lib/fs-utils.mjs` (`isInsideRoot`) |
+| An unknown `--flag` is dropped silently and the gate exits 0 | **RESOLVED 2026-09-05** (PR #315), so a typo in a gating flag no longer returns a green answer to a different question | `scripts/check.mjs` |
+| The anatomy no-skills warning is filed under `U8` rather than `U2` | **RESOLVED 2026-09-05** (PR #315). Suppressing one check silently suppressed a finding in the other | `scripts/checks/anatomy.mjs` |
+| `--help` omits the subcommand two remediation messages name | **RESOLVED 2026-09-05** (PR #315). The test now reads the dispatch table from the bin's own source, so the next subcommand cannot be added to one and not the other | `bin/agent-skills-toolkit.mjs` |
+| A UTF-8 byte-order mark reads as missing frontmatter, dropping a plugin to Tier: None | **RESOLVED 2026-09-05** (PR #315) | `scripts/lib/frontmatter.mjs` |
+| The tier certifies file SHAPE: 33 placeholder files earn Gold with 0 errors and 0 warnings | OPEN - the audit's headline finding, and the one a badge reader pays for | nothing tracked yet (**zero-trace risk**); the audit proposes a health score beside the tier |
+| A plugin pinned to Standard 0.9 keeps Gold while violating nine later checks | OPEN - the pin has no floor and no expiry | nothing tracked yet (**zero-trace risk**) |
+| `U5` is a template matcher: precision 0.20 and recall 0.20 over a 20-description labelled set | OPEN | overlaps [E44](backlog/enhancements.md), which is ADR-gated on a different question about the same check |
+| Moving `U5`'s threshold from 0.7 to 0.1 fails no test; six checks hang on one test each | OPEN | nothing tracked yet (**zero-trace risk**). `U18` was written against this finding: its boundary test derives both sizes from the exported constant | 
+| `G2` is a regex over workflow text: a swallowed exit code, `if: false`, `continue-on-error` and grading a different directory all pass | **PARTIALLY RESOLVED cut 4** (PR #314) - `G2` now credits an EXECUTED gate rather than a mention, closing the mention half. The trigger, `if: false`, `continue-on-error` and graded-path halves stay OPEN | RS-B3 for the shipped half; the remainder is unfiled |
+| The audit assigns forward version numbers (1.19, 1.20, 2.0) to unshipped work | **CONTRADICTS a ratified decision.** [ADR 0057 (unshipped work carries a name, never a version number)](decisions/0057-unshipped-work-carries-a-name-never-a-version-number.md) was accepted 2026-09-01 and was in the tree the audit read. Its migration tables must be read with those numbers treated as sequence placeholders, never as commitments | this row |
+| The audit's wave 2 claims Standard 0.16 for its own strengthening set | **SUPERSEDED 2026-09-05.** Cut 4 shipped 0.16 first (`U18` plus the `G1` and `G2` tightenings), and 0.17 is already spoken for as those three items' cap-expiry. The audit's set needs a later revision | this row |
+| The audit's ADRs are numbered 0001-0008 | **RENUMBER ON ADOPTION.** This repository's sequence reached 0057 before the audit and 0058 during it, so the next free number is **0059**. No live collision, because the audit's ADRs are proposals in gitignored material | this row |
+| A fix for every finding | DECLINED by the audit itself - patches were limited to unambiguous, low-risk items, and contested changes went to its own ADR folder instead | the audit's `GAPS.md` |
 ## 2026-08-10 generation
 
 With its 2026-08-18 annotation. The six zero-trace rows below are why this page exists.

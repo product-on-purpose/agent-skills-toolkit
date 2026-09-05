@@ -8,8 +8,8 @@ The surface most of this Standard's Claude-side requirements rest on.
 
 | | |
 | --- | --- |
-| **Surveyed through** | `2.1.235` (verbatim vendor label) |
-| **Surveyed on** | 2026-08-18, by jprisant |
+| **Surveyed through** | `2.1.261` (verbatim vendor label) |
+| **Surveyed on** | 2026-09-05, by jprisant (previously 2026-08-18 through `2.1.235`) |
 | **Method** | `read` |
 | **Release feed** | `https://code.claude.com/docs/en/changelog` (append `.md` for plain markdown) |
 | **Docs index** | `https://claude.com/docs/llms.txt` |
@@ -28,6 +28,18 @@ The surface most of this Standard's Claude-side requirements rest on.
 
 Each is pinned as a `quote` claim in [`../claims/vendor-claims.json`](../claims/vendor-claims.json) and re-read on every `npm run vendor-watch` run, so a quote never goes stale silently.
 
+## The 2026-09-05 re-survey (RS-C4), and what 26 versions changed
+
+The record had been surveyed through `2.1.235` on 2026-08-18. `claude --version` read **`2.1.261`** on 2026-09-05 - a 26-version gap, wider than the item that commissioned this survey estimated. **That gap is the reason the acceptance criterion for this work was written as "the version current at survey time, with that version recorded" rather than naming a fixed version:** a criterion that hard-codes a number can pass while its purpose, vendor currency, fails.
+
+**All four pinned quote claims still hold**, confirmed live by `npm run vendor-watch` on the survey date: 9 claims, 7 hold, 0 MISSING, 0 stale, 2 unchecked (the two probes, which have nothing to fetch).
+
+### What changed, and what it means here
+
+- **The plugin-agent SUPPORTED field list has grown**; the RESTRICTED list has not. The page now reads: *"Plugin agents support `name`, `description`, `model`, `effort`, `maxTurns`, `tools`, `disallowedTools`, `skills`, `memory`, `background`, and `isolation` frontmatter fields. The only valid `isolation` value is `"worktree"`. For security reasons, `hooks`, `mcpServers`, and `permissionMode` are not supported for plugin-shipped agents."* `U14` is a **denylist** over exactly those three refused fields, so a growing supported list cannot make it fire falsely - the growth is recorded because a future reader comparing the page to this record should not have to wonder whether it was missed.
+- **`experimental.cacheTtl` exists, is documented for SUBAGENTS, and is absent from the plugin-agent supported list.** The sub-agents page documents it (*"Set its `cacheTtl` key to `5m` or `1h` to choose the prompt cache lifetime for this subagent's requests"*, requiring `2.1.248` or later, and *"Write `cacheTtl` inside the `experimental` map, not at the top level of the frontmatter"*). The plugin-agent field list quoted above does not name `experimental`. **Whether a plugin-shipped agent may declare it is therefore still vendor-undocumented at `2.1.261`**, which is the same state the previous survey recorded. No check moves either way: `U14`'s denylist names three fields and `experimental` is not one of them, so the toolkit is structurally neutral to the answer. **Watch line: re-check at the next survey.** If the vendor ever states that plugin agents ignore `experimental`, an author writing a cache TTL into a plugin agent is configuring something that will not be honoured, which is the `U14` hazard shape and would become a finding.
+- **The marketplace `relevance` block is real, fully specified, and DELIBERATELY NOT MODELLED.** Ruled a dated no on 2026-09-05 and filed as an OPEN backlog entry with its re-measurement instrument and its reopening trigger, per the E44 precedent: [E59 (model the marketplace relevance block, or keep the dated no)](../../docs/internal/backlog/enhancements.md). The decisive fact is that the block is **inert by default** - *"No marketplace's `relevance` declarations produce suggestions until an administrator adds it to the allowlist, including the official Anthropic marketplace"* - and that unknown keys under it are *"ignored ... at load time"*, so a malformed block degrades rather than breaking anything. The vendor's own `claude plugin validate` already checks it. Measured population on the survey date: **7 plugin entries across every reachable marketplace manifest, 0 carrying a relevance block.**
+- **No new source kind, and the two string-shaped ones were already handled.** The marketplace page lists `github`, `url`, `git-subdir`, `npm`, `archive`, `command`, a relative path string, and a bare name string resolved under `metadata.pluginRoot`. `command` was the one that produced a false RED and was fixed in v1.17.1. **The two string forms were checked rather than assumed**: `scripts/lib/marketplace/manifest.mjs` line 54 returns `kind: "local-path"` for any non-empty string before the object switch, so both are handled and neither is a latent false RED of the `command` class.
 ## Two behaviours no page states, established by experiment
 
 These are `probe` claims. **There is nothing to re-read, so their age IS the verification**, and past 30 days they block every release until a human runs the experiment again. Reproductions ship at [`../../docs/internal/vendor-watch/probes/`](../../docs/internal/vendor-watch/probes/).

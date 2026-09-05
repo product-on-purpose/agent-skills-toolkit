@@ -617,7 +617,7 @@ test('the universal-checks page must state a range that matches the registry', (
 });
 
 test('a range that matches the registry passes', () => {
-  const dir = mkRangeFixture('The Universal set is `U1-U9` and `U11-U17`.');
+  const dir = mkRangeFixture('The Universal set is `U1-U9` and `U11-U18`.');
   try {
     assert.equal(spawnSync(process.execPath, [SCRIPT, dir], { encoding: 'utf8' }).status, 0);
   } finally {

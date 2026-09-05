@@ -39,6 +39,7 @@ One module per Standard requirement (reqId); each exports meta plus a synchronou
 - `agents-dir-registerable.mjs` - U15: every .md under agents/ must be a registered subagent (ADR 0046).
 - `metadata-placement.mjs` - U16: a sec 3.7 key declared at the top level instead of under metadata (ADR 0050).
 - `catalogue-manifest-shape.mjs` - U17: a marketplace.json no scope can read - unparseable, no plugins array, or MIXED (ADR 0052).
+- `command-size-cap.mjs` - U18: a commands/*.md over the byte cap at which Codex's command migration SKIPS it, so the command silently does not exist on Codex (ADR 0058).
 - `skill-registration.mjs` - the skill-registration (U13) check module.
 - `source-doc.mjs` - the source-doc (G9) check module.
 - `version-match.mjs` - the version-match module.

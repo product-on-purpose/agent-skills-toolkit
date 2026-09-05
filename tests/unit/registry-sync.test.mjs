@@ -24,9 +24,10 @@ test("every registered check returns an array synchronously (deterministic gate)
 // removing a check is a deliberate spine change, so this count is asserted explicitly (it caught
 // silent +1 drift historically). Bump it WITH the check, never to make a red test green. U10
 // (no-dashes) was retired in Standard v0.11; U13 (skill-registration) was added in Standard v0.12 (ADR 0035);
-// U14 (agent-restricted-fields) was added in Standard v0.13 (ADR 0045).
-test("the spine is exactly 34 checks (U1-U9, U11-U17 + S1-S8 + G1-G10)", () => {
-  assert.equal(CHECKS.length, 34);
+// U14 (agent-restricted-fields) was added in Standard v0.13 (ADR 0045); U18 (command-size-cap) was
+// added in Standard v0.16 (ADR 0058).
+test("the spine is exactly 35 checks (U1-U9, U11-U18 + S1-S8 + G1-G10)", () => {
+  assert.equal(CHECKS.length, 35);
 });
 
 // Every check backs a distinct reqId (a duplicate would let two modules claim one requirement).
@@ -50,13 +51,14 @@ test("every registered check declares a non-empty meta.since [R-SINCE-1]", () =>
 // (agent-restricted-fields) is "0.13" (ADR 0045); every other check is the "0.x" pre-policy baseline
 // (0.11 was a relaxation, so it adds no new since). Diff this against the F1 SPEC sec 3 table with zero
 // discrepancies.
-test("the reqId -> since map matches the ADR 0027 + ADR 0035 + ADR 0045 + ADR 0046 + ADR 0050 + ADR 0052 baseline table [R-SINCE-2]", () => {
+test("the reqId -> since map matches the ADR 0027 + ADR 0035 + ADR 0045 + ADR 0046 + ADR 0050 + ADR 0052 + ADR 0058 baseline table [R-SINCE-2]", () => {
   const since010 = new Set(["U12", "G7", "G8", "G9", "G10"]);
   const since012 = new Set(["U13"]);
   const since013 = new Set(["U14"]);
   const since014 = new Set(["U15", "U16", "U17"]);
+  const since016 = new Set(["U18"]);
   for (const m of CHECKS) {
-    const expected = since014.has(m.meta.reqId) ? "0.14" : since013.has(m.meta.reqId) ? "0.13" : since012.has(m.meta.reqId) ? "0.12" : since010.has(m.meta.reqId) ? "0.10" : "0.x";
+    const expected = since016.has(m.meta.reqId) ? "0.16" : since014.has(m.meta.reqId) ? "0.14" : since013.has(m.meta.reqId) ? "0.13" : since012.has(m.meta.reqId) ? "0.12" : since010.has(m.meta.reqId) ? "0.10" : "0.x";
     assert.equal(m.meta.since, expected, `${m.meta.reqId} (${m.meta.id}) should be since ${expected}`);
   }
 });

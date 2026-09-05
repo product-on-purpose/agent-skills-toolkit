@@ -294,7 +294,7 @@ jobs:
       # and two uploads sharing a category overwrite each other's results in the Security tab.
       - name: Upload SARIF to the Security tab
         if: ${{ !cancelled() && steps.gate.outputs.sarif-path != '' }}
-        uses: github/codeql-action/upload-sarif@cdf488f595d80d6e07e03d4674febd5ab45fa938 # v4.37.7 pinned 2026-08-16
+        uses: github/codeql-action/upload-sarif@cdf488f595d80d6e07e03d4674febd5ab45fa938 # v4.37.9 pinned 2026-09-04
         with:
           sarif_file: ${{ steps.gate.outputs.sarif-path }}
           category: askit-gate-working-tree
