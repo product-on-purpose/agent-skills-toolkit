@@ -16,10 +16,20 @@ export const meta = { id: "reference-links", tier: "universal", reqId: "U6", sin
 
 const LINK = /\[[^\]]*\]\(([^)]+)\)/g;
 
-// External or non-filesystem schemes (and protocol-relative // and pure #anchors) are never relative
-// repo paths, so U6 does not try to resolve them. Mirrors gen-docs-site.mjs SKIP_SCHEME, plus the
-// Cowork `computer:` local-artifact scheme and `file:`; both appear in real, well-built official plugins.
-const SKIP_SCHEME = /^(https?:|mailto:|tel:|ftp:|ws:|wss:|data:|javascript:|computer:|file:|#|\/\/)/i;
+// External or non-filesystem schemes (and pure #anchors) are never relative repo paths, so U6 does not
+// try to resolve them. Mirrors gen-docs-site.mjs SKIP_SCHEME, plus the Cowork `computer:` local-artifact
+// scheme and `file:`; both appear in real, well-built official plugins.
+//
+// A LEADING SLASH is skipped, and that covers protocol-relative `//host/path` as the narrower case it
+// always was. U6's own message says a link "resolves relative to the containing file", and a target
+// beginning `/` is by definition NOT a relative link - it is either a web route (`/features/analytics`,
+// the case that produced a false error against a third-party repository on 2026-09-04) or a
+// repo-root-relative path, and resolving it against the containing file serves neither reading. The
+// alternative considered was resolving a leading `/` from the plugin root, which was refused: it makes
+// U6 guess which of two vocabularies a repository is speaking, and guessing wrong publishes a false
+// finding about somebody else's tree. Cost accepted and stated: a genuinely dangling root-relative repo
+// path is no longer reported. Like every other strip in this check, this can only REMOVE findings.
+const SKIP_SCHEME = /^(https?:|mailto:|tel:|ftp:|ws:|wss:|data:|javascript:|computer:|file:|#|\/)/i;
 
 // A link target carrying a substitution token - `{{docs_path}}/guide.md`, `{release-url}` - is a
 // TEMPLATE SLOT the generator fills in later, not a live reference, so there is nothing on disk for U6

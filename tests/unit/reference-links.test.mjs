@@ -120,3 +120,53 @@ test("the U6 finding message states the resolution base (H1.11)", () => {
   assert.match(f.message, /resolves relative to the containing file/, "the message must name the resolution base");
   assert.match(f.message, /does not resolve/, "and must still state the defect");
 });
+
+// ---------------------------------------------------------------------------------------------
+// A leading slash is not a relative link (the 2026-09-04 cohort false positive).
+//
+// U6's own message says a link "resolves relative to the containing file". A target beginning `/`
+// is by construction not that: it is a web route or a repo-root-relative path, and the old pattern
+// resolved it against the containing file, which serves neither reading. The pair that matters is
+// the last two tests: the strip must remove the false finding WITHOUT removing the check's ability
+// to fail, and the cost it does have is asserted rather than left unstated.
+// ---------------------------------------------------------------------------------------------
+
+test("a root-relative WEB path is not resolved on disk (U6)", () => {
+  // The exact shape observed on a third-party repository: a skill documenting a website links to
+  // one of that website's routes. There is nothing on disk to resolve and U6 must not try.
+  const ctx = skillCtx("Learn more about [analytics](/features/analytics)");
+  assert.equal(check(ctx).filter((f) => f.reqId === "U6").length, 0);
+});
+
+test("a root-relative path that LOOKS like a repo path is still not resolved (U6)", () => {
+  // `/docs/guide.md` is the reading under which somebody might expect resolution from the plugin
+  // root. U6 deliberately does not guess: it skips, because guessing wrong publishes a false
+  // finding about somebody else's tree.
+  const ctx = skillCtx("see [the guide](/docs/guide.md)");
+  assert.equal(check(ctx).filter((f) => f.reqId === "U6").length, 0);
+});
+
+test("protocol-relative //host/path is still skipped (U6)", () => {
+  // The narrower case the pattern covered before the leading slash subsumed it. Pinned so that a
+  // future rewrite of SKIP_SCHEME cannot drop it silently.
+  const ctx = skillCtx("see [cdn](//cdn.example.com/lib.js)");
+  assert.equal(check(ctx).filter((f) => f.reqId === "U6").length, 0);
+});
+
+test("the leading-slash strip does NOT neuter U6: a dangling relative link is still an error", () => {
+  // The guard the write-up asked for. Without this, a change that made SKIP_SCHEME match everything
+  // would pass every other test in this block while turning U6 into a check that cannot fail.
+  const ctx = skillCtx("web route [ok](/features/analytics) and repo link [bad](references/missing.md)");
+  const errors = check(ctx).filter((f) => f.reqId === "U6" && f.severity === "error");
+  assert.equal(errors.length, 1, "the relative link must still be reported while the root-relative one is skipped");
+  assert.match(errors[0].message, /references\/missing\.md/, "and it must be the relative one that is named");
+});
+
+test("ACCEPTED COST: a dangling root-relative repo path is deliberately not reported (U6)", () => {
+  // Stated as a test rather than left unstated. Option (b) - resolving a leading `/` from the plugin
+  // root - would have caught this, and was refused because it fires on every web route in every
+  // skill that documents a website. If this assertion is ever inverted, that decision is being
+  // reversed and needs an ADR, not an edit.
+  const ctx = skillCtx("see [nowhere](/docs/does-not-exist.md)");
+  assert.equal(check(ctx).filter((f) => f.reqId === "U6").length, 0);
+});
