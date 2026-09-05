@@ -34,7 +34,7 @@ A check is one small file that answers a single question about a plugin, such as
 
 That is worth stating plainly, because the gate has no other machinery. It is 34 of these files run in order, and the tier a plugin earns is decided by which of them came back empty. If you are adding a requirement to the Standard, a check module is the file you write, and the shape below is the whole contract you have to satisfy.
 
-Concretely, a check is an ES module under `scripts/checks/` with exactly two exports: a `meta` object and a synchronous `check(ctx)` function. That contract is uniform across all 34 spine checks.
+Concretely, a check is an ES module under `scripts/checks/` with exactly two exports: a `meta` object and a synchronous `check(ctx)` function. That contract is uniform across all 35 spine checks.
 
 Here is `scripts/checks/library-json.mjs`, the `U1` manifest check, trimmed to its shape:
 
@@ -54,7 +54,7 @@ The `meta` fields:
 
 - `id` - a stable string name for the check (used in finding output and tests).
 - `tier` - the check's own tier (`universal` | `convergent` | `advanced`), used in burndown grouping and the declared-tier ceiling.
-- `reqId` - the Standard requirement the check backs (`U1`-`U9`, `U11`-`U17`, `S1`-`S8`, `G1`-`G10`). This is the single thread that ties a line of code to a clause in `STANDARD.md`.
+- `reqId` - the Standard requirement the check backs (`U1`-`U9`, `U11`-`U18`, `S1`-`S8`, `G1`-`G10`). This is the single thread that ties a line of code to a clause in `STANDARD.md`.
 
 The `check(ctx)` function MUST be synchronous and MUST return an array of `finding` objects (an empty array means "passes"). A `finding` is built by the helper in `scripts/lib/findings.mjs`:
 
@@ -114,7 +114,7 @@ export const CHECKS = [
   versionMatch, mcpValid,
   libraryRegression, deprecation,
   hookDocumentation, selfHosting, releaseNotes, indexDrift,
-  // ... abridged; see scripts/lib/registry.mjs for the full ordered 34-check list
+  // ... abridged; see scripts/lib/registry.mjs for the full ordered 35-check list
 ];
 
 export function runAllChecks(ctx) {

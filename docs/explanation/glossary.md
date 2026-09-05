@@ -29,7 +29,7 @@ Every term below is defined in one sentence, and the sections run roughly in the
 
 **Tier** - a named rung of conformance the gate verifies and reports, each rung including every requirement of the rung below it.
 
-**Bronze (Universal)** - the start line: portable, agent-agnostic files (valid skills, a minimal `library.json`, an `AGENTS.md`) that run unchanged on any agentskills.io-compliant agent, backed by checks `U1-U9` and `U11-U17`.
+**Bronze (Universal)** - the start line: portable, agent-agnostic files (valid skills, a minimal `library.json`, an `AGENTS.md`) that run unchanged on any agentskills.io-compliant agent, backed by checks `U1-U9` and `U11-U18`.
 
 **Silver (Convergent)** - the multi-agent rung: the machinery (subagents, commands, workflows, chain contracts, per-target emission, semver governance) emitted in the right format for every target agent, backed by `S1-S8` on top of Bronze.
 
@@ -43,7 +43,7 @@ Every term below is defined in one sentence, and the sections run roughly in the
 
 **reqId** - the stable identifier a check backs, prefixed by tier (`U` Universal, `S` Convergent, `G` Advanced), so a finding points at exactly one requirement.
 
-**Spine** - the 34 checks the toolkit ships: `U1-U9` and `U11-U17` (Universal), `S1-S8` (Convergent), and `G1-G10` (Advanced), the gap at `U10` being a check retired in Standard v0.11 whose number was never reused.
+**Spine** - the 35 checks the toolkit ships: `U1-U9` and `U11-U18` (Universal), `S1-S8` (Convergent), and `G1-G10` (Advanced), the gap at `U10` being a check retired in Standard v0.11 whose number was never reused.
 
 **Burndown** - the actionable list the tier report hands back naming exactly what blocks the next tier, keyed to reqIds, so the climb reads as a worklist rather than a guess.
 

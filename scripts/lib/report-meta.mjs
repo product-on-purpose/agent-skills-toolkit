@@ -3,7 +3,7 @@
 // why:          keeps human-facing remediation prose out of the deterministic check modules (the gate stays a thin linter, ADR 0028); one table the MD and HTML renderers share so they never diverge
 // used-by:      scripts/lib/report-render.mjs
 //
-// One entry per reqId currently in the spine (U1-U9, U11-U17, S1-S8, G1-G10). The registry-coverage
+// One entry per reqId currently in the spine (U1-U9, U11-U18, S1-S8, G1-G10). The registry-coverage
 // test in tests/unit/report-render.test.mjs fails CI if a future spine addition forgets its row, so a
 // new check cannot ship with a blank "why". The `why` strings for U5/U7/G2/G3/G5 are lifted from the
 // editorial sample's blockquotes; the rest are authored from each check's purpose and Standard clause.
@@ -85,6 +85,11 @@ export const REPORT_META = Object.freeze({
   U17: {
     why: "A .claude-plugin/marketplace.json that cannot be parsed, carries no plugins array, or mixes skill-source and plugin-source entries is read by no scope or by only one of two - so entries the author declared are catalogued by nothing, with no signal either way.",
     fixPrompt: "For an unparseable manifest, fix the JSON at the position named in the finding. For a missing plugins array, add one. For a mixed manifest, split it into one manifest per kind - a catalogue of skills (entries resolving under skills/) and a catalogue of plugins (entries pointing elsewhere) are read by different scopes and cannot share a file. Then run node scripts/check.mjs and confirm U17 passes.",
+  },
+  U18: {
+    why: "Codex migrates a plugin's commands into skills and SKIPS any whose rendered skill exceeds its size cap - no skill is written and no error is raised, so an oversized command simply does not exist on Codex while the repository still shows it.",
+    fixPrompt: "Split the named command, or move the bulk of its body into a skill that the command points at, so the file stays under the cap named in the finding. The cap applies to the rendered skill rather than the source file, so leave headroom rather than trimming to the exact number. Then run node scripts/check.mjs and confirm U18 passes.",
+    effort: "~15 min",
   },
   S1: {
     why: "Without a declared agent-targets list the library does not say which agents it converges across, so the Convergent guarantees (matching manifests, per-target presence) have nothing to check against.",
