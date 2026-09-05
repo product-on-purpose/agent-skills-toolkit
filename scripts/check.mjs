@@ -10,6 +10,7 @@
 //               a script, a SARIF-consuming dashboard (e.g. GitHub code scanning), or a PR diff without
 //               re-parsing human text or re-judging anything the gate already decided
 // used-by:      invoked by contributors and by .github/workflows/ci.yml; the self-hosting (G2) target
+import { statSync } from "node:fs";
 import { loadPlugin } from "./lib/load-plugin.mjs";
 import { runAllChecks, provenanceByReq } from "./lib/registry.mjs";
 import { SINCE_BY_REQ } from "./lib/standard-gate.mjs";
@@ -251,10 +252,13 @@ export function formatGithubAnnotations(findings, declaredTier) {
 /**
  * Parse the CLI: the first non-flag token is the root (normalized through normalizeArgPath, so a
  * Windows backslash path is not silently misread - the historical defect); --strict and --mode <val>
- * (or --mode=<val>) are flags. Exported for unit testing (tests/unit/argv-path-normalization.test.mjs).
+ * (or --mode=<val>) are flags. Any other `--flag` is collected in `unknown` so the CLI can refuse it:
+ * `--stict` used to be dropped without a word, and the gate ran without the --strict the caller asked
+ * for and exited 0. Exported for unit testing (tests/unit/argv-path-normalization.test.mjs).
  */
 export function parseArgs(argv) {
   let root, mode, profile, strict = false, json = false, sarif = false, gha = false;
+  const unknown = [];
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
     if (a === "--strict") strict = true;
@@ -265,13 +269,20 @@ export function parseArgs(argv) {
     else if (a.startsWith("--mode=")) mode = a.slice("--mode=".length);
     else if (a === "--profile") profile = argv[++i];
     else if (a.startsWith("--profile=")) profile = a.slice("--profile=".length);
-    else if (!a.startsWith("--") && root === undefined) root = normalizeArgPath(a);
+    else if (a.startsWith("--")) unknown.push(a);
+    else if (root === undefined) root = normalizeArgPath(a);
   }
-  return { root: root ?? process.cwd(), mode, profile, strict, json, sarif, gha };
+  return { root: root ?? process.cwd(), mode, profile, strict, json, sarif, gha, unknown };
 }
 
 if (process.argv[1]?.endsWith("check.mjs")) {
-  const { root, mode, profile, strict, json, sarif, gha } = parseArgs(process.argv.slice(2));
+  const { root, mode, profile, strict, json, sarif, gha, unknown } = parseArgs(process.argv.slice(2));
+  // The early exits below print one short line to stderr and nothing to stdout, so process.exit() is
+  // safe in them; the drain concern at the end of this block only arises once stdout has been written.
+  if (unknown.length) {
+    for (const f of unknown) console.error(`unknown flag '${f}'`);
+    process.exit(2);
+  }
   if (mode !== undefined && mode !== "local" && mode !== "published-verdict") {
     console.error(`invalid --mode '${mode}'; expected 'local' or 'published-verdict'`);
     process.exit(2);
@@ -284,6 +295,14 @@ if (process.argv[1]?.endsWith("check.mjs")) {
   // banner), so a consumer piping check.mjs never has to guess which document it is parsing.
   if ([json, sarif, gha].filter(Boolean).length > 1) {
     console.error("only one of --json, --sarif, --gha may be given");
+    process.exit(2);
+  }
+  // A root that does not exist was graded as an EMPTY plugin: "library.json is missing", exit 1 - a
+  // confident verdict on a directory that is not there, which is most often a typo in the path.
+  let rootIsDir = false;
+  try { rootIsDir = statSync(root).isDirectory(); } catch { rootIsDir = false; }
+  if (!rootIsDir) {
+    console.error(`root '${root}' is not a directory`);
     process.exit(2);
   }
   const ctx = loadPlugin(root);

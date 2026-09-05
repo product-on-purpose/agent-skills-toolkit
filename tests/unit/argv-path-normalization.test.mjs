@@ -67,6 +67,41 @@ test("check.mjs parseArgs leaves non-path flags (--mode, --profile, --strict) un
   assert.equal(strict, true);
 });
 
+// --- check.mjs: an unrecognised flag and a root that is not a directory are refused, not ignored ---
+//
+// `node scripts/check.mjs . --stict` used to drop the typo without a word and exit 0 having graded
+// WITHOUT the --strict the caller asked for; `node scripts/check.mjs /nonexistent` graded an EMPTY
+// plugin and reported "library.json is missing" (exit 1), a confident verdict on a directory that is
+// not there. Both now exit 2 with one line on stderr, the path the invalid --mode and --profile values
+// already take.
+
+test("check.mjs parseArgs collects every unrecognised --flag as unknown and keeps the recognised ones out of it", () => {
+  const { unknown, strict, json } = parseCheckArgs(["some/root", "--stict", "--json", "--bogus=1"]);
+  assert.deepEqual(unknown, ["--stict", "--bogus=1"]);
+  assert.equal(strict, false, "the typo must not be read as --strict");
+  assert.equal(json, true);
+  const allKnown = ["some/root", "--strict", "--json", "--sarif", "--gha", "--mode", "local", "--mode=local", "--profile", "plain-plugin", "--profile=plain-plugin"];
+  assert.deepEqual(parseCheckArgs(allKnown).unknown, [], "every flag recognised before this change is still recognised");
+});
+
+test("CLI check.mjs exits 2 naming an unknown flag, and grades nothing", () => {
+  const r = runCli("scripts/check.mjs", [SF_FWD, "--stict"]);
+  assert.equal(r.code, 2);
+  assert.match(r.stderr, /unknown flag '--stict'/);
+  assert.equal(r.stdout, "", "nothing is graded or printed when a flag is wrong");
+});
+
+test("CLI check.mjs exits 2 when the root does not exist or is not a directory, instead of grading an empty plugin", () => {
+  const missing = path.join(tmpdir(), `askit-no-such-root-${process.pid}`);
+  const r = runCli("scripts/check.mjs", [missing]);
+  assert.equal(r.code, 2);
+  assert.match(r.stderr, /root '.*askit-no-such-root-.*' is not a directory/);
+  assert.equal(r.stdout, "", "no verdict is printed for a directory that is not there");
+  const file = runCli("scripts/check.mjs", [path.join(SF_FWD, "library.json")]);
+  assert.equal(file.code, 2, "a file is not a plugin root either");
+  assert.match(file.stderr, /is not a directory/);
+});
+
 // --- standards-watch.mjs: the positional root, --pin, --snapshot-dir ---
 
 test("standards-watch.mjs parseArgs routes the positional root through normalizeArgPath and preserves surrounding spaces", () => {
