@@ -25,7 +25,15 @@ const GATE_PATH = /scripts\/check\.mjs(?![\w.])/;
 // Each pattern requires the gate to be INVOKED, never merely named: `npm install agent-skills-toolkit`
 // installs and runs nothing, and must not count. Whole-line YAML comments are already stripped before
 // any of these are applied, so a mention in a comment cannot pass either.
-const NPX_GATE = /\bnpx\s+(?:-{1,2}[\w-]+(?:[= ][\w.-]+)?\s+)*agent-skills-toolkit(?:@[\w.^~><=+-]+)?(?![\w-])/;
+//
+// NPX_GATE gives every token between `npx` and the package name exactly ONE reading, which is what keeps
+// it linear on a line that does not match: a dash-led token is a flag (a word character must follow the
+// dashes, so a bare `--` is only the end-of-options separator), a `=` glues a value to its flag, and a
+// space-separated value never starts with a dash. The previous pattern let `-{1,2}` and `[\w-]+` split the
+// dashes between them AND let a dash-led token be read as either a flag or the previous flag's value, so a
+// failing match explored every combination: `npx --a --a ... nope` with 40 flags never finished. It also
+// refused a real value holding `/` or `:` (`--registry=https://x`). tests/unit/self-hosting-npx-pattern.test.mjs.
+const NPX_GATE = /\bnpx\s+(?:-{1,2}[\w][\w-]*(?:=\S+| [^\s-]\S*)?\s+|--\s+)*agent-skills-toolkit(?:@[\w.^~><=+-]+)?(?![\w-])/;
 const ACTION_GATE = /\buses:\s*["']?[\w.-]+\/agent-skills-toolkit@/;
 // The installed bin invoked directly, but only where a `run:` key hands it the whole command, so the
 // bare package name appearing inside an install line cannot match.

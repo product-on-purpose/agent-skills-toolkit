@@ -370,7 +370,11 @@ async function runCli() {
     console.log(output);
   }
   // Rendering a report is orthogonal to the gate verdict: the exit code always reflects the gate, never the format.
-  process.exit(exitCode);
+  // Set as process.exitCode rather than process.exit(): a pipe is written asynchronously on POSIX, and exiting
+  // right after console.log(output) cut a large report at one pipe buffer (65536 bytes) whenever stdout was
+  // piped. runCli() is the last thing this module does, so the process ends on its own once stdout has
+  // drained (tests/unit/cli-stdout-drain.test.mjs covers the same defect for both CLIs).
+  process.exitCode = exitCode;
 }
 
 if (process.argv[1]?.endsWith("evaluate.mjs")) runCli();

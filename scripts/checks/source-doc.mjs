@@ -6,12 +6,15 @@
 // used-by:      registered in scripts/lib/registry.mjs; run by scripts/check.mjs; covered by tests/unit/source-doc.test.mjs
 import { readFileSync, readdirSync, statSync, existsSync } from "node:fs";
 import path from "node:path";
-import { relPath, SKIP_DIRS } from "../lib/fs-utils.mjs"; // SKIP_DIRS: shared directory skip set, matched by basename at any depth
+import { relPath, SKIP_DIRS, isInsideRoot, realPathOrNull } from "../lib/fs-utils.mjs"; // SKIP_DIRS: shared directory skip set, matched by basename at any depth
 import { finding, SEVERITY } from "../lib/findings.mjs";
 
 export const meta = { id: "source-doc", tier: "advanced", reqId: "G9", since: "0.10", provenance: "house" };
 
 const HEADER_LINES = 30;
+// The most of one header line fieldPresent examines. A docblock label line is never anywhere near this
+// long, and the cap is what bounds the label match below on a pathological line (see fieldPresent).
+const MAX_LINE = 2000;
 const EXT = /\.(mjs|js|py)$/;
 
 // Path fragments (slash-normalized) skipped wherever they occur: intentional fixtures and generated output.
@@ -39,7 +42,10 @@ function norm(label) {
   return label.toLowerCase().replace(/[-_\s]+/g, "");
 }
 
-function collect(dir, out) {
+// `seen` holds the real path of every directory already entered, seeded with the root and the scope root:
+// with isInsideRoot it keeps the walk inside the plugin (a symlink out of it is skipped) and finite (a
+// link back up to a directory already entered is skipped).
+function collect(root, dir, out, seen = new Set([realPathOrNull(root), realPathOrNull(dir)])) {
   let entries;
   try { entries = readdirSync(dir); } catch { return; }
   for (const name of entries) {
@@ -47,8 +53,13 @@ function collect(dir, out) {
     const full = path.join(dir, name);
     let st;
     try { st = statSync(full); } catch { continue; }
-    if (st.isDirectory()) collect(full, out);
-    else if (EXT.test(name)) out.push(full);
+    if (st.isDirectory()) {
+      if (!isInsideRoot(root, full)) continue;
+      const real = realPathOrNull(full);
+      if (real === null || seen.has(real)) continue;
+      seen.add(real);
+      collect(root, full, out, seen);
+    } else if (EXT.test(name)) out.push(full);
   }
 }
 
@@ -59,7 +70,11 @@ function fieldPresent(field, headerLines) {
   for (const raw of headerLines) {
     const m = raw.match(/^\s*(\/\/|#|\*)\s*(.*)$/); // require a comment marker
     if (!m) continue;
-    const line = m[2];
+    // Trimmed and capped BEFORE either match. The label pattern ends in `\s*:\s*(.*\S)\s*$`, which is
+    // quadratic on trailing whitespace: every retreat of the greedy `\s*` re-runs `(.*\S)` over the
+    // rest of the line, so a first line of `// what-it-is:` followed by 300000 spaces never finished
+    // and hung the whole gate. Trimming removes the run entirely; the cap bounds whatever is left.
+    const line = m[2].trim().slice(0, MAX_LINE);
     // The value must be non-empty after trimming (one or more non-space chars), so `// why:` with no
     // value fails while a single-character value passes.
     const tagMatch = line.match(/^(@\w+)\s+(.*\S)\s*$/);
@@ -85,7 +100,7 @@ export function check(ctx) {
   const files = [];
   for (const rel of SCOPE_ROOTS) {
     const dir = path.join(root, rel);
-    if (existsSync(dir)) collect(dir, files);
+    if (existsSync(dir)) collect(root, dir, files);
   }
   const out = [];
   for (const f of files) {

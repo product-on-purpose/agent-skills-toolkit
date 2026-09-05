@@ -27,3 +27,17 @@ test("invalid YAML is a parseError", () => {
   assert.equal(r.frontmatter, null);
   assert.match(r.parseError, /flow|yaml|unexpected|parse|map|\]/i);
 });
+
+test("a leading UTF-8 byte-order mark is not content: the fence still matches and the body does not start with it", () => {
+  const r = parseFrontmatter("\uFEFF" + sample);
+  assert.equal(r.parseError, null, "a BOM before the fence was graded as a missing fence");
+  assert.equal(r.frontmatter.name, "my-skill");
+  assert.match(r.body, /^# Body/);
+  assert.notEqual(r.body.charCodeAt(0), 0xfeff);
+});
+
+test("a byte-order mark alone does not invent a fence: a file without frontmatter is still a parseError", () => {
+  const r = parseFrontmatter("\uFEFF# no frontmatter here");
+  assert.equal(r.frontmatter, null);
+  assert.match(r.parseError, /frontmatter/i);
+});
