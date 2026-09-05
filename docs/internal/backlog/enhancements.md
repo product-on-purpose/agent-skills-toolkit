@@ -649,6 +649,23 @@ One entry, from adversarial wave 1 over the v1.16.0 implementation. Its six othe
 - **Prior art to reuse either way:** `action-pin-watch`'s split (ADR 0053) is the closest precedent - it gates on a label that disagrees with its own pin (a defect here) and deliberately does NOT gate on being merely behind an upstream release (news about somebody else's cadence). If this becomes a gate, that split is probably its shape.
 - **Status:** open, unversioned. Filed 2026-09-02 with the cut-2 workflow, per the convention that a decision is recorded where the work happened rather than remembered.
 
+### E60 - a dependency bump can land a false supply-chain label, because `action-pin-watch` runs only at release  [correctness, effort S, found finishing cut 4]
+
+- **Target:** `.github/workflows/ci.yml` (which job runs `scripts/action-pin-watch.mjs`), not the script itself - the script works correctly and is what found this.
+- **Found by:** running `npm run release-ready` on 2026-09-05 while finishing cut 4. It blocked on 5 label problems, and those problems were **already on `main`**, not introduced by the cut.
+- **What happened.** [PR #303](https://github.com/product-on-purpose/agent-skills-toolkit/pull/303), a dependabot group bump merged 2026-09-04, advanced four `github/codeql-action` pins and one `softprops/action-gh-release` pin **and left every version comment untouched**:
+
+  ```diff
+  - uses: github/codeql-action/init@ff2f1c621b7f... # v4.37.7 pinned 2026-08-16
+  + uses: github/codeql-action/init@cdf488f595d8... # v4.37.7 pinned 2026-08-16
+  ```
+
+  The new SHA is **v4.37.9**, verified independently by resolving the tag through the GitHub API rather than by trusting the watcher. So for a day, `main` asserted in its own workflow files that it was running a version it was not running. The labels are corrected in the cut 4 branch; **this entry is about the hole that let it land, not about the labels.**
+- **Why nothing caught it.** `action-pin-watch` is a `release-ready` gate. `release-ready` runs when a release is being cut, so a pull request can merge a false label and the repository carries it until the next release attempt. Every other claim guard in this repository - `check-doc-enumerations`, `check-readme-version`, `check-claim-citations`, `check-release-counts` - runs in `npm test` and therefore on every pull request.
+- **Why this one is worse than a stale doc count.** A pin comment is the only half of a SHA pin a human reviewer reads. Nobody verifies 40 hex characters by eye; they read `# v4.37.7` and believe it. A wrong label is a false statement about this repository's own supply chain, sitting in the file a security reviewer would audit first. It is the same class as [ADR 0053 (a pin label is a claim, and behind is not a defect)](../decisions/0053-a-pin-label-is-a-claim-and-behind-is-not-a-defect.md), which ruled precisely that a label stating a fact is making a claim.
+- **The fix, and the reason it is not simply "move it into `npm test`".** `action-pin-watch` resolves tags over the network, so putting it in the unit suite makes every local `npm test` and every CI leg depend on `api.github.com` - and the `#310` lesson is that a network dependency inside a required check is how an outage skips the suite. **Recommended shape:** a separate pull-request job, not a step inside `validate`, exiting 2 (advisory) when the registry cannot be read and 1 only on a genuine label disagreement - exactly the split `audit-deps`, `vendor-watch` and `action-pin-watch` already make. A cheaper alternative worth measuring first: run it only when the diff touches `.github/workflows/**`, which is the only way a label can drift.
+- **Also worth checking when this is picked up:** whether dependabot can be configured to rewrite the version comment it invalidates. If it can, that closes the cause rather than adding a second detector, and this entry becomes a much smaller change.
+- **Status:** OPEN, unversioned. The labels themselves are fixed in cut 4; the detection gap is not.
 ### E59 - model the marketplace `relevance` block, or keep the dated no  [policy, effort S, population currently ZERO, opened by RS-C4]
 
 - **Target:** `scripts/checks/catalogue-manifest-shape.mjs` (`U17`) if it is ever modelled, or the marketplace scope more broadly. Vendor page: `https://code.claude.com/docs/en/plugin-relevance`, read 2026-09-05 at Claude Code `2.1.261`.
