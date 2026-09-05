@@ -11,6 +11,11 @@ const FENCE = /^---\r?\n([\s\S]*?)\r?\n---(?:\r?\n|$)([\s\S]*)$/;
  * @returns {{frontmatter: object|null, body: string, parseError: string|null}}
  */
 export function parseFrontmatter(text) {
+  // A UTF-8 byte-order mark survives readFileSync(..., "utf8") as a leading U+FEFF, and FENCE is anchored
+  // at the start of the string, so a SKILL.md saved by an editor that writes one was graded "missing YAML
+  // frontmatter" and the plugin fell to Tier: None. The mark is an encoding signature, not content, so
+  // it is dropped before the match and never reaches the body (tests/unit/frontmatter.test.mjs).
+  if (text.charCodeAt(0) === 0xfeff) text = text.slice(1);
   const m = text.match(FENCE);
   if (!m) {
     return { frontmatter: null, body: text, parseError: "missing YAML frontmatter (--- fenced block at top)" };
