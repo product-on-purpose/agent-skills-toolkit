@@ -190,10 +190,19 @@ test("gate step on a PASSING fixture: fail-on-error=true, sarif=true never fails
 });
 
 // gha-sarif-guard.mjs (round 2 of the pre-release adversarial review) compares check.mjs --sarif's and
-// --json's EXIT CODES, never their raw error/warning COUNTS, precisely because the two artifacts
-// legitimately disagree on count for any plugin with real findings above its declared-tier ceiling. This
-// proves the production action.yml pipeline does not false-positive on that real, ordinary shape.
-test("gate step on a fixture with SARIF error-count > JSON gate errorCount (real ceiling-filtered mismatch): still succeeds and emits a valid sarif-path", () => {
+// --json's EXIT CODES, never their raw error/warning COUNTS. This test proves the production action.yml
+// pipeline does not false-positive on a plugin carrying real findings above its declared-tier ceiling.
+//
+// WHAT THIS TEST USED TO ASSERT, AND WHY IT CHANGED. Until 2026-09-08 it required this fixture to
+// exhibit SARIF error results the gate did not count, and called that "the real ceiling-filtered
+// mismatch". D-05 closed that direction: an above-tier finding now renders at level "note" rather than
+// keeping its own severity, so SARIF error results can never exceed the gate's count. The old assertion
+// was not merely stale - it asserted the presence of the very confusion this project decided to remove,
+// so keeping it green would have meant keeping the defect. It now asserts the invariant that replaced
+// it. The guard itself is unchanged and still justified, for the mirrored reason recorded in its
+// docblock: the gate counts DECLARED severity while SARIF renders EFFECTIVE severity, so a capped
+// finding still makes the two counts disagree in the other direction.
+test("gate step on a fixture with above-ceiling findings: succeeds, emits a valid sarif-path, and the two surfaces now agree", () => {
   const result = runGateStep({ failOnError: "true", sarif: "true", fixture: COUNT_MISMATCH_FIXTURE });
   try {
     const { status, outputs } = result;
@@ -201,8 +210,16 @@ test("gate step on a fixture with SARIF error-count > JSON gate errorCount (real
     assert.equal(outputs.errors, "0", "gated errorCount is 0 for this fixture's declared tier");
     assert.ok(outputs["sarif-path"], "sarif-path must still be emitted - the guard compares exit codes, not counts");
     const doc = JSON.parse(readFileSync(outputs["sarif-path"], "utf8"));
-    const sarifErrorResults = doc.runs[0].results.filter((r) => r.level === "error");
-    assert.ok(sarifErrorResults.length > 0, "sanity check: this fixture must actually exhibit the count mismatch (SARIF has error results the gate didn't count)");
+    const results = doc.runs[0].results;
+    const sarifErrorResults = results.filter((r) => r.level === "error");
+    assert.equal(sarifErrorResults.length, 0, "no SARIF error may outrank a gate that counted zero");
+    // The findings did not vanish - that would be the opposite defect, a Security tab quietly missing
+    // real findings. They are present, at level note, each naming the rung it belongs to.
+    const notes = results.filter((r) => r.level === "note");
+    assert.ok(notes.length > 0, "the above-ceiling findings must still be REPORTED, just not as errors");
+    for (const n of notes) {
+      assert.ok(n.properties?.["askit/aboveDeclaredTier"], `${n.ruleId} is a note and must say why`);
+    }
   } finally {
     cleanup(result);
   }

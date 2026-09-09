@@ -230,15 +230,24 @@ const ghaEscapeProperty = (s) => ghaEscapeData(s).replace(/:/g, "%3A").replace(/
  */
 export function formatGithubAnnotations(findings, declaredTier) {
   const { grading, aboveTier } = sectionFindings(findings, declaredTier);
+  const above = new Set(aboveTier);
   return [...grading, ...aboveTier]
     .map((f) => {
       const sev = f.effectiveSeverity ?? f.severity;
-      const cmd = sev === "error" ? "error" : "warning";
+      // A finding ABOVE the declared tier is a `::notice`, never an error or a warning, whatever its
+      // own severity says. It is real and it is still emitted - it just cannot affect this plugin's
+      // grade, and a reviewer reading the diff should not see it in the same colour as something that
+      // can. Before this, a Bronze plugin's pull request carried red error annotations for Gold
+      // requirements while the text output for the same run said "0 error(s)": two surfaces describing
+      // one run in contradictory severities (2026-09-04 audit, F-032). The label below names the tier,
+      // so the annotation says WHY it is only a notice rather than leaving the reader to infer it.
+      const cmd = above.has(f) ? "notice" : sev === "error" ? "error" : "warning";
       const params = [];
       if (f.file) params.push(`file=${ghaEscapeProperty(f.file)}`);
       if (f.line != null) params.push(`line=${ghaEscapeProperty(String(f.line))}`);
       const paramStr = params.length ? " " + params.join(",") : "";
-      const label = f.reqId ? `${f.check} (${f.reqId}): ` : `${f.check}: `;
+      const tierNote = above.has(f) ? `above your declared tier (${tierForReq(f.reqId)}): ` : "";
+      const label = f.reqId ? `${tierNote}${f.check} (${f.reqId}): ` : `${tierNote}${f.check}: `;
       // The trust notice is APPENDED to the annotation a reviewer reads on the diff. Without it, a
       // finding the subject had tried to waive looks identical to one nobody touched, which is the
       // opposite of what published-verdict mode exists to show. Already sanitized where the notice is

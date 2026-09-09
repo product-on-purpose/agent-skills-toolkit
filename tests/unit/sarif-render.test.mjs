@@ -112,14 +112,35 @@ test("renderSarif's rule catalog covers every registered check, deduplicated by 
   });
 });
 
-test("renderSarif maps effectiveSeverity to level: error -> error, warn -> warning", () => {
+test("renderSarif maps effectiveSeverity to level: error -> error, warn -> warning, above-tier -> note", () => {
   inFixture(({ ctx, r }) => {
     const results = renderSarif(ctx, r).runs[0].results;
     const u12 = results.find((res) => res.ruleId === "U12");
     const u5 = results.find((res) => res.ruleId === "U5");
+    // U12 and U5 are Universal, so they are at or below every declared tier and keep their own severity.
     assert.equal(u12.level, "error");
     assert.equal(u5.level, "warning");
-    for (const res of results) assert.match(res.level, /^(error|warning)$/, "no other level may appear");
+    for (const res of results) assert.match(res.level, /^(error|warning|note)$/, "no other level may appear");
+  });
+});
+
+test("an above-tier finding is level note and carries the rung, whatever its own severity says", () => {
+  // The severity a finding declares is not the severity a consumer should act on when the requirement
+  // belongs to a rung the plugin never claimed. Before this, a Bronze plugin's Security tab showed Gold
+  // requirements at level "error" while the same run's text output said "0 error(s)" (F-032).
+  inFixture(({ ctx, r }) => {
+    const declared = ctx?.library?.data?.tier ?? null;
+    const results = renderSarif(ctx, r).runs[0].results;
+    const above = results.filter((res) => res.properties?.["askit/aboveDeclaredTier"]);
+    for (const res of above) {
+      assert.equal(res.level, "note", `${res.ruleId} is above ${declared} and must be a note`);
+      assert.match(res.properties["askit/aboveDeclaredTier"], /^(universal|convergent|advanced)$/);
+    }
+    // And the converse, which is what stops this becoming "everything is a note": no result may be a
+    // note WITHOUT the property saying why.
+    for (const res of results.filter((x) => x.level === "note")) {
+      assert.ok(res.properties?.["askit/aboveDeclaredTier"], `${res.ruleId} is a note and must say why`);
+    }
   });
 });
 
