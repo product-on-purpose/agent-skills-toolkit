@@ -134,8 +134,21 @@ test("CLI check.mjs --gha emits GitHub Actions annotation lines for a fixture wi
   const { stdout, code } = runCli([WEAK, "--gha"]);
   const lines = stdout.trim().split("\n").filter(Boolean);
   assert.ok(lines.length > 0, "the weak-description fixture must produce at least one annotation");
-  for (const line of lines) assert.match(line, /^::(error|warning) /);
+  for (const line of lines) assert.match(line, /^::(error|warning|notice) /);
   assert.equal(code, 0, "WEAK's warning does not fail the gate");
+});
+
+test("an above-tier finding is a ::notice that NAMES the tier, never an ::error", () => {
+  // The F-032 half that severity alone does not fix. A reviewer seeing a bare `::notice` learns that
+  // the finding is not gating; they do not learn why. The annotation carries the rung, mirroring the
+  // labelled "above your declared tier" section the text output has always had.
+  const { stdout } = runCli([WEAK, "--gha"]);
+  const above = stdout.trim().split("\n").filter((l) => l.includes("above your declared tier"));
+  assert.ok(above.length > 0, "this fixture must carry at least one above-tier finding");
+  for (const line of above) {
+    assert.match(line, /^::notice /, "an above-tier finding must never be an error or a warning annotation");
+    assert.match(line, /above your declared tier \((universal|convergent|advanced)\)/, "and must name the rung");
+  }
 });
 
 test("CLI check.mjs --gha prints nothing when there is nothing to annotate", () => {

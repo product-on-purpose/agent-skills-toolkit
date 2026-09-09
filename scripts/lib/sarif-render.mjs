@@ -11,8 +11,12 @@
 //
 // Shape verified against the SARIF 2.1.0 JSON schema (docs.oasis-open.org/sarif/sarif/v2.1.0 and the
 // oasis-tcs/sarif-spec repository's sarif-schema-2.1.0.json), not guessed:
-//   - result.level is "none" | "note" | "warning" | "error"; this module only ever emits "error" or
-//     "warning" (effectiveSeverity "off" is filtered out before rendering - see below).
+//   - result.level is "none" | "note" | "warning" | "error"; this module emits "error", "warning" or
+//     "note" (effectiveSeverity "off" is filtered out before rendering - see below). "note" is
+//     reserved for a finding ABOVE the plugin's declared tier: real, still reported, but unable to
+//     affect this plugin's grade, so a consumer's Security tab must not show it in the same colour as
+//     a gating failure. It carries `properties["askit/aboveDeclaredTier"]` naming the rung the
+//     requirement belongs to, so a consumer can tell "not your grade" from "passed".
 //   - result.suppressions is an array of { kind: "inSource" | "external", status?, justification? }.
 //     askit's suppressions come from askit.config.json, a mechanism EXTERNAL to the source file (not
 //     an inline "// suppress" comment), so kind is always "external"; a configured baseline waiver is
@@ -31,6 +35,7 @@ import { readFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { CHECKS } from "./registry.mjs";
+import { isAboveDeclaredTier, tierForReq } from "./tier.mjs";
 import { LIMITATIONS_URL } from "./tier-scope.mjs";
 import { metaFor } from "./report-meta.mjs";
 
@@ -83,11 +88,15 @@ function buildRules() {
  *  (turned off by profile or per-rule override) has nothing to report and is skipped entirely. A
  *  SUPPRESSED finding is NOT skipped: it is rendered with a `suppressions` entry (see module docblock),
  *  so the artifact stays honest about what was silenced instead of quietly omitting it. */
-function buildResults(findings) {
+function buildResults(findings, declaredTier) {
   const out = [];
   for (const f of findings) {
     if (f.effectiveSeverity !== "error" && f.effectiveSeverity !== "warn") continue; // "off": nothing to report
-    const level = f.effectiveSeverity === "error" ? "error" : "warning";
+    // Above the declared tier: level "note", whatever the finding's own severity is. Shared predicate
+    // with the text output and the annotations (lib/tier.mjs), because the three surfaces disagreeing
+    // about one run is the defect this fixes rather than a style preference.
+    const above = isAboveDeclaredTier(f.reqId, declaredTier);
+    const level = above ? "note" : f.effectiveSeverity === "error" ? "error" : "warning";
     const result = {
       ruleId: f.reqId ?? f.check,
       level,
@@ -112,6 +121,14 @@ function buildResults(findings) {
     // diffing SARIF across runs should not see them change because a config did.
     if (f.trustNotice) {
       result.properties = { ...(result.properties ?? {}), "askit/trustNotice": f.trustNotice };
+    }
+    // The level alone says "not a gating failure"; it does not say WHY. Without this a consumer cannot
+    // distinguish a note that is above the declared tier from any other note, and the Security tab has
+    // no equivalent of the text output's labelled "above your declared tier" section - which is the
+    // half of F-032 that the severity change on its own does not fix. Namespaced like the trust notice
+    // above, and carrying the rung rather than a bare boolean so the reader learns what to declare.
+    if (above) {
+      result.properties = { ...(result.properties ?? {}), "askit/aboveDeclaredTier": tierForReq(f.reqId) };
     }
     out.push(result);
   }
@@ -140,7 +157,7 @@ export function renderSarif(ctx, r) {
             rules: buildRules(),
           },
         },
-        results: buildResults(r.findings),
+        results: buildResults(r.findings, ctx?.library?.data?.tier ?? null),
         properties: {
           standard: ctx?.library?.data?.standard ?? null,
           declaredTier: ctx?.library?.data?.tier ?? null,

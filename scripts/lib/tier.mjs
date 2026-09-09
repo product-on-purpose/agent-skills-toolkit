@@ -25,6 +25,24 @@ export function tierForReq(reqId) {
 }
 
 /** Map a declared-tier string to its index in TIER_ORDER. Missing/unknown -> last (no ceiling). */
+/**
+ * Is this finding ABOVE the tier the plugin declared - a requirement of a rung it has not claimed?
+ *
+ * The single predicate behind every surface that has to make this distinction: `sectionFindings` in
+ * check.mjs for the text output and the GitHub annotations, and `buildResults` in sarif-render.mjs for
+ * the SARIF document. It lives here rather than in either caller because the surfaces DISAGREEING is
+ * the defect it exists to prevent: before this, the text output printed "0 error(s)" for a run whose
+ * SARIF document carried three results at level "error", and a Bronze plugin's pull request showed red
+ * annotations for Gold requirements that could not affect its grade (2026-09-04 audit, F-032).
+ *
+ * False when the plugin declares no tier: with nothing declared there is no ceiling to be above, and
+ * every finding grades. That is the same reading `ceilingIndex` already takes.
+ */
+export function isAboveDeclaredTier(reqId, declared) {
+  if (!declared) return false;
+  return TIER_ORDER.indexOf(tierForReq(reqId)) > ceilingIndex(declared);
+}
+
 export function ceilingIndex(declared) {
   const i = TIER_ORDER.indexOf(declared);
   return i >= 0 ? i : TIER_ORDER.length - 1;

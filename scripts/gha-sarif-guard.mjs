@@ -14,11 +14,14 @@
 //               proven does exit-code equality mean anything: check.mjs computes the identical
 //               runGate().exitCode for both --json and --sarif from the same call, so comparing those two
 //               numbers IS "like with like" - unlike comparing raw error/warning COUNTS, which this
-//               module deliberately does NOT do. Verified against this repo's own silver-fixture
-//               (declared tier "convergent"): its JSON errorCount is 0 (ceiling-filtered to the declared
-//               tier) while its SARIF document legitimately carries 3 error-level results (G2/G4/G5,
-//               above the declared ceiling but still real, non-off findings) - a count comparison would
-//               have flagged that ordinary, correct run as a "disagreement". An invalid-but-present
+//               module deliberately does NOT do.
+//
+//               THE WORKED EXAMPLE INVERTED (2026-09-08): this cited the silver-fixture's 3 error-level
+//               SARIF results against a JSON errorCount of 0. An above-tier finding is now level "note"
+//               (D-05, the 2026-09-04 audit's F-032), so SARIF errors can no longer EXCEED the gate's
+//               count. Counts are still the wrong comparison, mirrored: the gate reads DECLARED severity
+//               and SARIF renders EFFECTIVE, so a capped finding is an error to one and a warning to the
+//               other. Same conclusion, opposite cause. An invalid-but-present
 //               artifact is worse than an absent one, because a downstream consumer trusts it - so this
 //               fails closed and deletes the file rather than half-trusting it.
 // used-by:      action.yml (this repository's own published GitHub Action)

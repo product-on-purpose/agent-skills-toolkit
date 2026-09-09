@@ -66,7 +66,7 @@ Twenty-five recommendations. The resolution plan mapping all of them was ratifie
 
 A max-effort external audit of the toolkit at `main` `3ad4b11` (v1.18.0, Standard 0.15), run on Linux against a purpose-built 46-item adversarial corpus. It is the first generation to arrive **with its own patches**: eight fix commits, each closing one numbered finding, each carrying a test.
 
-Its working material is gitignored under `_local/audits/2026-09-04_fable-5-1-max/` per the convention above, so **the `F-0xx` and `B-xx` identifiers it uses resolve nowhere outside this machine.** That is a known cost, recorded rather than hidden: the rows below state the CONTENT of each item, so a reader who cannot open the audit is not stranded on a bare id.
+Its working material is gitignored under `_local/audit/2026-09-04_fable-5-1-max/` per the convention above, so **the `F-0xx` and `B-xx` identifiers it uses resolve nowhere outside this machine.** That is a known cost, recorded rather than hidden: the rows below state the CONTENT of each item, so a reader who cannot open the audit is not stranded on a bare id.
 
 | Item | Status | Carried by |
 | --- | --- | --- |
@@ -86,6 +86,8 @@ Its working material is gitignored under `_local/audits/2026-09-04_fable-5-1-max
 | The audit assigns forward version numbers (1.19, 1.20, 2.0) to unshipped work | **CONTRADICTS a ratified decision.** [ADR 0057 (unshipped work carries a name, never a version number)](decisions/0057-unshipped-work-carries-a-name-never-a-version-number.md) was accepted 2026-09-01 and was in the tree the audit read. Its migration tables must be read with those numbers treated as sequence placeholders, never as commitments | this row |
 | The audit's wave 2 claims Standard 0.16 for its own strengthening set | **SUPERSEDED 2026-09-05.** Cut 4 shipped 0.16 first (`U18` plus the `G1` and `G2` tightenings), and 0.17 is already spoken for as those three items' cap-expiry. The audit's set needs a later revision | this row |
 | The audit's ADRs are numbered 0001-0008 | **RENUMBER ON ADOPTION.** This repository's sequence reached 0057 before the audit and 0058 during it, so the next free number is **0059**. No live collision, because the audit's ADRs are proposals in gitignored material | this row |
+| **D-04** - seven `MUST`s in the Standard have no check, and this repo violates one of them 35 times | **RULED 2026-09-08.** Three become checks (sec 5.1 via `S3`/`S8`, sec 3.10 link resolution via `U2`, sec 8.2 a new cross-type collision check), two demote to `SHOULD` (sec 7.3 `HISTORY.md`, sec 3.10 count agreement), two are marked stated-unchecked (sec 7.2, sec 7.4). A generated coverage table makes it mechanical and is a test | [ADR 0059](decisions/0059-every-must-maps-to-a-check-a-should-or-a-stated-gap.md) |
+| **D-05** - above-tier findings surface as red errors on machine surfaces while the text output says `0 error(s)` | **RESOLVED 2026-09-08** (PR #319). An above-tier finding is `::notice` / SARIF `note` and carries the rung that makes it non-gating. Measured: `writing-style-catalog` declares `universal`, exits 0, and its Security tab carried 46 error-level results | `scripts/lib/tier.mjs` (`isAboveDeclaredTier`) |
 | A fix for every finding | DECLINED by the audit itself - patches were limited to unambiguous, low-risk items, and contested changes went to its own ADR folder instead | the audit's `GAPS.md` |
 ## 2026-08-10 generation
 
