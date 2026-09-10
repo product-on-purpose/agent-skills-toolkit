@@ -57,7 +57,7 @@ These are current, tracked, and stated here rather than discovered by you.
 
 **`U5` (description scoring) assumes English.** The check awards 0.35 for a use-when trigger phrase, matched by an English-only pattern. Measured against a 349-skill French corpus, the pattern fired on **0 of 346** descriptions while 341 carried an explicit French trigger clause. A description in a language the pattern does not know is capped at 0.65 against a 0.7 bar, so it **cannot pass**, regardless of quality. English controls matched 705 of 1016.
 
-`U5` is one check of thirty, carries `house` provenance (so `--profile plain-plugin` drops it entirely), and emits a warning rather than an error. But within the default profile the limit is absolute, not a bias. Tracked as [E14, U5 assumes English and is unpassable in a language it does not know](https://github.com/product-on-purpose/agent-skills-toolkit/blob/main/docs/internal/backlog/enhancements.md); the fix requires a decision between language detection, a pluggable lexicon, or a language-independent structural signal. Adding French patterns is explicitly the wrong fix, because it would leave every other language in the same position.
+`U5` is one check of 35, carries `house` provenance (so `--profile plain-plugin` drops it entirely), and emits a warning rather than an error. But within the default profile the limit is absolute, not a bias. Tracked as [E14, U5 assumes English and is unpassable in a language it does not know](https://github.com/product-on-purpose/agent-skills-toolkit/blob/main/docs/internal/backlog/enhancements.md); the fix requires a decision between language detection, a pluggable lexicon, or a language-independent structural signal. Adding French patterns is explicitly the wrong fix, because it would leave every other language in the same position.
 
 **`G3`'s skill branch is a documented no-op.** The `library-regression` check has a branch for skills that does nothing. A plugin cannot rely on `G3` to grade its skills, and any plan that assumes otherwise is unsatisfiable as written.
 
@@ -65,16 +65,15 @@ These are current, tracked, and stated here rather than discovered by you.
 
 **Nothing resolves `.claude-plugin/plugin.json` component paths.** A Claude plugin manifest can declare `agents: ["./agents/does-not-exist.md"]` and the gate will pass. `U13` (skill-registration) covers the catalogued-but-undeliverable case for **skills only**, and only via `library.json` or `marketplace.json`. Tracked as [E19, nothing resolves the component paths declared in .claude-plugin/plugin.json](https://github.com/product-on-purpose/agent-skills-toolkit/blob/main/docs/internal/backlog/enhancements.md).
 
-## 4. There is no marketplace scope
+## 4. Marketplace scope grades the collection, but not everything about it
 
-The gate has exactly two scopes: **plugin** and **component**. There is no way to point it at a marketplace and have it grade the collection.
+**Corrected 2026-09-09.** This section previously said there was no marketplace scope at all. There is: the gate has three scopes - **plugin**, **component** and **marketplace** - and pointing `evaluate.mjs` at a catalogue reports `"scope": "marketplace"` and grades every member it can resolve. The section had been false since marketplace scope shipped, on the page whose whole purpose is to be accurate about limits. That is worse than an ordinary stale page and is recorded rather than quietly overwritten.
 
-That means the following are manual today, however many plugins you have:
+What marketplace scope does today: resolves every member a catalogue lists, grades each one, and reports the collection together. What it still does **not** do:
 
-- checking that every member of a marketplace resolves
-- grading each member and reading the results together
-- detecting two members that ship a colliding skill or command name
-- keeping each member's pinned version in step with the registry
+- **Two members colliding on a skill or command name is reported against the CATALOGUE, never as a requirement on either plugin.** Neither member can fix it alone, and a requirement a plugin cannot discharge by editing its own repository is not a requirement (the unilateral-remedy test).
+- **Whether a runtime actually shares one namespace across plugins is a dated experiment, not a certainty.** If a runtime namespaces components per plugin, a collision stops being a defect at all.
+- **Keeping each member's pinned version in step with the registry is still manual.** The published family registry measures members at the sha the catalogue pins, which makes drift visible; it does not close it.
 
 See [managing several plugins](../how-to/manage-multiple-plugins.md) for the workflow that exists in the meantime, and what it costs. Marketplace scope is the headline of a planned release and is not built.
 

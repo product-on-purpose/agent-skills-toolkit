@@ -271,7 +271,19 @@ const SPINE_CLAIM = [
   new RegExp(String.raw`\|\s*Spine\s*\|\s*${NUM} checks`, "g"),
   new RegExp(String.raw`badge/checks-${NUM}-`, "g"),
   new RegExp(String.raw`Validation checks: ${NUM}`, "g"),
+  // "one check of 35" - the honesty pages' own phrasing for how much weight a single check carries.
+  // Added 2026-09-09 after three tracked pages sat at "one check of thirty" through five spine changes.
+  new RegExp(String.raw`check of ${NUM}`, "g"),
 ];
+
+// A spine count SPELLED OUT is invisible to every pattern above, and that is exactly how the honesty
+// pages went stale: they read "one check of thirty" while the spine went 30, 31, 34, 35. The count was
+// not wrong once and left behind - it was never readable by the guard that exists to catch it.
+//
+// This does not convert words to numbers and compare them. It refuses the word form outright in a
+// spine-count position, because a number this guard cannot read is a number that will drift again. The
+// remedy is one character: write the digit.
+const SPELLED_SPINE = /\b(?:check|checks) of (twenty|thirty|forty|fifty)(?:-\w+)?\b/gi;
 
 // Tracked files only. Git already draws the exact authored-versus-generated line this needs: the site's
 // generated docs mirror is gitignored (and asserted untracked by its own check), while the site's
@@ -329,6 +341,10 @@ for (const rel of tracked) {
         failures.push(`${rel}  claims "${m[0]}"; the registry has ${spineSize}`);
       }
     }
+  }
+  for (const m of text.matchAll(SPELLED_SPINE)) {
+    sawClaim = true;
+    failures.push(`${rel}  spells a spine count as a word ("${m[0]}"); write the digit so this guard can read it`);
   }
   if (sawClaim) spineClaimFiles.push(rel);
 }

@@ -1,0 +1,29 @@
+{
+  "_what": "Twenty skill descriptions with a human label, the evidence behind the U5 precision measurement.",
+  "_provenance": "Written for the 2026-09-04 external audit by Claude Fable 5.1, BEFORE looking at U5 regexes, so they are not tuned to the scorer. Extracted into the tracked tree 2026-09-09 so the measurement is re-runnable without the gitignored audit folder.",
+  "_labels": "excellent = a careful author states what the skill does, when to use it, and concrete trigger words. useless = hollow, vague or misleading; no agent could select correctly from it.",
+  "excellent": [
+    "Finds the commit that introduced a regression by driving git bisect with an automated test command. Use when a test that used to pass now fails, or when the user asks which commit broke something.",
+    "Expert knowledge of the Kubernetes networking model, CNI plugins, and service meshes. Apply this skill whenever a user mentions kubectl, pods, ingress, or cluster connectivity problems.",
+    "Guidance for migrating a Postgres schema without downtime, covering expand-and-contract, backfills, and lock avoidance. Trigger on schema migration, ALTER TABLE, zero-downtime deploy, or a user pasting a migration file.",
+    "Reads a PostgreSQL EXPLAIN ANALYZE plan, identifies where the time goes, and proposes index or query rewrites. Use when the user pastes a query plan, asks why a query is slow, or mentions sequential scans or missing indexes.",
+    "Turns a rough product idea into a one-page PRD with problem statement, users, success metrics, and open questions. For requests like 'write a PRD', 'spec this feature', or 'what would the requirements doc look like'.",
+    "Step-by-step incident response for a production outage: triage, communication cadence, mitigation, and the postmortem skeleton. Invoke on 'we are down', 'sev1', 'incident', pager alerts, or a user asking how to run an incident.",
+    "Fills, extracts, merges, splits, rotates, and OCRs PDF files using pypdf and pdfplumber, with recipes for forms and scanned documents. Use whenever a user mentions a .pdf file, Acrobat, form fields, or extracting tables from a PDF.",
+    "Explains a Rust borrow-checker error, names the ownership rule being violated, and shows the minimal rewrite that satisfies it. For E0502, E0499, E0382, 'cannot borrow as mutable', lifetimes, or 'value moved here' errors.",
+    "Design review checklist for REST APIs: resource naming, pagination, error shape, versioning, idempotency, and auth. Reach for this on 'review my API', an OpenAPI file, or a question about endpoint design.",
+    "Accessibility audit of a web page or component against WCAG 2.2 AA: contrast, focus order, ARIA roles, keyboard traps, and screen-reader labels. Trigger on a11y, accessibility, WCAG, screen reader, or 'is this accessible'."
+  ],
+  "useless": [
+    "Creates output for things. Use when the user asks for things.",
+    "Generates generates generates generates generates generates. Use when the user wants stuff.",
+    "Builds. Use when the user needs. Builds builds builds builds builds builds builds.",
+    "Helps with stuff.",
+    "A skill.",
+    "Creates and generates and builds and writes and validates and renders. Use when the user asks, whenever the user wants, if the user mentions anything at all.",
+    "Reviews. Use this skill when the user asks you to review.",
+    "This skill produces the required output. Use when appropriate for the situation at hand and the context.",
+    "Analyzes data. Use when analyzing data is what the user asks for in the request they make.",
+    "Runs the process. Use when the user needs the process run, for whatever the process is at the time."
+  ]
+}

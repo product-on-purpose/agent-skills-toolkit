@@ -40,7 +40,7 @@ The Universal tier is the **portable floor**: every plugin must pass it, on any 
 
 Read the scope precisely, because it is narrower than "the toolkit is English-only":
 
-- It is **one check of thirty**. Every other check is language-neutral: a link resolves or it does not, a diagram parses or it does not, a manifest matches disk or it does not.
+- It is **one check of 35**. Every other check is language-neutral: a link resolves or it does not, a diagram parses or it does not, a manifest matches disk or it does not.
 - `U5` is **`house` provenance**, so **`--profile plain-plugin` drops it entirely**. Grading a library you do not own, in the honest third-party mode, never applies this check at all.
 - It is **warn-only**. It has never blocked a tier.
 

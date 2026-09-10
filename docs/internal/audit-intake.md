@@ -66,7 +66,7 @@ Twenty-five recommendations. The resolution plan mapping all of them was ratifie
 
 A max-effort external audit of the toolkit at `main` `3ad4b11` (v1.18.0, Standard 0.15), run on Linux against a purpose-built 46-item adversarial corpus. It is the first generation to arrive **with its own patches**: eight fix commits, each closing one numbered finding, each carrying a test.
 
-Its working material is gitignored under `_local/audits/2026-09-04_fable-5-1-max/` per the convention above, so **the `F-0xx` and `B-xx` identifiers it uses resolve nowhere outside this machine.** That is a known cost, recorded rather than hidden: the rows below state the CONTENT of each item, so a reader who cannot open the audit is not stranded on a bare id.
+Its working material is gitignored under `_local/audit/2026-09-04_fable-5-1-max/` per the convention above, so **the `F-0xx` and `B-xx` identifiers it uses resolve nowhere outside this machine.** That is a known cost, recorded rather than hidden: the rows below state the CONTENT of each item, so a reader who cannot open the audit is not stranded on a bare id.
 
 | Item | Status | Carried by |
 | --- | --- | --- |

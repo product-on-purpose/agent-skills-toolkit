@@ -48,6 +48,7 @@ const GOVERNED_GLOBS = [
  * says what it actually is, so a future reader can tell a deliberate exemption from an accumulated one.
  */
 const KNOWN_NON_CLAIM = new Map([
+  ["09-pin-abuse", "a corpus fixture directory in the 2026-09-04 audit, not a ledger claim"],
   ["agent-plugins", "the marketplace repository"],
   ["pm-skills", "a family member repository"],
   ["critique-skills", "a family member repository"],
