@@ -649,6 +649,57 @@ One entry, from adversarial wave 1 over the v1.16.0 implementation. Its six othe
 - **Prior art to reuse either way:** `action-pin-watch`'s split (ADR 0053) is the closest precedent - it gates on a label that disagrees with its own pin (a defect here) and deliberately does NOT gate on being merely behind an upstream release (news about somebody else's cadence). If this becomes a gate, that split is probably its shape.
 - **Status:** open, unversioned. Filed 2026-09-02 with the cut-2 workflow, per the convention that a decision is recorded where the work happened rather than remembered.
 
+### E61 - the tier certifies FILE SHAPE, so a plugin of placeholder files earns Gold  [design, effort L, ADR-gated, the 2026-09-04 audit's headline finding]
+
+- **Target:** the tier model itself, and every surface that presents a tier. Not a single check.
+- **Found by:** the 2026-09-04 external audit (its `F-001`), against a purpose-built plugin of 33 placeholder files.
+- **The finding, re-verified 2026-09-09 at the CURRENT 35-check spine** rather than taken from the audit at the commit it read: `corpus/plugins/01-potemkin-gold` grades **`Tier: Advanced (no blockers detected)`, 0 errors, 0 warnings**. Every skill body in it reads `Do nothing.` It is graded identically to this repository.
+- **Why it is the headline.** This is the finding a badge reader pays for. The tier grades structure - a manifest exists, the docs quadrants are non-empty, CI is wired - and structure is exactly what a template can synthesise. `docs/explanation/limitations.md` says the tier is structural; **nothing that PRESENTS a tier said so** until cut 2 shipped the scope sentence to five placements, and a sentence is not a measurement.
+- **What it is NOT.** It is not an argument for a stricter tier, and the audit is explicit about that: another rung of file presence has the same ceiling. It is an argument for reporting something BESIDE the tier that a placeholder plugin cannot score well on.
+- **The proposal on the table** is a deterministic, non-gating health score with its own name: five categories (description structure, instruction budget, reference integrity, eval coverage, safety patterns), each the percentage of components passing a binary test, averaged. A reference implementation exists in the audit's `samples/render.mjs`.
+- **Blocked on a maintainer decision, and it is the irreversible one.** Adding a number beside the tier changes what every badge already published means, including the six family members'. That is decision **D-01**, open as of 2026-09-09.
+- **Known scaling properties, measured from the reference implementation** so the decision is made with them visible: a Bronze plugin can legitimately outscore a Gold one, because the two axes are orthogonal by construction; small plugins are punished harder, since each category is a fraction of components and one bad skill in five costs twenty points; the denominator moves, because two of the five categories are computed over skills and drop out entirely for a plugin with none; and the mean is unweighted, so safety counts exactly as much as description structure.
+- **Status:** OPEN, ADR-gated on D-01, unversioned.
+
+### E62 - the Standard pin has no floor, so a plugin chooses which rules apply to it  [correctness, effort M, ADR-gated]
+
+- **Target:** `scripts/checks/library-json.mjs` (`U1`, which validates presence only), `scripts/lib/standard-version.mjs`, `scripts/lib/standard-ceiling.mjs`.
+- **Found by:** the 2026-09-04 external audit (its `F-006`).
+- **The mechanism, verified here on 2026-09-09 rather than cited:** grading this repository at `"standard": "0.9"` gives **78 errors and 1 warning** where its own pin gives **79 errors and 0 warnings**. One check moved from gating to advisory purely because of the declared pin. The pin waives only checks introduced AFTER the version named, which is the mechanism working as designed - the defect is that nothing bounds how far back the pin may reach.
+- **The audit's figure is NINE waived checks, and it is theirs and not ours.** It came from a purpose-built `09-pin-abuse` fixture that this repository cannot currently rebuild: `corpus/build.mjs` resolves paths against a hard-coded `audit/` directory at a repository root, so it fails after the audit was consolidated into `_local/audit/`. The nine is recorded as the audit's measurement, not as a number reproduced here.
+- **A second, smaller half, and it is NOT the dangerous one.** An unknown or malformed pin value (`"banana"`, `"v0.16"`) was checked on 2026-09-09 and grades at **full strength** - 79 errors, identical to a correct pin - because `isAfter` returns false for anything unparseable and no constraint binds. It fails SAFE. The issue there is honesty rather than exploitation: the badge prints a version string that does not exist while the plugin is graded against something other than what it declared.
+- **Why a floor is contested rather than obvious.** A pin exists so that adding a rule does not fail existing adopters overnight, and that is a promise. Bounding it is a second promise about how long the first one lasts, and the two have to be stated together or the mechanism stops being trustworthy.
+- **Blocked on D-02**, which is downstream of D-01: whether a stale pin surfaces as a debt figure on the badge depends on whether the badge gains a second number at all.
+- **Status:** OPEN, ADR-gated on D-02, unversioned.
+
+### E63 - `U5` rewards a template, so the one quality-shaped check measures the wrong thing  [design, effort M, ADR-gated, overlaps E44]
+
+- **Target:** `scripts/checks/description-score.mjs` (`U5`), Standard sec 8.1.
+- **Found by:** the 2026-09-04 external audit (its `F-002`), on a labelled set of twenty descriptions written blind to the check.
+- **The finding.** Ten deliberately excellent and ten deliberately useless descriptions: `U5` passes **2 of the good ones and 8 of the bad ones**. It detects the literal phrase `Use when the user` plus one verb stem from a forty-item list, and penalises nothing that matters. An author who learns to satisfy it has learned the template, not the skill.
+- **What was already fixed, and what was NOT.** The audit's companion finding - that moving the threshold from 0.7 to 0.1 failed no test - was closed on 2026-09-09 with five tests, two of which independently go red under that edit. **That made the check tamper-evident. It did not make it correct.** This entry is the correctness half and is still fully open.
+- **The evidence is not yet reproducible in-tree.** The twenty labelled descriptions live in the audit's `corpus/u5-calibration.mjs`, which is gitignored. Until they are extracted as a fixture, the precision figure is an assertion nobody here can re-run - and no future improvement to the check can be shown to be an improvement.
+- **The proposal** retires the 0-to-1 score and its bar, reports per-skill structure facts in the inventory instead (has a what-clause, has a when-clause, word count, duplicate of a sibling, language readable), warns only on the objective ones, and moves judgment to an advisory layer with a written rubric. It migrates in three steps and **the exit code never changes at any step**, because `U5` is warn-level in every profile.
+- **Related and NOT the same question:** [E44 (`U5` should key off invocation control)](#e44---u5-should-key-off-invocation-control-not-component-type) asks WHICH components the bar applies to; this asks whether the bar measures anything. Both end in changing `U5`; neither answers the other.
+- **Blocked on D-03.** Recommended first step, which is unblocked and cheap: extract the calibration set as a tracked fixture so the claim becomes re-runnable.
+- **Status:** OPEN, ADR-gated on D-03, unversioned.
+
+### E64 - `G2` reads workflow TEXT, so four ways CI can fail while the check passes  [correctness, effort M, found by the 2026-09-04 audit]
+
+- **Target:** `scripts/checks/self-hosting.mjs` (`G2`).
+- **Found by:** the 2026-09-04 external audit (its `F-005`), which built a fixture per case.
+- **What `G2` claims.** A Gold requirement: the plugin ships self-hosting CI that runs the tier-applicable gate and passes it. **What it verifies** is that certain text appears in a workflow file.
+- **One of five gaps is closed.** Cut 4 (PR #314) made `G2` credit an EXECUTED gate rather than a mention, so a workflow that merely prints the command in an `echo` no longer counts. That fix's own docblock lists what remains, which is why this entry exists rather than a claim that `G2` is fixed.
+- **The four still open**, each a way CI can be green, absent or irrelevant while `G2` passes:
+  1. **The exit code is swallowed** - the gate runs, fails, and a trailing `|| true` or a captured status means the job succeeds anyway.
+  2. **The trigger is dispatch-only** - the workflow exists and never runs on a push or a pull request, so no change is ever graded.
+  3. **The job is disabled** - `if: false` on the job, or `continue-on-error` on the step, neither of which the pattern can see.
+  4. **A different directory is graded** - the gate runs against a path that is not the plugin.
+- **Why this is not a quick fix.** The remedy is to PARSE the workflow rather than pattern-match it: require a `push` or `pull_request` trigger, require a step that invokes the gate without `continue-on-error` or a shell OR-fallback, and require no `if: false` on the job. That is a different kind of check, and it will need a warn-first window because it can only ever ADD findings to plugins that pass today.
+- **One thing the fix must NOT claim.** Whether a plugin's CI is actually GREEN is out of scope for an offline grader, and the Standard should say so rather than leaving the requirement's wording to imply otherwise. A parser can prove the workflow is shaped to run and block; it cannot prove it ran.
+- **Blast radius will be real and must be measured first.** Every family member ships CI that `G2` passes today, and a parser strict enough to catch case 3 is strict enough to fire on a legitimate matrix or reusable-workflow shape. The `RS-B3` precedent applies directly: the FIRST version of that tightening was a false positive, caught only by grading all six members before and after.
+- **Status:** OPEN, unversioned.
+
 ### E60 - a dependency bump can land a false supply-chain label, because `action-pin-watch` runs only at release  [correctness, effort S, found finishing cut 4]
 
 - **Target:** `.github/workflows/ci.yml` (which job runs `scripts/action-pin-watch.mjs`), not the script itself - the script works correctly and is what found this.
