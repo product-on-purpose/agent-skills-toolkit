@@ -10,7 +10,7 @@ tags: [marketplace, multi-plugin, multi-repo, registry, re-pin, versions, catalo
 
 One plugin is a repository. Several plugins are a **portfolio**, and a portfolio has problems a single repo never has: two plugins that ship a colliding skill name, a registry pinning a version that no longer exists, a Standard bump that half your plugins have adopted.
 
-This page is the practice that works today. It is deliberately explicit about which steps are manual, because **the gate has no marketplace scope** and pretending otherwise would send you looking for a flag that does not exist. See [what this toolkit cannot do](../explanation/limitations.md#4-there-is-no-marketplace-scope).
+This page is the practice that works today. It is deliberately explicit about which steps are manual, because **some of them still are** and pretending otherwise would send you looking for a flag that does not exist. **Corrected 2026-09-09:** this paragraph used to say the gate had no marketplace scope at all. It has one - `evaluate.mjs` pointed at a catalogue reports `"scope": "marketplace"` and grades every member it can resolve. What remains manual is narrower and is listed below. See [what this toolkit cannot do](../explanation/limitations.md#4-marketplace-scope-grades-the-collection-but-not-everything-about-it).
 
 ## The shape
 
