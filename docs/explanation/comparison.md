@@ -30,7 +30,7 @@ These five dimensions are where the tools differ most. Cells are terse; each tra
 
 A few dimensions outside this table are worth naming because they cut both ways:
 
-- **Output formats.** `skill-check` and `skills-check` emit **SARIF** and GitHub annotations; askit currently emits human, HTML, and Markdown but **no SARIF** (a gap askit has filed to close).
+- **Output formats.** `skill-check` and `skills-check` emit **SARIF** and GitHub annotations; askit emits human, HTML, Markdown, JSON, **SARIF and GitHub annotations** (corrected 2026-09-09 - this line said askit had no SARIF, which stopped being true when SARIF shipped). A difference that remains, and it is askit's own choice: a finding **above the tier a plugin declares** is emitted as a SARIF `note` and a `::notice` rather than an error, because it cannot affect that plugin's grade and a reviewer should not read it in the same colour as something that can.
 - **Security.** `skills-validator` and `skills-check` scan for pipe-to-shell installers (`curl | bash`) and dangerous commands; askit currently scans for committed secrets only.
 - **Versioning.** `skills-check` verifies a declared version bump against the actual content diff (deterministically); askit enforces semver but does not yet check the bump against the diff.
 
