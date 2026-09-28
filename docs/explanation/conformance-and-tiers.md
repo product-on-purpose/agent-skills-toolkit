@@ -97,7 +97,7 @@ The full Universal set (`U1-U9`, `U11-U18`) is documented in [`../reference/univ
 
 ---
 
-## Related
+## See also
 
 - [`../reference/universal-checks.md`](../reference/universal-checks.md) - the Universal floor.
 - [`../reference/silver-checks.md`](../reference/silver-checks.md) - the Silver checks, S1-S8.
