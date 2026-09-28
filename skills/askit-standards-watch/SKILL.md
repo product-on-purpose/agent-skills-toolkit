@@ -2,7 +2,7 @@
 name: askit-standards-watch
 description: Checks whether the pinned agentskills.io upstream specification has changed, reports which Universal conformance checks each delta lands on, and drafts a proposal ADR without editing a check or the Standard. Use when asking if the upstream spec has moved, before cutting a Standard minor version, or when re-pinning the agentskills.io revision the Universal tier tracks.
 metadata:
-  version: 0.1.0
+  version: 0.1.1
   tier: universal
   audience: advanced
 ---
@@ -27,7 +27,7 @@ The Standard grows only by ADR with the warn-first burndown of sec 7.7 (a new or
 
     npm run standards-watch
 
-Exit `0` means unchanged or cosmetic-only; `1` means a human must look; `2` is a refusal (fetch failed, extraction failed, no pin). **A refusal is never a pass.** Add `--json` for the machine report, `--snapshot-dir <dir>` to run offline against a local mirror.
+Exit `0` means unchanged or cosmetic-only; `1` means a human must look; `2` is a refusal (fetch failed, extraction failed, no pin, or the run could not start at all - for example a missing dependency). **A refusal is never a pass.** Add `--json` for the machine report, `--snapshot-dir <dir>` to run offline against a local mirror.
 
 If it exits `0`, stop. Report "unchanged since `<verified date>`" and offer to refresh the verification date (step 5). Do not invent work.
 

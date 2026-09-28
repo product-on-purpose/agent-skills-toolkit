@@ -36,7 +36,7 @@ Four artifacts are watched: the specification (`docs/specification.mdx`) and the
 | `--adr-draft [--adr-number NNNN]` | emit the MADR skeleton for the detected deltas |
 | `--emit-pin [--by <name>]` | emit the proposed re-pinned document |
 
-Exit `0` unchanged or cosmetic-only, `1` a human must look, `2` refused. A refusal is never a pass.
+Exit `0` unchanged or cosmetic-only, `1` a human must look, `2` refused - including a run that could not start at all, for example a missing dependency. A refusal is never a pass.
 
 ## What it decides, and what it hands over
 
@@ -48,7 +48,7 @@ Exit `0` unchanged or cosmetic-only, `1` a human must look, `2` refused. A refus
 
 The honest ceiling is worth stating plainly: **it reliably detects that something changed and where; classifying whether a prose change is normative needs a person.** The shipped worked example is a real case that proves the split matters. Upstream commit `6868401` changed one line of prose about the `name` charset while leaving the frontmatter table identical, so a table-only differ would have seen nothing; the per-section body hash caught it and declined to classify it. Reading `frontmatter-valid.mjs` then showed `U3` already permitted digits, so the correct outcome was re-pin only. That conclusion is a human's.
 
-When the extractor cannot find its anchors (the field table renamed, the directory block gone) it refuses with exit `2` rather than reporting a clean run. A watcher that quietly stops working is worse than none.
+When the extractor cannot find its anchors (the field table renamed, the directory block gone) it refuses with exit `2` rather than reporting a clean run. A watcher that quietly stops working is worse than none. The same exit `2` covers a run that could not even start - for example a checkout missing a dependency the CLI needs - so that case cannot be mistaken for "the upstream moved" either (issue #323).
 
 ## Mapping a delta to a check
 
