@@ -27,8 +27,9 @@ A reader arrives here not knowing what the subject is. Detail before orientation
 strands them.
 
 **The required shape is three depths, in order, each one a reader can stop after.**
-Issue #299 (the docs style ruling) decided this for the genuinely explanatory pages and
-calls the shape LAYER-DISC. A page is exempt only by kind (five are listed below) or by
+The maintainer's ruling on issue #299 (the docs style direction) adopted this shape, which
+the issue names LAYER-DISC, for the genuinely explanatory pages. A page is exempt only by
+kind (five are listed below) or by
 stating in its own prose that its structure does not fit (see below).
 
 1. **Orientation first, inside `## GLANCE (60 seconds)`.** This section is a standalone
@@ -43,9 +44,10 @@ stating in its own prose that its structure does not fit (see below).
    - Then give the mechanism.
 3. **`## EXPERT (reference detail)` holds detail a first-time reader can skip**: exact
    schemas, field lists, and the parts a contributor needs that a newcomer does not.
-4. **A closing section points onward** with links, headed `## See also` - the heading 36
-   of the pages under `docs/` already use, so a new page joins the existing majority
-   rather than adding a fourth name to a closer that already ships under three.
+4. **A closing section points onward** with links, headed `## See also`. It is the
+   heading most pages under `docs/` already use (36 pages used it when this rule was added,
+   against 6 for `## Related` and 4 for `## Where to go next`), so a new page joins the existing
+   majority rather than adding a fourth name to a closer that already ships under three.
 
 Coined words are defined where they first appear, and the page links the glossary.
 
