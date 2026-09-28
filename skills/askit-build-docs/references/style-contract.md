@@ -28,8 +28,8 @@ strands them.
 
 **The required shape is three depths, in order, each one a reader can stop after.**
 Issue #299 (the docs style ruling) decided this for the genuinely explanatory pages and
-calls the shape LAYER-DISC. Only a page whose own structure does not fit is exempt, and
-it must say so in its own prose (see below).
+calls the shape LAYER-DISC. A page is exempt only by kind (five are listed below) or by
+stating in its own prose that its structure does not fit (see below).
 
 1. **Orientation first, inside `## GLANCE (60 seconds)`.** This section is a standalone
    summary a reader can stop after, never a table of contents that only lists the
