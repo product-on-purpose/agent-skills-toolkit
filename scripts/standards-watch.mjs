@@ -133,7 +133,11 @@ if (process.argv[1]?.endsWith("standards-watch.mjs")) {
   main()
     .then((code) => { process.exitCode = code; })
     .catch((e) => {
-      if (e instanceof StandardsWatchError) { console.error(e.message); process.exitCode = 2; return; }
+      // StandardsWatchError is undefined when LOAD_ERROR fired (the dynamic import failed), so the
+      // `StandardsWatchError &&` guard comes first: `e instanceof undefined` throws TypeError, and this
+      // catch is the last line of defense, so it must not itself throw. Unreachable today - main()
+      // returns 2 directly in the LOAD_ERROR branch rather than throwing - but cheap to guard anyway.
+      if (StandardsWatchError && e instanceof StandardsWatchError) { console.error(e.message); process.exitCode = 2; return; }
       // (issue #323) any OTHER unexpected error is a refusal too, never a silently wrong "material
       // change" or "needs review" - a run that did not finish proved nothing about the pin, same as one
       // that never started. The stack trace is appended on its own line, after the REFUSED sentence, so
