@@ -10,31 +10,50 @@
 //               covered by tests/unit/agent-restricted-fields.test.mjs
 
 /**
- * The vendor statement this module encodes, quoted verbatim as the live page read on 2026-09-16:
+ * The vendor statements this module encodes, quoted verbatim from the live pages read on 2026-09-28.
  *
- *   "Plugin agents support `name`, `description`, `model`, `effort`, `maxTurns`, `tools`,
- *    `disallowedTools`, `skills`, `memory`, `background`, `omitClaudeMd`, and `isolation` frontmatter
- *    fields. The only valid `isolation` value is \"worktree\". For security reasons, plugin-shipped
- *    agents don't support `hooks`, `mcpServers`, or `permissionMode`."
+ * The refusal, from https://code.claude.com/docs/en/sub-agents (Choose the subagent scope):
  *
- * The page writes "don't" with a typographic apostrophe and links `omitClaudeMd` to
- * /docs/en/sub-agents#supported-frontmatter-fields. This file stores the ASCII apostrophe and the bare
- * field name, because these constants are read by HUMANS in finding text. The pinned CLAIM in
- * foundation/claims/vendor-claims.json is the copy that must match the fetched page byte-for-byte after
- * normalisation, and it carries the link syntax for that reason - see the note there.
+ *   "For security reasons, plugin subagents don't support the `hooks`, `mcpServers`, or
+ *    `permissionMode` frontmatter fields. These fields are ignored when loading agents from a plugin."
  *
- * What the 2026-09-16 re-read changed, measured against the 2026-08-13 reading taken while implementing
- * ADR 0045, when both sentences matched this module exactly:
- *   - the SUPPORTED list gained `omitClaudeMd`, between `background` and `isolation`.
- *   - the refusal sentence was reworded from passive to active. On 2026-08-13 it read "For security
- *     reasons, `hooks`, `mcpServers`, and `permissionMode` are not supported for plugin-shipped
- *     agents." Same three fields, same meaning.
+ * The supported list, from https://code.claude.com/docs/en/plugins/components (Frontmatter fields in
+ * plugin agents):
+ *
+ *   "Supported fields: `name`, `description`, `model`, `effort`, `maxTurns`, `tools`, `disallowedTools`,
+ *    `skills`, `memory`, `background`, `omitClaudeMd`, `isolation`, `color`, and the `cacheTtl` key of
+ *    `experimental`. The only valid `isolation` value is \"worktree\"."
+ *
+ * The pages write "don't" with a typographic apostrophe. This file stores the ASCII apostrophe, because
+ * these constants are read by HUMANS in finding text. The pinned CLAIMS in
+ * foundation/claims/vendor-claims.json are the copies that must match the fetched pages after
+ * normalisation.
+ *
+ * What the 2026-09-28 re-read changed, against the 2026-09-16 reading:
+ *   - both sentences LEFT the plugins reference, whose URL now serves only the manifest reference. The
+ *     supported list moved to the plugin components page. The refusal sentence is gone from both plugin
+ *     pages and survives on the sub-agents page, naming the same three fields with the same security
+ *     rationale, so that is the page it is quoted from now.
+ *   - the SUPPORTED list gained `color` and the `cacheTtl` key of `experimental`. It is read only to
+ *     build U14's remediation prose, so this is green-ward. The nested key is written
+ *     `experimental.cacheTtl` below, because a bare `experimental` would tell authors the whole map is
+ *     supported, and the vendor says only that one key is.
+ *   - the components page lists a FOURTH ignored field, "Ignored fields: `permissionMode`, `hooks`,
+ *     `mcpServers`, and `initialPrompt`", without the security rationale. It is NOT added below. Adding a
+ *     field to the unsupported list is red-ward under ADR 0045, so it needs a Standard minor with
+ *     finding-level migration metadata, not a constant edit. Backlog E70 (initialPrompt on plugin agents)
+ *     carries it.
  *   - the UNSUPPORTED list below is therefore UNCHANGED, so no plugin's verdict moves. Per ADR 0045 that
  *     makes this a pin refresh, not a Standard revision.
  *
- * Note the vendor gives SECURITY REASONS for the refusal, which is stronger and more precise than the
- * "silently ignored" paraphrase E33 was originally filed under: the field is refused, not merely
- * dropped, and the author gets no signal that it was.
+ * Earlier readings, kept because each one moved something:
+ *   - 2026-09-16: the supported list gained `omitClaudeMd`, and the refusal went passive to active.
+ *   - 2026-08-13, while implementing ADR 0045: "For security reasons, `hooks`, `mcpServers`, and
+ *     `permissionMode` are not supported for plugin-shipped agents."
+ *
+ * Note the vendor gives SECURITY REASONS for the refusal, which E33's original "silently ignored"
+ * paraphrase left out. The vendor's own next sentence does say the fields "are ignored when loading
+ * agents from a plugin", so ignored is accurate. What matters to an author is that nothing tells them.
  *
  * ADR 0045 decides what happens when this page changes, and the answer is asymmetric:
  *   - a field REMOVED from the unsupported list is a SILENT RE-READ. The check becomes less strict,
@@ -47,16 +66,17 @@
  * The docs host has already moved once (docs.claude.com now 301s to code.claude.com). A host move is a
  * documentation edit, not a Standard revision.
  */
-export const AGENT_FIELDS_DOC = "https://code.claude.com/docs/en/plugins-reference (Agents; read 2026-09-16)";
+export const AGENT_FIELDS_DOC = "https://code.claude.com/docs/en/sub-agents (Choose the subagent scope; read 2026-09-28)";
 
 /** The vendor's sentence, quoted in every finding so a reader's "says who" is answered in place. */
 export const AGENT_FIELDS_QUOTE =
-  "For security reasons, plugin-shipped agents don't support hooks, mcpServers, or permissionMode";
+  "For security reasons, plugin subagents don't support the hooks, mcpServers, or permissionMode frontmatter fields.";
 
 export const PLUGIN_AGENT_UNSUPPORTED_FIELDS = Object.freeze(["hooks", "mcpServers", "permissionMode"]);
 
 export const PLUGIN_AGENT_SUPPORTED_FIELDS = Object.freeze([
   "name", "description", "model", "effort", "maxTurns", "tools", "disallowedTools", "skills", "memory", "background", "omitClaudeMd", "isolation",
+  "color", "experimental.cacheTtl",
 ]);
 
 /**

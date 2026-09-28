@@ -192,19 +192,15 @@ function collisionsOver(members, pick, check, label, dirLabel) {
 /**
  * Fields Claude Code does NOT support on a plugin-shipped agent (backlog A6).
  *
- * Vendor-cited, quoted rather than paraphrased, from the Claude Code plugins reference
- * (https://code.claude.com/docs/en/plugins-reference - the older docs.claude.com path 301-redirects
- * here; read 2026-09-16):
+ * Vendor-cited, quoted rather than paraphrased. The verbatim sentences, their pages and their read
+ * dates live in ONE place, the docblock of scripts/lib/vendor-agent-fields.mjs. This comment carried a
+ * second copy of the quote until 2026-09-28, when the vendor moved both sentences off the plugins
+ * reference and the copy here would have gone on citing a page that no longer said them.
  *
- *   "Plugin agents support `name`, `description`, `model`, `effort`, `maxTurns`, `tools`,
- *    `disallowedTools`, `skills`, `memory`, `background`, `omitClaudeMd`, and `isolation` frontmatter
- *    fields. The only valid `isolation` value is \"worktree\". For security reasons, plugin-shipped
- *    agents don't support `hooks`, `mcpServers`, or `permissionMode`."
- *
- * Note the vendor's own reason is "For security reasons", which is stronger and more
- * precise than the "silently ignored" paraphrase this item was filed under: an author who writes one of
- * these believes they have configured something, and the field is refused rather than honored. Same
- * silent-no-op class as the v1.10.0 phantom-subagent discovery.
+ * Note the vendor's own reason is "For security reasons", which the "silently ignored" paraphrase this
+ * item was filed under left out: an author who writes one of these believes they have configured
+ * something, and the field is not honoured. Same silent-no-op class as the v1.10.0 phantom-subagent
+ * discovery.
  */
 // ADR 0045: the field list and the citation now live in scripts/lib/vendor-agent-fields.mjs, which U14
 // reads too. Re-exported here rather than redefined so the two scopes CANNOT disagree - a plugin's

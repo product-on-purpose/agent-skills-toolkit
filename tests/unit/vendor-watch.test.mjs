@@ -260,9 +260,9 @@ test("W1-M1: a probe-only document whose source FETCHED FINE still exits 0", () 
 /** id -> a page saying the opposite while keeping the claim's own vocabulary. */
 const MEANING_REVERSALS = Object.freeze({
   "plugin-agent-unsupported-fields":
-    "As of v2.3, hooks, mcpServers, and permissionMode are supported for plugin-shipped agents.",
+    "As of v2.3, plugin subagents support the hooks, mcpServers, and permissionMode frontmatter fields.",
   "plugin-agent-supported-fields":
-    "Plugin agents support name and description frontmatter fields; every other field was removed.",
+    "Supported fields: name and description only. The model, effort, maxTurns, tools, color and experimental cacheTtl fields were removed.",
   "commands-merged-into-skills":
     "Custom commands have been split back out of skills and are a separate component type again.",
   // The strongest shape a reversal can take: identical vocabulary, inverted polarity. Written this way
