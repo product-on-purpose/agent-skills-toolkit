@@ -17,7 +17,7 @@
 // it fails at MODULE LINK TIME, before a single line of this file runs, so no try/catch inside a
 // function could ever see it - Node reports the uncaught ERR_MODULE_NOT_FOUND as exit 1, which is
 // exactly what made the standards-watch workflow's issue step title a crash as "the upstream moved".
-// A dynamic import(), awaited at the top level and wrapped in try/catch, runs AFTER this file's own
+// A dynamic import(), awaited at the top level with its rejection caught, runs AFTER this file's own
 // static links are already resolved, so a failure becomes a value main() can catch and report as
 // REFUSED (exit 2) instead. Every node: builtin, and ./lib/fs-utils.mjs (verified dependency-free),
 // stay static imports below; only the chain that can pull in a third-party package is dynamic.
