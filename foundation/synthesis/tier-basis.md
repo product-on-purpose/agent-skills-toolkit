@@ -39,7 +39,7 @@ Component types the tier adds: skills, references and assets, `AGENTS.md`, MCP.
 | One portable `.mcp.json` serves both | each native manifest carries an `mcpServers` pointer | **`unverified`** | nothing | - |
 | `U14` - agents must not declare `hooks`, `mcpServers`, `permissionMode` | the runtime refuses these fields for plugin-shipped agents | **pinned, quote** | `plugin-agent-unsupported-fields` | 2026-09-28 |
 | `U14`'s remediation list | which fields the runtime *does* support | **pinned, quote** | `plugin-agent-supported-fields` | 2026-09-28 |
-| `U15` - every `.md` under `agents/` registers | the runtime loads every `.md`, including `README.md` | **pinned, PROBE** | `agents-dir-registers-every-md`. **Blocks from 2026-09-19** | 2026-08-19 |
+| `U15` - every `.md` under `agents/` registers | the runtime loads every `.md`, including `README.md` | **pinned, PROBE** | `agents-dir-registers-every-md`. **Blocks from 2026-10-18** (corrected 2026-09-28: this row still carried the 2026-08-19 run after the 2026-09-17 re-run) | 2026-09-17 |
 | `U15`'s recursion invariant | `agents/` is scanned recursively with scoped identifiers | **pinned, quote** | `agents-scanned-recursively` | 2026-08-15 |
 | `isRuntimeAgentFile`'s width | a filename containing a colon is excluded | **pinned, quote** | `agent-filename-colon-excluded` | 2026-08-16 |
 
@@ -55,7 +55,7 @@ Component types the tier adds: subagents, commands, workflows, chain contracts, 
 | Workflows are a convention | none - `_workflows/<name>.md` is this Standard's own convention | **n/a, house** | - | - |
 | Chain contracts are agent-agnostic | none - a single file this Standard defines | **n/a, house** | - | - |
 | Codex ingests components ONLY via `.codex-plugin/plugin.json` | listing is not ingestion | **`unverified`** | nothing. Established by round-trip experiment | 2026-08-18 |
-| Two plugins' identically named components share one pool | bare-name invocation resolves silently to one winner, by install order | **pinned, PROBE** | `components-share-one-namespace`. **Blocks from 2026-09-20** | 2026-08-20 |
+| Two plugins ship an identically named component | on Claude Code 2.1.275 each plugin keeps it, and the bare name is REFUSED with an error naming both plugin-qualified candidates rather than resolved silently; Codex is unmeasured. [ADR 0060 (a runtime that refuses a collision downgrades the check, it does not retire it)](../../docs/internal/decisions/0060-a-runtime-that-refuses-a-collision-downgrades-the-check-it-does-not-retire-it.md) ruled the collision checks down to `warn` | **pinned, PROBE** | `components-share-one-namespace`. **Blocks from 2026-10-18** (corrected 2026-09-28: until then this row still said the bare name "resolves silently to one winner, by install order", which the 2026-09-17 re-run falsified) | 2026-09-17 |
 
 ### The subagent row deserves its own paragraph
 
