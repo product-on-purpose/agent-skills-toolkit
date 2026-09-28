@@ -162,7 +162,7 @@ The Standard's Gold requirement `G3` asks only for the deterministic baseline, w
 
 ---
 
-## Where to go next
+## See also
 
 - For the concrete file-by-file mechanics - the script entrypoints, the check-module contract, the plugin loader, and the generators - read [Architecture internals](./architecture-internals.md).
 - For the tier rules in depth, see [Conformance and tiers](./conformance-and-tiers.md) and the normative [`STANDARD.md`](../../STANDARD.md).

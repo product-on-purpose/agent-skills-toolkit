@@ -2,7 +2,7 @@
 name: askit-build-docs
 description: Creates and improves a plugin's documentation across modes (readme, quickstart, tutorial, how-to, reference, glossary, faq, troubleshooting, architecture, folder-readme, and an Astro Starlight docs site) to the Advanced Skill Library Standard. Use when authoring or refreshing docs, scaffolding a folder README, standing up a docs site, or aligning documentation with the component index.
 metadata:
-  version: 0.2.0
+  version: 0.2.1
   tier: universal
   audience: intermediate
 ---

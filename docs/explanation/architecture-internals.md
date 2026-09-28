@@ -327,7 +327,7 @@ The test skips gracefully when the `codex` CLI is not on `PATH`, unless `CODEX_R
 
 ---
 
-## Where to go next
+## See also
 
 - [The architecture overview](./architecture.md) - the same system from one level up.
 - [`STANDARD.md`](../../STANDARD.md) - the normative requirements each `reqId` backs.

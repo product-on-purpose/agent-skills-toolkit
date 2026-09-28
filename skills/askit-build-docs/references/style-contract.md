@@ -26,18 +26,53 @@ Each Diataxis quadrant has a required shape. The quadrant is the folder.
 A reader arrives here not knowing what the subject is. Detail before orientation
 strands them.
 
-1. **Orientation first.** The page opens with prose that says who it is for and what the
-   subject is. Never a code fence, a table or a bare definition list.
-2. **Every `##` section makes the three moves, in order.**
+**The required shape is three depths, in order, each one a reader can stop after.**
+The maintainer's ruling on issue #299 (the docs style direction) adopted this shape, which
+the issue names LAYER-DISC, for the genuinely explanatory pages. A page is exempt only by
+kind (five are listed below) or by
+stating in its own prose that its structure does not fit (see below).
+
+1. **Orientation first, inside `## GLANCE (60 seconds)`.** This section is a standalone
+   summary a reader can stop after, never a table of contents that only lists the
+   sections below it. It opens with prose that says who the page is for and what the
+   subject is. Never a code fence, a table or a bare definition list before that first
+   sentence.
+2. **`## FULL (5 minutes)` is the body, and every `##`/`###` section inside it still
+   makes the three moves, in order.**
    - Say what the thing is, in words a newcomer can hold.
    - Say what breaks without it, or what it makes possible.
    - Then give the mechanism.
-3. **Coined words are defined where they first appear**, and the page links the glossary.
-4. **A closing section points onward** with links.
+3. **`## EXPERT (reference detail)` holds detail a first-time reader can skip**: exact
+   schemas, field lists, and the parts a contributor needs that a newcomer does not.
+4. **A closing section points onward** with links, headed `## See also`. It is the
+   heading most pages under `docs/` already use (36 pages used it when this rule was added,
+   against 6 for `## Related` and 4 for `## Where to go next`), so a new page joins the existing
+   majority rather than adding a fourth name to a closer that already ships under three.
 
-The three moves are the load-bearing part. A section that opens with "X is an ES module
-with exactly two exports" has told a reader who already knows what X is something they
-could have read in the source.
+Coined words are defined where they first appear, and the page links the glossary.
+
+The `GLANCE`/`FULL` parenthetical is an honest estimate of that page's own reading time,
+not a fixed number: the four converted pages range from 60 to 90 seconds for `GLANCE`
+and 5 to 15 minutes for `FULL`.
+
+The three moves inside `FULL` are the load-bearing part. A section that opens with "X is
+an ES module with exactly two exports" has told a reader who already knows what X is
+something they could have read in the source.
+
+**Five pages are exempt by kind, and that is the ruling, not an omission:** the folder
+`README.md` (required by `G8`), `document-map.md` and `reading-paths.md` (navigation),
+`faq.md` (question-indexed), and `glossary.md` (term-indexed). A top-to-bottom reading
+template fits none of them.
+
+**A page whose own structure does not fit still says so, in its own prose**, rather than
+being forced into three depths it does not have.
+[`comparison.md`](../../../docs/explanation/comparison.md) is the precedent: its own
+opening prose states that it is "split deliberately into two parts" - a neutral, sourced
+matrix and a separately-labelled "where askit fits" read - instead of one top-to-bottom
+argument.
+
+Measured: converting `conformance-and-tiers.md` to this shape took its `doc-style` debt
+from 40 to 7.
 
 ### `docs/tutorials/` - pages for learning
 
@@ -104,9 +139,11 @@ future counter must keep exempting them.
 Voice cannot be counted, so it is constrained by example and by vocabulary rather than by
 adjective.
 
-**The exemplar.** [`docs/explanation/architecture-internals.md`](../../../docs/explanation/architecture-internals.md)
-is the worked reference for an explanation page. Read its opening and its "A check
-module's shape" section before writing one.
+**The exemplar.** [`docs/explanation/conformance-and-tiers.md`](../../../docs/explanation/conformance-and-tiers.md)
+is the worked reference for the three-depth shape: its `GLANCE` is a real summary, not a
+table of contents. For voice alone,
+[`docs/explanation/architecture-internals.md`](../../../docs/explanation/architecture-internals.md)'s
+"A check module's shape" section is still worth reading before writing one.
 
 **Vocabulary rules**, all of which a script can check:
 
@@ -162,8 +199,9 @@ check ID, a version, a command or a link target quietly mutates.
   The mistake came from reading `git status` alone and never running `git diff`, which is
   this repository's own recurring lesson about checking the wrapper instead of the thing.
 - **`INDEX.md` is generated** by `gen-index.mjs` and drift-checked by `G4`. Its prose
-  lives in the generator. `AGENTS.md` is partly generated: `sync-agents-md.mjs` owns the
-  component-map block and the rest is hand-authored.
+  lives in the generator. `AGENTS.md` is entirely hand-authored: `sync-agents-md.mjs`
+  emits a `<!-- generated:components -->` block, but this repository's `AGENTS.md`
+  contains zero occurrences of that marker, so nothing is generated into it.
 
 ## What is deliberately not covered
 
