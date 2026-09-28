@@ -195,7 +195,7 @@
       {
         "name": "askit-standards-watch",
         "path": "skills/askit-standards-watch/SKILL.md",
-        "version": "0.1.0",
+        "version": "0.1.1",
         "tier": "universal",
         "status": "active"
       },

@@ -41,15 +41,28 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
-      # scripts/standards-watch.mjs imports only node builtins and local modules, so there is nothing to
-      # install and no node_modules for a cache to hold. Same reasoning as vendor-watch's job.
+      # UNLIKE vendor-watch's job, this one does need an install step: scripts/standards-watch.mjs
+      # transitively imports the check registry (scripts/lib/registry.mjs -> scripts/checks/
+      # chain-contract.mjs), which needs the "yaml" package. Skipping this step used to crash the CLI at
+      # module LINK time, before a single line of it ran (ERR_MODULE_NOT_FOUND) - Node reports an
+      # uncaught module-resolution error as exit 1, which the issue step below cannot tell apart from
+      # "the upstream moved", and issue #323 is exactly that false alarm. The CLI itself now turns a load
+      # failure like this into a controlled exit 2 (REFUSED) rather than an uncaught crash (so a repeat of
+      # this mistake would open the correct "REFUSED" issue instead of a wrong "moved" one), but this step
+      # still has to actually install what the CLI needs to run at all.
       - uses: actions/setup-node@v7
         with:
           node-version: "22.12.0"
+          cache: npm
+          cache-dependency-path: package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
 
       # Exit codes, from the CLI's own contract: 0 unchanged or cosmetic-only, 1 a human must look,
-      # 2 REFUSED (could not verify). 2 is not a pass and is not treated as one - a run that could not
-      # read the upstream proved nothing about it, which is exactly the vendor-watch principle.
+      # 2 REFUSED (could not verify, including a run that could not start at all, for example a missing
+      # dependency). 2 is not a pass and is not treated as one - a run that could not read the upstream,
+      # or could not start, proved nothing about it, which is exactly the vendor-watch principle.
       - name: Run standards-watch
         id: watch
         run: |

@@ -496,13 +496,13 @@ So the supersede-by-hand habit that fixes half one buys a correct comment at the
 - **Watch out for:** moving `stripCode` must not move any `U6` verdict. Pin it with characterization tests on the existing reference-links fixtures **before** the move, not after.
 - **Status:** backlog (recorded 2026-08-11, during the v1.10.1 cut). The known limit was already written into E27 one round before the guard demonstrated it.
 
-### E28 - `clampNotice` never reaches the designed reports  [correctness, effort XS]
+### E28 - `clampNotice` never reaches the designed reports  [correctness, effort XS, RESOLVED 2026-08-11]
 
 - **Target:** `scripts/lib/report-render.mjs` (`deriveModel`, `renderMarkdown` section 05, `htmlLedger`).
 - **The defect:** the published-verdict clamp attaches a `clampNotice` to a finding explaining why its severity is not the one the consumer configured. The terminal path surfaces it. The Markdown and HTML renderers **never have**: a grep for `clampNotice` across `report-render.mjs` returned zero matches both before and after the v1.10.1 work. So a consumer running in `published-verdict` mode opens the shareable report and sees a severity that silently disagrees with their configuration, with no explanation anywhere on the page.
 - **How it was found, which is the interesting part:** round 3 of the v1.10.1 adversarial review found the identical gap for the **new** `migrationNotice` field. Fixing that required studying how `clampNotice` was rendered, and the answer turned out to be that it never was. The pre-existing instance was found only because a new instance of the same mistake was made and reviewed. It was deliberately **not** fixed in the same change: it is a pre-existing defect in an untouched code path, and folding it into a release already three review rounds deep would have put an unreviewed behavior change into the tag.
 - **Change:** project `clampNotice` into the report model and render it in both Markdown and HTML, beside `migrationNotice`, which now has the treatment to copy. Regression test for both formats.
-- **Status:** backlog (recorded 2026-08-11, during the v1.10.1 cut).
+- **Status:** **RESOLVED in v1.11.0** (2026-08-11, commit `246fd14`), and this line read `backlog` until 2026-09-27. `scripts/lib/report-render.mjs` collects `clampNotices` in `deriveModel` and renders them in both the Markdown ledger and the HTML ledger, with coverage in `tests/unit/report-render.test.mjs`. Verified rather than assumed: `git log -S clampNotice --oneline -- scripts/lib/report-render.mjs` shows the field introduced at `246fd14` (v1.11.0) and untouched since; the change above was recorded during the v1.10.1 cut but shipped one release later.
 
 ### E27 - the test count is quoted by hand in two places and nothing checks it  [correctness, effort S]
 

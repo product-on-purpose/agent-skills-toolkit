@@ -10,13 +10,26 @@
 // WRITE-INCAPABLE BY CONSTRUCTION. Only readFileSync is imported from node:fs. Every output goes to
 // stdout, so redirecting it is the user's explicit act, and a re-pin lands as a reviewed file change.
 // tests/unit/standards-watch.test.mjs fails the build if any write API appears in this file.
+//
+// A LOAD FAILURE IS A REFUSAL, NOT A FINDING (issue #323, "the standards-watch false alarm"). ./lib/
+// standards-watch.mjs transitively imports the "yaml" package (./lib/registry.mjs -> ../checks/
+// chain-contract.mjs -> "yaml"), and that is a STATIC import chain: if "yaml" is not installed, loading
+// it fails at MODULE LINK TIME, before a single line of this file runs, so no try/catch inside a
+// function could ever see it - Node reports the uncaught ERR_MODULE_NOT_FOUND as exit 1, which is
+// exactly what made the standards-watch workflow's issue step title a crash as "the upstream moved".
+// A dynamic import(), awaited at the top level and wrapped in try/catch, runs AFTER this file's own
+// static links are already resolved, so a failure becomes a value main() can catch and report as
+// REFUSED (exit 2) instead. Every node: builtin, and ./lib/fs-utils.mjs (verified dependency-free),
+// stay static imports below; only the chain that can pull in a third-party package is dynamic.
 import { readFileSync } from "node:fs";
 import path from "node:path";
-import {
+import { normalizeArgPath } from "./lib/fs-utils.mjs";
+
+let LOAD_ERROR = null;
+const {
   PIN_REL, StandardsWatchError, buildReport, emitPin, exitCodeFor,
   readPin, renderAdrDraft, renderReport,
-} from "./lib/standards-watch.mjs";
-import { normalizeArgPath } from "./lib/fs-utils.mjs";
+} = await import("./lib/standards-watch.mjs").catch((e) => { LOAD_ERROR = e; return {}; });
 
 const USAGE = `Usage: node scripts/standards-watch.mjs [root] [options]
 
@@ -31,7 +44,8 @@ const USAGE = `Usage: node scripts/standards-watch.mjs [root] [options]
   --by <name>           recorded as verified.by when emitting a pin
   -h, --help            this message
 
-Exit: 0 unchanged or cosmetic-only | 1 a human must look | 2 refused (could not verify)
+Exit: 0 unchanged or cosmetic-only | 1 a human must look | 2 refused - could not verify, OR the run
+      could not start at all (for example a missing dependency)
 
 This command never writes a file. It cannot amend a check or STANDARD.md; the Standard grows only
 by ADR with the sec 7.7 warn-first burndown.`;
@@ -87,6 +101,10 @@ async function fetchArtifact(a, snapshotDir) {
 }
 
 async function main() {
+  if (LOAD_ERROR) {
+    console.error(`standards-watch: REFUSED - the watch could not start (${LOAD_ERROR.code ?? LOAD_ERROR.name}: ${LOAD_ERROR.message}). A run that could not start proved nothing about the pin.`);
+    return 2;
+  }
   const opts = parseArgs(process.argv.slice(2));
   const root = path.resolve(opts.root);
   const pin = readPin(root, opts.pin);
@@ -116,6 +134,12 @@ if (process.argv[1]?.endsWith("standards-watch.mjs")) {
     .then((code) => { process.exitCode = code; })
     .catch((e) => {
       if (e instanceof StandardsWatchError) { console.error(e.message); process.exitCode = 2; return; }
-      throw e;
+      // (issue #323) any OTHER unexpected error is a refusal too, never a silently wrong "material
+      // change" or "needs review" - a run that did not finish proved nothing about the pin, same as one
+      // that never started. The stack trace is appended on its own line, after the REFUSED sentence, so
+      // whoever reads the workflow's issue body still has something to debug from.
+      console.error(`standards-watch: REFUSED - the watch could not finish (${e?.code ?? e?.name ?? "Error"}: ${e?.message ?? e}). A run that could not finish proved nothing about the pin.`);
+      console.error(e?.stack ?? String(e));
+      process.exitCode = 2;
     });
 }

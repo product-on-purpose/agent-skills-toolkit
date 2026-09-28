@@ -65,10 +65,11 @@ Exit 2 prints a single error line to stderr and exits without any report:
 standards-watch REFUSED: the '### Frontmatter' section was not found in the specification; the extractor cannot locate the field contract
 ```
 
-The two causes the message will name:
+The three causes the message will name:
 
 - **Extraction failed** - the upstream restructured the specification's headings or tables so the extractor cannot find its anchors. Nothing about the run is trustworthy, including the parts that appeared to work. Fixing this requires updating the extractor, which is a code change with its own review, not a documentation task.
 - **Fetch failed** - a watched file returned a 404, meaning the upstream renamed or removed a normative artifact.
+- **The run could not start at all** - a dependency the CLI needs (for example the `yaml` package) was not installed, so Node could not even load the tool before a single line of it ran. This is REFUSED too, printed in the same shape as the other two causes: a run that never started proved nothing about the pin.
 
 Do not treat REFUSED as "try again later." Investigate the message, then fix what it names.
 
