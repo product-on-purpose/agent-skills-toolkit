@@ -562,7 +562,7 @@ test("agentRestrictedFields (A6): a plugin-shipped agent declaring hooks/mcpServ
   assert.equal(f[0].severity, "warn", "A6 is warn-first and scope-local; graduating it is a Standard 0.13 tightening");
   assert.equal(f[0].reqId, null);
   assert.match(f[0].message, /`hooks`, `permissionMode`/);
-  assert.match(f[0].message, /For security reasons, plugin-shipped agents don't support/);
+  assert.match(f[0].message, /For security reasons, plugin subagents don't support/);
   assert.match(f[0].message, /code\.claude\.com/);
   assert.deepEqual([...PLUGIN_AGENT_UNSUPPORTED_FIELDS], ["hooks", "mcpServers", "permissionMode"]);
 });

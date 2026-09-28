@@ -11,10 +11,10 @@
   },
   "sources": [
     {
-      "id": "cc-plugins-reference",
+      "id": "cc-plugins-components",
       "vendor": "claude-code",
-      "url": "https://code.claude.com/docs/en/plugins-reference",
-      "note": "The older docs.claude.com path 301-redirects here. A host move is a documentation edit, not a Standard revision."
+      "url": "https://code.claude.com/docs/en/plugins/components",
+      "note": "RE-POINTED 2026-09-28. This source was cc-plugins-reference, https://code.claude.com/docs/en/plugins-reference, until that URL began serving only the plugin MANIFEST reference: its agents section, with both pinned field sentences, moved to this page under 'Frontmatter fields in plugin agents'. Nothing pinned here depended on the manifest page itself, so the source moved rather than grew: the two probes that named the old page did so because it documented agents/ discovery, which this page now does. The older docs.claude.com host 301-redirects to code.claude.com. A host or page move is a documentation edit, not a Standard revision."
     },
     {
       "id": "cc-skills",
@@ -52,26 +52,26 @@
     {
       "id": "plugin-agent-unsupported-fields",
       "kind": "quote",
-      "source": "cc-plugins-reference",
-      "claim": "For security reasons, plugin-shipped agents don't support hooks, mcpServers, or permissionMode",
+      "source": "cc-sub-agents",
+      "claim": "For security reasons, plugin subagents don't support the hooks, mcpServers, or permissionMode frontmatter fields.",
       "dependsOn": [
         "U14 (agent-restricted-fields) - the whole check",
         "the marketplace A6 reading, which imports the same field list",
         "ADR 0045, and STANDARD.md sec 2.1 (the U14 bullet, which quotes this sentence verbatim)"
       ],
-      "verifiedOn": "2026-09-16",
-      "onChange": "ASYMMETRIC (ADR 0045). A field REMOVED from the unsupported list is green-ward - update the constant, bump the read date, note it in CHANGELOG. A field ADDED is red-ward: a new Standard minor with finding-level migration metadata, never a bump of U14's own since."
+      "verifiedOn": "2026-09-28",
+      "onChange": "ASYMMETRIC (ADR 0045). A field REMOVED from the unsupported list is green-ward - update the constant, bump the read date, note it in CHANGELOG. A field ADDED is red-ward: a new Standard minor with finding-level migration metadata, never a bump of U14's own since. RE-PINNED 2026-09-28 from the plugins reference, which no longer carries any agent sentence, to this page, which states the same three fields with the same security rationale. KNOWN DIVERGENCE, deliberately not pinned: the plugin components page lists a FOURTH ignored field, 'Ignored fields: permissionMode, hooks, mcpServers, and initialPrompt', without the security rationale, and this page's frontmatter table also marks initialPrompt 'Ignored for plugin subagents'. Adding initialPrompt to U14 is red-ward, so it is backlog E70 (initialPrompt on plugin agents), ADR-gated, and not a constant edit. Pinning the four-field sentence here would have made this claim disagree with the check it guards."
     },
     {
       "id": "plugin-agent-supported-fields",
       "kind": "quote",
-      "source": "cc-plugins-reference",
-      "claim": "Plugin agents support name, description, model, effort, maxTurns, tools, disallowedTools, skills, memory, background, [omitClaudeMd](/docs/en/sub-agents#supported-frontmatter-fields), and isolation frontmatter fields.",
+      "source": "cc-plugins-components",
+      "claim": "Supported fields: name, description, model, effort, maxTurns, tools, disallowedTools, skills, memory, background, omitClaudeMd, isolation, color, and the cacheTtl key of experimental.",
       "dependsOn": [
         "PLUGIN_AGENT_SUPPORTED_FIELDS, quoted in every U14 finding as the remediation"
       ],
-      "verifiedOn": "2026-09-16",
-      "onChange": "Re-read the field list and update the constant. The list appears in user-facing remediation, so a stale one sends authors to a field the runtime does not accept. THE MARKDOWN LINK IS LOAD-BEARING: the source serves text/markdown, and on 2026-09-16 the page linked omitClaudeMd to /docs/en/sub-agents#supported-frontmatter-fields. normalizeForMatch folds case, quotes, dashes, backticks, asterisks, underscores and whitespace, but NOT link syntax, so the bare field name does not match and this claim reports MISSING without the brackets. Measured, not assumed. If a future re-read finds the link gone or its target moved, store whatever the page then serves - and if that keeps recurring, the durable fix is to teach normalizeForMatch to fold [text](url) to text rather than to keep re-pinning a URL."
+      "verifiedOn": "2026-09-28",
+      "onChange": "Re-read the field list and update the constant. The list appears in user-facing remediation, so a stale one sends authors to a field the runtime does not accept. LINK SYNTAX: normalizeForMatch folds case, quotes, dashes, backticks, asterisks, underscores and whitespace, but NOT markdown link syntax, so a field the page links must be stored with its [text](url) form or the claim reports MISSING. The 2026-09-16 pin had to carry one, for omitClaudeMd. The 2026-09-28 re-pin needs none: the bullet links nothing inside the list, and the pin stops before the sentence that does ('See [supported frontmatter fields](...)'). Measured with the watch's own fetch and normaliser before writing. If link syntax keeps forcing re-pins, the durable fix is to teach normalizeForMatch to fold [text](url) to text rather than to keep re-pinning a URL."
     },
     {
       "id": "commands-merged-into-skills",
@@ -126,7 +126,7 @@
     {
       "id": "agents-dir-registers-every-md",
       "kind": "probe",
-      "source": "cc-plugins-reference",
+      "source": "cc-plugins-components",
       "claim": "Claude Code scans agents/ for *.md and registers EVERY file it finds. A directory holding real-agent.md, README.md, _README.md and README.txt registered three subagents: real-agent, README and _README. The underscore prefix protects nothing; only the non-.md extension was skipped. NOTE: this probe covered a FLAT directory only. Recursion and the colon exclusion are separate QUOTE claims (agents-scanned-recursively, agent-filename-colon-excluded); generalising this probe past its evidence is what let nested agents bypass U14 and U15 until review wave 1.",
       "dependsOn": [
         "U15 (agents-dir-registerable) - the whole check, and its vendor-cited provenance",
@@ -140,7 +140,7 @@
     {
       "id": "components-share-one-namespace",
       "kind": "probe",
-      "source": "cc-plugins-reference",
+      "source": "cc-plugins-components",
       "claim": "On Claude Code 2.1.275, two installed plugins shipping the same skill name both keep it in their own inventory and the collision is REFUSED rather than resolved: the bare name returns a tool_use_error naming both plugin-qualified candidates. Measured 2026-09-17; resolution on Codex is unmeasured.",
       "dependsOn": [
         "ADR 0051's stated reopening condition for marketplace-skill-collision and marketplace-command-collision",

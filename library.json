@@ -111,7 +111,7 @@
       {
         "name": "askit-build-subagent",
         "path": "skills/askit-build-subagent/SKILL.md",
-        "version": "0.2.1",
+        "version": "0.2.2",
         "tier": "universal",
         "status": "active"
       },

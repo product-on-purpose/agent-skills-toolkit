@@ -20,7 +20,7 @@ First written 2026-08-20 (v1.16.0 W3). **Nothing in this file was filled in from
 >
 > **Three claims landed first and were removed the same day**, because they pinned the event table by quoting its rows - pipes and all - which pins rendering rather than prose. A re-render would have blanked all three at once, and `MISSING` is exit 1 with no soft path. The full eleven-event enumeration is recorded as a dated `read` in `../sources/codex.md` instead. The paragraph below is the finding as first written.
 
-**Eight of the nine pinned claims in [`../claims/vendor-claims.json`](../claims/vendor-claims.json) source from Claude Code pages** (corrected 2026-09-05: this read "all eight" until cut 4 landed `cx-hook-handler-support`, the ledger's first Codex claim, against the `cx-hooks` source) - `cc-plugins-reference`, `cc-skills`, `cc-sub-agents`. There is **no pinned claim for any Codex fact, and none for any Cowork fact.**
+**Eight of the nine pinned claims in [`../claims/vendor-claims.json`](../claims/vendor-claims.json) source from Claude Code pages** (corrected 2026-09-05: this read "all eight" until cut 4 landed `cx-hook-handler-support`, the ledger's first Codex claim, against the `cx-hooks` source) - `cc-plugins-components`, `cc-skills`, `cc-sub-agents`. The first of those was named for the plugins reference page until 2026-09-28, when the vendor moved the plugin-agent field sentences to the plugin components page. There is **one pinned claim for a Codex fact, `cx-hook-handler-support`, and none for any Cowork fact** (corrected 2026-09-28: this read "no pinned claim for any Codex fact", which contradicted the sentence before it).
 
 **The Convergent tier is defined by cross-agent parity.** `STANDARD.md` sec 2.2: *"Concepts both CC and CX support, but in different formats."* So the tier whose entire definition is a statement about two agents has **pinned evidence for one of them.**
 
@@ -37,8 +37,8 @@ Component types the tier adds: skills, references and assets, `AGENTS.md`, MCP.
 | References and assets bundle with a skill | progressive disclosure is in the spec | **pinned** | `upstream-pin.json` `docs/specification.mdx` | 2026-08-11 |
 | Both agents read a root `AGENTS.md` | identical format, both read root | **`unverified`** | nothing | - |
 | One portable `.mcp.json` serves both | each native manifest carries an `mcpServers` pointer | **`unverified`** | nothing | - |
-| `U14` - agents must not declare `hooks`, `mcpServers`, `permissionMode` | the runtime refuses these fields for plugin-shipped agents | **pinned, quote** | `plugin-agent-unsupported-fields` | 2026-09-16 |
-| `U14`'s remediation list | which fields the runtime *does* support | **pinned, quote** | `plugin-agent-supported-fields` | 2026-09-16 |
+| `U14` - agents must not declare `hooks`, `mcpServers`, `permissionMode` | the runtime refuses these fields for plugin-shipped agents | **pinned, quote** | `plugin-agent-unsupported-fields` | 2026-09-28 |
+| `U14`'s remediation list | which fields the runtime *does* support | **pinned, quote** | `plugin-agent-supported-fields` | 2026-09-28 |
 | `U15` - every `.md` under `agents/` registers | the runtime loads every `.md`, including `README.md` | **pinned, PROBE** | `agents-dir-registers-every-md`. **Blocks from 2026-09-19** | 2026-08-19 |
 | `U15`'s recursion invariant | `agents/` is scanned recursively with scoped identifiers | **pinned, quote** | `agents-scanned-recursively` | 2026-08-15 |
 | `isRuntimeAgentFile`'s width | a filename containing a colon is excluded | **pinned, quote** | `agent-filename-colon-excluded` | 2026-08-16 |
