@@ -2,7 +2,7 @@
 title: "Roadmap - what is open, what it depends on, and what done means"
 description: "The tracked PLAN counterpart to STATUS.md's STATE: every open item with its acceptance criteria verbatim, every deferral with a reopening condition, every decline with a reason"
 status: live
-last-updated: "2026-09-17"
+last-updated: "2026-09-28"
 ---
 
 # Roadmap
@@ -299,13 +299,13 @@ v1.19.0, cut 2026-09-17.
 |---|---|---|---|
 | **3. "Evidence"** | the eval instrument becomes trustworthy enough to publish a number from | RS-B1 complete - the E16 ruling implemented, E17's adjudication, E20's key relocation, E15's runner fixes - then the E13 model-triple readings publish | **The implementation itself.** The ruling has been made since 2026-08-31 and nothing has been written. Independent work has correctly proceeded past it; cuts 2 and 4 did not queue behind it |
 | **5. "The graded cohort"** | the toolkit grades trees that are not ours, in public | RS-E2 (the cohort page) plus RS-E1's one-paragraph public summary, plus the sixth and last placement of the tier-scope routing sentence, which ships with the page | **Four things, none of them code.** (a) RS-E1's internal corroboration run has not happened. (b) The member list is unpicked - issue #300 closed NOT_PLANNED, deferred to this cut's planning. (c) Every member must be notified and given a reply window before publication. (d) The 2026-09-04 dry run found four of five candidates pass every portable check, so the page's framing has to be settled before it is built |
-| **6. "Standard 0.17, the graduations"** | the windows close, and no new ones open | The cap expiries, and nothing else. Ruled graduations-only | **Nothing technical, but a timing constraint that has not elapsed.** Its content is fixed and its identity is deliberately legible in one sentence. The source plan's timing constraint, quoted whole: *"No sooner than a real migration window after cut 4 (Recommended: 2 to 3 weeks, the 0.13-to-0.15 cadence)"*. Cut 4 shipped 2026-09-17, so that window is running rather than closed. No date is committed here |
+| **6. "Standard 0.17, the graduations"** | the windows close, and no new ones open | The cap expiries, and nothing else. Ruled graduations-only | **The migration window only.** The content MERGED on 2026-09-21 ([PR #339](https://github.com/product-on-purpose/agent-skills-toolkit/pull/339)), and the pre-cut audit of the CHANGELOG merged on 2026-09-28 ([PR #349](https://github.com/product-on-purpose/agent-skills-toolkit/pull/349)). The source plan's timing constraint, quoted whole: *"No sooner than a real migration window after cut 4 (Recommended: 2 to 3 weeks, the 0.13-to-0.15 cadence)"*. Cut 4 shipped 2026-09-17. **The maintainer approved the cut on 2026-09-28 for a tag no earlier than 2026-10-01.** Per ADR 0057 the version number is still assigned at cut time |
 
 **What cut 6 actually closes, measured rather than asserted.** At `ab0dc20` four checks carry
 `until: "0.17"`: `U18` (the Codex command size cap), `G1` (hook documentation), `G2` (self-hosting)
-and `G8` (folder README). ADR 0061 (U18 never gated; the strengthening set gets Standard 0.18),
-which lands as `decisions/0061-u18-is-permanently-warn-and-the-strengthening-set-is-standard-0-18.md`
-and is deliberately not hyperlinked here until it is on `main`, deletes `U18`'s as inert - the check emits `warn` natively, so a `warn` cap over it never moved a
+and `G8` (folder README).
+[ADR 0061 (U18 never gated; the strengthening set gets Standard 0.18)](decisions/0061-u18-is-permanently-warn-and-the-strengthening-set-is-standard-0-18.md)
+deletes `U18`'s as inert - the check emits `warn` natively, so a `warn` cap over it never moved a
 severity at any pin, proven with `G2` as a positive control in the same run. **Cut 6 therefore closes
 THREE windows: `G1`, `G2` and `G8`.**
 
@@ -331,7 +331,7 @@ deferral and decline below, which is what stops them from being zero-trace drops
 | 4 | Behavioural rung - executable eval sets above Gold | **DEFER** | Reopen when RS-B1 (the multi-entry credit gap) completes. A rung that certifies behaviour publishes a behavioural claim, and no behavioural claim may publish until the scoring key is trustworthy. D-08 (a fourth tier name, or a modifier on Gold) is the design question waiting behind it |
 | 5 | Autofix / codemod `--fix` for the mechanical set | **DEFER** | Reopen when [E47 (`askit-onboard`, the adoption funnel)](backlog/enhancements.md) ships and the mechanical-fix friction is still measured on a real adopter. The audit's own example - a scaffolded `G8` README that then fails `G7` - is a specific defect and reopens this on its own if anyone hits it |
 | 6 | Context and token budget profiler | **DEFER** | Reopen with item 1. It is inside that object, not beside it; the audit itself files it as "inside 1" |
-| 7 | Standard-to-check coverage table, generated | **ADOPT - RULED, NOT BUILT** | [ADR 0059 (every MUST maps to a check, a SHOULD or a stated gap)](decisions/0059-every-must-maps-to-a-check-a-should-or-a-stated-gap.md), accepted 2026-09-08. Its own Status line says *"implementation is scheduled work, not done here"*, and `grep` on 2026-09-17 finds no generated coverage table in `scripts/`, `tests/` or `docs/`. The seven dispositions are ruled; the table that makes them mechanical is OPEN and is carried by this row |
+| 7 | Standard-to-check coverage table, generated | **ADOPT - BUILT 2026-09-18; six of seven dispositions UNAPPLIED** | [ADR 0059 (every MUST maps to a check, a SHOULD or a stated gap)](decisions/0059-every-must-maps-to-a-check-a-should-or-a-stated-gap.md), accepted 2026-09-08. The table shipped in [PR #334](https://github.com/product-on-purpose/agent-skills-toolkit/pull/334) as `scripts/gen-standard-coverage.mjs` -> [`../reference/standard-coverage.md`](../reference/standard-coverage.md), drift-guarded in `npm test`. One disposition is applied: Standard 0.17 demoted the sec 7.3 `HISTORY.md` clause to SHOULD. The other six still read `MUST`, and applying them is a Standard revision with no date. **Corrected 2026-09-28:** this row said NOT BUILT for ten days after the table was built |
 | 8 | Pin floor and staleness | **ADOPT-RENAMED** | [E62 (the Standard pin has no floor)](backlog/enhancements.md). PARKED on D-02, which is downstream of D-01 |
 | 9 | Report diff and trend badge | **DEFER** | Reopen with item 1. It needs that object's fingerprints and cannot be built before them |
 | 10 | Published JSON Schema and a conformance suite | **ADOPT-RENAMED** | [E8 (published conformance suite)](backlog/enhancements.md), `backlog` since 2026-05-31. The JSON-Schema half rides item 1; the fixture-suite half does not and can start at any time |
