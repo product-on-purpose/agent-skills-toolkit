@@ -19,7 +19,7 @@ import { isOperatorFinding } from "./lib/findings.mjs";
 import { PROFILES } from "./lib/profiles.mjs";
 import { resolveFindings, gatingFindings } from "./lib/resolve-config.mjs";
 import { computeTierReport, humanLine } from "./tier-report.mjs";
-import { TIER_ORDER, tierForReq, ceilingIndex } from "./lib/tier.mjs";
+import { tierForReq, isAboveDeclaredTier } from "./lib/tier.mjs";
 import { compareStandard } from "./lib/standard-version.mjs";
 import { normalizeArgPath } from "./lib/fs-utils.mjs";
 import { renderSarif } from "./lib/sarif-render.mjs";
@@ -30,9 +30,8 @@ import { notScoredCount } from "./checks/description-score.mjs";
 
 /** Filter error severity by declared-tier ceiling. Exported for unit testing. */
 export function gateExitFromFindings(findings, declaredTier) {
-  const ceiling = ceilingIndex(declaredTier);
   const gatedErrors = findings.filter(
-    (f) => f.severity === "error" && TIER_ORDER.indexOf(tierForReq(f.reqId)) <= ceiling
+    (f) => f.severity === "error" && !isAboveDeclaredTier(f.reqId, declaredTier)
   );
   return {
     errorCount: gatedErrors.length,
@@ -164,7 +163,6 @@ export function buildJsonReport(root, ctx, r) {
  * Exported for unit testing.
  */
 export function sectionFindings(findings, declaredTier) {
-  const ceiling = ceilingIndex(declaredTier);
   const grading = [];
   const aboveTier = [];
   for (const f of findings) {
@@ -172,7 +170,7 @@ export function sectionFindings(findings, declaredTier) {
     // prints in its own block (formatOperatorBlock), ahead of both of these sections.
     if (isOperatorFinding(f)) continue;
     if ((f.effectiveSeverity ?? f.severity) === "off" || f.suppressed) continue;
-    (TIER_ORDER.indexOf(tierForReq(f.reqId)) <= ceiling ? grading : aboveTier).push(f);
+    (isAboveDeclaredTier(f.reqId, declaredTier) ? aboveTier : grading).push(f);
   }
   return { grading, aboveTier };
 }
@@ -216,11 +214,10 @@ export function standardDebtLine(findings, declaredTier) {
   // by the same declared-tier ceiling. That also contradicted this very terminal's own above-tier
   // label, three lines further down. Split rather than dropped: above-tier debt is still real debt and
   // still comes due, it just never gates THIS plugin at THIS declared tier.
-  const ceiling = ceilingIndex(declaredTier);
-  const gating = held.filter((f) => TIER_ORDER.indexOf(tierForReq(f.reqId)) <= ceiling);
+  const gating = held.filter((f) => !isAboveDeclaredTier(f.reqId, declaredTier));
   // The above-tier findings themselves, not just how many: they carry their own due dates, and the
   // clause about them has to be computed from those rather than borrowing the gating set's.
-  const aboveSet = held.filter((f) => TIER_ORDER.indexOf(tierForReq(f.reqId)) > ceiling);
+  const aboveSet = held.filter((f) => isAboveDeclaredTier(f.reqId, declaredTier));
   const pinned = held[0].ceiling.pinned;
 
   if (gating.length === 0) {

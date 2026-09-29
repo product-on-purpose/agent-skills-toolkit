@@ -29,8 +29,10 @@ export function tierForReq(reqId) {
  * Is this finding ABOVE the tier the plugin declared - a requirement of a rung it has not claimed?
  *
  * The single predicate behind every surface that has to make this distinction: `sectionFindings` in
- * check.mjs for the text output and the GitHub annotations, and `buildResults` in sarif-render.mjs for
- * the SARIF document. It lives here rather than in either caller because the surfaces DISAGREEING is
+ * check.mjs for the text output and the GitHub annotations, `buildResults` in sarif-render.mjs for
+ * the SARIF document, and, in check.mjs, `gateExitFromFindings` for the exit code and the Standard-debt
+ * split. Until 2026-09-28 check.mjs repeated the comparison inline in all three places while this
+ * sentence already claimed otherwise; the copies agreed, but nothing kept them agreeing. It lives here rather than in either caller because the surfaces DISAGREEING is
  * the defect it exists to prevent: before this, the text output printed "0 error(s)" for a run whose
  * SARIF document carried three results at level "error", and a Bronze plugin's pull request showed red
  * annotations for Gold requirements that could not affect its grade (2026-09-04 audit, F-032).
