@@ -2,7 +2,7 @@
 title: "Roadmap - what is open, what it depends on, and what done means"
 description: "The tracked PLAN counterpart to STATUS.md's STATE: every open item with its acceptance criteria verbatim, every deferral with a reopening condition, every decline with a reason"
 status: live
-last-updated: "2026-09-28"
+last-updated: "2026-09-30"
 ---
 
 # Roadmap
@@ -312,6 +312,22 @@ THREE windows: `G1`, `G2` and `G8`.**
 **Standard 0.18 is NAMED, not scheduled.** It is the revision the 2026-09-04 audit's five-item
 strengthening set lands on. Naming it is what makes those backlog entries executable instead of
 parked on a number that does not exist. No date is attached and no cut is promised.
+
+**The sequence after cut 6, ruled by the maintainer on 2026-09-30: own plugins first.** Before any
+plugin outside this organisation is graded in public, every plugin in the
+`product-on-purpose/agent-plugins` marketplace moves to Standard edition 0.17 - the `standard` field in
+its own `library.json` - with the fixes that edition requires, and the catalogue is re-pointed to each new
+commit as it lands. This comes ahead of cut 5 (the graded cohort), cut 3 (evidence) and Standard 0.18.
+The basis, measured 2026-09-30: the six members pinned five different editions (0.8 to 0.16) and one
+declared none, and the two members with the most subagents, commands and workflows were the least
+governed. A measured change list with a suggested order is gitignored working material at
+`_local/plans/own-plugins-first-change-list.md`. The toolkit changes it found are
+[E72 (adopting a plugin can wipe its manifest fields)](backlog/enhancements.md), which must land first,
+[E73 (`U9` and private packages)](backlog/enhancements.md),
+[E74 (`U12` and template placeholders)](backlog/enhancements.md) and
+[E75 (a marketplace minimum edition)](backlog/enhancements.md). The maintainer first chose an external
+cohort on 2026-09-28, then chose this after stating the project's goal as common standards across the
+plugins of a marketplace.
 
 ---
 
