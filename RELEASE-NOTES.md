@@ -4,6 +4,60 @@ Curated, user-facing highlights. For the full technical history see [`CHANGELOG.
 
 Every tier named below carries the same scope. *This tier reports structural conformance to a written Standard - deterministic and reproducible; it is not a content review, a safety audit, or a statement that the skills work.* See [what a tier does not certify](docs/explanation/limitations.md). This note is deliberately in the STANDING header rather than a footer: a footer would sit inside the oldest release's section and be extracted into that release's body by `check-release-notes-section.mjs`.
 
+## 1.20.0 - 2026-10-01
+
+[![npm](https://img.shields.io/npm/v/agent-skills-toolkit?label=npm&color=cb3837)](https://www.npmjs.com/package/agent-skills-toolkit)
+[![tier](https://img.shields.io/endpoint?url=https://product-on-purpose.github.io/agent-skills-toolkit/badges/tier.json)](https://product-on-purpose.github.io/agent-skills-toolkit/reports/report.html)
+[![checks](https://img.shields.io/badge/checks-35-6b4fa8)](https://product-on-purpose.github.io/agent-skills-toolkit/reference/gold-checks/)
+[![standard](https://img.shields.io/badge/Standard-0.17-6b4fa8)](https://product-on-purpose.github.io/agent-skills-toolkit/explanation/conformance-and-tiers/)
+
+**Standard 0.17, and the gate stops contradicting itself.** Standard 0.17 closes the warning windows that 0.16 opened. The rest of this release makes every output surface agree with the text verdict. Nothing here changes your grade unless you raise your own Standard pin to 0.17.
+
+### You need to do nothing, unless you raise your pin
+
+A plugin pinned below 0.17 keeps its grade. Some machine output changes, as the sections below describe, but no tier, error count or exit code moves. This was measured, not assumed. All six reference-family plugins were graded at the commits the marketplace catalogue pins, once with 1.19.0 and once with this release. Every tier, error count, warning count and exit code was identical. Raising the pin of each of those plugins that declares one, from 0.16 to 0.17, moved none of their verdicts either.
+
+**If your plugin already declares Standard 0.17, upgrade.** 1.19.0 knows only 0.16, and it grades a plugin that declares 0.17 without saying that the plugin's edition is newer than the grader's.
+
+### Standard 0.17: three warnings become errors, at pin 0.17 only
+
+If your plugin pins Standard 0.17, three checks that shipped as warnings in 0.16 now fail the gate:
+
+- **`G1`** reports a hook whose handler type the agent parses and then silently skips.
+- **`G2`** requires CI that actually executes the gate, not CI that only mentions it.
+- **`G8`** reports a folder README that exists but cannot be read.
+
+Two clauses were relaxed to what the tooling can honestly check, so they cannot make a passing plugin fail. `G2`'s clause no longer promises "CI that passes", because the check reads workflow files and cannot observe a run. A co-located `HISTORY.md` drops from MUST to SHOULD everywhere the Standard states it, because no check ever read it.
+
+### A correction to what 1.19.0 told you
+
+The 1.19.0 notes said the `U18` window closes at 0.17. That was wrong. `U18` (a command too large for Codex to convert) stays a warning at every pin. It measures your source file, while Codex caps the converted skill, so it can say "at risk" but not "broken". The migration block that promised otherwise has been removed.
+
+### Changed: one exit code
+
+A broken `askit.config.json` now exits **`2`** ("the run was misconfigured"), not `1` ("your plugin failed"). The config file chooses the rubric; it is not part of what is graded. A CI step that tests `== 1` will stop matching this case. A step that tests `!= 0` is unaffected. The GitHub Action's outputs now accept `2`.
+
+### Fixed: machine output now agrees with the text verdict
+
+- **Above-tier findings no longer show as red errors.** A plugin that passes its declared tier used to get `::error` annotations and error-level SARIF results for rungs it never claimed. They are now notices, and each one names the rung. One reference plugin went from 46 error-level Security-tab results to 47 notes, with the same verdict.
+- **The evaluate report no longer says `G1` had "nothing to validate"** on a repository whose hook `G1` had just graded.
+- **Five check descriptions now say what the check measures**, rather than what it was hoped to measure.
+- **Marketplace scope: two collision checks drop from error to warning.** Claude Code now refuses an ambiguous bare component name instead of silently picking one, so the harm is smaller and loud. Codex behaviour is unmeasured, so the checks stay.
+- **`standards-watch` no longer reports a crash as "the upstream standard has moved".** A crash is now exit `2`, a refusal.
+- **Grading a folder of loose skills now names the `plain-plugin` profile**, instead of listing Gold requirements for a library you never declared.
+
+### New: which Standard rules have a check behind them
+
+A generated page, [Standard coverage](https://product-on-purpose.github.io/agent-skills-toolkit/reference/standard-coverage/), marks every MUST clause as checked, partial, house, ruled or a gap. It is regenerated and compared on every test run, so it cannot drift from the Standard.
+
+### The vendor records caught up again
+
+Claude Code moved its plugin-agent field sentences to two other documentation pages. Both pinned claims were re-pointed, and `STANDARD.md` no longer says the restricted fields are "refused rather than ignored" when the vendor says they are ignored.
+
+### Verification
+
+Suite **1672 tests, 1668 pass, 0 failures, 4 skipped**. Gate **Advanced, 0 errors, 0 warnings**. `release-ready` **six gates green**. Codex round-trip (`CODEX_REQUIRED=1 npm test`): **passed** with `codex-cli 0.155.0`. Family blast radius: no verdict, error count or exit code moved.
+
 ## 1.19.0 - 2026-09-17
 
 [![npm](https://img.shields.io/npm/v/agent-skills-toolkit?label=npm&color=cb3837)](https://www.npmjs.com/package/agent-skills-toolkit)
