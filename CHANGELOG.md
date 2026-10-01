@@ -9,6 +9,8 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [1.20.0] - 2026-10-01
+
 ### Added
 
 - **A generated page now shows which Standard rules have a check behind them, and which do not ([#334](https://github.com/product-on-purpose/agent-skills-toolkit/pull/334)).** `scripts/gen-standard-coverage.mjs` extracts every MUST clause from `STANDARD.md`, joins it against a disposition map that is validated against the live check registry, and renders `docs/reference/standard-coverage.md`. Each clause is marked `checked`, `partial`, `house`, `ruled` or `gap`. Generation fails unless every ruling in ADR 0059 (every MUST maps to a check, a SHOULD, or a stated gap) is carried by a row, and a unit test fails when the committed page differs from what the generator produces. **This entry was missing until 2026-09-28**, because #334 did not touch this file.
