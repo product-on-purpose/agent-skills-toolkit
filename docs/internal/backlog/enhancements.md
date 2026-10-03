@@ -1038,3 +1038,31 @@ critique-skills moved from Standard 0.12 to 0.17 on 2026-09-30 (its PR 56, pinne
 - **Why it matters.** The verdict was right in this case, because the only rule that affected this plugin, `U16`, dates from 0.14. But a plugin that adopts a rule introduced in the newer edition gets a clean grade that never checked that rule. Since E76's default sends readers to `npx`, this is the verdict a reader of `INDEX.md` sees.
 - **Options.** First, an informational line naming both editions when the declared edition is newer than the grader's. Second, a warning. Third, refuse to grade. **Recommendation: the first, promoted to a warning at the next minor.** The verdict is not wrong; it is only incomplete, and saying so costs one line.
 - **Status:** **OPEN.** No ruling needed to build the informational line.
+
+## Dogfooding intake: critique-skills builds critique-forms through askit-build-skill (2026-09-30)
+
+critique-skills built its seventh skill, `critique-forms` (its N2), through `askit-build-skill` in fallback mode on 2026-09-30, on its branch `feat/n2-critique-forms`. Its E11 (askit adoption) ruling requires every point of friction to be filed here. The build reached a clean gate and ran the phase-2 craft review. Three points of friction follow; nothing blocked the build.
+
+### E78 - `askit-build-skill` step 2 copies the generic template where the consuming repository has its own  [docs, effort S, OPEN]
+
+- **Target:** `skills/askit-build-skill/SKILL.md`, create mode, step 2.
+- **What happened.** Step 2 starts a new skill from this toolkit's `templates/SKILL.md`. critique-skills keeps its own skill template, `docs/internal/skill-template.md`, which its self-test enforces: a seven-column criterion table, a delegation stanza, golden examples whose envelopes its contract validates, and more. The generic template satisfies none of that, so the build set it aside and followed the repository's template instead.
+- **Why it matters.** A plugin mature enough to have a house template is the plugin most likely to use the builder, and following step 2 literally produces a skill its own gate rejects.
+- **Options.** First, step 2 asks whether the plugin declares a skill template, for example a path in `library.json` or a conventional location, and uses it when present. Second, a one-line note that a repository template, when one exists, governs over the toolkit's.
+- **Status:** **OPEN.** The second option needs no ruling.
+
+### E79 - phase 2 delegates to `askit-reviewer`, which a fallback-mode session does not have  [docs, effort S, OPEN]
+
+- **Target:** `skills/askit-build-skill/SKILL.md`, improve mode, phase 2, step 3.
+- **What happened.** Step 3 says to delegate the craft review to the `askit-reviewer` subagent. In fallback mode the toolkit is a sibling checkout, not an installed plugin, so no `askit-reviewer` agent type exists in the session. The build briefed a general-purpose agent with `agents/askit-reviewer.md` and the rubric, and that worked: five findings, all JUDGMENT, which `partitionCraftFindings()` confirmed.
+- **Why it matters.** Fallback mode is the documented route for a repository that wraps the toolkit rather than installing it, and phase 2 gives that route no instruction.
+- **Options.** A fallback sentence in step 3: brief any capable agent with the reviewer definition and the rubric, and run its output through `toReviewAdvisory()` as usual.
+- **Status:** **OPEN.** No ruling needed.
+
+### E80 - the phase-2 render step names one skill, but `evaluate.mjs` renders the whole library  [docs or feature, effort S, ruling needed, OPEN]
+
+- **Target:** `skills/askit-build-skill/SKILL.md`, phase 2, step 4; `scripts/evaluate.mjs --report=review`.
+- **What happened.** Step 4 renders with `node scripts/evaluate.mjs <skill> --report=review --advisory <file>`. Given a plugin root, the command produced a whole-library evaluation, headed by the library's own verdict, with the one skill's craft review attached. critique-skills committed it as-is, at `docs/internal/release-plans/_unassigned/N2_critique-forms/craft-review.md`. A reader opening it sees a library grade first and the skill's review on page two.
+- **Why it matters.** The craft review is about one skill, and the report frames it as a statement about the library.
+- **Options.** First, step 4 says plainly that the report is library-wide, with the review as an advisory section. Second, a per-skill report type that renders the craft review alone, with only the gate's exit code for context.
+- **Status:** **OPEN, needs a ruling** for the second option; the first needs none.
