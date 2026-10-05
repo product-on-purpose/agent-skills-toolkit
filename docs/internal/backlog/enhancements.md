@@ -889,7 +889,7 @@ page carries has to resolve to something.
   gain a way to observe a run? Both are Standard-affecting and neither is ruled.
 - **Not a check defect.** `G3`'s own module text was tested during B-09 and found accurate; this is the
   clause overreaching the check, not the check overclaiming.
-- **Status:** open (recorded 2026-09-18).
+- **Status:** **DIRECTION RE-AFFIRMED 2026-10-04: strengthen later.** Measured that day: no plugin in the family executes eval cases in CI, this repository included. critique-skills and product-lifecycle-templates carry `evals/` folders; product-lifecycle-templates' CI runs only an arm-parity script over them, and this repository's workflows do not mention evals at all. Strengthening `G3` now would fail this toolkit's own Gold and would have no working example to design against. **Revisit when any family plugin runs its eval cases in CI.** This is a dated direction, not an ADR. Recorded 2026-09-18.
 
 ### HC-08 - `G1`'s clause requires hook scope and failure behaviour the check never reads  [open question, ADR-gated]
 
@@ -904,7 +904,7 @@ page carries has to resolve to something.
   way to find them? A free-prose narrative is not obviously machine-checkable, which is what makes this
   a question rather than a defect.
 - **Not a check defect.** `G1`'s own module text was tested during B-09 and found accurate.
-- **Status:** open (recorded 2026-09-18).
+- **Status:** **RULED 2026-10-04: the check gains a way to find scope and failure behaviour, in Standard 0.18.** A dated direction, not an ADR; the 0.18 design writes the ADR. Measured that day: three hooks ship in the family, two in `pm-skills` (a PreToolUse guardrail and a SessionStart phase router) and one here (the demonstrative no-dash guard), and this repository's `hooks/README.md` already gives its hook labelled **Scope:** and **Failure behavior:** lines, which is a shape a check can read. `G1` applies only at Gold, and the one Gold-claiming member that ships hooks is this toolkit, whose hook already carries both labels, so no current verdict is expected to move; grade the family before and after to confirm. It is red-ward for a future Gold plugin with hooks, so it ships warn-first under ADR 0044 (one post-resolution Standard ceiling). **Open design point:** `pm-skills` states one fail-open rule for all its hooks rather than one line per hook, and the format should decide whether a plugin-wide policy satisfies it. Recorded 2026-09-18.
 
 ### E67 - the Standard REQUIRED a co-located `HISTORY.md` per component at Silver+, this repo is Gold with 35 components and zero of them, and nothing caught it  [RESOLVED 2026-09-20, Standard 0.17]
 
@@ -973,7 +973,7 @@ page carries has to resolve to something.
 - **Blast radius, measured 2026-09-28.** Zero agent files declare `initialPrompt` in any repository of the product-on-purpose family checkout, including gitignored copies and worktrees. The only file declaring any refused field is a deliberate fixture in this repository, `tests/fixtures/audit-corpus/pin-abuse/agents/pg-hooked.md`.
 - **Interim state, shipped with the 2026-09-28 pin refresh.** `askit-build-subagent` already tells authors to leave `initialPrompt` out, citing the components page. That is authoring advice and moves no verdict.
 - **Options for the ruling.** First, fold it into the next Standard minor with migration metadata; this is the recommendation, because the field is a silent no-op of exactly the class `U14` exists for, and the measured blast radius is zero. Second, keep `U14` security-scoped and add a separate advisory reading for ignored fields. Third, record a dated no.
-- **Status:** **OPEN, ADR-gated.** Filed 2026-09-28 by the vendor re-read that unblocked the release. Nothing depends on it before the next Standard minor.
+- **Status:** **RULED 2026-10-04: the first option, in Standard 0.18.** `initialPrompt` joins `U14`'s list, and the requirement is reworded from a security refusal to "fields Claude Code ignores on plugin agents", so each finding gives one reason. It ships with finding-level `migration` metadata per ADR 0044 (one post-resolution Standard ceiling), batched with the other 0.18 rule changes rather than released alone. Filed 2026-09-28 by the vendor re-read that unblocked the release.
 
 ### E71 - a CHANGELOG bullet can sit under a released heading it did not ship in, and no gate reads which release a bullet belongs to  [correctness, effort S, OPEN]
 
@@ -1000,7 +1000,7 @@ page carries has to resolve to something.
 - **What happens.** `pm-skills` ships a root `package.json` named `pm-skills-tooling`, marked `"private": true`, at version `0.0.0`. Its own description says it holds validator dependencies and is not the plugin package. `U9` requires any root `package.json` version to equal `library.json`'s, so `pm-skills` cannot reach Bronze without giving a private tooling manifest a meaningless version. `U9` has no exemption for private packages (read 2026-09-30).
 - **Why `U9` exists.** `library.json` is the version source of truth (sec 5), and the failure it prevents is a published package whose version drifts from the plugin's. A private package is never published, so its version cannot mislead a consumer.
 - **Options.** First, exempt `"private": true` packages. Second, exempt a package whose `name` differs from `library.json`'s. Third, keep the check and tell authors to align the version. **Recommendation: the first.** It is a relaxation, so it cannot make a passing plugin fail, but it still moves verdicts: grade the family before and after.
-- **Status:** **OPEN, needs a ruling.** The workaround, setting the version to `2.33.0`, was verified to clear the finding on a copy.
+- **Status:** **RULED 2026-10-04: the first option, exempt `"private": true` packages, in Standard 0.18.** Grade the family before and after, as above. Until it ships, `pm-skills` uses the workaround: setting the version to `2.33.0` was verified to clear the finding on a copy.
 
 ### E74 - `U12` rejects a comment-only diagram block in a template  [correctness, effort S, ruling needed, OPEN]
 
@@ -1008,7 +1008,7 @@ page carries has to resolve to something.
 - **What happens.** `pm-skills/skills/utility-mermaid-diagrams/references/TEMPLATE.md`, line 42, is a fenced `mermaid` block that holds only `%%` comment lines. It is a fill-in placeholder on purpose. `U12` reports "no recognized diagram keyword".
 - **The check is not wrong.** The block would not render. The question is only whether a template's placeholder should be graded as a diagram.
 - **Options.** First, accept a block whose every line is a `%%` comment. Second, keep the check and advise authors to start a placeholder with a keyword line such as `flowchart TD`. Third, exempt files named `TEMPLATE.md`. **Recommendation: the second.** The fix is one line, verified on a copy, and exempting by filename is the kind of special case that hides real defects.
-- **Status:** **OPEN, needs a ruling.** Low stakes either way.
+- **Status:** **RULED 2026-10-04: the second option.** `U12` is unchanged, and no Standard change follows. The advice is to start a placeholder diagram with a keyword line such as `flowchart TD`; `pm-skills` takes that one-line fix during its migration. Remaining work: put the advice where an author meets the failure, in `U12`'s finding text.
 
 ### E75 - a marketplace cannot require a minimum Standard edition of its members  [feature, effort M, ADR-gated, OPEN]
 
@@ -1017,7 +1017,7 @@ page carries has to resolve to something.
 - **Why it matters.** The maintainer's stated goal (2026-09-28) is common standards across the plugins in a marketplace. Today no catalogue can express that.
 - **Relation to E62 (the Standard pin has no floor), above.** E62 is parked on D-02 (the pin floor's deprecation window) because a GLOBAL floor changes what every badge already in the wild means. A floor that a catalogue owner sets would apply only to that catalogue's collection verdict. It may therefore not need D-01 (a health number beside the tier) or D-02, but that claim is itself for the ADR to test.
 - **Questions for the ADR.** Where the minimum lives (catalogue metadata or toolkit configuration). Whether a member below it reds the collection or warns. How the registry page shows it. The next free ADR number is 0062.
-- **Status:** **OPEN, ADR-gated.** Not required for the "own plugins first" migration, which moves every member to 0.17 by hand.
+- **Status:** **RULED 2026-10-04: write ADR 0062 after the "own plugins first" migration finishes.** The migration moves every member to 0.17 by hand, and the minimum's job is to keep them there. Designing it after a real migration lets that migration inform the design. ADR 0062 stays reserved for it.
 
 ## Dogfooding intake: critique-skills Standard 0.17 adoption (2026-09-30)
 
@@ -1029,7 +1029,7 @@ critique-skills moved from Standard 0.12 to 0.17 on 2026-09-30 (its PR 56, pinne
 - **What happened.** critique-skills wraps this toolkit rather than vendoring it: `node scripts/check.mjs` resolves a pinned toolkit checkout, runs the gate, and adds the plugin's own site guards (critique-skills ADR 0011, "Pattern A", copied from thinking-framework-skills). At 0.17 its `INDEX.md` regenerated from `Self-validating: node scripts/check.mjs` to `Self-validating: npx agent-skills-toolkit .`. By the Standard's own text that is correct, because absent means `npx` and the plugin consumes the toolkit. The npx command also works: npm `1.19.0` grades the plugin Convergent, 0 errors, 0 warnings.
 - **Why it still matters.** `INDEX.md` and the plugin's `AGENTS.md` now name different commands for validating the plugin. They also grade against different toolkits: npx takes whatever npm serves, while CI uses the pinned commit. The only way to restore the wrapper's command is to declare `"vendored"`, which would be false. The enum has two values for three real shapes: vendored, consumed through npx, and consumed through a local wrapper.
 - **Options.** First, a third closed value, for example `"wrapper"`, that renders `node scripts/check.mjs`. It keeps the closed enum, so a plugin still cannot write arbitrary text into its generated index. Second, keep two values, and have the Standard say that `INDEX.md` names the Standard-level check, while a plugin's own gate belongs in `AGENTS.md`. Third, render a version-pinned npx form. **Recommendation: the first.** At least two family plugins use the wrapper shape, and it is the only option that lets the generated file name the command CI actually runs.
-- **Status:** **OPEN, needs a ruling.** critique-skills accepted the npx line rather than misdeclare, and records that choice in its own E62 (Standard version pin) entry.
+- **Status:** **RULED 2026-10-04: the first option, a third closed value, in Standard 0.18.** Verified that day: `"vendored"` already renders `node scripts/check.mjs` (`selfValidationLine` in `scripts/generators/gen-index.mjs`), and nothing else in `scripts/` reads the value, so the new value changes which word is TRUE in `library.json`, not what any existing plugin renders. Adding a value cannot fail a plugin. critique-skills accepted the npx line rather than misdeclare, and records that choice in its own E62 (Standard version pin) entry.
 
 ### E77 - a toolkit grades a plugin that declares a newer Standard than it ships, and does not say so  [correctness, effort S, OPEN]
 
@@ -1065,4 +1065,4 @@ critique-skills built its seventh skill, `critique-forms` (its N2), through `ask
 - **What happened.** Step 4 renders with `node scripts/evaluate.mjs <skill> --report=review --advisory <file>`. Given a plugin root, the command produced a whole-library evaluation, headed by the library's own verdict, with the one skill's craft review attached. critique-skills committed it as-is, at `docs/internal/release-plans/_unassigned/N2_critique-forms/craft-review.md`. A reader opening it sees a library grade first and the skill's review on page two.
 - **Why it matters.** The craft review is about one skill, and the report frames it as a statement about the library.
 - **Options.** First, step 4 says plainly that the report is library-wide, with the review as an advisory section. Second, a per-skill report type that renders the craft review alone, with only the gate's exit code for context.
-- **Status:** **OPEN, needs a ruling** for the second option; the first needs none.
+- **Status:** **RULED 2026-10-04: the first option.** Step 4 says plainly that the report is library-wide, with the craft review as an advisory section. The per-skill report type is not built unless a second plugin trips on the same framing.

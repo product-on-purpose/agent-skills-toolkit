@@ -2,7 +2,7 @@
 title: "Roadmap - what is open, what it depends on, and what done means"
 description: "The tracked PLAN counterpart to STATUS.md's STATE: every open item with its acceptance criteria verbatim, every deferral with a reopening condition, every decline with a reason"
 status: live
-last-updated: "2026-09-30"
+last-updated: "2026-10-04"
 ---
 
 # Roadmap
@@ -313,6 +313,8 @@ THREE windows: `G1`, `G2` and `G8`.**
 strengthening set lands on. Naming it is what makes those backlog entries executable instead of
 parked on a number that does not exist. No date is attached and no cut is promised.
 
+**On 2026-10-04 the maintainer ruled that Standard rule changes ride together in 0.18** rather than each opening its own edition, because every new edition asks each family plugin to re-pin. Ruled into 0.18 so far: [E70 (`initialPrompt` joins `U14`)](backlog/enhancements.md), [E73 (`U9` exempts private packages)](backlog/enhancements.md), [E76 (a `selfValidation` value for wrapper scripts)](backlog/enhancements.md) and [HC-08 (`G1` finds hook scope and failure behaviour)](backlog/enhancements.md). HC-07 (`G3`'s CI-execution promise) stays "strengthen later" until a family plugin runs its evals in CI. 0.18 is still unscheduled and comes after own plugins first.
+
 **The sequence after cut 6, ruled by the maintainer on 2026-09-30: own plugins first.** Before any
 plugin outside this organisation is graded in public, every plugin in the
 `product-on-purpose/agent-plugins` marketplace moves to Standard edition 0.17 - the `standard` field in
@@ -328,6 +330,8 @@ governed. A measured change list with a suggested order is gitignored working ma
 [E75 (a marketplace minimum edition)](backlog/enhancements.md). The maintainer first chose an external
 cohort on 2026-09-28, then chose this after stating the project's goal as common standards across the
 plugins of a marketplace.
+
+**Rulings for the migration, 2026-10-04.** `pm-skills` uses the verified workarounds for E73 (`U9` and private packages) and E74 (`U12` and template placeholders) instead of waiting for 0.18. E75 (a marketplace minimum edition) gets ADR 0062 after the migration finishes. Whether `thinking-framework-skills` declares Silver or does the Gold work is still the maintainer's open call; it is not needed until the migration reaches that plugin.
 
 ---
 
