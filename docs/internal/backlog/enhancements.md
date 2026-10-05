@@ -889,7 +889,7 @@ page carries has to resolve to something.
   gain a way to observe a run? Both are Standard-affecting and neither is ruled.
 - **Not a check defect.** `G3`'s own module text was tested during B-09 and found accurate; this is the
   clause overreaching the check, not the check overclaiming.
-- **Status:** open (recorded 2026-09-18).
+- **Status:** **DIRECTION RE-AFFIRMED 2026-10-04: strengthen later.** Measured that day: no plugin in the family executes eval cases in CI, this repository included. critique-skills and product-lifecycle-templates carry `evals/` folders; product-lifecycle-templates' CI runs only an arm-parity script over them, and this repository's workflows do not mention evals at all. Strengthening `G3` now would fail this toolkit's own Gold and would have no working example to design against. **Revisit when any family plugin runs its eval cases in CI.** This is a dated direction, not an ADR. Recorded 2026-09-18.
 
 ### HC-08 - `G1`'s clause requires hook scope and failure behaviour the check never reads  [open question, ADR-gated]
 
@@ -904,7 +904,7 @@ page carries has to resolve to something.
   way to find them? A free-prose narrative is not obviously machine-checkable, which is what makes this
   a question rather than a defect.
 - **Not a check defect.** `G1`'s own module text was tested during B-09 and found accurate.
-- **Status:** open (recorded 2026-09-18).
+- **Status:** **RULED 2026-10-04: the check gains a way to find scope and failure behaviour, in Standard 0.18.** A dated direction, not an ADR; the 0.18 design writes the ADR. Measured that day: three hooks ship in the family, two in `pm-skills` (a PreToolUse guardrail and a SessionStart phase router) and one here (the demonstrative no-dash guard), and this repository's `hooks/README.md` already gives its hook labelled **Scope:** and **Failure behavior:** lines, which is a shape a check can read. `G1` applies only at Gold, and the one Gold-claiming member that ships hooks is this toolkit, whose hook already carries both labels, so no current verdict is expected to move; grade the family before and after to confirm. It is red-ward for a future Gold plugin with hooks, so it ships warn-first under ADR 0044 (one post-resolution Standard ceiling). **Open design point:** `pm-skills` states one fail-open rule for all its hooks rather than one line per hook, and the format should decide whether a plugin-wide policy satisfies it. Recorded 2026-09-18.
 
 ### E67 - the Standard REQUIRED a co-located `HISTORY.md` per component at Silver+, this repo is Gold with 35 components and zero of them, and nothing caught it  [RESOLVED 2026-09-20, Standard 0.17]
 
@@ -1029,7 +1029,7 @@ critique-skills moved from Standard 0.12 to 0.17 on 2026-09-30 (its PR 56, pinne
 - **What happened.** critique-skills wraps this toolkit rather than vendoring it: `node scripts/check.mjs` resolves a pinned toolkit checkout, runs the gate, and adds the plugin's own site guards (critique-skills ADR 0011, "Pattern A", copied from thinking-framework-skills). At 0.17 its `INDEX.md` regenerated from `Self-validating: node scripts/check.mjs` to `Self-validating: npx agent-skills-toolkit .`. By the Standard's own text that is correct, because absent means `npx` and the plugin consumes the toolkit. The npx command also works: npm `1.19.0` grades the plugin Convergent, 0 errors, 0 warnings.
 - **Why it still matters.** `INDEX.md` and the plugin's `AGENTS.md` now name different commands for validating the plugin. They also grade against different toolkits: npx takes whatever npm serves, while CI uses the pinned commit. The only way to restore the wrapper's command is to declare `"vendored"`, which would be false. The enum has two values for three real shapes: vendored, consumed through npx, and consumed through a local wrapper.
 - **Options.** First, a third closed value, for example `"wrapper"`, that renders `node scripts/check.mjs`. It keeps the closed enum, so a plugin still cannot write arbitrary text into its generated index. Second, keep two values, and have the Standard say that `INDEX.md` names the Standard-level check, while a plugin's own gate belongs in `AGENTS.md`. Third, render a version-pinned npx form. **Recommendation: the first.** At least two family plugins use the wrapper shape, and it is the only option that lets the generated file name the command CI actually runs.
-- **Status:** **OPEN, needs a ruling.** critique-skills accepted the npx line rather than misdeclare, and records that choice in its own E62 (Standard version pin) entry.
+- **Status:** **RULED 2026-10-04: the first option, a third closed value, in Standard 0.18.** Verified that day: `"vendored"` already renders `node scripts/check.mjs` (`selfValidationLine` in `scripts/generators/gen-index.mjs`), and nothing else in `scripts/` reads the value, so the new value changes which word is TRUE in `library.json`, not what any existing plugin renders. Adding a value cannot fail a plugin. critique-skills accepted the npx line rather than misdeclare, and records that choice in its own E62 (Standard version pin) entry.
 
 ### E77 - a toolkit grades a plugin that declares a newer Standard than it ships, and does not say so  [correctness, effort S, OPEN]
 
