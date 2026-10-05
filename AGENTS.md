@@ -60,7 +60,10 @@ Components present on disk:
   the plugin level. S7 (`command-contract`) checks that every command declares a
   non-empty `description` and a `maps-to` resolving to exactly one on-disk skill or
   workflow (conditional on commands existing).
-- **Hooks, workflows:** none yet (later phases).
+- **Hooks:** one demonstrative hook, the PreToolUse no-dash guard registered in
+  `hooks/hooks.json`. It exists so the Gold `G1` check grades a real artifact and
+  `askit-build-hook` has a worked example; see `hooks/README.md`.
+- **Workflows:** none yet.
 
 Do not claim or invoke components that are not present on disk.
 
