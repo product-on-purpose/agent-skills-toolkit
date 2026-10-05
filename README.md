@@ -19,7 +19,7 @@ Most skill collections are a flat, single-agent, ungoverned pile. This is the St
 <p>
   <img src="https://img.shields.io/badge/status-active-success?style=flat-square" alt="Status: Active">
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-Apache--2.0-blue?style=flat-square" alt="License: Apache-2.0"></a>
-  <img src="https://img.shields.io/badge/version-1.19.0-blue?style=flat-square" alt="Version 1.19.0">
+  <img src="https://img.shields.io/badge/version-1.20.0-blue?style=flat-square" alt="Version 1.20.0">
   <a href="https://product-on-purpose.github.io/agent-skills-toolkit/badges/tier.json"><img src="https://img.shields.io/endpoint?url=https%3A%2F%2Fproduct-on-purpose.github.io%2Fagent-skills-toolkit%2Fbadges%2Ftier.json&style=flat-square" alt="Tier badge, generated in CI at the graded commit sha - click through for the raw JSON (tier, sha, Standard pin, date)"></a>
   <a href="#the-catalog"><img src="https://img.shields.io/badge/skills-26-brightgreen?style=flat-square" alt="Skills: 26"></a>
   <img src="https://img.shields.io/badge/checks-35-brightgreen?style=flat-square" alt="Validation checks: 35">
@@ -173,7 +173,7 @@ reports the tier it earns, and puts each finding on the line that caused it.
 ```yaml
 - uses: actions/checkout@v7
 
-- uses: product-on-purpose/agent-skills-toolkit@v1.19.0   # pin a tag or a sha
+- uses: product-on-purpose/agent-skills-toolkit@v1.20.0   # pin a tag or a sha
   with:
     path: .
 ```
@@ -430,7 +430,7 @@ Two Gold checks are worth naming. `G1` (hooks) grades the toolkit's own demonstr
 
 Install from the `product-on-purpose` marketplace (see [Install](#install)).
 
-- **Version** - `1.19.0` (Standard `v0.17`).
+- **Version** - `1.20.0` (Standard `v0.17`).
 - **Tier** - Advanced (Gold), self-validated. *This tier reports structural conformance to a written Standard - deterministic and reproducible; it is not a content review, a safety audit, or a statement that the skills work.* See [what a tier does not certify](docs/explanation/limitations.md).
 - **Install** - `product-on-purpose` marketplace (`agent-plugins`).
 - **Components** - 26 skills, 7 subagents, 2 commands.
