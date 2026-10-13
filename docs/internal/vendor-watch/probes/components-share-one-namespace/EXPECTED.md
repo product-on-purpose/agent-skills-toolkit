@@ -221,3 +221,22 @@ Evidence for both runs was captured headlessly and the fixtures were removed aft
 - The claim text is rewritten to the measured behaviour and **`verifiedOn` advances to 2026-09-17** - on the strength of the reproduction actually run that day, not to clear the wall. The wall is what forced the ADR instead of a silent renewal.
 
 **Blast radius measured, not argued.** The real `agent-plugins` catalogue was graded before and after the change: **byte-identical**. Three collection errors both times, all `marketplace-version-agreement`, zero collection warnings, verdict RED. No catalogue in the family currently has a skill or command collision, so this change is preventive and has never fired in anger. That is exactly why the severity is pinned by a unit test proven able to fail in both directions - restoring `SEVERITY.ERROR` fails it, and restoring the *shared pool / which one wins is undefined* wording fails it - rather than left for a catalogue to catch.
+
+## 2026-10-13: re-run, unchanged, on Claude Code 2.1.296
+
+Headless `claude -p --output-format stream-json --verbose`, one fresh session per install order. Each
+session made exactly one tool call, `Skill`, read no file, and got back the raw `tool_result`:
+
+```
+A then B:  <tool_use_error>Unknown skill: probe-duplicate. Several skills match that name:
+           probe-collision-a:probe-duplicate, probe-collision-b:probe-duplicate — invoke one by its full name.</tool_use_error>
+B then A:  <tool_use_error>Unknown skill: probe-duplicate. Several skills match that name:
+           probe-collision-b:probe-duplicate, probe-collision-a:probe-duplicate — invoke one by its full name.</tool_use_error>
+```
+
+**The same refusal as 2026-09-17.** No body came back in either run, so nothing wins, and only the order the
+candidates are listed in follows install order. `claude plugin details` lists `Skills (1) probe-duplicate`
+for each plugin. ADR 0060's `warn` ruling stands unchanged. `verifiedOn` advances to 2026-10-13, and the
+probe blocks from **2026-11-13**. Fixtures removed afterwards with
+`claude plugin marketplace remove askit-probe-fixtures`; `claude plugin list` shows no probe plugin and
+`.claude/settings.local.json` holds no `probe` entry.

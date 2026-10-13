@@ -111,3 +111,26 @@ folder-README requirement is still load-bearing. `verifiedOn` advances to 2026-0
 **Run early, deliberately.** The blocking date was 2026-09-24 and this was run on 2026-09-17 at the
 maintainer's instruction, which costs roughly six days of the next window. Recorded so the short cycle
 is not later mistaken for a drifting clock.
+
+## 2026-10-13: re-run, unchanged, on Claude Code 2.1.296
+
+Instrument: `claude plugin details probe-agents-scan`, on **Claude Code 2.1.296**, after installing the
+fixture with `--scope local`.
+
+```
+Component inventory
+  Skills (0)
+  Agents (3)  README, real-agent, _README
+```
+
+**Three of four, the same three.** `README.md` and `_README.md` both registered; `README.txt` did not.
+`U15` (agents-dir-registerable) keeps its vendor grounding. `verifiedOn` advances to 2026-10-13, and the
+probe blocks from **2026-11-13**, measured with `npm run vendor-watch -- --today`: 2026-11-12 reports
+0 stale and 2026-11-13 reports 2.
+
+**Two things worth knowing next to this reading.** First, the sub-agents page gained a list headed
+"Subagent files Claude Code skips", scoped to "a project, user, or managed `agents` directory". Every
+`.md` fixture here declares a `name` and a `description`, so none of that list's rules is exercised.
+Second, the inventory lists each plugin agent by its FILENAME (`README`), not by its frontmatter `name`
+(`probe-readme-should-not-be-an-agent`). So a plugin agent's identity comes from its path, which matters
+for E81 (the colon rule now names the frontmatter `name`, not the filename).
