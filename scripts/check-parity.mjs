@@ -317,11 +317,30 @@ export function findException(exceptions, result) {
  * is deliberately not fail-closed: going red on a purely cosmetic vendor output change would be the
  * alarm-fatigue failure ADR 0042 names as its own hazard, and the compound case below is the specific
  * risk worth spending strictness on.
+ *
+ * ADVICE IS NOT A DIAGNOSTIC. Claude Code 2.1.296 (measured 2026-10-13) added a section after the
+ * warnings, headed `ℹ Advice (does not change the verdict):`, whose lines carry the same `❯` marker.
+ * On the seed template it advises a marketplace install line in the README. Counting that line made
+ * the authorized `author` exception stop applying, and validator-parity went red on every PR from
+ * 2026-10-11 with nothing in the verdict changed. The vendor states that advice does not change the
+ * verdict, so marked lines under that header are skipped. A section header is any unindented line;
+ * the advice section ends at the next one. If marked lines exist but every one is advice, the result
+ * is an EMPTY list, so no exception applies and the failure gates: a failure with no verdict-bearing
+ * diagnostic is unexplained, and unexplained fails closed.
  */
 export function extractDiagnostics(detail) {
   const lines = String(detail ?? "").split(/\r?\n/);
-  const marked = lines.map((l) => /^\s*❯\s*(.+)$/.exec(l)).filter(Boolean).map((m) => m[1].trim());
-  return marked.length ? marked : [String(detail ?? "")];
+  const marked = [];
+  let inAdvice = false;
+  let sawMarker = false;
+  for (const l of lines) {
+    if (/^\S/.test(l)) inAdvice = /^(?:ℹ\s*)?Advice\b/i.test(l);
+    const m = /^\s*❯\s*(.+)$/.exec(l);
+    if (!m) continue;
+    sawMarker = true;
+    if (!inAdvice) marked.push(m[1].trim());
+  }
+  return sawMarker ? marked : [String(detail ?? "")];
 }
 
 /**

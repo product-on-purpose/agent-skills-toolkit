@@ -592,6 +592,44 @@ test("extractDiagnostics: splits on the measured marker, and degrades to one dia
   assert.deepEqual(extractDiagnostics(""), [""]);
 });
 
+// The measured `claude plugin validate templates/seed-plugin --strict` output on Claude Code 2.1.296
+// (2026-10-13): the vendor added an Advice section whose lines use the same `❯` marker.
+const SEED_2_1_296 = [
+  "Validating plugin manifest: /x/templates/seed-plugin/.claude-plugin/plugin.json",
+  "",
+  "⚠ Found 1 warning:",
+  "",
+  "  ❯ author: No author information provided. Consider adding author details for plugin attribution",
+  "",
+  "ℹ Advice (does not change the verdict):",
+  "",
+  '  ❯ /x/templates/seed-plugin/README.md: This README has no line that installs "replace-with-plugin-name" from a marketplace.',
+  "      /plugin install replace-with-plugin-name --marketplace <owner>/<repo>",
+  "",
+  "✘ Validation failed (--strict treats warnings as errors)",
+].join("\n");
+
+test("extractDiagnostics: lines under the vendor's Advice header are not diagnostics", () => {
+  assert.deepEqual(extractDiagnostics(SEED_2_1_296), [
+    "author: No author information provided. Consider adding author details for plugin attribution",
+  ]);
+});
+
+test("findException: the seed-plugin exception still applies when the vendor adds advice (Claude Code 2.1.296)", () => {
+  const exceptions = [{ target: "templates/seed-plugin", tool: "claude", adr: "0043", matches: /author/i, reason: "r" }];
+  const base = { kind: "vendor-validate", target: "templates/seed-plugin", tool: "claude", ran: true, pass: false };
+  assert.ok(findException(exceptions, { ...base, detail: SEED_2_1_296 }), "advice must not void the authorized exception");
+
+  // Advice is skipped only inside its own section: a second warning before it still gates.
+  const compound = SEED_2_1_296.replace("⚠ Found 1 warning:\n", "⚠ Found 2 warnings:\n\n  ❯ name: must be a non-empty string\n");
+  assert.equal(findException(exceptions, { ...base, detail: compound }), null, "an unrelated warning must gate");
+
+  // A failure whose only marked lines are advice has no verdict-bearing diagnostic: fail closed.
+  const adviceOnly = SEED_2_1_296.replace(/⚠ Found 1 warning:\n\n {2}❯ author:[^\n]*\n/, "");
+  assert.deepEqual(extractDiagnostics(adviceOnly), []);
+  assert.equal(findException(exceptions, { ...base, detail: adviceOnly }), null, "advice alone explains no failure");
+});
+
 test("allDiagnosticsMatch: a global-flagged fingerprint does not alternate across diagnostics", () => {
   // RegExp.test on a /g/ pattern advances lastIndex between calls, so testing once per diagnostic would
   // match, then spuriously fail. The flag is stripped before the repeated test.
