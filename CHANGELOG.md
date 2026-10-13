@@ -9,6 +9,10 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Fixed
+
+- **The validator-parity harness counted the vendor's advice as a failure.** Claude Code 2.1.296 added an `ℹ Advice (does not change the verdict)` section to `claude plugin validate`, and its lines use the same `❯` marker as real diagnostics. On `templates/seed-plugin` the advice line was read as a second diagnostic, so the documented `author` exception from ADR 0043 (Bronze scaffold defaults a minimal native manifest) stopped applying. The `validator-parity` CI job went red on every pull request from 2026-10-11, and two `npm test` CLI cases failed on any machine with that Claude Code version. `scripts/check-parity.mjs` now skips marked lines inside the advice section. A failure whose only marked lines are advice still gates, because advice explains no failure. Maintainer tooling only: `check-parity.mjs` is not in the npm package.
+
 ## [1.20.0] - 2026-10-04
 
 ### Added
