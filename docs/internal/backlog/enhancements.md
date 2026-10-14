@@ -1082,3 +1082,14 @@ critique-skills built its seventh skill, `critique-forms` (its N2), through `ask
   3. **Re-pin and change nothing else.** Keep the filename rule as a conservative house rule.
 - **Recommendation: option 1.** The old reading was also taken on the page's word, and it was ambiguous enough to send the code in the wrong direction. A fixture run costs minutes with the existing probe pattern. The colon-named fixture must run on a POSIX machine or in CI, because Windows cannot create the file.
 - **Status:** **OPEN, ruling needed.** The claim is NOT re-pinned: a GONE quote must not be re-pinned until someone decides what the change means.
+
+## Release-path finding from the 1.20.0 publish (2026-10-14 UTC)
+
+### E82 - the publish verify step gives up before the registry finishes processing  [release path, effort S, OPEN]
+
+- **Target:** `ATTEMPTS` and `RETRY_DELAY_MS` in `scripts/verify-published-version.mjs`, the last step of the `publish` job in `.github/workflows/publish-npm.yml`, and the docblock paragraph that justifies the bound (it cites review finding F10).
+- **What happened.** Publish run 37270742085 published `agent-skills-toolkit@1.20.0` at 2026-10-14 04:34 UTC. `npm publish` printed `+ agent-skills-toolkit@1.20.0` and the notice "Your package is being processed and may take a few minutes to become available." The verify step then asked the registry six times, five seconds apart, got "does NOT have 1.20.0" every time, and failed the run. A few minutes later the registry served 1.20.0 as `latest`, and the same script run by hand exited 0.
+- **Two measurements.** For 1.19.0 (run 35289925723), npm printed the same notice and the verify step passed on its first attempt. For 1.20.0, the version was not visible after all six attempts. The propagation delay varies, and the current window of about 25 seconds is shorter than the delay npm itself announces.
+- **Consequence.** The run is permanently red although the release landed. A reader of the Actions tab sees a failed publish. Re-running the job is the wrong repair, because it repeats `npm publish` on a version that already exists.
+- **Recommended fix.** Widen the window to a bounded few minutes, for example 24 attempts ten seconds apart, which is about four minutes of waiting. Six request ceilings of 15 seconds each become 24, so the worst case is about ten minutes, still inside the job's 20-minute cap that the F10 paragraph cites. Update that paragraph with the two measurements above. The `sleep` function is injected, so the unit tests stay fast.
+- **Status:** **OPEN.** Not urgent: the next publish is the earliest it can recur, and the failure mode is a false red, never a false green.
