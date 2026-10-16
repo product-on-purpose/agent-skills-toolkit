@@ -1069,7 +1069,7 @@ critique-skills built its seventh skill, `critique-forms` (its N2), through `ask
 
 ## Vendor drift found by the 2026-10-13 probe re-run
 
-### E81 - the vendor's colon rule now names the frontmatter `name`, not the filename  [vendor drift, effort S to M, ruling needed, OPEN]
+### E81 - the vendor's colon rule now names the frontmatter `name`, not the filename  [vendor drift, effort S to M, RULED option 1, OPEN]
 
 - **Target:** the quote claim `agent-filename-colon-excluded` in `foundation/claims/vendor-claims.json`, and `isRuntimeAgentFile` in `scripts/lib/fs-utils.mjs`, which decides the files `U14` (plugin agents declare no unsupported fields) and `U15` (every `.md` under `agents/` registers) look at.
 - **What happened.** On 2026-10-13, `npm run vendor-watch` reported the pinned sentence GONE from <https://code.claude.com/docs/en/sub-agents>. The sentence was "Claude Code doesn't load a file whose name contains one and logs an error to the debug log." The page now has a list headed "Subagent files Claude Code skips". One item reads: "A `name` that starts with `-`, contains `:`, or is longer than 256 characters: Claude Code skips the file and writes an error to the debug log." The `name` field's row also says "The filename doesn't have to match."
@@ -1081,7 +1081,7 @@ critique-skills built its seventh skill, `critique-forms` (its N2), through `ask
   2. **Re-pin on the page's word alone.** Pin the new sentence and move the check from the filename to the frontmatter `name`.
   3. **Re-pin and change nothing else.** Keep the filename rule as a conservative house rule.
 - **Recommendation: option 1.** The old reading was also taken on the page's word, and it was ambiguous enough to send the code in the wrong direction. A fixture run costs minutes with the existing probe pattern. The colon-named fixture must run on a POSIX machine or in CI, because Windows cannot create the file.
-- **Status:** **OPEN, ruling needed.** The claim is NOT re-pinned: a GONE quote must not be re-pinned until someone decides what the change means.
+- **Status:** **RULED 2026-10-14: option 1 (measure, then change). OPEN until the fixture runs.** The maintainer chose option 1. The claim is still NOT re-pinned, and `isRuntimeAgentFile` is unchanged. Both wait for the two-agent fixture to run on a POSIX machine or in CI, and `release-ready` stays red until then. This line read "OPEN, ruling needed" until 2026-10-16.
 
 ## Release-path finding from the 1.20.0 publish (2026-10-14 UTC)
 
