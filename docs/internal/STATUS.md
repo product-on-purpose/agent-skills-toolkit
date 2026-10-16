@@ -481,7 +481,7 @@ blocked its own first real run** - on 7 failing tests and a stale count that had
   indirection over a single point of failure, not the removal of one.** Closing it needs a second
   trusted human with an npm account, tracked as
   [issue #313](https://github.com/product-on-purpose/agent-skills-toolkit/issues/313). Blocking
-  nothing today, which is the trap.
+  nothing today, which is the trap. **Closed 2026-10-16 as an accepted risk** (maintainer ruling, 2026-10-14): no second trusted person is available, and the maintainer keeps the npm account's recovery codes somewhere safe. Reopen the issue if a second maintainer becomes available.
 - **The validator-parity harness is GATING** as of v1.12.0, discharging ADR 0042's scheduled flip.
   Its stated condition was met by v1.11.0 and v1.11.1 completing real CI cycles green. One
   consequence was accepted knowingly: under gating, a run where `uvx` cannot be installed reds a

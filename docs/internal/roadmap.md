@@ -238,7 +238,7 @@ troubleshooting docs are that case.
 
 - **Status: the RULED mechanism is DONE; the record of it is WRONG; the risk it was filed about is
   UNCHANGED.** This is the row whose stated status did not survive checking.
-- **Carried by:** [issue #313 (npm ownership resilience: the bus factor is still one)](https://github.com/product-on-purpose/agent-skills-toolkit/issues/313), open.
+- **Carried by:** [issue #313 (npm ownership resilience: the bus factor is still one)](https://github.com/product-on-purpose/agent-skills-toolkit/issues/313), **closed 2026-10-16 as an accepted risk.** The maintainer ruled on 2026-10-14 to accept the single owner and to keep the npm account's recovery codes somewhere safe. `STATUS.md` now records that decision and the recovery path, which is what AC3 asks for. This line read "open" until 2026-10-16.
 
 > **Acceptance criteria.**
 > 1. `npm access list collaborators agent-skills-toolkit` shows the org team with `read-write`, and the grant is exercised by a real publish (see AC2). (Amended 2026-08-31: the criterion previously read "`npm owner ls` shows two maintainers", which tested the superseded second-maintainer mechanism.)
