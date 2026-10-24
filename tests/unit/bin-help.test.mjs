@@ -40,5 +40,5 @@ test("--help lists a usage line for every subcommand in the dispatch table", () 
 
 test("the gen-manifest usage line names the flags the generator actually accepts", () => {
   const r = spawnSync(process.execPath, [BIN, "--help"], { encoding: "utf8" });
-  assert.match(r.stdout, /^  agent-skills-toolkit gen-manifest \[path\] \[--write\] \[--target=<resolved\|claude\|codex\|all>\]  /m);
+  assert.match(r.stdout, /^  agent-skills-toolkit gen-manifest \[path\] \[--write\] \[--target=<resolved\|claude\|codex\|all>\] \[--allow-field-loss\]  /m);
 });

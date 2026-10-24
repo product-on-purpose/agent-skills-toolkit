@@ -2,7 +2,7 @@
 name: askit-migrate
 description: Assesses an existing skills repository against the Advanced Skill Library Standard, produces a staged bring-to-conformance plan, and writes the minimal canonical manifest so the repo becomes gradeable. Use when adopting a foreign or ad-hoc skills repo, migrating a Claude-only plugin toward cross-agent conformance, or planning a Bronze-to-Silver upgrade path.
 metadata:
-  version: 0.1.0
+  version: 0.2.0
   tier: universal
   audience: advanced
 ---
@@ -28,7 +28,7 @@ When adopting a foreign or ad-hoc skills repo, migrating a Claude-only plugin to
 ## adopt mode
 1. Write the Bronze-minimal canonical `library.json` the conformance core requires at every tier (sec 5.1, check U1): `name`, `version` 0.1.0, `description`, `standard` (the Standard version targeted), and `tier` `universal`. That is the smallest manifest that satisfies U1 and makes the repo gradeable.
 2. Add a root `AGENTS.md` if absent (Standard sec 3.10) so anatomy (U2) passes, then run `askit-evaluate` to confirm Bronze is clean.
-3. When climbing to Silver, add the Convergent-only fields the higher checks require: `agent-targets` (S1), a kebab-case `prefix` ending in a hyphen carried by every component name (S2), and a `components` index (S3); then emit native manifests with `node scripts/generators/gen-manifest.mjs . --write --target=all` (S6) and hand off to the `askit-build-*` skills and `askit-evaluate`.
+3. When climbing to Silver, add the Convergent-only fields the higher checks require: `agent-targets` (S1), a kebab-case `prefix` ending in a hyphen carried by every component name (S2), and a `components` index (S3). Before running `gen-manifest`, copy any hand-written `homepage`, `repository`, `license`, `author`, and `keywords` from the existing native manifests into `library.json`. Also copy the existing Codex manifest's `interface.displayName` and `interface.category` values into `library.json`'s own top-level `displayName` and `category` keys. `gen-manifest` reads those two fields from the top level, not from a nested `interface` object. A thin adopt-mode `library.json` does not carry any of these fields yet. `gen-manifest --write` now refuses to drop a field it cannot see in `library.json` (E72, adopting a plugin can wipe its hand-written manifest fields). Then emit native manifests with `node scripts/generators/gen-manifest.mjs . --write --target=all` (S6). A refusal names each missing field and its target file. For `interface.displayName` or `interface.category`, it also names the `library.json` key to set; add that field and rerun. A hand-set Codex interface field outside that pair, such as `shortDescription` or `brandColor`, has no `library.json` home at all. Its refusal says so plainly, and `--allow-field-loss` is the only way through for it. Hand off to the `askit-build-*` skills and `askit-evaluate`.
 
 ## Scope
 `askit-migrate` adopts an existing repo; greenfield scaffolding from an interview is a separate, planned init/onboarding flow (Standard sec 10.7). It makes the repo gradeable and produces the plan, then the `askit-build-*` skills and `askit-evaluate` execute the plan slice by slice; it does not rename components to add the prefix wholesale or rewrite skills on its own. The why-gate applies before adding any new component (see `askit-backlog`).

@@ -3,7 +3,7 @@
 // why:          generating the per-agent manifests from one source keeps Claude Code and Codex in lockstep
 // used-by:      run by contributors and the cadence; its output is drift-checked by manifest-drift (U8)
 import { loadPlugin } from "../lib/load-plugin.mjs";
-import { writeFileSync, mkdirSync } from "node:fs";
+import { writeFileSync, mkdirSync, readFileSync } from "node:fs";
 import path from "node:path";
 import { normalizeArgPath } from "../lib/fs-utils.mjs";
 
@@ -95,6 +95,125 @@ const RENDERERS = {
   codex: { file: ".codex-plugin/plugin.json", render: renderCodexNativeManifest },
 };
 
+/**
+ * Field-loss protection (E72, adopting a plugin can wipe its hand-written manifest fields).
+ *
+ * Adopting a plugin with a thin library.json, then running `gen-manifest --write`, used to
+ * null out or empty every spine field a native manifest carried. Those fields are homepage,
+ * repository, license, author, and keywords. It could also replace a hand-set Codex
+ * displayName/category with a worse computed guess.
+ *
+ * `fieldLosses` below does NOT walk a fixed allowlist of fields: it walks every non-empty key
+ * the EXISTING file carries (recursing one level into Codex's `interface` block), so a vendor
+ * interface key neither renderer has ever heard of (shortDescription, brandColor, and the rest
+ * of the Codex marketplace block) is still caught, not just the two keys the renderer happens
+ * to emit. This table is only the libKey MAP: which library.json key, if any, can justify a
+ * change at a given field path. A field with no entry here has no library.json home at all, so
+ * any loss there can only be waved through with `--allow-field-loss`.
+ *
+ * Decision (E72, rounds 2 and 3 of the PR #368 review): a field with no entry in this map is a
+ * loss whenever the render would change it, with one exception. When the existing value and the
+ * rendered value are the same relative path spelled two ways ("./skills" and "./skills/"), the
+ * difference is a regeneration. Round 2 excused ANY non-empty rendered value at such a key. That
+ * let a hand-written inline `mcpServers` object, or a custom `skills` directory, be replaced
+ * without a refusal; round 3 narrowed the exception to path spelling only.
+ *
+ * In the refusal, a field with no entry here is named with "no library.json field carries this".
+ * A mapped field is named with its library.json key, or with no suffix when the key matches the
+ * field's own name.
+ */
+export const NATIVE_LIB_KEY_MAP = {
+  name: "name",
+  version: "version",
+  description: "description",
+  homepage: "homepage",
+  repository: "repository",
+  license: "license",
+  author: "author",
+  keywords: "keywords",
+  "interface.displayName": "displayName",
+  "interface.category": "category",
+};
+
+/** True for undefined/null, an empty/whitespace-only string, an empty array, or an empty object. */
+function isEmptyValue(v) {
+  if (v === undefined || v === null) return true;
+  if (typeof v === "string") return v.trim() === "";
+  if (Array.isArray(v)) return v.length === 0;
+  if (typeof v === "object") return Object.keys(v).length === 0;
+  return false;
+}
+
+/** Reads a dotted path ("interface.displayName") out of a plain object; missing segments read as undefined. */
+function getAtPath(obj, dotted) {
+  return dotted.split(".").reduce((o, k) => (o == null ? undefined : o[k]), obj);
+}
+
+function valuesEqual(a, b) {
+  return JSON.stringify(a) === JSON.stringify(b);
+}
+
+/**
+ * True when both values are strings naming the same relative path, once surrounding whitespace is
+ * trimmed and a leading "./" and any trailing "/" are stripped ("./skills" and "./skills/"). This is the only difference the walk
+ * forgives at a field with no library.json home (E72, round 3). An object, an array, or a
+ * different path is never forgiven, because it is hand-written content the render would replace.
+ */
+function samePathSpelling(a, b) {
+  if (typeof a !== "string" || typeof b !== "string") return false;
+  const norm = (s) => s.trim().replace(/^\.\//, "").replace(/\/+$/, "");
+  return norm(a) !== "" && norm(a) === norm(b);
+}
+
+/**
+ * Compares an existing native manifest to a freshly rendered one, field by field. It reports
+ * every field that would be LOST. A field is lost when the existing value is non-empty, the
+ * rendered value differs from (or omits) it, and library.json does not supply it. A value
+ * library.json DOES supply, even when it differs from what is on disk, is a deliberate
+ * regeneration, not a loss. It is never reported.
+ *
+ * The fields it checks are not a fixed list: it walks every non-empty top-level key the
+ * EXISTING object carries, plus (one level deep only) every key inside an existing `interface`
+ * block, so a vendor field neither renderer has ever heard of is still caught. `libKeyMap`
+ * supplies the library.json key, if any, that can justify a change at a given field path; a
+ * field with no entry has no library.json home, so `lost[].libKey` comes back null and only
+ * `--allow-field-loss` is a way through. The one exception is a pure path-spelling difference
+ * ("./skills" on disk, "./skills/" rendered), which is a regeneration (E72, round 3). An existing
+ * `interface` that is not a plain object (a string, an array) is checked as one field, since the
+ * render would replace it whole. Pure and side-effect-free, so directly unit-testable.
+ */
+export function fieldLosses(existingObj, newObj, lib, libKeyMap = NATIVE_LIB_KEY_MAP) {
+  const lost = [];
+  const seen = new Set();
+
+  const checkField = (field) => {
+    if (seen.has(field)) return;
+    seen.add(field);
+    const oldVal = getAtPath(existingObj, field);
+    if (isEmptyValue(oldVal)) return;
+    const newVal = getAtPath(newObj, field);
+    if (valuesEqual(oldVal, newVal)) return;
+    const libKey = libKeyMap[field] ?? null;
+    const libVal = libKey ? lib?.[libKey] : undefined;
+    if (!isEmptyValue(libVal)) return; // library.json supplies a (possibly different) value: deliberate regeneration
+    if (!libKey && samePathSpelling(oldVal, newVal)) return; // no library.json home, and the only difference is how one relative path is spelled: a regeneration, not a loss (E72, round 3)
+    lost.push({ field, existing: oldVal, libKey });
+  };
+
+  for (const key of Object.keys(existingObj ?? {})) {
+    if (key === "interface") continue; // walked separately, one level deep, below
+    checkField(key);
+  }
+  const existingInterface = existingObj?.interface;
+  if (existingInterface && typeof existingInterface === "object" && !Array.isArray(existingInterface)) {
+    for (const key of Object.keys(existingInterface)) checkField(`interface.${key}`);
+  } else {
+    checkField("interface"); // a non-object interface (a string, an array) is hand-written content the render replaces whole
+  }
+
+  return lost;
+}
+
 if (process.argv[1]?.endsWith("gen-manifest.mjs")) {
   // Normalized through normalizeArgPath so a Windows backslash root is not silently misread (the
   // historical defect: docs/how-to/troubleshoot-the-gate.md).
@@ -103,20 +222,79 @@ if (process.argv[1]?.endsWith("gen-manifest.mjs")) {
   const targetArg = process.argv.find((a) => a.startsWith("--target="));
   const target = targetArg ? targetArg.slice("--target=".length) : "all";
   const write = process.argv.includes("--write");
+  const allowFieldLoss = process.argv.includes("--allow-field-loss");
   if (target === "all" && !write) {
     process.stderr.write("--target=all requires --write (it generates multiple files)\n");
     process.exit(2);
   }
   const ctx = loadPlugin(root);
+  const lib = ctx.library.data ?? {};
 
   const keys = target === "all" ? ["resolved", "claude", "codex"] : [target];
+  const toProcess = [];
   for (const k of keys) {
     const r = RENDERERS[k];
     if (!r) {
       process.stderr.write(`unknown --target "${k}" (use resolved|claude|codex|all)\n`);
       process.exit(2);
     }
-    const text = r.render(ctx);
+    toProcess.push({ r, text: r.render(ctx), checkLoss: write && (k === "claude" || k === "codex") });
+  }
+
+  // Field-loss check runs only on a --write of a native manifest (claude or codex). It never
+  // runs on a print-only or --target=resolved run. The non-write paths and the steady state are
+  // unaffected (E72, adopting a plugin can wipe its hand-written manifest fields). It is checked
+  // across every target in THIS invocation before anything is written. A --target=all run
+  // therefore never writes claude and codex into disagreement: either every target in the run
+  // is clear, or nothing in the run is written.
+  const problems = [];
+  if (write) {
+    for (const { r, text, checkLoss } of toProcess) {
+      if (!checkLoss) continue;
+      const abs = path.join(root, r.file);
+      let existingObj = null;
+      let unreadable = false;
+      try {
+        existingObj = JSON.parse(readFileSync(abs, "utf8"));
+      } catch (e) {
+        if (e.code !== "ENOENT") unreadable = true; // present but unparseable: fail closed, never overwrite blind
+      }
+      if (unreadable) {
+        problems.push({ file: r.file, lost: [{ field: "(whole file)", existing: "present but not valid JSON", libKey: null }] });
+        continue;
+      }
+      if (!existingObj) continue; // nothing on disk yet: nothing to lose
+      const lost = fieldLosses(existingObj, JSON.parse(text), lib);
+      if (lost.length) problems.push({ file: r.file, lost });
+    }
+  }
+
+  if (problems.length && !allowFieldLoss) {
+    process.stderr.write(
+      "refuse to write: regenerating would drop, empty, or replace field(s) that the existing manifest carries and library.json does not supply.\n"
+    );
+    for (const p of problems) {
+      process.stderr.write(`  ${p.file}:\n`);
+      for (const l of p.lost) {
+        // The native path (e.g. interface.displayName) is not always the library.json key that
+        // can supply it (displayName, top-level). Name the library.json key when it differs, or
+        // say plainly that library.json has no field for this one at all (E72, finding 3). The
+        // whole-file (malformed JSON) entry is neither case: there is no single field to map.
+        let suffix = "";
+        if (l.field !== "(whole file)") {
+          if (l.libKey && l.libKey !== l.field) suffix = ` (set library.json "${l.libKey}")`;
+          else if (!l.libKey) suffix = " (no library.json field carries this; --allow-field-loss is the only way through)";
+        }
+        process.stderr.write(`    - ${l.field} (existing: ${JSON.stringify(l.existing)})${suffix}\n`);
+      }
+    }
+    process.stderr.write(
+      "Add the missing field(s) to library.json so the regeneration is deliberate, or pass --allow-field-loss to overwrite them anyway. Nothing was written.\n"
+    );
+    process.exit(1);
+  }
+
+  for (const { r, text } of toProcess) {
     if (write) {
       const abs = path.join(root, r.file);
       mkdirSync(path.dirname(abs), { recursive: true });

@@ -42,7 +42,7 @@ If a `library.json` exists, run `node scripts/evaluate.mjs <repo> --json` and re
 Stage the work so the repo is shippable at each tier boundary:
 
 1. **To Bronze:** write `library.json` + `AGENTS.md` (`adopt`), then fix frontmatter, directory names, and broken links. Re-run `askit-evaluate` until Bronze is clean.
-2. **To Silver:** declare `agent-targets`; choose and apply the prefix (a deliberate rename, slice by slice); build the `components` index; emit native manifests (`gen-manifest`); add a chain contract only if chaining is used.
+2. **To Silver:** declare `agent-targets`; choose and apply the prefix (a deliberate rename, slice by slice); build the `components` index; copy any hand-written `homepage`, `repository`, `license`, `author`, `keywords`, and Codex display fields from the existing native manifests into `library.json` before regenerating (E72, adopting a plugin can wipe its hand-written manifest fields); emit native manifests (`gen-manifest`); add a chain contract only if chaining is used.
 3. **Optional tail:** hooks, workflows, a docs site, samples.
 
 For each gap, name the resolver: the `askit-build-<type>` skill authors a missing component; the failing check's message states the fix; `askit-evaluate` re-confirms. Record the plan in the repo (a backlog or a migration note) so it is resumable.
@@ -54,6 +54,8 @@ The smallest change that makes the repo gradeable:
 - A Bronze-minimal `library.json` with exactly the fields U1 requires at every tier (sec 5.1): `name`, `version` 0.1.0, `description`, `standard` (the Standard version targeted), and `tier` `universal`. The Convergent-only fields (`prefix`, `agent-targets`, a `components` index) are added later, in the Silver step, where S1/S2/S3 require them; writing them now does not help Bronze and a manifest missing `description`/`standard`/`tier` fails U1.
 - A root `AGENTS.md` if absent.
 - Run `askit-evaluate` to confirm Bronze is clean; the native manifests (`gen-manifest --write --target=all`) come with the Silver step, once `agent-targets` is declared.
+
+The repo being adopted may already have hand-written native manifests, carrying `homepage`, `repository`, `license`, `author`, `keywords`, or a Codex display name and category. Copy those fields into `library.json` before the Silver step's `gen-manifest --write`. The Codex display name and category go into `library.json`'s top-level `displayName` and `category` keys, not into a nested `interface` object; `gen-manifest` reads them from there. An adopt-mode `library.json` is thin by design (see the adopt section above). `gen-manifest` refuses to overwrite a native manifest when the regeneration would drop, empty, or replace a field that `library.json` does not supply. This is E72, adopting a plugin can wipe its hand-written manifest fields. The refusal names each field and its target file, and the `library.json` key to set when that key differs from the field's own name. Add the field and rerun. A hand-set Codex interface field with no `library.json` home at all, such as `shortDescription` or `brandColor`, says so in the same refusal. `--allow-field-loss` is the only way through for it, and for any other loss that is deliberate.
 
 Then hand off: `askit-evaluate` drives the findings to zero and the `askit-build-*` skills author what is missing. `adopt` deliberately does not rename components wholesale or rewrite skill bodies; those are slice-by-slice steps in the plan, each separately verifiable.
 
