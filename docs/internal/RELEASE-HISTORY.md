@@ -172,7 +172,15 @@ rendering at warn until 0.14 so nobody is gated on our defect.
 baseline, except two that gain one capped warning each from the `G4` migration. Zero verdicts moved.
 
 ## Where we are now
-- Version **1.17.0**, Standard **0.15**, **34-check spine**, **3 scopes** (plugin, component, marketplace), **26 skills**, suite **1439 / 0 failures**, gate **Advanced 0/0**, `release-ready` all five green. Self-grading Gold on every CI build. **Fully distributed as of 2026-08-28**: npm `latest` serves **1.17.0** with SLSA provenance and `agent-plugins` is pinned to `v1.17.0` (`fd5286b`) at registry 1.72.0. The `v1.17.0` tag was the first through the approval-gated publish path, whose first exercise also found and fixed the missing `v*` tag entry in the environment's deployment branch policy. `v1.16.2` was deliberately never published to npm, the second such skip after 1.12.0; the registry pins by git sha, so its Action fix ships regardless. **This line went stale exactly as it warned it would**: it read `1.13.0` from 2026-08-14 to 2026-08-28, unrefreshed through six releases and three Standard cuts. What changed on 2026-08-28 is that keeping it true is no longer only a habit: a pushed tag now runs every gate and stops at a required reviewer before publishing, and `repin-watch` notices registry drift daily.
+- Version **1.21.0, cut 2026-10-23**, release PR open (merge, tag, GitHub release, and npm publish
+  follow). Standard **0.17**, **35-check spine**, **3 scopes** (plugin, component, marketplace), **26
+  skills**, suite **1721 tests, 1717 pass, 0 failures, 4 skipped**, gate **Advanced 0/0**,
+  `release-ready` all six gates green with a GitHub token. Full detail in [`STATUS.md`](STATUS.md),
+  which is the live state this file's own convention points readers to. **This line read `1.17.0` from
+  2026-08-28 until 2026-10-23**, unrefreshed through v1.17.1, v1.18.0, v1.19.0, and v1.20.0 - the same
+  five-release gap the paragraph above this heading now records rather than hides. Keeping this line
+  true is still only a habit: nothing machine-checked compares it against `STATUS.md`, the way
+  `check-readme-version.mjs` already compares the README's own Status section against `library.json`.
 
 ## What's next, and why (the roadmap, in priority order)
 The v1.6.0 headline (the manifest-vs-disk drift check) and the report glossary + Bronze reference page both shipped above. The remaining v1.6.0-program work lands as continuous supporting effort:
@@ -337,3 +345,36 @@ round-trip (Q-E) was run and recorded for this tag for the first time since v1.1
 `codex-cli 0.144.5`, not merely listed. And the version number itself carries a small governance story: v1.17.0
 had been assigned to two earlier bodies of work (the graded cohort, then the onboarding funnel), and only this
 cut shipped under it, so the funnel packet went unversioned per the no-version-until-it-ships precedent.
+
+**This file's narrative stopped here for five releases.** v1.17.1, v1.18.0, v1.19.0, and v1.20.0 each
+shipped with an entry in [`STATUS.md`](STATUS.md) and the corresponding `CHANGELOG.md` section, but none
+got a block in this file. The gap is recorded rather than silently backfilled with narrative nobody
+wrote at the time; a reader who needs those four releases' through-line should read `STATUS.md`'s dated
+sections and the CHANGELOG, not assume this file is current between v1.17.0 and the entry below.
+
+### v1.21.0 - vendor currency and the adoption guard (2026-10-23)
+
+**What:** a minor that closes two independent gaps a 2026-10-23 vendor re-read and a real adoption
+measurement both found. `gen-manifest --write` now refuses to overwrite a native manifest when the
+regeneration would drop a hand-written field it cannot carry forward, and `isRuntimeAgentFile` stops
+excluding a colon in a plugin agent's filename, because Claude Code's own sub-agents page never said
+that rule applied to a plugin's `agents/` directory in the first place.
+
+**Value, plainly:** a tool that regenerates your configuration should never silently throw away what
+you typed by hand, and a tool that asserts vendor behaviour as fact should change its mind when the
+vendor's own documentation does. This release does both: the refusal protects the next plugin that
+adopts this Standard with real hand-written manifests, and the colon fix corrects a rule this toolkit
+had read backwards - from the filename to the frontmatter field the vendor actually names - since the
+rule was first pinned.
+
+**Value, for engineers:** the refusal walks every field the existing native manifest carries, not a
+fixed allowlist - the first version of the fix, round 1 of its review, caught only 2 of 11 non-empty
+Codex `interface` fields on the real `pm-skills` fixture it was measured against, and two further
+review rounds closed the gap before approval. The colon fix was decided by measurement rather than by
+re-reading the page alone: a two-agent fixture run in a Linux container on Claude Code 2.1.309 showed
+the runtime loads a plugin agent whose filename contains a colon, confirming the newer vendor wording
+over the toolkit's five-month-old reading. Two smaller vendor-currency fixes ride the same pass - the
+plugin-agent supported-fields list gains `autoCompactWindow`, and the validator-parity harness learns
+to skip a newer "Plugin directory checks" block the same way it already skips the Advice section - and
+the v1.20.0 publish's own verify step is widened from a 25-second window to about four minutes
+typically, because that publish landed cleanly and still reported red.
