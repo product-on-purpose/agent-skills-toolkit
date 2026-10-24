@@ -10,7 +10,7 @@ A new, vendor-neutral specification, found and first read during the 2026-10-23 
 | | |
 | --- | --- |
 | **Surveyed through** | **1.0.0** |
-| **Surveyed on** | 2026-10-23, by jprisant with Claude |
+| **Surveyed on** | 2026-10-23, by the maintainer, with Claude |
 | **Method** | `read` |
 | **Specification** | `https://agent-plugins.org/specification.md` |
 | **Schema** | `https://agent-plugins.org/schemas/1.0.0/plugin.schema.json` |

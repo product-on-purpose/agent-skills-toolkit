@@ -18,7 +18,7 @@ Newest first.
 
 ## Survey 2026-10-23 (first-party provider survey, six clusters)
 
-Surveyed by: jprisant, with Claude. **Scope: a targeted cluster read, not a full re-sweep** - it covers
+Surveyed by: the maintainer, with Claude. **Scope: a targeted cluster read, not a full re-sweep** - it covers
 six named clusters rather than every page on every surface. Claude Code CLI version at read time:
 **2.1.309**, drifting to 2.1.310 partway through (`check-parity.test.mjs`'s own CLI run reported
 2.1.310 in the same session).
