@@ -154,8 +154,8 @@ function valuesEqual(a, b) {
 }
 
 /**
- * True when both values are strings naming the same relative path, once a leading "./" and any
- * trailing "/" are stripped ("./skills" and "./skills/"). This is the only difference the walk
+ * True when both values are strings naming the same relative path, once surrounding whitespace is
+ * trimmed and a leading "./" and any trailing "/" are stripped ("./skills" and "./skills/"). This is the only difference the walk
  * forgives at a field with no library.json home (E72, round 3). An object, an array, or a
  * different path is never forgiven, because it is hand-written content the render would replace.
  */

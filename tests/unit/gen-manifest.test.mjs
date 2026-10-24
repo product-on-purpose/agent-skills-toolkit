@@ -198,6 +198,13 @@ test("fieldLosses still flags a renderer-owned field the renderer renders EMPTY 
 
 // E72, round 3. Round 2 excused ANY non-empty rendered value at a key with no library.json home,
 // so each case below was replaced without a refusal. Only a path spelled two ways is forgiven now.
+test("fieldLosses forgives only path spelling at an unmapped key: a missing leading ./ and surrounding whitespace (E72, round 3)", () => {
+  // Pins the normalizer itself: removing the trim or the leading-"./" strip must turn this red.
+  assert.deepEqual(fieldLosses({ skills: "skills" }, { skills: "./skills/" }, {}), [], '"skills" names the renderer\'s own "./skills/"');
+  assert.deepEqual(fieldLosses({ skills: " ./skills " }, { skills: "./skills/" }, {}), [], "surrounding whitespace is trimmed");
+  assert.deepEqual(fieldLosses({ skills: "./" }, { skills: "./skills/" }, {}).map((l) => l.field), ["skills"], "a path that normalizes to empty is never forgiven");
+});
+
 test("fieldLosses flags a different path at an unmapped key, even though the renderer emits a non-empty value there (E72, round 3)", () => {
   const lost = fieldLosses({ skills: "./src/agent-skills/" }, { skills: "./skills/" }, {});
   assert.deepEqual(lost.map((l) => l.field), ["skills"], "a custom skills directory is hand-written content, not path spelling");
