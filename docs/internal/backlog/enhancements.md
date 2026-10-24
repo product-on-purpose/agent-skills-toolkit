@@ -1069,7 +1069,7 @@ critique-skills built its seventh skill, `critique-forms` (its N2), through `ask
 
 ## Vendor drift found by the 2026-10-13 probe re-run
 
-### E81 - the vendor's colon rule now names the frontmatter `name`, not the filename  [vendor drift, effort S to M, RULED option 1, OPEN]
+### E81 - the vendor's colon rule now names the frontmatter `name`, not the filename  [vendor drift, effort S to M, RULED option 1, SHIPPED-pending-release]
 
 - **Target:** the quote claim `agent-filename-colon-excluded` in `foundation/claims/vendor-claims.json`, and `isRuntimeAgentFile` in `scripts/lib/fs-utils.mjs`, which decides the files `U14` (plugin agents declare no unsupported fields) and `U15` (every `.md` under `agents/` registers) look at.
 - **What happened.** On 2026-10-13, `npm run vendor-watch` reported the pinned sentence GONE from <https://code.claude.com/docs/en/sub-agents>. The sentence was "Claude Code doesn't load a file whose name contains one and logs an error to the debug log." The page now has a list headed "Subagent files Claude Code skips". One item reads: "A `name` that starts with `-`, contains `:`, or is longer than 256 characters: Claude Code skips the file and writes an error to the debug log." The `name` field's row also says "The filename doesn't have to match."
@@ -1082,6 +1082,7 @@ critique-skills built its seventh skill, `critique-forms` (its N2), through `ask
   3. **Re-pin and change nothing else.** Keep the filename rule as a conservative house rule.
 - **Recommendation: option 1.** The old reading was also taken on the page's word, and it was ambiguous enough to send the code in the wrong direction. A fixture run costs minutes with the existing probe pattern. The colon-named fixture must run on a POSIX machine or in CI, because Windows cannot create the file.
 - **Status:** **RULED 2026-10-14: option 1 (measure, then change). OPEN until the fixture runs.** The maintainer chose option 1. The claim is still NOT re-pinned, and `isRuntimeAgentFile` is unchanged. Both wait for the two-agent fixture to run on a POSIX machine or in CI, and `release-ready` stays red until then. This line read "OPEN, ruling needed" until 2026-10-16.
+  **SHIPPED-pending-release 2026-10-23.** The two-agent fixture ran in a Linux container on Claude Code 2.1.309. A colon in the filename did not stop the plugin loader. `isRuntimeAgentFile` in `scripts/lib/fs-utils.mjs` now accepts any `.md` file, colon or not. The retired claim `agent-filename-colon-excluded` is replaced by `plugin-agents-outside-skip-list`, which pins the sub-agents page's own scoping sentence. The fixture's verbatim record and reading live in `foundation/sources/claude-code.md`'s 2026-10-23 section. `vendor-watch` holds on this claim again.
 
 ## Release-path finding from the 1.20.0 publish (2026-10-14 UTC)
 
@@ -1093,3 +1094,13 @@ critique-skills built its seventh skill, `critique-forms` (its N2), through `ask
 - **Consequence.** The run is permanently red although the release landed. A reader of the Actions tab sees a failed publish. Re-running the job is the wrong repair, because it repeats `npm publish` on a version that already exists.
 - **Recommended fix.** Widen the window to a bounded few minutes, for example 24 attempts ten seconds apart, which is about four minutes of waiting. Six request ceilings of 15 seconds each become 24, so the worst case is about ten minutes, still inside the job's 20-minute cap that the F10 paragraph cites. Update that paragraph with the two measurements above. The `sleep` function is injected, so the unit tests stay fast.
 - **Status:** **OPEN.** Not urgent: the next publish is the earliest it can recur, and the failure mode is a false red, never a false green.
+
+## Vendor drift found by the 2026-10-23 survey
+
+### E83 - the supported-fields list gained `autoCompactWindow`  [vendor drift, effort S, SHIPPED-pending-release]
+
+- **Target:** `PLUGIN_AGENT_SUPPORTED_FIELDS` in `scripts/lib/vendor-agent-fields.mjs`, and the quote claim `plugin-agent-supported-fields` in `foundation/claims/vendor-claims.json`.
+- **What happened.** The plugin-agent supported-fields sentence on `https://code.claude.com/docs/en/plugins/components` (read 2026-10-23) gained a field. It now reads: "Supported fields: `name`, `description`, `model`, `effort`, `maxTurns`, `autoCompactWindow`, `tools`, `disallowedTools`, `skills`, `memory`, `background`, `omitClaudeMd`, `isolation`, `color`, and the `cacheTtl` key of `experimental`." The new field sits between `maxTurns` and `tools`, in the vendor's own order.
+- **Why it matters.** This list only builds `U14`'s remediation prose (the message a finding shows an author who declared a refused field), so a stale list would send an author toward a field the runtime does not actually accept.
+- **Fix.** `autoCompactWindow` was added to `PLUGIN_AGENT_SUPPORTED_FIELDS`, in the vendor's order. The claim was re-pinned with `verifiedOn: 2026-10-23`, measured against the watch's own fetch and normaliser (`npm run vendor-watch`) before landing. Green-ward under [ADR 0045 (restricted fields on plugin-shipped agents)](../decisions/0045-restricted-fields-on-plugin-shipped-agents.md): this list never gates a plugin, so no verdict moves.
+- **Status:** **SHIPPED-pending-release.** The constant, the claim, and the dated reading in `foundation/sources/claude-code.md` all carry the new field. Ships in the next release after this entry lands.

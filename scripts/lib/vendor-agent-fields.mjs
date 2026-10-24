@@ -46,6 +46,14 @@
  *   - the UNSUPPORTED list below is therefore UNCHANGED, so no plugin's verdict moves. Per ADR 0045 that
  *     makes this a pin refresh, not a Standard revision.
  *
+ * What the 2026-10-23 re-read changed, against the 2026-09-28 reading (E83):
+ *   - the SUPPORTED list gained `autoCompactWindow`, between `maxTurns` and `tools`. It is read only to
+ *     build U14's remediation prose, so this is green-ward under ADR 0045: a pin refresh and a constant
+ *     update, not a Standard minor. No plugin's verdict moves.
+ *   - the UNSUPPORTED list and the security sentence are unchanged: still `hooks`, `mcpServers`,
+ *     `permissionMode`, with the same rationale, on the same page (`cc-sub-agents`).
+ *   - measured with the watch's own fetch and normaliser (`npm run vendor-watch`) before writing this.
+ *
  * Earlier readings, kept because each one moved something:
  *   - 2026-09-16: the supported list gained `omitClaudeMd`, and the refusal went passive to active.
  *   - 2026-08-13, while implementing ADR 0045: "For security reasons, `hooks`, `mcpServers`, and
@@ -75,8 +83,8 @@ export const AGENT_FIELDS_QUOTE =
 export const PLUGIN_AGENT_UNSUPPORTED_FIELDS = Object.freeze(["hooks", "mcpServers", "permissionMode"]);
 
 export const PLUGIN_AGENT_SUPPORTED_FIELDS = Object.freeze([
-  "name", "description", "model", "effort", "maxTurns", "tools", "disallowedTools", "skills", "memory", "background", "omitClaudeMd", "isolation",
-  "color", "experimental.cacheTtl",
+  "name", "description", "model", "effort", "maxTurns", "autoCompactWindow", "tools", "disallowedTools", "skills", "memory", "background",
+  "omitClaudeMd", "isolation", "color", "experimental.cacheTtl",
 ]);
 
 /**

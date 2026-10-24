@@ -327,18 +327,43 @@ export function findException(exceptions, result) {
  * the advice section ends at the next one. If marked lines exist but every one is advice, the result
  * is an EMPTY list, so no exception applies and the failure gates: a failure with no verdict-bearing
  * diagnostic is unexplained, and unexplained fails closed.
+ *
+ * NEITHER IS A "PLUGIN DIRECTORY CHECK". Claude Code 2.1.309/2.1.310 (measured 2026-10-23) added a
+ * second non-verdict block, between the manifest warnings and the Advice section, headed
+ * `Plugin directory checks for <path>.` On `templates/seed-plugin` it adds a `❯`-marked ICON_MISSING
+ * warning and a `❯`-marked "About these checks:" explanation, both still present when the vendor's own
+ * next line reads, verbatim: "These plugin directory checks do not change the result below." That is
+ * the same "does not change the verdict" relationship the Advice section already states, in different
+ * words, and measurement confirms it: `templates/seed-plugin` fails `--strict` on `author` alone (one
+ * manifest warning; the repository root, which has no manifest warning, passes `--strict` with the SAME
+ * icon warning present). Scooping the icon line anyway made every diagnostic in this block count, so
+ * `allDiagnosticsMatch` no longer saw ALL of them match `/author/i` and the documented ADR 0043
+ * exception stopped applying - the icon warning is a different vendor finding, never decided by that
+ * ADR, and widening the fingerprint to cover it would be deciding something nobody has ruled on.
+ * `NON_VERDICT_HEADERS` below is therefore a SET of header patterns, not one flag: the Advice header,
+ * the "Plugin directory checks for" header that opens the block, and the "Found N plugin directory
+ * warning" and "About these checks" headers nested inside it (seen, in that output, AFTER the opening
+ * header - so a single enter/exit pair keyed on the opening line would still need to recognize them).
+ * The pattern for the plugin-directory warning count requires "plugin directory" in the sentence, so it
+ * cannot also match the ordinary `⚠ Found N warning:` header that DOES carry manifest diagnostics.
  */
+const NON_VERDICT_HEADERS = [
+  /^(?:ℹ\s*)?Advice\b/i,
+  /^Plugin directory checks\b/i,
+  /^(?:⚠\s*)?Found \d+ plugin directory warnings?\b/i,
+  /^About these checks\b/i,
+];
 export function extractDiagnostics(detail) {
   const lines = String(detail ?? "").split(/\r?\n/);
   const marked = [];
-  let inAdvice = false;
+  let skipSection = false;
   let sawMarker = false;
   for (const l of lines) {
-    if (/^\S/.test(l)) inAdvice = /^(?:ℹ\s*)?Advice\b/i.test(l);
+    if (/^\S/.test(l)) skipSection = NON_VERDICT_HEADERS.some((re) => re.test(l));
     const m = /^\s*❯\s*(.+)$/.exec(l);
     if (!m) continue;
     sawMarker = true;
-    if (!inAdvice) marked.push(m[1].trim());
+    if (!skipSection) marked.push(m[1].trim());
   }
   return sawMarker ? marked : [String(detail ?? "")];
 }

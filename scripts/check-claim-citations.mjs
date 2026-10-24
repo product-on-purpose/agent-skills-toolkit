@@ -64,6 +64,7 @@ const KNOWN_NON_CLAIM = new Map([
   ["vendor-cited", "a check provenance class (objective / vendor-cited / house), per ADR 0029"],
   ["user-invocable", "a skill frontmatter field"],
   ["disable-model-invocation", "a skill frontmatter field"],
+  ["agent-filename-colon-excluded", "retired claim id, replaced 2026-10-23 by plugin-agents-outside-skip-list (E81)"],
 ]);
 
 /** A line is about claims or pins if it says so. */

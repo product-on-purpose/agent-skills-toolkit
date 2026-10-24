@@ -143,26 +143,34 @@ export function listSkillDirs(root) {
  * part of the scoped identity. A bare basename would collide `agents/security.md` with
  * `agents/review/security.md`, which are two different subagents.
  *
- * A filename containing `:` is SKIPPED: the vendor reserves the colon for scoped identifiers and "doesn't
- * load a file whose name contains one". Reporting it would be stricter than the runtime, which is the
- * opposite of the failure these listers exist to prevent.
+ * A filename containing `:` is NOT skipped (E81). An earlier reading of the vendor's docs tied the colon
+ * rule to the FILENAME; a 2026-10-13 re-read found that sentence gone, replaced by a list scoped to "a
+ * project, user, or managed `agents` directory, or ... a directory you add with `--add-dir`" - never a
+ * plugin's `agents/`. A two-agent fixture run on 2026-10-23 corroborates that scope empirically: Claude
+ * Code's own `claude plugin details` inventoried a plugin agent file named `colon:file.md` without
+ * complaint. See the `plugin-agents-outside-skip-list` claim in `foundation/claims/vendor-claims.json`
+ * and the dated reading in `foundation/sources/claude-code.md`.
  */
 /**
  * Is this basename a file the RUNTIME loads from `agents/`?
  *
- * Exported as a pure predicate, and that is not tidiness - it is the only way this rule can be tested on
- * Windows. A fixture named `bad:name.md` cannot exist there: NTFS reads the colon as the alternate-data-
- * stream separator, so `writeFileSync` SUCCEEDS and the directory ends up containing a file called `bad`
- * with no extension. A filesystem-fixture test of the colon rule is therefore silently VACUOUS on the
- * platform our own `validate-windows` job runs, which a mutation check caught: removing the guard turned
- * no test red.
+ * Exported as a pure predicate, and that is not tidiness - a colon-named fixture cannot exist on
+ * Windows at all: NTFS reads `:` as the alternate-data-stream separator, so `writeFileSync` SUCCEEDS
+ * and the directory ends up holding a file named `bad` with no extension. A filesystem-fixture test of
+ * this rule would therefore be silently VACUOUS on the platform our own `validate-windows` job runs, so
+ * the colon case is asserted against this predicate directly instead (see
+ * `tests/unit/agents-dir-registerable.test.mjs`).
  *
- * The rule itself is the vendor's: Claude Code "doesn't load a file whose name contains one [`:`]", which
- * it reserves for scoped identifiers. Excluding it keeps these listers exactly as wide as the runtime,
- * and no wider - being stricter than the runtime is the opposite of the failure they exist to prevent.
+ * Any `.md` file loads (E81). Earlier, this excluded a filename containing `:`, on a reading of the
+ * vendor's docs that has since moved: the sentence now ties the colon rule to the frontmatter `name`
+ * field, and scopes it to project/user/managed/`--add-dir` `agents` directories only - never a
+ * plugin's. A 2026-10-23 fixture run measured a plugin agent file named `colon:file.md` loading
+ * normally, so excluding it here was STRICTER than the runtime, which is the opposite of the failure
+ * this predicate exists to prevent. See `plugin-agents-outside-skip-list` in
+ * `foundation/claims/vendor-claims.json`.
  */
 export function isRuntimeAgentFile(basename) {
-  return basename.endsWith(".md") && !basename.includes(":");
+  return basename.endsWith(".md");
 }
 
 function walkAgentDocs(root) {

@@ -46,7 +46,7 @@
         "STANDARD.md sec 3.5, whose CX row states the supported and skipped handler types",
         "the emit path: a plugin targeting Codex that ships a prompt- or agent-type hook gets a silent no-op, and this sentence is the only vendor statement that says so"
       ],
-      "verifiedOn": "2026-09-04",
+      "verifiedOn": "2026-10-23",
       "onChange": "ASYMMETRIC. A handler type MOVING INTO the supported set is green-ward: widen the table, bump the read date, note it in CHANGELOG - nothing that was passing starts failing. A type moving OUT of the supported set, or a NEW type appearing as skipped, is red-ward: it makes a previously silent-but-working hook a silent no-op, so it needs a Standard minor with finding-level migration metadata rather than a constant edit. If the sentence disappears entirely, do NOT re-pin a neighbouring sentence to keep the run green - the absence is the finding, and Codex documenting handler support less clearly is itself the thing G1's table depends on."
     },
     {
@@ -59,19 +59,19 @@
         "the marketplace A6 reading, which imports the same field list",
         "ADR 0045, and STANDARD.md sec 2.1 (the U14 bullet, which quotes this sentence verbatim)"
       ],
-      "verifiedOn": "2026-09-28",
+      "verifiedOn": "2026-10-23",
       "onChange": "ASYMMETRIC (ADR 0045). A field REMOVED from the unsupported list is green-ward - update the constant, bump the read date, note it in CHANGELOG. A field ADDED is red-ward: a new Standard minor with finding-level migration metadata, never a bump of U14's own since. RE-PINNED 2026-09-28 from the plugins reference, which no longer carries any agent sentence, to this page, which states the same three fields with the same security rationale. KNOWN DIVERGENCE, deliberately not pinned: the plugin components page lists a FOURTH ignored field, 'Ignored fields: permissionMode, hooks, mcpServers, and initialPrompt', without the security rationale, and this page's frontmatter table also marks initialPrompt 'Ignored for plugin subagents'. Adding initialPrompt to U14 is red-ward, so it is backlog E70 (initialPrompt on plugin agents), ADR-gated, and not a constant edit. Pinning the four-field sentence here would have made this claim disagree with the check it guards."
     },
     {
       "id": "plugin-agent-supported-fields",
       "kind": "quote",
       "source": "cc-plugins-components",
-      "claim": "Supported fields: name, description, model, effort, maxTurns, tools, disallowedTools, skills, memory, background, omitClaudeMd, isolation, color, and the cacheTtl key of experimental.",
+      "claim": "Supported fields: name, description, model, effort, maxTurns, autoCompactWindow, tools, disallowedTools, skills, memory, background, omitClaudeMd, isolation, color, and the cacheTtl key of experimental.",
       "dependsOn": [
         "PLUGIN_AGENT_SUPPORTED_FIELDS, quoted in every U14 finding as the remediation"
       ],
-      "verifiedOn": "2026-09-28",
-      "onChange": "Re-read the field list and update the constant. The list appears in user-facing remediation, so a stale one sends authors to a field the runtime does not accept. LINK SYNTAX: normalizeForMatch folds case, quotes, dashes, backticks, asterisks, underscores and whitespace, but NOT markdown link syntax, so a field the page links must be stored with its [text](url) form or the claim reports MISSING. The 2026-09-16 pin had to carry one, for omitClaudeMd. The 2026-09-28 re-pin needs none: the bullet links nothing inside the list, and the pin stops before the sentence that does ('See [supported frontmatter fields](...)'). Measured with the watch's own fetch and normaliser before writing. If link syntax keeps forcing re-pins, the durable fix is to teach normalizeForMatch to fold [text](url) to text rather than to keep re-pinning a URL."
+      "verifiedOn": "2026-10-23",
+      "onChange": "Re-read the field list and update the constant. The list appears in user-facing remediation, so a stale one sends authors to a field the runtime does not accept. LINK SYNTAX: normalizeForMatch folds case, quotes, dashes, backticks, asterisks, underscores and whitespace, but NOT markdown link syntax, so a field the page links must be stored with its [text](url) form or the claim reports MISSING. The 2026-09-16 pin had to carry one, for omitClaudeMd. The 2026-09-28 and 2026-10-23 re-pins need none: the bullet links nothing inside the list, and the pin stops before the sentence that does ('See [supported frontmatter fields](...)'). Measured with the watch's own fetch and normaliser before writing. If link syntax keeps forcing re-pins, the durable fix is to teach normalizeForMatch to fold [text](url) to text rather than to keep re-pinning a URL. RE-PINNED 2026-10-23 (E83): the list gained autoCompactWindow between maxTurns and tools. Green-ward under ADR 0045 - this list only builds U14's remediation prose, so no plugin's verdict moves."
     },
     {
       "id": "commands-merged-into-skills",
@@ -82,7 +82,7 @@
         "ADR 0048 (as amended 2026-08-15) and STANDARD.md sec 3.2",
         "S7 (command-contract), which certifies a per-target command shape"
       ],
-      "verifiedOn": "2026-08-15",
+      "verifiedOn": "2026-10-23",
       "onChange": "If this is ever REVERSED, sec 3.2's justification returns to component type and ADR 0048's amendment must be revisited. This claim is here because its absence was not noticed for five days after an internal audit found it."
     },
     {
@@ -94,7 +94,7 @@
         "ADR 0048's corrected reasoning: a command is a skill whose invocation is user-controlled",
         "backlog E44, which becomes an ADR when this field appears in a measured corpus"
       ],
-      "verifiedOn": "2026-08-16",
+      "verifiedOn": "2026-10-23",
       "onChange": "If the field is renamed or removed, E44's trigger condition changes and ADR 0048's reasoning needs a new anchor."
     },
     {
@@ -108,26 +108,27 @@
         "listAgentFiles / listRuntimeAgentDocs in scripts/lib/fs-utils.mjs",
         "the S3 asymmetry, which relies on U15 owning every excluded file"
       ],
-      "verifiedOn": "2026-08-15",
+      "verifiedOn": "2026-10-23",
       "onChange": "If discovery stops being recursive, the walk may flatten again - green-ward, a silent re-read. If the SCOPING rule changes, the name derivation must follow, because a nested agent's identity includes its subpath."
     },
     {
-      "id": "agent-filename-colon-excluded",
+      "id": "plugin-agents-outside-skip-list",
       "kind": "quote",
       "source": "cc-sub-agents",
-      "claim": "Claude Code doesn't load a file whose name contains one and logs an error to the debug log.",
+      "claim": "Claude Code skips a file in a project, user, or managed agents directory, or in one under a directory you add with --add-dir, without reporting it in the session, when the frontmatter has any of these problems:",
       "dependsOn": [
-        "isRuntimeAgentFile in scripts/lib/fs-utils.mjs, which keeps both listers exactly as wide as the runtime"
+        "isRuntimeAgentFile in scripts/lib/fs-utils.mjs (E81) - this sentence is why it stopped excluding colon-named files: the skip-list it once modelled never named a plugin's agents/ directory",
+        "U14 (agent-restricted-fields) and U15 (agents-dir-registerable), both of which read isRuntimeAgentFile's result",
+        "the agents-dir-registers-every-md probe, whose 2026-10-23 one-time fixture reading corroborates this scope for plugin agents/ empirically (foundation/sources/claude-code.md)"
       ],
-      "antecedent": "The 'one' is a colon, established by the preceding sentence: names can't contain ':', which is reserved for plugin-scoped identifiers. That sentence is not pinned because it carries a markdown link whose URL would fire on a docs reorganisation, which is noise rather than a change to the behaviour this repository depends on.",
-      "verifiedOn": "2026-08-16",
-      "onChange": "If the runtime starts loading colon-named files, drop the exclusion: being stricter than the runtime is the opposite of the failure these listers prevent."
+      "verifiedOn": "2026-10-23",
+      "onChange": "ASYMMETRIC. RETIRES agent-filename-colon-excluded (E81): that claim read the colon rule as a FILENAME rule with no stated scope; this one is the sentence that corrects both errors at once - the rule names the frontmatter name, not the filename, and it only ever covered project/user/managed/--add-dir agents directories. If the page ever adds 'plugin' to that directory list, the whole skip-list - including the colon-in-name, leading-dash, and 256-character rules - would newly reach plugin agents/. That is RED-WARD: isRuntimeAgentFile would need to exclude colon-named files again, which needs a Standard minor with finding-level migration metadata, not a constant edit. If the sentence disappears with no replacement naming a scope, re-run the two-agent fixture before assuming either width."
     },
     {
       "id": "agents-dir-registers-every-md",
       "kind": "probe",
       "source": "cc-plugins-components",
-      "claim": "Claude Code scans agents/ for *.md and registers EVERY file it finds. A directory holding real-agent.md, README.md, _README.md and README.txt registered three subagents: real-agent, README and _README. The underscore prefix protects nothing; only the non-.md extension was skipped. NOTE: this probe covered a FLAT directory only. Recursion and the colon exclusion are separate QUOTE claims (agents-scanned-recursively, agent-filename-colon-excluded); generalising this probe past its evidence is what let nested agents bypass U14 and U15 until review wave 1.",
+      "claim": "Claude Code scans agents/ for *.md and registers EVERY file it finds. A directory holding real-agent.md, README.md, _README.md and README.txt registered three subagents: real-agent, README and _README. The underscore prefix protects nothing; only the non-.md extension was skipped. NOTE: this probe covered a FLAT directory only. Recursion and the skip-list's scope are separate QUOTE claims (agents-scanned-recursively, plugin-agents-outside-skip-list); generalising this probe past its evidence is what let nested agents bypass U14 and U15 until review wave 1.",
       "dependsOn": [
         "U15 (agents-dir-registerable) - the whole check, and its vendor-cited provenance",
         "the G8 exemption of agents/ from the meaningful-folder README requirement",

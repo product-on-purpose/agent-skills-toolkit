@@ -155,18 +155,24 @@ test("W1-H2: a nested REGISTERED agent reports nothing, and its scoped name is p
   } finally { rmSync(dir, { recursive: true, force: true }); }
 });
 
-test("W1-H2: a filename containing a colon is NOT loaded (the vendor reserves it for scoping)", () => {
+test("E81: a filename containing a colon IS loaded (the skip-list never covered plugin agents/)", () => {
   // Asserted against the PREDICATE, never a filesystem fixture. A file named "bad:name.md" cannot exist
   // on Windows: NTFS reads the colon as the alternate-data-stream separator, so writeFileSync SUCCEEDS
   // and the directory ends up holding a file called "bad" with no extension. The fixture version of this
   // test was therefore VACUOUS on the platform validate-windows runs, and a mutation check caught it -
   // removing the guard turned no test red.
   //
-  // The rule is the vendor's: Claude Code "doesn't load a file whose name contains one [:]".
+  // E81 (the colon rule now names the frontmatter `name`, not the filename): the sentence this repository
+  // once read as a filename rule - "Claude Code doesn't load a file whose name contains one" - is gone
+  // from the vendor's docs. Its replacement scopes the colon-in-`name` rule to a project, user, or
+  // managed `agents` directory, or one added with `--add-dir`: never a plugin's. A two-agent fixture run
+  // on 2026-10-23 (`plugin-agents-outside-skip-list` in foundation/claims/vendor-claims.json) measured a
+  // plugin agent file named `colon:file.md` loading normally. Excluding it here was stricter than the
+  // runtime, the opposite of what this predicate exists to prevent.
   assert.equal(isRuntimeAgentFile("worker.md"), true);
   assert.equal(isRuntimeAgentFile("review-security.md"), true);
-  assert.equal(isRuntimeAgentFile("bad:name.md"), false, "the runtime refuses it, so these listers must too");
-  assert.equal(isRuntimeAgentFile("plugin:scoped:name.md"), false);
+  assert.equal(isRuntimeAgentFile("bad:name.md"), true, "the runtime loads it; this lister must not be stricter");
+  assert.equal(isRuntimeAgentFile("plugin:scoped:name.md"), true);
   assert.equal(isRuntimeAgentFile("notes.txt"), false, "only .md is loaded");
   assert.equal(isRuntimeAgentFile("_chain-permitted.yaml"), false);
 });
