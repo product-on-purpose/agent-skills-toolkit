@@ -103,21 +103,25 @@ const RENDERERS = {
  * repository, license, author, and keywords. It could also replace a hand-set Codex
  * displayName/category with a worse computed guess.
  *
- * These are the fields each native target compares between the existing file and the fresh
- * render. Each is paired with the library.json key allowed to justify a change. `field` is a
- * dotted path into the rendered/existing object. `libKey` is the top-level library.json key.
+ * `fieldLosses` below does NOT walk a fixed allowlist of fields: it walks every non-empty key
+ * the EXISTING file carries (recursing one level into Codex's `interface` block), so a vendor
+ * interface key neither renderer has ever heard of (shortDescription, brandColor, and the rest
+ * of the Codex marketplace block) is still caught, not just the two keys the renderer happens
+ * to emit. This table is only the libKey MAP: which library.json key, if any, can justify a
+ * change at a given field path. A field with no entry here has no library.json home at all, so
+ * any loss there can only be waved through with `--allow-field-loss`.
  */
-const SHARED_SPINE_FIELDS = [
-  { field: "homepage", libKey: "homepage" },
-  { field: "repository", libKey: "repository" },
-  { field: "license", libKey: "license" },
-  { field: "author", libKey: "author" },
-  { field: "keywords", libKey: "keywords" },
-  { field: "description", libKey: "description" },
-];
-const NATIVE_FIELD_LOSS_FIELDS = {
-  claude: SHARED_SPINE_FIELDS,
-  codex: [...SHARED_SPINE_FIELDS, { field: "interface.displayName", libKey: "displayName" }, { field: "interface.category", libKey: "category" }],
+export const NATIVE_LIB_KEY_MAP = {
+  name: "name",
+  version: "version",
+  description: "description",
+  homepage: "homepage",
+  repository: "repository",
+  license: "license",
+  author: "author",
+  keywords: "keywords",
+  "interface.displayName": "displayName",
+  "interface.category": "category",
 };
 
 /** True for undefined/null, an empty/whitespace-only string, an empty array, or an empty object. */
@@ -141,21 +145,43 @@ function valuesEqual(a, b) {
 /**
  * Compares an existing native manifest to a freshly rendered one, field by field. It reports
  * every field that would be LOST. A field is lost when the existing value is non-empty, the
- * rendered value differs from it, and library.json does not supply it. A value library.json
- * DOES supply, even when it differs from what is on disk, is a deliberate regeneration, not a
- * loss. It is never reported. Pure and side-effect-free, so it is directly unit-testable.
+ * rendered value differs from (or omits) it, and library.json does not supply it. A value
+ * library.json DOES supply, even when it differs from what is on disk, is a deliberate
+ * regeneration, not a loss. It is never reported.
+ *
+ * The fields it checks are not a fixed list: it walks every non-empty top-level key the
+ * EXISTING object carries, plus (one level deep only) every key inside an existing `interface`
+ * block, so a vendor field neither renderer has ever heard of is still caught. `libKeyMap`
+ * supplies the library.json key, if any, that can justify a change at a given field path; a
+ * field with no entry has no library.json home, so `lost[].libKey` comes back null and only
+ * `--allow-field-loss` is a way through. Pure and side-effect-free, so directly unit-testable.
  */
-export function fieldLosses(existingObj, newObj, lib, specs) {
+export function fieldLosses(existingObj, newObj, lib, libKeyMap = NATIVE_LIB_KEY_MAP) {
   const lost = [];
-  for (const spec of specs) {
-    const oldVal = getAtPath(existingObj, spec.field);
-    if (isEmptyValue(oldVal)) continue;
-    const newVal = getAtPath(newObj, spec.field);
-    if (valuesEqual(oldVal, newVal)) continue;
-    const libVal = lib?.[spec.libKey];
-    if (!isEmptyValue(libVal)) continue;
-    lost.push({ field: spec.field, existing: oldVal });
+  const seen = new Set();
+
+  const checkField = (field) => {
+    if (seen.has(field)) return;
+    seen.add(field);
+    const oldVal = getAtPath(existingObj, field);
+    if (isEmptyValue(oldVal)) return;
+    const newVal = getAtPath(newObj, field);
+    if (valuesEqual(oldVal, newVal)) return;
+    const libKey = libKeyMap[field] ?? null;
+    const libVal = libKey ? lib?.[libKey] : undefined;
+    if (!isEmptyValue(libVal)) return; // library.json supplies a (possibly different) value: deliberate regeneration
+    lost.push({ field, existing: oldVal, libKey });
+  };
+
+  for (const key of Object.keys(existingObj ?? {})) {
+    if (key === "interface") continue; // walked separately, one level deep, below
+    checkField(key);
   }
+  const existingInterface = existingObj?.interface;
+  if (existingInterface && typeof existingInterface === "object" && !Array.isArray(existingInterface)) {
+    for (const key of Object.keys(existingInterface)) checkField(`interface.${key}`);
+  }
+
   return lost;
 }
 
@@ -183,7 +209,7 @@ if (process.argv[1]?.endsWith("gen-manifest.mjs")) {
       process.stderr.write(`unknown --target "${k}" (use resolved|claude|codex|all)\n`);
       process.exit(2);
     }
-    toProcess.push({ r, text: r.render(ctx), lossSpecs: write ? NATIVE_FIELD_LOSS_FIELDS[k] : null });
+    toProcess.push({ r, text: r.render(ctx), checkLoss: write && (k === "claude" || k === "codex") });
   }
 
   // Field-loss check runs only on a --write of a native manifest (claude or codex). It never
@@ -194,8 +220,8 @@ if (process.argv[1]?.endsWith("gen-manifest.mjs")) {
   // is clear, or nothing in the run is written.
   const problems = [];
   if (write) {
-    for (const { r, text, lossSpecs } of toProcess) {
-      if (!lossSpecs) continue;
+    for (const { r, text, checkLoss } of toProcess) {
+      if (!checkLoss) continue;
       const abs = path.join(root, r.file);
       let existingObj = null;
       let unreadable = false;
@@ -205,23 +231,32 @@ if (process.argv[1]?.endsWith("gen-manifest.mjs")) {
         if (e.code !== "ENOENT") unreadable = true; // present but unparseable: fail closed, never overwrite blind
       }
       if (unreadable) {
-        problems.push({ file: r.file, lost: [{ field: "(whole file)", existing: "present but not valid JSON" }] });
+        problems.push({ file: r.file, lost: [{ field: "(whole file)", existing: "present but not valid JSON", libKey: null }] });
         continue;
       }
       if (!existingObj) continue; // nothing on disk yet: nothing to lose
-      const lost = fieldLosses(existingObj, JSON.parse(text), lib, lossSpecs);
+      const lost = fieldLosses(existingObj, JSON.parse(text), lib);
       if (lost.length) problems.push({ file: r.file, lost });
     }
   }
 
   if (problems.length && !allowFieldLoss) {
     process.stderr.write(
-      "refuse to write: regenerating would drop or empty field(s) that the existing manifest carries and library.json does not supply.\n"
+      "refuse to write: regenerating would drop, empty, or replace field(s) that the existing manifest carries and library.json does not supply.\n"
     );
     for (const p of problems) {
       process.stderr.write(`  ${p.file}:\n`);
       for (const l of p.lost) {
-        process.stderr.write(`    - ${l.field} (existing: ${JSON.stringify(l.existing)})\n`);
+        // The native path (e.g. interface.displayName) is not always the library.json key that
+        // can supply it (displayName, top-level). Name the library.json key when it differs, or
+        // say plainly that library.json has no field for this one at all (E72, finding 3). The
+        // whole-file (malformed JSON) entry is neither case: there is no single field to map.
+        let suffix = "";
+        if (l.field !== "(whole file)") {
+          if (l.libKey && l.libKey !== l.field) suffix = ` (set library.json "${l.libKey}")`;
+          else if (!l.libKey) suffix = " (no library.json field carries this; --allow-field-loss is the only way through)";
+        }
+        process.stderr.write(`    - ${l.field} (existing: ${JSON.stringify(l.existing)})${suffix}\n`);
       }
     }
     process.stderr.write(
