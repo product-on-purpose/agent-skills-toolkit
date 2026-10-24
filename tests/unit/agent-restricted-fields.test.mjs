@@ -20,10 +20,14 @@ import { resolveFindings, gatingFindings } from "../../scripts/lib/resolve-confi
 import { configFrom } from "../../scripts/lib/config.mjs";
 import { provenanceByReq } from "../../scripts/lib/registry.mjs";
 import { SINCE_BY_REQ } from "../../scripts/lib/standard-gate.mjs";
-import { mkdtempSync, mkdirSync, writeFileSync, rmSync } from "node:fs";
+import { mkdtempSync, mkdirSync, writeFileSync, rmSync, readFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import nodePath from "node:path";
+import { fileURLToPath } from "node:url";
 import { loadPlugin } from "../../scripts/lib/load-plugin.mjs";
+
+const REPO = nodePath.resolve(nodePath.dirname(fileURLToPath(import.meta.url)), "../..");
+const CLAIMS = nodePath.join(REPO, "foundation/claims/vendor-claims.json");
 
 const PROV = provenanceByReq();
 const ctxWith = (agents) => ({ root: ".", subagents: agents });
@@ -138,6 +142,34 @@ test("the supported and unsupported lists are disjoint, so no field is both", ()
   for (const f of PLUGIN_AGENT_UNSUPPORTED_FIELDS) {
     assert.ok(!supported.has(f), `${f} cannot be both supported and refused`);
   }
+});
+
+// --- CONSTANT-TO-CLAIM PARITY --------------------------------------------------------------------------
+
+/**
+ * Parses the pinned `plugin-agent-supported-fields` quote claim into a field list, so the test below
+ * compares the CONSTANT against the LEDGER rather than against another copy of the constant. The claim's
+ * last item is prose, not a field name - "and the cacheTtl key of experimental" - so it is mapped to the
+ * dotted form PLUGIN_AGENT_SUPPORTED_FIELDS itself uses, `experimental.cacheTtl`.
+ */
+function fieldsFromSupportedFieldsClaim() {
+  const d = JSON.parse(readFileSync(CLAIMS, "utf8"));
+  const claim = d.claims.find((c) => c.id === "plugin-agent-supported-fields");
+  assert.ok(claim, "plugin-agent-supported-fields must still be a pinned claim");
+  const body = claim.claim.replace(/^Supported fields:\s*/, "").replace(/\.$/, "");
+  return body.split(/,\s*/).map((item) => {
+    const keyOf = item.match(/^(?:and\s+)?the (\w+) key of (\w+)$/);
+    if (keyOf) return `${keyOf[2]}.${keyOf[1]}`;
+    return item.replace(/^and\s+/, "");
+  });
+}
+
+test("PLUGIN_AGENT_SUPPORTED_FIELDS matches the pinned plugin-agent-supported-fields claim, in order", () => {
+  // Guards E83 (the supported-fields list gained autoCompactWindow) against a silent revert: the
+  // constant and the claim are two separately-edited copies of the same vendor sentence, and nothing
+  // before this test compared them against each other. Confirmed red when autoCompactWindow is removed
+  // from PLUGIN_AGENT_SUPPORTED_FIELDS alone (manual mutation, file restored after).
+  assert.deepEqual([...PLUGIN_AGENT_SUPPORTED_FIELDS], fieldsFromSupportedFieldsClaim());
 });
 
 test("U14 reads every agent file the RUNTIME loads, not only the ones registered", () => {

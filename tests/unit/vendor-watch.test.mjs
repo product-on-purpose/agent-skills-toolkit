@@ -272,8 +272,13 @@ const MEANING_REVERSALS = Object.freeze({
     "Add disable-model-invocation: true to allow Claude to keep triggering it automatically.",
   "agents-scanned-recursively":
     "Plugin agents/ directories are no longer scanned recursively; only top-level files are registered.",
-  "agent-filename-colon-excluded":
-    "Claude Code loads a file whose name contains one and logs a warning to the debug log.",
+  // E81 (the colon rule now names the frontmatter name, not the filename): the reversal adds "plugin" to
+  // the scoped directory list, which is the exact page change this
+  // claim's own onChange says would make the skip-list reach plugin agents/ again. Every other word of
+  // the claim survives, so a watch that still reported "holds" would be matching vocabulary, not the one
+  // word that decides whether plugin agents/ is in scope.
+  "plugin-agents-outside-skip-list":
+    "Claude Code skips a file in a project, user, managed, or plugin agents directory, or in one under a directory you add with --add-dir, without reporting it in the session, when the frontmatter has any of these problems:",
   // Identical vocabulary, swapped subjects - the strongest reversal shape available here. Every content
   // word of the claim survives (`command`, `mcp_tool`, `prompt`, `agent`, handlers, supported, parsed,
   // skipped); only WHICH pair is which has flipped. A watch that still reported "holds" against this page
