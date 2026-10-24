@@ -37,11 +37,11 @@ Component types the tier adds: skills, references and assets, `AGENTS.md`, MCP.
 | References and assets bundle with a skill | progressive disclosure is in the spec | **pinned** | `upstream-pin.json` `docs/specification.mdx` | 2026-08-11 |
 | Both agents read a root `AGENTS.md` | identical format, both read root | **`unverified`** | nothing | - |
 | One portable `.mcp.json` serves both | each native manifest carries an `mcpServers` pointer | **`unverified`** | nothing | - |
-| `U14` - agents must not declare `hooks`, `mcpServers`, `permissionMode` | the runtime refuses these fields for plugin-shipped agents | **pinned, quote** | `plugin-agent-unsupported-fields` | 2026-09-28 |
-| `U14`'s remediation list | which fields the runtime *does* support | **pinned, quote** | `plugin-agent-supported-fields` | 2026-09-28 |
+| `U14` - agents must not declare `hooks`, `mcpServers`, `permissionMode` | the runtime refuses these fields for plugin-shipped agents | **pinned, quote** | `plugin-agent-unsupported-fields` | 2026-10-23 |
+| `U14`'s remediation list | which fields the runtime *does* support | **pinned, quote** | `plugin-agent-supported-fields` | 2026-10-23 |
 | `U15` - every `.md` under `agents/` registers | the runtime loads every `.md`, including `README.md` | **pinned, PROBE** | `agents-dir-registers-every-md`. **Blocks from 2026-11-13** after the 2026-10-13 re-run (corrected 2026-09-28: this row still carried the 2026-08-19 run after the 2026-09-17 re-run) | 2026-10-13 |
-| `U15`'s recursion invariant | `agents/` is scanned recursively with scoped identifiers | **pinned, quote** | `agents-scanned-recursively` | 2026-08-15 |
-| `isRuntimeAgentFile`'s width | a filename containing a colon is excluded | **pinned, quote** | `agent-filename-colon-excluded` | 2026-08-16 |
+| `U15`'s recursion invariant | `agents/` is scanned recursively with scoped identifiers | **pinned, quote** | `agents-scanned-recursively` | 2026-10-23 |
+| `isRuntimeAgentFile`'s width | the skip-list it once modelled (colon-in-`name`, among other problems) is scoped to project/user/managed/`--add-dir` `agents` directories and never reaches a plugin's, so the predicate excludes nothing but non-`.md` files (E81, the colon rule now names the frontmatter name, not the filename) | **pinned, quote** | `plugin-agents-outside-skip-list` (retired `agent-filename-colon-excluded`) | 2026-10-23 |
 
 ## Convergent (Silver)
 
@@ -49,7 +49,7 @@ Component types the tier adds: subagents, commands, workflows, chain contracts, 
 
 | Boundary | The vendor fact it rests on | Status | Pinned where | Confirmed |
 | --- | --- | --- | --- | --- |
-| Commands exist on Claude Code as `commands/<name>.md` | commands merged into skills; invocation control is frontmatter | **pinned, quote** | `commands-merged-into-skills`, `invocation-control-frontmatter` | 2026-08-15 / 2026-08-16 |
+| Commands exist on Claude Code as `commands/<name>.md` | commands merged into skills; invocation control is frontmatter | **pinned, quote** | `commands-merged-into-skills`, `invocation-control-frontmatter` | 2026-10-23 |
 | ...and realize on **Codex** as the backing skill | Codex has no separate command component; the skill is the invocable form | **`unverified`** | nothing | 2026-08-18, `method: read`, unpinned |
 | **Subagents are Claude-only for plugin distribution** | the Codex plugin manifest has **no `agents` field** | **`unverified`, and it is the most consequential row here** | **not pinned - but NOT uncited.** A verbatim first-party quote is in the repo at `skills/askit-capability-whats-new/examples/golden-2-a-capability-nobody-announced.md`. See below | 2026-08-18 |
 | Workflows are a convention | none - `_workflows/<name>.md` is this Standard's own convention | **n/a, house** | - | - |

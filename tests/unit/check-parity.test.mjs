@@ -630,6 +630,75 @@ test("findException: the seed-plugin exception still applies when the vendor add
   assert.equal(findException(exceptions, { ...base, detail: adviceOnly }), null, "advice alone explains no failure");
 });
 
+// The measured `claude plugin validate templates/seed-plugin --strict` output on Claude Code 2.1.310
+// (2026-10-23): the vendor added a "Plugin directory checks" block, between the manifest warnings and
+// Advice, carrying its OWN `❯`-marked ICON_MISSING warning and an "About these checks:" bullet. The
+// vendor's own next line states the relationship: "These plugin directory checks do not change the
+// result below." Before this fixture existed, that icon line counted as a second, unrelated diagnostic
+// and the documented ADR 0043 `author` exception stopped applying - the exact class of break the
+// Advice-section fix above exists to prevent, one vendor output addition later.
+const SEED_2_1_310 = [
+  "Validating plugin manifest: /x/templates/seed-plugin/.claude-plugin/plugin.json",
+  "",
+  "⚠ Found 1 warning:",
+  "",
+  "  ❯ author: No author information provided. Consider adding author details for plugin attribution",
+  "",
+  "Plugin directory checks for /x/templates/seed-plugin. The plugin directory is the catalog that plugins are submitted to; this is a subset of what it runs.",
+  "",
+  "⚠ Found 1 plugin directory warning:",
+  "",
+  "  ❯ .claude-plugin/plugin.json icon: No icon (ICON_MISSING). No icon found in the plugin. The validator looked for `icon` in plugin.json and for a file at .claude-plugin/icon.png or .svg, assets/icon.png or .svg, or a similar path.",
+  "    Fix: Add a square PNG to the plugin folder at .claude-plugin/icon.png, or set `icon` in plugin.json to the path of a square PNG or JPEG in the plugin: 512 to 2048 px on each side, under 2 MB. SVG and WebP are not accepted. That file may become the listing icon only once: the first time the plugin is saved or submitted in the developer portal. Adding or changing it later does not change the icon.",
+  "",
+  "About these checks:",
+  "",
+  "  ❯ The repository root was taken to be /x, the nearest parent folder with a .git folder or file. LICENSE was taken from it, because this plugin folder has none of its own. For a plugin submitted from a git repository, the repository root is the top folder of that repository, with only what is committed there, so check that the folder named above is that top folder.",
+  "",
+  "These plugin directory checks do not change the result below.",
+  "",
+  "The directory also runs a safety scan and a policy review that this command does not.",
+  "",
+  "ℹ Advice (does not change the verdict):",
+  "",
+  '  ❯ /x/templates/seed-plugin/README.md: This README has no line that installs "replace-with-plugin-name" from a marketplace. Add the install line, which works in one step on Claude Code 2.1.275 or later.',
+  "      /plugin install replace-with-plugin-name --marketplace <owner>/<repo>",
+  "",
+  "✘ Validation failed (--strict treats warnings as errors)",
+].join("\n");
+
+test("extractDiagnostics: lines under the vendor's Plugin directory checks block are not diagnostics (Claude Code 2.1.310)", () => {
+  assert.deepEqual(extractDiagnostics(SEED_2_1_310), [
+    "author: No author information provided. Consider adding author details for plugin attribution",
+  ]);
+});
+
+test("findException: the seed-plugin exception still applies once the icon warning is excluded (Claude Code 2.1.310)", () => {
+  const exceptions = [{ target: "templates/seed-plugin", tool: "claude", adr: "0043", matches: /author/i, reason: "r" }];
+  const base = { kind: "vendor-validate", target: "templates/seed-plugin", tool: "claude", ran: true, pass: false };
+  assert.ok(findException(exceptions, { ...base, detail: SEED_2_1_310 }), "the icon warning must not void the authorized author exception");
+});
+
+test("extractDiagnostics: a Plugin directory checks block with no manifest warning yields no diagnostic at all", () => {
+  // Measured against the repository root: no manifest-level warning, so the block contributes nothing
+  // this harness would call a vendor-validate disagreement - exactly why the root target passes --strict
+  // despite carrying the same ICON_MISSING warning the seed does.
+  const rootOnly = [
+    "Validating plugin manifest: /x/.claude-plugin/plugin.json",
+    "",
+    "Plugin directory checks for /x. The plugin directory is the catalog that plugins are submitted to; this is a subset of what it runs.",
+    "",
+    "⚠ Found 1 plugin directory warning:",
+    "",
+    "  ❯ .claude-plugin/plugin.json icon: No icon (ICON_MISSING). No icon found in the plugin.",
+    "",
+    "These plugin directory checks do not change the result below.",
+    "",
+    "✔ Validation passed",
+  ].join("\n");
+  assert.deepEqual(extractDiagnostics(rootOnly), []);
+});
+
 test("allDiagnosticsMatch: a global-flagged fingerprint does not alternate across diagnostics", () => {
   // RegExp.test on a /g/ pattern advances lastIndex between calls, so testing once per diagnostic would
   // match, then spuriously fail. The flag is stripped before the repeated test.
