@@ -436,7 +436,10 @@ blocked its own first real run** - on 7 failing tests and a stale count that had
   reported as a field loss, and `--allow-field-loss` is the only way through it today. **The two probe
   claims in `foundation/claims/vendor-claims.json` block releases from 2026-11-13** (their 30-day
   freshness window from the 2026-10-13 re-run), so a release cut after that date needs a fresh probe
-  run before `vendor-watch` passes. **The npm publish for v1.21.0 awaits the maintainer's approval at
+  run before `vendor-watch` passes. **Corrected 2026-10-23: both probes were re-run UNCHANGED on
+  Claude Code 2.1.310 before that date arrived, so the window now blocks releases from 2026-11-23**
+  instead; see [the probes README](vendor-watch/probes/README.md) for the boundary runs that
+  established it. **The npm publish for v1.21.0 awaits the maintainer's approval at
   the `npm-publish` environment's reviewer gate, after the tag is pushed** - it is not done by this PR.
 
 - **ADR 0039 (marketplace-scope evaluation) is IMPLEMENTED** in v1.12.0: a third evaluation scope

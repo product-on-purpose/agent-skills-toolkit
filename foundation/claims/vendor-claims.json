@@ -134,7 +134,7 @@
         "the G8 exemption of agents/ from the meaningful-folder README requirement",
         "ADR 0046, and STANDARD.md sec 3.3"
       ],
-      "verifiedOn": "2026-10-13",
+      "verifiedOn": "2026-10-23",
       "reproduction": "Fixtures and step-by-step: docs/internal/vendor-watch/probes/agents-dir-registers-every-md/ (see EXPECTED.md for what each run observed, and probes/README.md for how to record the result). Install a plugin whose agents/ holds real-agent.md, README.md, _README.md and README.txt; list the registered subagents. Recorded in scripts/checks/folder-readme.mjs.",
       "onChange": "If the runtime starts EXCLUDING README.md or underscore-prefixed files, U15 loses its vendor grounding and becomes a house convention - which would change its provenance, and with it whether plain-plugin drops it."
     },
@@ -148,7 +148,7 @@
         "ADR 0060, which ruled the 2026-09-17 change a DOWNGRADE to warn rather than the retirement ADR 0051 anticipated",
         "the severity and message of both collision findings in scripts/lib/marketplace/analyze.mjs"
       ],
-      "verifiedOn": "2026-10-13",
+      "verifiedOn": "2026-10-23",
       "reproduction": "Fixtures and step-by-step: docs/internal/vendor-watch/probes/components-share-one-namespace/ (see EXPECTED.md for what each run observed, and probes/README.md for how to record the result). Install two plugins shipping the same skill name and observe which resolves.",
       "onChange": "SUPERSEDED IN PART BY ADR 0060, which is what happened when this actually changed. ADR 0051 said a namespacing runtime should RETIRE the two collision classes; the 2026-09-17 re-run found Claude Code namespacing LOUDLY - it refuses the bare name rather than resolving it silently - and the ruling was DOWNGRADE to warn, not retire. Two reasons that any future change must also clear: only CLAUDE CODE has been measured and Codex is the other emit target, and a refusal is a different harm rather than no harm. If Codex is measured and DOES share a namespace, the silent-winner harm is real there and the severity question reopens for Codex-targeting catalogues. If Claude Code reverts to silent resolution, both checks return to error. The instrument for either is the fixture pair at docs/internal/vendor-watch/probes/components-share-one-namespace/."
     }

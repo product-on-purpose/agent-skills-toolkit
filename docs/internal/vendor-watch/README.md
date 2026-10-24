@@ -70,3 +70,6 @@ either module. A watcher that can amend the claim it watches turns a governed de
 
 - `probes/` - the installable reproductions behind the two `probe` claims, with an `EXPECTED.md` per
   probe recording what each run observed.
+- `one-time/` - fixtures for a single reading that is not a recurring probe, such as
+  `agent-name-rules/` (E81 and E87's frontmatter `name` rules). Each one carries its own `README.md`
+  explaining why it is not a third `probe` claim.
