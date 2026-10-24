@@ -20,7 +20,8 @@ import { PROFILES } from "./lib/profiles.mjs";
 import { resolveFindings, gatingFindings } from "./lib/resolve-config.mjs";
 import { computeTierReport, humanLine } from "./tier-report.mjs";
 import { tierForReq, isAboveDeclaredTier } from "./lib/tier.mjs";
-import { compareStandard } from "./lib/standard-version.mjs";
+import { parseStandard, compareStandard } from "./lib/standard-version.mjs";
+import { shippedStandardEdition } from "./lib/shipped-standard.mjs";
 import { normalizeArgPath } from "./lib/fs-utils.mjs";
 import { renderSarif } from "./lib/sarif-render.mjs";
 // The one check-specific import this module makes. U5 is the only check that can DECLINE to judge its
@@ -151,6 +152,10 @@ export function buildJsonReport(root, ctx, r) {
     ...r,
     descriptionsNotScored: notScoredCount(ctx),
     tierReport: computeTierReport(root, ctx, r.findings),
+    // E77: "" (no notice) serializes as null rather than an empty string, so a consumer can branch on
+    // truthiness without special-casing "" - the same treatment debt-style text would get if it were
+    // machine-readable at all. See newerStandardNotice's own docblock for the four cases that stay null.
+    standardEditionNotice: newerStandardNotice(ctx?.library?.data?.standard, shippedStandardEdition()) || null,
   };
 }
 
@@ -229,6 +234,46 @@ export function standardDebtLine(findings, declaredTier) {
     : "";
   return `Standard debt: ${gating.length} finding(s) held back by your pinned Standard ${pinned}; ` +
     `they become gate-failing errors ${span(gating)}.${aboveBit}`;
+}
+
+/**
+ * The E77 informational line: the graded plugin's library.json declares a `standard` edition NEWER
+ * than the edition THIS TOOLKIT ships, so the grade did not check any rule introduced after its own
+ * edition. This is E77's recommended FIRST option, deliberately not a finding and not a warning: it
+ * changes no severity, no count, no tier, and no exit code - the same presentation-only status as
+ * standardDebtLine above, which states the OPPOSITE direction (a pin older than what the plugin could
+ * adopt, and findings already held back by it). This notice states the direction nothing else covers:
+ * a pin newer than this toolkit's own edition, where a clean grade could otherwise be read as having
+ * checked everything the plugin's chosen edition requires.
+ *
+ * `declared` must be the plugin's OWN `library.json.standard`, read directly - never the `pinned` value
+ * runGate() passes into resolveFindings, because `--strict` nulls that out to make every version
+ * ceiling inert. The notice is about what the plugin DECLARED, not about which ceiling is binding.
+ *
+ * Returns "" for every case except "a real, parseable declared edition strictly newer than a real,
+ * parseable shipped edition":
+ *   - no `standard` declared at all (parseStandard(undefined) is null)
+ *   - a malformed declared edition ("banana", "1", the BASELINE sentinel) - "banana" and "1" parse to
+ *     null and are caught by the null check above; the BASELINE sentinel parses to a real, non-null
+ *     tuple ([-Infinity, -Infinity]), so it needs the Number.isFinite check instead. That check is
+ *     redundant on the declared side (compareStandard already sorts a declared BASELINE below any real
+ *     shipped edition), but it is the only thing stopping a hypothetical shipped BASELINE from sorting
+ *     below every real declared edition and printing as "newer than unknown" - unreachable today, since
+ *     shippedStandardEdition() never returns the literal BASELINE string, but kept so the function's own
+ *     contract does not depend on that caller's behaviour
+ *   - an equal or older declared edition - the older direction is standardDebtLine's job already
+ *   - the toolkit's own shipped edition failed to resolve (null) - never print "newer than unknown"
+ * Exported for unit testing.
+ */
+export function newerStandardNotice(declared, shipped) {
+  const d = parseStandard(declared);
+  const s = parseStandard(shipped);
+  if (d === null || !Number.isFinite(d[0]) || s === null || !Number.isFinite(s[0])) return "";
+  if (compareStandard(declared, shipped) <= 0) return "";
+  return (
+    `Note: this plugin declares Standard ${declared}, newer than the ${shipped} this toolkit ships; ` +
+    `the grade did not check any rule introduced after Standard ${shipped}.`
+  );
 }
 
 /**
@@ -437,6 +482,8 @@ if (process.argv[1]?.endsWith("check.mjs")) {
     }
     const debt = standardDebtLine(r.findings, ctx?.library?.data?.tier);
     if (debt) console.log(debt);
+    const newerNotice = newerStandardNotice(ctx?.library?.data?.standard, shippedStandardEdition());
+    if (newerNotice) console.log(newerNotice);
   }
   // process.exitCode, never process.exit(), once anything has been written to stdout. A pipe is written
   // asynchronously on POSIX, and process.exit() right after a large console.log() ended the process before

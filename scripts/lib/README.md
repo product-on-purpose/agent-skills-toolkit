@@ -34,6 +34,7 @@ The shared library the checks, generators, and gate import: findings, frontmatte
 - `report-render.mjs` - renderMarkdown() and renderHtml(): the pure designed-report renderer over the evaluate() report object.
 - `resolve-config.mjs` - resolveFindings(): profile + per-rule override + suppressions + published-verdict clamp, then the Standard ceiling last (ADR 0044).
 - `sarif-render.mjs` - renderSarif(): a pure SARIF 2.1.0 serialization of runGate()'s findings, one reportingDescriptor per check (carrying its provenance) and one result per non-off finding.
+- `shipped-standard.mjs` - shippedStandardEdition(): the Standard edition THIS TOOLKIT ships, read from its own STANDARD.md header rather than the graded plugin's (E77).
 - `standard-ceiling.mjs` - the ADR 0044 post-resolution ceiling: activeConstraints() over `since` and `until`, by severity rank.
 - `standard-gate.mjs` - SINCE_BY_REQ, the reqId -> introduction-version map the ceiling resolves against (ADR 0027).
 - `standard-version.mjs` - Standard-version arithmetic (parseStandard, compareStandard, isAfter).
