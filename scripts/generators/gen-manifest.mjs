@@ -3,7 +3,7 @@
 // why:          generating the per-agent manifests from one source keeps Claude Code and Codex in lockstep
 // used-by:      run by contributors and the cadence; its output is drift-checked by manifest-drift (U8)
 import { loadPlugin } from "../lib/load-plugin.mjs";
-import { writeFileSync, mkdirSync } from "node:fs";
+import { writeFileSync, mkdirSync, readFileSync } from "node:fs";
 import path from "node:path";
 import { normalizeArgPath } from "../lib/fs-utils.mjs";
 
@@ -95,6 +95,77 @@ const RENDERERS = {
   codex: { file: ".codex-plugin/plugin.json", render: renderCodexNativeManifest },
 };
 
+/**
+ * Field-loss protection (E72, adopting a plugin can wipe its hand-written manifest fields).
+ *
+ * Adopting a plugin with a thin library.json, then running `gen-manifest --write`, used to
+ * null out or empty every spine field a native manifest carried. Those fields are homepage,
+ * repository, license, author, and keywords. It could also replace a hand-set Codex
+ * displayName/category with a worse computed guess.
+ *
+ * These are the fields each native target compares between the existing file and the fresh
+ * render. Each is paired with the library.json key allowed to justify a change. `field` is a
+ * dotted path into the rendered/existing object. `libKey` is the top-level library.json key.
+ */
+const NATIVE_FIELD_LOSS_FIELDS = {
+  claude: [
+    { field: "homepage", libKey: "homepage" },
+    { field: "repository", libKey: "repository" },
+    { field: "license", libKey: "license" },
+    { field: "author", libKey: "author" },
+    { field: "keywords", libKey: "keywords" },
+  ],
+  codex: [
+    { field: "homepage", libKey: "homepage" },
+    { field: "repository", libKey: "repository" },
+    { field: "license", libKey: "license" },
+    { field: "author", libKey: "author" },
+    { field: "keywords", libKey: "keywords" },
+    { field: "description", libKey: "description" },
+    { field: "interface.displayName", libKey: "displayName" },
+    { field: "interface.category", libKey: "category" },
+  ],
+};
+
+/** True for undefined/null, an empty/whitespace-only string, an empty array, or an empty object. */
+function isEmptyValue(v) {
+  if (v === undefined || v === null) return true;
+  if (typeof v === "string") return v.trim() === "";
+  if (Array.isArray(v)) return v.length === 0;
+  if (typeof v === "object") return Object.keys(v).length === 0;
+  return false;
+}
+
+/** Reads a dotted path ("interface.displayName") out of a plain object; missing segments read as undefined. */
+function getAtPath(obj, dotted) {
+  return dotted.split(".").reduce((o, k) => (o == null ? undefined : o[k]), obj);
+}
+
+function valuesEqual(a, b) {
+  return JSON.stringify(a) === JSON.stringify(b);
+}
+
+/**
+ * Compares an existing native manifest to a freshly rendered one, field by field. It reports
+ * every field that would be LOST. A field is lost when the existing value is non-empty, the
+ * rendered value differs from it, and library.json does not supply it. A value library.json
+ * DOES supply, even when it differs from what is on disk, is a deliberate regeneration, not a
+ * loss. It is never reported. Pure and side-effect-free, so it is directly unit-testable.
+ */
+export function fieldLosses(existingObj, newObj, lib, specs) {
+  const lost = [];
+  for (const spec of specs) {
+    const oldVal = getAtPath(existingObj, spec.field);
+    if (isEmptyValue(oldVal)) continue;
+    const newVal = getAtPath(newObj, spec.field);
+    if (valuesEqual(oldVal, newVal)) continue;
+    const libVal = lib?.[spec.libKey];
+    if (!isEmptyValue(libVal)) continue;
+    lost.push({ field: spec.field, existing: oldVal });
+  }
+  return lost;
+}
+
 if (process.argv[1]?.endsWith("gen-manifest.mjs")) {
   // Normalized through normalizeArgPath so a Windows backslash root is not silently misread (the
   // historical defect: docs/how-to/troubleshoot-the-gate.md).
@@ -103,20 +174,70 @@ if (process.argv[1]?.endsWith("gen-manifest.mjs")) {
   const targetArg = process.argv.find((a) => a.startsWith("--target="));
   const target = targetArg ? targetArg.slice("--target=".length) : "all";
   const write = process.argv.includes("--write");
+  const allowFieldLoss = process.argv.includes("--allow-field-loss");
   if (target === "all" && !write) {
     process.stderr.write("--target=all requires --write (it generates multiple files)\n");
     process.exit(2);
   }
   const ctx = loadPlugin(root);
+  const lib = ctx.library.data ?? {};
 
   const keys = target === "all" ? ["resolved", "claude", "codex"] : [target];
+  const toProcess = [];
   for (const k of keys) {
     const r = RENDERERS[k];
     if (!r) {
       process.stderr.write(`unknown --target "${k}" (use resolved|claude|codex|all)\n`);
       process.exit(2);
     }
-    const text = r.render(ctx);
+    toProcess.push({ r, text: r.render(ctx), lossSpecs: write ? NATIVE_FIELD_LOSS_FIELDS[k] : null });
+  }
+
+  // Field-loss check runs only on a --write of a native manifest (claude or codex). It never
+  // runs on a print-only or --target=resolved run. The non-write paths and the steady state are
+  // unaffected (E72, adopting a plugin can wipe its hand-written manifest fields). It is checked
+  // across every target in THIS invocation before anything is written. A --target=all run
+  // therefore never writes claude and codex into disagreement: either every target in the run
+  // is clear, or nothing in the run is written.
+  const problems = [];
+  if (write) {
+    for (const { r, text, lossSpecs } of toProcess) {
+      if (!lossSpecs) continue;
+      const abs = path.join(root, r.file);
+      let existingObj = null;
+      let unreadable = false;
+      try {
+        existingObj = JSON.parse(readFileSync(abs, "utf8"));
+      } catch (e) {
+        if (e.code !== "ENOENT") unreadable = true; // present but unparseable: fail closed, never overwrite blind
+      }
+      if (unreadable) {
+        problems.push({ file: r.file, lost: [{ field: "(whole file)", existing: "present but not valid JSON" }] });
+        continue;
+      }
+      if (!existingObj) continue; // nothing on disk yet: nothing to lose
+      const lost = fieldLosses(existingObj, JSON.parse(text), lib, lossSpecs);
+      if (lost.length) problems.push({ file: r.file, lost });
+    }
+  }
+
+  if (problems.length && !allowFieldLoss) {
+    process.stderr.write(
+      "refuse to write: regenerating would drop or empty field(s) that the existing manifest carries and library.json does not supply.\n"
+    );
+    for (const p of problems) {
+      process.stderr.write(`  ${p.file}:\n`);
+      for (const l of p.lost) {
+        process.stderr.write(`    - ${l.field} (existing: ${JSON.stringify(l.existing)})\n`);
+      }
+    }
+    process.stderr.write(
+      "Add the missing field(s) to library.json so the regeneration is deliberate, or pass --allow-field-loss to overwrite them anyway. Nothing was written.\n"
+    );
+    process.exit(1);
+  }
+
+  for (const { r, text } of toProcess) {
     if (write) {
       const abs = path.join(root, r.file);
       mkdirSync(path.dirname(abs), { recursive: true });

@@ -181,7 +181,7 @@
       {
         "name": "askit-migrate",
         "path": "skills/askit-migrate/SKILL.md",
-        "version": "0.1.0",
+        "version": "0.2.0",
         "tier": "universal",
         "status": "active"
       },
