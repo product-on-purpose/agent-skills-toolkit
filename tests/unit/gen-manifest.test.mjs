@@ -167,6 +167,26 @@ test("fieldLosses flags a Claude top-level key the renderer never emits (icon, h
   );
 });
 
+test("fieldLosses treats a renderer-owned field's formatting difference as a regeneration, not a loss (E72, round 2: the skills-pointer bug)", () => {
+  // The Codex renderer always emits the "skills" pointer as "./skills/" on its own; it is not
+  // library.json's to supply at all (there is no map entry for it). An existing file still
+  // carrying the old "./skills" (no trailing slash) is the renderer fixing its own formatting,
+  // not a field a plugin author hand-wrote and is now losing.
+  const existing = { skills: "./skills" };
+  const rendered = { skills: "./skills/" };
+  const lost = fieldLosses(existing, rendered, {});
+  assert.deepEqual(lost, [], 'the renderer emits its own value for "skills": a regeneration, never a loss with "no library.json home"');
+});
+
+test("fieldLosses still flags a renderer-owned field the renderer OMITS entirely this render, even with no map entry", () => {
+  // The distinction is "the renderer emits a value here" (regeneration), not "there is no map
+  // entry" (which alone would wrongly excuse every unmapped field, including a true drop).
+  const existing = { skills: "./skills/" };
+  const rendered = {}; // this render never reached the "skills" key at all (e.g. a non-codex render)
+  const lost = fieldLosses(existing, rendered, {});
+  assert.deepEqual(lost.map((l) => l.field), ["skills"], "omitted entirely in this render, so still a loss despite having no library.json home");
+});
+
 test("NATIVE_LIB_KEY_MAP maps name/version so a legitimate rename or bump is never a false refusal", () => {
   assert.equal(NATIVE_LIB_KEY_MAP.name, "name");
   assert.equal(NATIVE_LIB_KEY_MAP.version, "version");
@@ -341,6 +361,50 @@ test("CLI gen-manifest --write allows a field library.json supplies with a new v
   assert.equal(r.code, 1, "repository/license/author/keywords are still unsupplied, so those still refuse");
   assert.doesNotMatch(r.stderr, /- homepage/, "homepage must not be named: library.json supplied the new value deliberately");
   assert.match(r.stderr, /- repository/);
+});
+
+test('CLI gen-manifest --write regenerates a Codex manifest whose "skills" pointer lacks the trailing slash, with no refusal (E72, round 2)', () => {
+  // Reproduces the round-2 review finding exactly: seeding .codex-plugin/plugin.json with
+  // "skills": "./skills" (the renderer emits "./skills/") used to produce a "no library.json
+  // home" refusal for a pure formatting difference, not a hand-written-field loss.
+  const root = mkdtempSync(path.join(tmpdir(), "askit-gen-manifest-skills-pointer-"));
+  const lib = { ...THIN_LIB, license: "MIT", author: { name: "Demo Author" }, homepage: "https://example.com/demo-plugin", repository: "https://example.com/demo-plugin.git", keywords: ["demo", "plugin"] };
+  // displayName/category match the computed defaults for "demo-plugin" exactly, so only the
+  // "skills" pointer's missing trailing slash differs between existing and rendered.
+  seedPlugin(root, { lib, codexManifest: { ...RICH_MANIFEST, skills: "./skills", interface: { displayName: "Demo Plugin", category: "Engineering" } } });
+
+  const r = runGen([root, "--write", "--target=codex"]);
+
+  assert.equal(r.code, 0, r.stderr);
+  const after = JSON.parse(readFileSync(path.join(root, ".codex-plugin/plugin.json"), "utf8"));
+  assert.equal(after.skills, "./skills/", "the renderer's own formatting wins; this was never library.json's field to lose");
+});
+
+test("CLI gen-manifest --write still refuses a hand-written Codex interface key the renderer never emits, even alongside the fixed skills-pointer behavior", () => {
+  const root = mkdtempSync(path.join(tmpdir(), "askit-gen-manifest-skills-pointer-plus-vendor-key-"));
+  const lib = { ...THIN_LIB, displayName: "Demo Plugin", category: "Engineering" };
+  seedPlugin(root, {
+    lib,
+    codexManifest: { ...RICH_MANIFEST, skills: "./skills", interface: { displayName: "Demo Plugin", category: "Engineering", brandColor: "#2563EB" } },
+  });
+
+  const r = runGen([root, "--write", "--target=codex"]);
+
+  assert.equal(r.code, 1);
+  assert.doesNotMatch(r.stderr, /- skills/, 'the "skills" pointer formatting fix must never be reported');
+  assert.match(r.stderr, /- interface\.brandColor \(existing: .*no library\.json field carries this; --allow-field-loss is the only way through\)/);
+});
+
+test("CLI gen-manifest --write still refuses a Claude top-level key the renderer never emits (icon), alongside the fixed skills-pointer behavior", () => {
+  const root = mkdtempSync(path.join(tmpdir(), "askit-gen-manifest-icon-"));
+  const lib = { ...THIN_LIB, license: "MIT", author: { name: "Demo Author" }, homepage: "https://example.com/demo-plugin", repository: "https://example.com/demo-plugin.git", keywords: ["demo", "plugin"] };
+  seedPlugin(root, { lib, claudeManifest: { ...RICH_MANIFEST, icon: "./icon.png" } });
+
+  const r = runGen([root, "--write", "--target=claude"]);
+
+  assert.equal(r.code, 1);
+  assert.match(r.stderr, /- icon \(existing: "\.\/icon\.png"\)/);
+  assert.match(r.stderr, /no library\.json field carries this; --allow-field-loss is the only way through/);
 });
 
 // A guard that cannot be shown failing is not a guard: this covers the "present but unparseable"
