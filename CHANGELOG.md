@@ -9,9 +9,35 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [1.21.0] - 2026-10-23
+
+### Added
+
+- **`gen-manifest --write` now refuses to overwrite a native manifest when the regeneration would drop a hand-written field ([#368](https://github.com/product-on-purpose/agent-skills-toolkit/pull/368), [E72 (adopting a plugin can wipe its hand-written manifest fields)](docs/internal/backlog/enhancements.md)).** It checks every field the existing file carries against what `library.json` supplies, including a Codex `interface` key the renderer never emits and a Claude key such as `icon`, `hooks`, or an inline `mcpServers` object. It writes nothing, and names each field and its target file, when a field would be dropped, emptied, or replaced with no `library.json` home. The one change it still allows is a relative path spelled two ways, such as `./skills` and `./skills/`. An existing manifest that is not valid JSON is refused rather than overwritten, and a `--target=all` run writes nothing unless every target is clear. `--allow-field-loss` overwrites on purpose and is listed in `--help`.
+
+- **`check.mjs` and `evaluate.mjs` now say when a graded plugin declares a newer Standard edition than this toolkit ships ([#365](https://github.com/product-on-purpose/agent-skills-toolkit/pull/365), [E77 (a toolkit grades a plugin that declares a newer Standard than it ships, and does not say so)](docs/internal/backlog/enhancements.md)).** `check.mjs` prints an informational line, and both `check.mjs --json` and `evaluate.mjs`'s plugin-scope report carry a new `standardEditionNotice` field. It changes no exit code, tier, finding count, or SARIF result.
+
+### Changed
+
+- **The plugin-agent supported-fields list gained `autoCompactWindow` ([#367](https://github.com/product-on-purpose/agent-skills-toolkit/pull/367), [E83 (the supported-fields list gained autoCompactWindow)](docs/internal/backlog/enhancements.md)).** Claude Code's own plugin-components page, read 2026-10-23, added the field between `maxTurns` and `tools`. The list only builds `U14`'s remediation text, so no verdict moves.
+
+- **The agent-filename colon claim is retired and replaced by a claim about the frontmatter `name` ([#367](https://github.com/product-on-purpose/agent-skills-toolkit/pull/367), [E81 (the vendor's colon rule now names the frontmatter name, not the filename)](docs/internal/backlog/enhancements.md)).** `agent-filename-colon-excluded` read the colon rule as a statement about a plugin agent's FILENAME. A two-agent fixture, run in a Linux container on Claude Code 2.1.309, showed that a colon in the filename does not stop the plugin loader. The retired claim is replaced by `plugin-agents-outside-skip-list`, which pins the sub-agents page's own scoping sentence: the skip list it documents covers only a project, user, or managed `agents` directory, and never a plugin's. Five further quote claims (`commands-merged-into-skills`, `invocation-control-frontmatter`, `agents-scanned-recursively`, `plugin-agent-unsupported-fields`, `cx-hook-handler-support`) were re-read against their live pages on 2026-10-23, found accurate, and had `verifiedOn` refreshed.
+
+- **`askit-migrate`'s adopt mode (now `0.2.0`) tells the author to copy hand-written native-manifest fields into `library.json` before the Silver step's `gen-manifest --write` ([#368](https://github.com/product-on-purpose/agent-skills-toolkit/pull/368)).** It also explains the refusal added above, so an author who hits it knows the next step.
+
 ### Fixed
 
+- **`isRuntimeAgentFile` no longer excludes a colon in an agent's filename ([#367](https://github.com/product-on-purpose/agent-skills-toolkit/pull/367), E81).** Claude Code 2.1.309 loads a plugin agent file with a colon in its filename, because the vendor's skip list never covered a plugin's `agents/` directory. `U14`, `U15`, and the registration checks that read their result (`S2`, `S3`, `S4`, and the components-mirror check) now see such files. No family plugin has one, measured.
+
+- **The validator-parity harness no longer counts Claude Code's "Plugin directory checks" block as a vendor-validate diagnostic ([#367](https://github.com/product-on-purpose/agent-skills-toolkit/pull/367)).** Claude Code 2.1.309 added that block to `claude plugin validate --strict` output, breaking the harness's diagnostic matching the same way the Advice-section block did below. The documented `templates/seed-plugin` author exception (ADR 0043) now applies again.
+
 - **The validator-parity harness counted the vendor's advice as a failure.** Claude Code 2.1.296 added an `ℹ Advice (does not change the verdict)` section to `claude plugin validate`, and its lines use the same `❯` marker as real diagnostics. On `templates/seed-plugin` the advice line was read as a second diagnostic, so the documented `author` exception from ADR 0043 (Bronze scaffold defaults a minimal native manifest) stopped applying. The `validator-parity` CI job went red on every pull request from 2026-10-11, and two `npm test` CLI cases failed on any machine with that Claude Code version. `scripts/check-parity.mjs` now skips marked lines inside the advice section. A failure whose only marked lines are advice still gates, because advice explains no failure. Maintainer tooling only: `check-parity.mjs` is not in the npm package.
+
+- **Adopting a plugin through `askit-migrate` no longer silently wipes its hand-written manifest fields ([#368](https://github.com/product-on-purpose/agent-skills-toolkit/pull/368), [E72](docs/internal/backlog/enhancements.md)).** Measured on `pm-skills` at its catalogue pin: giving it the adopt-mode minimum `library.json` and running `gen-manifest --write` dropped `homepage`, `repository`, `license`, and `author`, emptied `keywords`, and replaced the Codex `interface` block, turning "PM Skills" into "Pm Skills". The generator added above now refuses the write instead.
+
+- **The publish-verify step no longer fails a release that actually landed ([#364](https://github.com/product-on-purpose/agent-skills-toolkit/pull/364), [E82 (the publish verify step gives up before the registry finishes processing)](docs/internal/backlog/enhancements.md)).** `scripts/verify-published-version.mjs` now waits up to 24 attempts ten seconds apart, about four minutes typically and about ten minutes worst case, instead of 6 attempts five seconds apart. The v1.20.0 publish landed and propagated normally, and the old window was shorter than the delay npm's own notice announces.
+
+- **The README and `architecture-internals.md` named a stale version and a stale check count ([#366](https://github.com/product-on-purpose/agent-skills-toolkit/pull/366)).** The README's Status prose still named `v1.18.0` after `v1.20.0` shipped, because `check-readme-version`'s guard pattern requires a word boundary before the version digits and `v1.18.0` has none after the `v`. `architecture-internals.md` said the spine is "34 checks" twice where the registry ships 35. Both are corrected; no check or verdict changed.
 
 ## [1.20.0] - 2026-10-04
 

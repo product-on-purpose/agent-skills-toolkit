@@ -4,6 +4,41 @@ Curated, user-facing highlights. For the full technical history see [`CHANGELOG.
 
 Every tier named below carries the same scope. *This tier reports structural conformance to a written Standard - deterministic and reproducible; it is not a content review, a safety audit, or a statement that the skills work.* See [what a tier does not certify](docs/explanation/limitations.md). This note is deliberately in the STANDING header rather than a footer: a footer would sit inside the oldest release's section and be extracted into that release's body by `check-release-notes-section.mjs`.
 
+## 1.21.0 - 2026-10-23
+
+[![npm](https://img.shields.io/npm/v/agent-skills-toolkit?label=npm&color=cb3837)](https://www.npmjs.com/package/agent-skills-toolkit)
+[![tier](https://img.shields.io/endpoint?url=https://product-on-purpose.github.io/agent-skills-toolkit/badges/tier.json)](https://product-on-purpose.github.io/agent-skills-toolkit/reports/report.html)
+[![checks](https://img.shields.io/badge/checks-35-6b4fa8)](https://product-on-purpose.github.io/agent-skills-toolkit/reference/gold-checks/)
+[![standard](https://img.shields.io/badge/Standard-0.17-6b4fa8)](https://product-on-purpose.github.io/agent-skills-toolkit/explanation/conformance-and-tiers/)
+
+**Vendor currency, and the adoption guard.** This is a minor: a new refusal behaviour in `gen-manifest`, a new JSON field on two report surfaces, and a lister fix that follows a vendor correction. No check was added or removed, the spine stays 35, and Standard stays 0.17.
+
+### If you adopt a plugin into this Standard, read this first
+
+`gen-manifest --write` now refuses to write a native manifest when the regeneration would drop, empty, or replace a non-empty field your `library.json` does not supply. It names each field and the file it would have changed, and the `library.json` key to set instead when one exists. Nothing is written on a refusal. This closes [E72 (adopting a plugin can wipe its hand-written manifest fields)](docs/internal/backlog/enhancements.md): adopting a real plugin with a thin `library.json` used to silently drop its `homepage`, `repository`, `license`, `author`, and `keywords`, and replace its Codex `interface` block. **If you have never adopted this Standard into a plugin that already ships a hand-written `.claude-plugin/plugin.json` or `.codex-plugin/plugin.json`, this changes nothing you will notice.** If you have, and a future regeneration would have dropped a field, `gen-manifest` now tells you and stops instead of doing it quietly. `--allow-field-loss` is there for when you mean it. `askit-migrate`'s adopt mode (now `0.2.0`) tells you to copy those fields into `library.json` first, so the refusal should be rare.
+
+### If you grade a plugin that pins a newer Standard than this toolkit ships
+
+`check.mjs` now prints a line naming both editions, and carries the same fact as a `standardEditionNotice` field in `check.mjs --json` and in `evaluate.mjs`'s plugin-scope report ([E77](docs/internal/backlog/enhancements.md)). This is informational only: it changes no tier, no error or warning count, no exit code, and no SARIF result. It exists so a reader of a clean grade knows the grader may be older than the edition the plugin claims, rather than finding out by surprise.
+
+### If you grade a plugin agent whose filename contains a colon
+
+`U14` and `U15`, and every registration check that reads their result, used to skip a plugin agent `.md` file whose filename contained a colon. Claude Code 2.1.309 does not skip it. The toolkit no longer does either. This was found and fixed by re-reading the vendor's own sub-agents page, which now says the rule is about the frontmatter `name` field, not the filename, and that its skip list covers only a project, user, or managed `agents` directory, never a plugin's ([E81](docs/internal/backlog/enhancements.md)). No plugin in this project's own marketplace has a colon in an agent filename, measured: the fix reaches zero files across all six members.
+
+### Also in this release
+
+- The plugin-agent supported-fields list gained `autoCompactWindow`, matching Claude Code's own documentation ([E83](docs/internal/backlog/enhancements.md)). This field only shapes a finding's remediation text, so no grade moves.
+- A publish that actually lands no longer reports red. The post-publish registry check now waits up to about four minutes typically, ten minutes worst case, instead of giving up after about 25 seconds - which is exactly what happened to the v1.20.0 publish, a real release reported as a failed run ([E82](docs/internal/backlog/enhancements.md)).
+- `claude plugin validate --strict`'s newer "Plugin directory checks" block no longer confuses this toolkit's own vendor-parity harness, the same fix the earlier Advice-section block needed.
+
+### What does not change
+
+No tier, error count, warning count, or exit code moves for any of the six plugins in this project's own marketplace. The colon fix touches zero files across all of them, measured. The `gen-manifest` refusal fires only when a regeneration would lose a field your `library.json` cannot replace; a plugin whose manifests already agree with `library.json` regenerates exactly as before. The newer-Standard notice is informational everywhere it appears.
+
+### Looking ahead
+
+A first-party provider survey run 2026-10-23 across Claude Code, Codex, and the Agent Plugins docs filed six backlog entries for later decisions: Claude Code "mods" as an unnamed plugin kind ([E84](docs/internal/backlog/enhancements.md)), a version-agreement preflight worth adopting from `claude plugin tag` ([E85](docs/internal/backlog/enhancements.md)), a Skills API frontmatter whitelist narrower than this Standard allows ([E86](docs/internal/backlog/enhancements.md)), further plugin-agent loading asymmetries beyond the colon rule ([E87](docs/internal/backlog/enhancements.md)), a root-level `SKILL.md` plugin shape this toolkit has not measured ([E88](docs/internal/backlog/enhancements.md)), and plugin directory readiness checks no page here documented ([E89](docs/internal/backlog/enhancements.md)). None of the six changes anything in this release; each is open, with a recommendation recorded.
+
 ## 1.20.0 - 2026-10-04
 
 [![npm](https://img.shields.io/npm/v/agent-skills-toolkit?label=npm&color=cb3837)](https://www.npmjs.com/package/agent-skills-toolkit)
