@@ -33,17 +33,33 @@ export const DEFAULT_REGISTRY = "https://registry.npmjs.org";
 
 /**
  * A version is not visible to every registry reader the instant `npm publish` returns: the write and
- * the CDN that serves reads are not the same system, and a few seconds of skew is normal rather than a
- * defect. So a single miss is not a verdict, and these three numbers are what turn a race into a fact.
+ * the CDN that serves reads are not the same system, and a delay of seconds to minutes is normal rather
+ * than a defect. So a single miss is not a verdict, and these three numbers are what turn a race into a
+ * fact.
  *
- * BOUNDED, for the reason review finding F10 gave for every other long-running thing here: six attempts
- * five seconds apart is at most ~30s of waiting plus six 15s request ceilings, comfortably inside the
- * publish job's 20-minute cap even if every attempt times out. A retry loop with no ceiling would turn
- * a registry outage into a hung job, and `cancel-in-progress: false` means a hung job blocks every
- * later publish dispatch until a human cancels it by hand.
+ * BOUNDED, for the reason review finding F10 (nothing bounded how long anything could take) gave for
+ * every other long-running thing here. A retry loop with no ceiling would turn a registry outage into a
+ * hung job, and `cancel-in-progress: false` means a hung job blocks every later publish dispatch until a
+ * human cancels it by hand.
+ *
+ * E82 (the publish verify step gives up before the registry finishes processing) widened this window.
+ * The original window, six attempts five seconds apart, proved too short in practice. Only one real
+ * measurement supports the new bound, not two. Publish run 37270742085 shipped 1.20.0, and the verify
+ * step still had not seen the version after six attempts five seconds apart. The registry served it as
+ * `latest` a few minutes later, confirmed by running this same script by hand. The earlier 1.19.0
+ * publish, run 35289925723, predates this script entirely. Commit a891221 added the script about 32
+ * minutes after that publish job had already completed, so the verify step never ran against that
+ * release. Registry propagation can take minutes, not seconds, so this window gives it minutes to
+ * finish.
+ *
+ * 24 attempts ten seconds apart is about four minutes of waiting. Add 24 request ceilings of 15 seconds
+ * each, for a worst case of about ten minutes if every attempt times out. The publish job that runs this
+ * script carries a 20-minute `timeout-minutes` cap. On run 37270742085 the steps before this one -
+ * checkout, Node setup, `npm ci`, `npm publish` - measured about 30 seconds. The worst case still fits,
+ * with minutes of margin.
  */
-export const ATTEMPTS = 6;
-export const RETRY_DELAY_MS = 5_000;
+export const ATTEMPTS = 24;
+export const RETRY_DELAY_MS = 10_000;
 export const FETCH_TIMEOUT_MS = 15_000;
 
 /** Strip a leading "v" so "v1.19.0" and "1.19.0" are the same input, matching verify-tag-matches-manifests.mjs. */
@@ -102,7 +118,7 @@ const realSleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
 /**
  * THE IO HALF. Fetch the packument and hand it to `assessPackument`, retrying while the answer is still
- * "no" or "could not read" - both are legitimately transient in the seconds after a publish.
+ * "no" or "could not read" - both are legitimately transient in the seconds to minutes after a publish.
  *
  * Every dependency is injected (`fetchImpl`, `sleep`, the three bounds) for the same reason
  * verifyTagMatchesManifests takes `root`: the parameter already has to exist for the workflow, so
