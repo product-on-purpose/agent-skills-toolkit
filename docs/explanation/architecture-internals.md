@@ -217,6 +217,16 @@ The ceiling is a ceiling and never a floor. A severity already at or below a cap
 
 It is also recorded only when it BINDS. A version condition that changes no outcome is not debt, and recording it anyway would print a due date for a finding that was never held.
 
+#### The newer-Standard notice (E77)
+
+`standardDebtLine` states one direction: a plugin pinned BELOW this toolkit's own edition, holding findings that are already being capped. The other direction states nothing by default: a plugin can declare a `standard` edition ABOVE this toolkit's own, and a clean grade then reads as "this plugin conforms" when it really means "this plugin conforms to every rule this toolkit's own, older edition knows to check."
+
+`newerStandardNotice(declared, shipped)` in `scripts/check.mjs` prints one line for exactly that case: `declared` is the graded plugin's own `library.json.standard`, read directly rather than through the `pinned` value `runGate()` passes into `resolveFindings` (`--strict` nulls that one out, which must not silence this notice). `shipped` is `shippedStandardEdition()` from `scripts/lib/shipped-standard.mjs`, which reads THIS repository's own `STANDARD.md` header - resolved relative to that module's own file, the same way `sarif-render.mjs`'s `toolVersion()` resolves this repo's own `package.json`, never relative to the plugin being graded.
+
+It is a hint and nothing more, the same promise `gate-config.md` makes for the missing-profile hint: no finding, no severity, and no effect on the tier, the error or warning counts, the exit code, or the SARIF document. It returns `""` for every case but one real, parseable declared edition strictly newer than a real, parseable shipped edition - no declaration, an equal or older declaration (`standardDebtLine`'s case, not this one's), a malformed declaration, or a shipped edition this toolkit failed to resolve all print nothing.
+
+The same text is carried in `check.mjs --json`'s `standardEditionNotice` field (`null` when it does not apply) and, for parity, in `evaluate.mjs`'s plugin-scope report object - both computed by the one function in `scripts/check.mjs`, never duplicated.
+
 #### The published-verdict trust step
 
 `resolveFindings` runs four ordered steps: the profile, then per-rule override and suppression, then the trust step, then the ceiling.
