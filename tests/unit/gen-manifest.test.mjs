@@ -187,6 +187,15 @@ test("fieldLosses still flags a renderer-owned field the renderer OMITS entirely
   assert.deepEqual(lost.map((l) => l.field), ["skills"], "omitted entirely in this render, so still a loss despite having no library.json home");
 });
 
+test("fieldLosses still flags a renderer-owned field the renderer renders EMPTY this render (not just undefined), even with no map entry", () => {
+  // "Renderer owns it" must mean "emits a genuine, non-empty value," not merely "the key is
+  // present." An empty string/array/object at an unmapped path is as good as omitted.
+  const existing = { skills: "./skills/" };
+  const rendered = { skills: "" };
+  const lost = fieldLosses(existing, rendered, {});
+  assert.deepEqual(lost.map((l) => l.field), ["skills"], "an empty rendered value at an unmapped path is still a loss, not a regeneration");
+});
+
 test("NATIVE_LIB_KEY_MAP maps name/version so a legitimate rename or bump is never a false refusal", () => {
   assert.equal(NATIVE_LIB_KEY_MAP.name, "name");
   assert.equal(NATIVE_LIB_KEY_MAP.version, "version");

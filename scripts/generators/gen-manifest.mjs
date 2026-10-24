@@ -119,10 +119,10 @@ const RENDERERS = {
  * difference there - for example an existing file still carrying "./skills" without the
  * trailing slash - is a regeneration, never a loss, and must never be reported as having "no
  * library.json home"; that phrase is reserved for a field library.json is supposed to be able
- * to supply (it has a map entry) and does not. A key the renderer OMITS entirely from this
- * render (its path reads as undefined, not merely a different value) is still always a loss
- * when the existing file carries it non-empty, whether or not it has a map entry, because
- * nothing in this run will replace it.
+ * to supply (it has a map entry) and does not. A key the renderer OMITS or renders EMPTY in
+ * this render (its path reads as undefined, null, "", [], or {}, not merely a different
+ * non-empty value) is still always a loss when the existing file carries it non-empty, whether
+ * or not it has a map entry, because nothing in this run will replace it.
  */
 export const NATIVE_LIB_KEY_MAP = {
   name: "name",
@@ -167,13 +167,13 @@ function valuesEqual(a, b) {
  * block, so a vendor field neither renderer has ever heard of is still caught. `libKeyMap`
  * supplies the library.json key, if any, that can justify a change at a given field path; a
  * field with no entry has no library.json home, so `lost[].libKey` comes back null and only
- * `--allow-field-loss` is a way through, UNLESS the renderer itself emits a (non-undefined)
- * value at that path in this render: that field is not library.json's to supply at all, it is
- * the renderer's own plumbing (the Codex "skills" pointer, an "./.mcp.json" pointer), and a
- * difference there is a regeneration, not a loss (E72, round 2). A field the renderer omits
- * entirely from this render (reads as undefined) is still always a loss when non-empty on
- * disk, mapped or not, because nothing in this run replaces it. Pure and side-effect-free, so
- * directly unit-testable.
+ * `--allow-field-loss` is a way through, UNLESS the renderer itself emits a non-empty value at
+ * that path in this render: that field is not library.json's to supply at all, it is the
+ * renderer's own plumbing (the Codex "skills" pointer, an "./.mcp.json" pointer), and a
+ * difference there is a regeneration, not a loss (E72, round 2). A field the renderer omits or
+ * renders empty in this render (undefined, null, "", [], or {}) is still always a loss when
+ * non-empty on disk, mapped or not, because nothing in this run replaces it. Pure and
+ * side-effect-free, so directly unit-testable.
  */
 export function fieldLosses(existingObj, newObj, lib, libKeyMap = NATIVE_LIB_KEY_MAP) {
   const lost = [];
@@ -189,7 +189,7 @@ export function fieldLosses(existingObj, newObj, lib, libKeyMap = NATIVE_LIB_KEY
     const libKey = libKeyMap[field] ?? null;
     const libVal = libKey ? lib?.[libKey] : undefined;
     if (!isEmptyValue(libVal)) return; // library.json supplies a (possibly different) value: deliberate regeneration
-    if (!libKey && newVal !== undefined) return; // no library.json home, but the renderer DOES emit a value here on its own: its own output, a regeneration, not a loss (E72, round 2)
+    if (!libKey && !isEmptyValue(newVal)) return; // no library.json home, but the renderer DOES emit a non-empty value here on its own: its own output, a regeneration, not a loss (E72, round 2)
     lost.push({ field, existing: oldVal, libKey });
   };
 
