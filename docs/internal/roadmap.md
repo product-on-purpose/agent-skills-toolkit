@@ -331,8 +331,7 @@ its own `library.json` - with the fixes that edition requires, and the catalogue
 commit as it lands. This comes ahead of cut 5 (the graded cohort), cut 3 (evidence) and Standard 0.18.
 The basis, measured 2026-09-30: the six members pinned five different editions (0.8 to 0.16) and one
 declared none, and the two members with the most subagents, commands and workflows were the least
-governed. A measured change list with a suggested order is gitignored working material at
-`_local/plans/own-plugins-first-change-list.md`. The toolkit changes it found are
+governed. The toolkit changes the 2026-09-30 measurement found are
 [E72 (adopting a plugin can wipe its manifest fields)](backlog/enhancements.md), which must land first,
 [E73 (`U9` and private packages)](backlog/enhancements.md),
 [E74 (`U12` and template placeholders)](backlog/enhancements.md) and
@@ -340,7 +339,32 @@ governed. A measured change list with a suggested order is gitignored working ma
 cohort on 2026-09-28, then chose this after stating the project's goal as common standards across the
 plugins of a marketplace.
 
-**Rulings for the migration, 2026-10-04.** `pm-skills` uses the verified workarounds for E73 (`U9` and private packages) and E74 (`U12` and template placeholders) instead of waiting for 0.18. E75 (a marketplace minimum edition) gets ADR 0062 after the migration finishes. Whether `thinking-framework-skills` declares Silver or does the Gold work is still the maintainer's open call; it is not needed until the migration reaches that plugin.
+**The migration order, per plugin, committed here because this page's own test - a reader who has
+never opened `_local/` must be able to pick up any open item - does not allow the tactical order to
+live only in a gitignored plan.** Facts below are each plugin's own `origin/HEAD`, measured 2026-10-23
+unless marked otherwise; a plugin that keeps moving needs a re-measure before its row is actioned.
+
+| # | Plugin | Standard today | What blocks the move to 0.17 | Done is measured by |
+|---|---|---|---|---|
+| 1 | agent-skills-toolkit (this repository) | 0.17 | Nothing - shipped in cut 6, v1.20.0 | Already true: `library.json` pins 0.17 and the gate is green |
+| 2 | critique-skills | 0.17, Silver, v0.2.0 | Nothing - moved 2026-09-30 (its PR 56) | Already true, same test |
+| 3 | product-lifecycle-templates | 0.12, now at v0.21.0 | Its `origin/HEAD` has moved past the commit the 2026-09-30 measurement pinned, so the small fix (change `standard`, regenerate `INDEX.md`) needs a re-measure against the current commit before it ships. *Confidence: medium - the fix is likely still that small, but unverified against v0.21.0* | `library.json.standard` reads `0.17`; the toolkit grades it Gold, 0 errors |
+| 4 | writing-style-catalog | 0.11, v0.14.0 | A one-line `standard` change; expect Bronze, 3 `U5` warnings, which are [E63 (`U5` rewards a template)](backlog/enhancements.md) advice, not blockers | `standard` reads `0.17`; the toolkit grades it Bronze, 0 errors |
+| 5 | pm-skills | none - no `library.json` | [E72](backlog/enhancements.md) must land first, so adoption cannot wipe the native manifests' hand-written fields; then a new `library.json` declaring `tier: universal`, using the [E74](backlog/enhancements.md)-ruled workaround (a keyword line in its template) and the [E73](backlog/enhancements.md)-ruled workaround (a real version on its tooling `package.json`) until Standard 0.18 ships `U9`'s exemption properly, plus repointing the docs links its own restructuring broke | `library.json` exists, declares `0.17` and `universal`; the toolkit grades it Bronze, 0 errors |
+| 6 | thinking-framework-skills | 0.8, v0.18.6 | **Ruled 2026-10-14: do the Gold work, not declare Silver.** Measured 2026-09-30 at its then-pinned commit, so re-measure at v0.18.6 before executing: 71 folder READMEs, frontmatter on 7 docs pages, and `G10`'s four Diataxis folders plus two architecture pages | `library.json.standard` reads `0.17`, `tier` stays `advanced`; the toolkit grades it Gold, 0 errors |
+| 7 | agent-plugins (the marketplace catalogue) | pins five different editions across the six members | Each member above releases its own move first | `.claude-plugin/marketplace.json` pins each member's post-migration commit; [E75](backlog/enhancements.md) gets ADR 0062 after the last one lands |
+
+**Suggested order**, carried from the 2026-09-30 measurement: `product-lifecycle-templates`,
+`writing-style-catalog` and `critique-skills` first, as the small, independent moves (critique-skills
+is already done); then the E72 toolkit fix, before any plugin runs `gen-manifest` during adoption; then
+`pm-skills` to Bronze; then the `thinking-framework-skills` Gold work; then the catalogue re-pins as
+each plugin releases.
+
+**Rulings for the migration.** 2026-10-04: `pm-skills` uses the verified workarounds for
+[E73](backlog/enhancements.md) (`U9` and private packages) and [E74](backlog/enhancements.md) (`U12`
+and template placeholders) instead of waiting for 0.18; [E75](backlog/enhancements.md) (a marketplace
+minimum edition) gets ADR 0062 after the migration finishes. 2026-10-14: `thinking-framework-skills`
+does the Gold work rather than declaring Silver, with the counts in row 6 above.
 
 ---
 
