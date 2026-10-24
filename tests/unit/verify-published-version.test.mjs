@@ -12,6 +12,9 @@ import {
   parseArgs,
   readPackageName,
   DEFAULT_REGISTRY,
+  ATTEMPTS,
+  RETRY_DELAY_MS,
+  FETCH_TIMEOUT_MS,
 } from "../../scripts/verify-published-version.mjs";
 
 // The post-publish registry assertion. Everything else in publish-npm.yml certifies what is ABOUT to be
@@ -185,6 +188,26 @@ test("the abbreviated packument is requested: the full document is megabytes to 
   await verifyPublishedVersion({ tag: "v1.19.0", name: "agent-skills-toolkit", fetchImpl, sleep: noSleep });
   assert.equal(seen.headers.accept, "application/vnd.npm.install-v1+json");
   assert.ok(seen.signal, "the request must be bounded by a timeout signal");
+});
+
+// ---------------------------------------------------------------------------
+// E82 (the publish verify step gives up before the registry finishes processing): bounding the window
+// without hanging the job it runs in.
+// ---------------------------------------------------------------------------
+
+test("E82: the retry loop's worst case fits inside the publish job's timeout-minutes, measured steps included", () => {
+  const wf = parseYaml(readFileSync(path.join(ROOT, ".github/workflows/publish-npm.yml"), "utf8"));
+  const jobTimeoutMs = wf.jobs.publish["timeout-minutes"] * 60_000;
+  const retryWorstCaseMs = ATTEMPTS * FETCH_TIMEOUT_MS + (ATTEMPTS - 1) * RETRY_DELAY_MS;
+  // Run 37270742085 measured checkout, Node setup, `npm ci`, and `npm publish` at about 30 seconds; see
+  // the docblock above ATTEMPTS for the full measurement.
+  const measuredPreVerifyStepsMs = 30_000;
+  assert.ok(
+    jobTimeoutMs > retryWorstCaseMs + measuredPreVerifyStepsMs,
+    `the publish job's timeout (${jobTimeoutMs}ms) must outlast the retry loop's worst case ` +
+      `(${retryWorstCaseMs}ms) plus the measured steps ahead of it (${measuredPreVerifyStepsMs}ms), or a ` +
+      `slow registry gets killed by the harness instead of reported as unverified`
+  );
 });
 
 // ---------------------------------------------------------------------------
