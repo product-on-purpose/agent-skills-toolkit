@@ -10,7 +10,7 @@
 //               wrapped defensively, degrading to null rather than throwing - this is informational
 //               metadata, never a gate decision
 // used-by:      scripts/check.mjs (newerStandardNotice, E77), scripts/evaluate.mjs; covered by
-//               tests/unit/shipped-standard.test.mjs
+//               tests/unit/newer-standard-notice.test.mjs
 import { readFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";

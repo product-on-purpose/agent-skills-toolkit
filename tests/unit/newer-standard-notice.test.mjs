@@ -65,6 +65,11 @@ test("newerStandardNotice: malformed edition -> no line, no crash", () => {
 
 test("newerStandardNotice: shipped edition unresolved -> no line (never \"newer than unknown\")", () => {
   assert.equal(newerStandardNotice("0.18", null), "");
+  assert.equal(
+    newerStandardNotice("0.18", "0.x"),
+    "",
+    "the BASELINE sentinel on the shipped side must not be read as a real edition either"
+  );
 });
 
 test("newerStandardNotice: newer edition names both, in one plain sentence, and states what was not checked", () => {

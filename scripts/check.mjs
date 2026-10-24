@@ -154,7 +154,7 @@ export function buildJsonReport(root, ctx, r) {
     tierReport: computeTierReport(root, ctx, r.findings),
     // E77: "" (no notice) serializes as null rather than an empty string, so a consumer can branch on
     // truthiness without special-casing "" - the same treatment debt-style text would get if it were
-    // machine-readable at all. See newerStandardNotice's own docblock for the five cases that stay null.
+    // machine-readable at all. See newerStandardNotice's own docblock for the four cases that stay null.
     standardEditionNotice: newerStandardNotice(ctx?.library?.data?.standard, shippedStandardEdition()) || null,
   };
 }
@@ -253,10 +253,14 @@ export function standardDebtLine(findings, declaredTier) {
  * Returns "" for every case except "a real, parseable declared edition strictly newer than a real,
  * parseable shipped edition":
  *   - no `standard` declared at all (parseStandard(undefined) is null)
- *   - a malformed declared edition ("banana", "1", the BASELINE sentinel) - excluded explicitly via
- *     parseStandard + Number.isFinite (the same guard isAfter uses in standard-version.mjs) rather than
- *     trusted to compareStandard's own "unparseable sorts last" rule, which exists for a different
- *     purpose (back-compat grading) and would otherwise print a garbage string as a newer real edition
+ *   - a malformed declared edition ("banana", "1", the BASELINE sentinel) - "banana" and "1" parse to
+ *     null and are caught by the null check above; the BASELINE sentinel parses to a real, non-null
+ *     tuple ([-Infinity, -Infinity]), so it needs the Number.isFinite check instead. That check is
+ *     redundant on the declared side (compareStandard already sorts a declared BASELINE below any real
+ *     shipped edition), but it is the only thing stopping a hypothetical shipped BASELINE from sorting
+ *     below every real declared edition and printing as "newer than unknown" - unreachable today, since
+ *     shippedStandardEdition() never returns the literal BASELINE string, but kept so the function's own
+ *     contract does not depend on that caller's behaviour
  *   - an equal or older declared edition - the older direction is standardDebtLine's job already
  *   - the toolkit's own shipped edition failed to resolve (null) - never print "newer than unknown"
  * Exported for unit testing.
