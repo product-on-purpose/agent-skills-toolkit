@@ -54,8 +54,10 @@ annotated it the same way. Six findings needed a decision or a build rather than
 and became [E84 through E89](backlog/enhancements.md#first-party-provider-survey-2026-10-23) (Claude
 Code mods; the `plugin tag` version-agreement preflight; the Skills API frontmatter whitelist; plugin
 agent loading asymmetries; the unchecked root-`SKILL.md` plugin shape; plugin directory readiness). One
-finding (Codex's hook handler types versus Claude Code's five) was folded into `E48` as a dated note
-rather than a new entry, because it is the same surface `E48` already tracks on an adjacent axis.
+finding (Codex's hook handler types versus Claude Code's five) was folded into
+[E48 (the Codex hook event subset is pinned nowhere)](../docs/internal/backlog/enhancements.md#e48-the-codex-hook-event-subset-is-pinned-nowhere-and-the-advanced-tier-requires-hooks-correctness-effort-s-found-writing-tier-basismd)
+as a dated note rather than a new entry, because it is the same surface E48 already tracks on an
+adjacent axis.
 
 **What this survey did NOT do.** Re-sweep every page on any of the four pinned surfaces end to end;
 confirm, beyond a redirect this pass did not follow, whether OpenAI's own docs point new packages at
