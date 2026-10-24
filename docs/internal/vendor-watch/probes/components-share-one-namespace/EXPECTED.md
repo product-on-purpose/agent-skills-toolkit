@@ -240,3 +240,25 @@ for each plugin. ADR 0060's `warn` ruling stands unchanged. `verifiedOn` advance
 probe blocks from **2026-11-13**. Fixtures removed afterwards with
 `claude plugin marketplace remove askit-probe-fixtures`; `claude plugin list` shows no probe plugin and
 `.claude/settings.local.json` holds no `probe` entry.
+
+## 2026-10-23: re-run, unchanged, on Claude Code 2.1.310
+
+Headless `claude -p --output-format stream-json --verbose`, one fresh session per install order, run
+from this repository's worktree root. Each session made exactly one tool call, `Skill`, with the bare
+input `"skill":"probe-duplicate"`, read no file, and got back the raw `tool_result`:
+
+```
+A then B:  <tool_use_error>Unknown skill: probe-duplicate. Several skills match that name:
+           probe-collision-a:probe-duplicate, probe-collision-b:probe-duplicate — invoke one by its full name.</tool_use_error>
+B then A:  <tool_use_error>Unknown skill: probe-duplicate. Several skills match that name:
+           probe-collision-b:probe-duplicate, probe-collision-a:probe-duplicate — invoke one by its full name.</tool_use_error>
+```
+
+**The same refusal as 2026-09-17 and 2026-10-13.** No body came back in either run, so nothing wins, and
+only the order the candidates are listed in follows install order. `claude plugin details` lists
+`Skills (1) probe-duplicate` for each plugin, confirming each installs cleanly without being refused as
+a conflict. ADR 0060's `warn` ruling stands unchanged. `verifiedOn` advances to 2026-10-23, and the
+probe blocks from **2026-11-23**, measured with `node scripts/vendor-watch.mjs . --today`: 2026-11-22
+reports 0 stale and 2026-11-23 reports 2. Fixtures removed afterwards with
+`claude plugin marketplace remove askit-probe-fixtures`; `claude plugin list` shows no probe plugin, and
+`.claude/settings.local.json` holds no `probe` entry.

@@ -134,3 +134,22 @@ probe blocks from **2026-11-13**, measured with `npm run vendor-watch -- --today
 Second, the inventory lists each plugin agent by its FILENAME (`README`), not by its frontmatter `name`
 (`probe-readme-should-not-be-an-agent`). So a plugin agent's identity comes from its path, which matters
 for E81 (the colon rule now names the frontmatter `name`, not the filename).
+
+## 2026-10-23: re-run, unchanged, on Claude Code 2.1.310
+
+Instrument: `claude plugin details probe-agents-scan`, on **Claude Code 2.1.310**, after installing the
+fixture with `--scope local` from a fresh `askit-probe-fixtures` marketplace add.
+
+```
+Component inventory
+  Skills (0)
+  Agents (3)  README, real-agent, _README
+```
+
+**Three of four, the same three.** `README.md` and `_README.md` both registered; `README.txt` did not.
+`U15` (agents-dir-registerable) keeps its vendor grounding. `verifiedOn` advances to 2026-10-23, and the
+probe blocks from **2026-11-23**, measured with `node scripts/vendor-watch.mjs . --today`: 2026-11-22
+reports 0 stale and 2026-11-23 reports 2.
+
+Fixtures removed afterwards with `claude plugin marketplace remove askit-probe-fixtures`; `claude plugin
+list` shows no probe plugin, and `.claude/settings.local.json` holds no entry naming `probe`.

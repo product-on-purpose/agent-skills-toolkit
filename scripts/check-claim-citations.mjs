@@ -65,6 +65,8 @@ const KNOWN_NON_CLAIM = new Map([
   ["user-invocable", "a skill frontmatter field"],
   ["disable-model-invocation", "a skill frontmatter field"],
   ["agent-filename-colon-excluded", "retired claim id, replaced 2026-10-23 by plugin-agents-outside-skip-list (E81, the colon rule now names the frontmatter name, not the filename)"],
+  ["dash-name", "a fixture agent filename in docs/internal/vendor-watch/one-time/agent-name-rules/, not a ledger claim (E87, plugin-agent loading asymmetries)"],
+  ["long-name", "a fixture agent filename in docs/internal/vendor-watch/one-time/agent-name-rules/, not a ledger claim (E87, plugin-agent loading asymmetries)"],
 ]);
 
 /** A line is about claims or pins if it says so. */
