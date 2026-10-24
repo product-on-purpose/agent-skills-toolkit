@@ -79,7 +79,10 @@ The check is not limited to the fields `library.json` can supply. It walks
 every field the existing manifest carries, including a Codex interface key
 neither renderer emits, such as `shortDescription` or `brandColor`. Those
 have no `library.json` home at all, so their refusal line says so, and
-`--allow-field-loss` is the only way through for them.
+`--allow-field-loss` is the only way through for them. The same applies to
+a hand-written inline `mcpServers` object or a custom `skills` directory.
+The one change the check forgives is a path spelled two ways, such as
+`./skills` on disk where the renderer writes `./skills/`.
 
 Two ways through:
 

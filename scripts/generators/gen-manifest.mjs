@@ -111,18 +111,16 @@ const RENDERERS = {
  * change at a given field path. A field with no entry here has no library.json home at all, so
  * any loss there can only be waved through with `--allow-field-loss`.
  *
- * Decision (E72, round 2 of the PR #368 review): a field with no entry in this map is NOT
- * automatically a loss. A key the renderer EMITS on its own in this render, with no
- * library.json source at all (Codex's "skills" pointer, always "./skills/" regardless of
- * library.json; the "./.mcp.json" pointer, driven by whether a sibling .mcp.json exists on
- * disk, not by library.json), is the renderer's own authoritative, repeatable output. A
- * difference there - for example an existing file still carrying "./skills" without the
- * trailing slash - is a regeneration, never a loss, and must never be reported as having "no
- * library.json home"; that phrase is reserved for a field library.json is supposed to be able
- * to supply (it has a map entry) and does not. A key the renderer OMITS or renders EMPTY in
- * this render (its path reads as undefined, null, "", [], or {}, not merely a different
- * non-empty value) is still always a loss when the existing file carries it non-empty, whether
- * or not it has a map entry, because nothing in this run will replace it.
+ * Decision (E72, rounds 2 and 3 of the PR #368 review): a field with no entry in this map is a
+ * loss whenever the render would change it, with one exception. When the existing value and the
+ * rendered value are the same relative path spelled two ways ("./skills" and "./skills/"), the
+ * difference is a regeneration. Round 2 excused ANY non-empty rendered value at such a key. That
+ * let a hand-written inline `mcpServers` object, or a custom `skills` directory, be replaced
+ * without a refusal; round 3 narrowed the exception to path spelling only.
+ *
+ * In the refusal, a field with no entry here is named with "no library.json field carries this".
+ * A mapped field is named with its library.json key, or with no suffix when the key matches the
+ * field's own name.
  */
 export const NATIVE_LIB_KEY_MAP = {
   name: "name",
@@ -156,6 +154,18 @@ function valuesEqual(a, b) {
 }
 
 /**
+ * True when both values are strings naming the same relative path, once a leading "./" and any
+ * trailing "/" are stripped ("./skills" and "./skills/"). This is the only difference the walk
+ * forgives at a field with no library.json home (E72, round 3). An object, an array, or a
+ * different path is never forgiven, because it is hand-written content the render would replace.
+ */
+function samePathSpelling(a, b) {
+  if (typeof a !== "string" || typeof b !== "string") return false;
+  const norm = (s) => s.trim().replace(/^\.\//, "").replace(/\/+$/, "");
+  return norm(a) !== "" && norm(a) === norm(b);
+}
+
+/**
  * Compares an existing native manifest to a freshly rendered one, field by field. It reports
  * every field that would be LOST. A field is lost when the existing value is non-empty, the
  * rendered value differs from (or omits) it, and library.json does not supply it. A value
@@ -167,13 +177,10 @@ function valuesEqual(a, b) {
  * block, so a vendor field neither renderer has ever heard of is still caught. `libKeyMap`
  * supplies the library.json key, if any, that can justify a change at a given field path; a
  * field with no entry has no library.json home, so `lost[].libKey` comes back null and only
- * `--allow-field-loss` is a way through, UNLESS the renderer itself emits a non-empty value at
- * that path in this render: that field is not library.json's to supply at all, it is the
- * renderer's own plumbing (the Codex "skills" pointer, an "./.mcp.json" pointer), and a
- * difference there is a regeneration, not a loss (E72, round 2). A field the renderer omits or
- * renders empty in this render (undefined, null, "", [], or {}) is still always a loss when
- * non-empty on disk, mapped or not, because nothing in this run replaces it. Pure and
- * side-effect-free, so directly unit-testable.
+ * `--allow-field-loss` is a way through. The one exception is a pure path-spelling difference
+ * ("./skills" on disk, "./skills/" rendered), which is a regeneration (E72, round 3). An existing
+ * `interface` that is not a plain object (a string, an array) is checked as one field, since the
+ * render would replace it whole. Pure and side-effect-free, so directly unit-testable.
  */
 export function fieldLosses(existingObj, newObj, lib, libKeyMap = NATIVE_LIB_KEY_MAP) {
   const lost = [];
@@ -189,7 +196,7 @@ export function fieldLosses(existingObj, newObj, lib, libKeyMap = NATIVE_LIB_KEY
     const libKey = libKeyMap[field] ?? null;
     const libVal = libKey ? lib?.[libKey] : undefined;
     if (!isEmptyValue(libVal)) return; // library.json supplies a (possibly different) value: deliberate regeneration
-    if (!libKey && !isEmptyValue(newVal)) return; // no library.json home, but the renderer DOES emit a non-empty value here on its own: its own output, a regeneration, not a loss (E72, round 2)
+    if (!libKey && samePathSpelling(oldVal, newVal)) return; // no library.json home, and the only difference is how one relative path is spelled: a regeneration, not a loss (E72, round 3)
     lost.push({ field, existing: oldVal, libKey });
   };
 
@@ -200,6 +207,8 @@ export function fieldLosses(existingObj, newObj, lib, libKeyMap = NATIVE_LIB_KEY
   const existingInterface = existingObj?.interface;
   if (existingInterface && typeof existingInterface === "object" && !Array.isArray(existingInterface)) {
     for (const key of Object.keys(existingInterface)) checkField(`interface.${key}`);
+  } else {
+    checkField("interface"); // a non-object interface (a string, an array) is hand-written content the render replaces whole
   }
 
   return lost;

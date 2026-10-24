@@ -175,7 +175,7 @@ test("fieldLosses treats a renderer-owned field's formatting difference as a reg
   const existing = { skills: "./skills" };
   const rendered = { skills: "./skills/" };
   const lost = fieldLosses(existing, rendered, {});
-  assert.deepEqual(lost, [], 'the renderer emits its own value for "skills": a regeneration, never a loss with "no library.json home"');
+  assert.deepEqual(lost, [], '"./skills" and "./skills/" name the same path: a regeneration, never a loss with "no library.json home"');
 });
 
 test("fieldLosses still flags a renderer-owned field the renderer OMITS entirely this render, even with no map entry", () => {
@@ -194,6 +194,29 @@ test("fieldLosses still flags a renderer-owned field the renderer renders EMPTY 
   const rendered = { skills: "" };
   const lost = fieldLosses(existing, rendered, {});
   assert.deepEqual(lost.map((l) => l.field), ["skills"], "an empty rendered value at an unmapped path is still a loss, not a regeneration");
+});
+
+// E72, round 3. Round 2 excused ANY non-empty rendered value at a key with no library.json home,
+// so each case below was replaced without a refusal. Only a path spelled two ways is forgiven now.
+test("fieldLosses flags a different path at an unmapped key, even though the renderer emits a non-empty value there (E72, round 3)", () => {
+  const lost = fieldLosses({ skills: "./src/agent-skills/" }, { skills: "./skills/" }, {});
+  assert.deepEqual(lost.map((l) => l.field), ["skills"], "a custom skills directory is hand-written content, not path spelling");
+});
+
+test("fieldLosses flags a hand-written inline object the renderer would replace with a pointer (E72, round 3)", () => {
+  const existing = { mcpServers: { handwritten: { command: "node", args: ["inline-server.js"] } } };
+  const lost = fieldLosses(existing, { mcpServers: "./.mcp.json" }, {});
+  assert.deepEqual(lost.map((l) => l.field), ["mcpServers"], "an inline server definition is not the same value as a pointer to .mcp.json");
+});
+
+test("fieldLosses flags an array the renderer would replace with a single string (E72, round 3)", () => {
+  const lost = fieldLosses({ skills: ["./skills/", "./extra-skills/"] }, { skills: "./skills/" }, {});
+  assert.deepEqual(lost.map((l) => l.field), ["skills"]);
+});
+
+test("fieldLosses flags an existing interface that is not an object, which the render replaces whole (E72, round 3)", () => {
+  const lost = fieldLosses({ interface: "hand-written string" }, { interface: { displayName: "Demo Plugin", category: "Engineering" } }, {});
+  assert.deepEqual(lost.map((l) => l.field), ["interface"]);
 });
 
 test("NATIVE_LIB_KEY_MAP maps name/version so a legitimate rename or bump is never a false refusal", () => {
@@ -414,6 +437,41 @@ test("CLI gen-manifest --write still refuses a Claude top-level key the renderer
   assert.equal(r.code, 1);
   assert.match(r.stderr, /- icon \(existing: "\.\/icon\.png"\)/);
   assert.match(r.stderr, /no library\.json field carries this; --allow-field-loss is the only way through/);
+});
+
+const FULL_LIB = { ...THIN_LIB, license: "MIT", author: { name: "Demo Author" }, homepage: "https://example.com/demo-plugin", repository: "https://example.com/demo-plugin.git", keywords: ["demo", "plugin"], displayName: "Demo Plugin", category: "Engineering" };
+
+test("CLI gen-manifest --write refuses to replace an inline Claude mcpServers object with the .mcp.json pointer (E72, round 3)", () => {
+  const root = mkdtempSync(path.join(tmpdir(), "askit-gen-manifest-inline-mcp-"));
+  seedPlugin(root, { lib: FULL_LIB, claudeManifest: { ...RICH_MANIFEST, mcpServers: { handwritten: { command: "node", args: ["inline-server.js"] } } } });
+  writeFileSync(path.join(root, ".mcp.json"), JSON.stringify({ mcpServers: { other: { command: "node", args: ["other.js"] } } }, null, 2) + "\n", "utf8");
+  const before = readFileSync(path.join(root, ".claude-plugin/plugin.json"), "utf8");
+
+  const r = runGen([root, "--write", "--target=claude"]);
+
+  assert.equal(r.code, 1, "round 2 wrote this through with exit 0");
+  assert.match(r.stderr, /- mcpServers \(existing: .*no library\.json field carries this/);
+  assert.equal(readFileSync(path.join(root, ".claude-plugin/plugin.json"), "utf8"), before, "nothing was written");
+});
+
+test("CLI gen-manifest --write refuses to replace a custom Codex skills directory (E72, round 3)", () => {
+  const root = mkdtempSync(path.join(tmpdir(), "askit-gen-manifest-custom-skills-"));
+  seedPlugin(root, { lib: FULL_LIB, codexManifest: { ...RICH_MANIFEST, skills: "./src/agent-skills/", interface: { displayName: "Demo Plugin", category: "Engineering" } } });
+
+  const r = runGen([root, "--write", "--target=codex"]);
+
+  assert.equal(r.code, 1, "round 2 wrote this through with exit 0");
+  assert.match(r.stderr, /- skills \(existing: "\.\/src\/agent-skills\/"\)/);
+});
+
+test("CLI gen-manifest --write refuses to replace a non-object Codex interface value (E72, round 3)", () => {
+  const root = mkdtempSync(path.join(tmpdir(), "askit-gen-manifest-string-interface-"));
+  seedPlugin(root, { lib: FULL_LIB, codexManifest: { ...RICH_MANIFEST, skills: "./skills/", interface: "hand-written string" } });
+
+  const r = runGen([root, "--write", "--target=codex"]);
+
+  assert.equal(r.code, 1, "this predates round 2: the interface walk skipped a non-object value");
+  assert.match(r.stderr, /- interface \(existing: "hand-written string"\)/);
 });
 
 // A guard that cannot be shown failing is not a guard: this covers the "present but unparseable"
