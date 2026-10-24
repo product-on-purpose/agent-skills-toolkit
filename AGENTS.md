@@ -34,17 +34,13 @@ Components present on disk:
   `askit-evaluate` -> `askit-build-skill` (improve). The exact current component
   list lives in `library.json` and [`INDEX.md`](INDEX.md) (this section stays terse
   on purpose - brevity is a feature).
-- **Subagents:** `askit-skill-author` (the bounded authoring delegate behind
-  `askit-build-skill`) and `askit-evaluator` (the read-only assessment delegate behind
-  `askit-evaluate`). Both are Claude-only (`agent-targets: [claude]`; Standard
-  sec 3.3) and carry the `askit-` prefix like every other component (sec 8.2). The
-  chain contract `agents/_chain-permitted.yaml` permits all five declared edges:
-  `askit-build-skill` -> `askit-skill-author`, `askit-build-skill` -> `askit-reviewer`
-  (the v1.7.0 craft pass, ADR 0037), `askit-evaluate` -> `askit-evaluator`,
-  `askit-evaluate` -> `askit-quality-grader`, `askit-evaluate` -> `askit-reviewer`, and
-  `askit-skill-author` -> `askit-evaluator`. Read the file, not this list, when it matters:
-  `agents/_chain-permitted.yaml` is the contract and this is a convenience summary. The full
-  per-subagent reference is [`docs/reference/subagents.md`](docs/reference/subagents.md).
+- **Subagents:** all Claude-only (`agent-targets: [claude]`; Standard sec 3.3) and
+  carry the `askit-` prefix like every other component (sec 8.2). The full roster
+  lives in `library.json` (`components.subagents`), not in this bullet, so it
+  cannot go stale here; the full per-subagent reference is
+  [`docs/reference/subagents.md`](docs/reference/subagents.md). The permitted
+  invocation edges live in `agents/_chain-permitted.yaml`, enforced by the `S4`
+  orphan check - read that file, not a count here, when it matters.
 - **Commands:** `/askit-evaluate` (maps-to: `askit-evaluate`) and
   `/askit-build-skill` (maps-to: `askit-build-skill`). Commands are Claude-native;
   on Codex the backing skill is the invocable form (Standard sec 3.2).

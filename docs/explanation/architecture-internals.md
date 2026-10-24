@@ -14,7 +14,7 @@ doc-role: architecture-detailed
 
 This page is for someone extending or debugging `scripts/` who wants detail that matches the source rather than a summary. It assumes you have read [the architecture overview](./architecture.md) first.
 
-The **spine** is the 34 checks the toolkit ships, and this is the contributor-level walkthrough of how that spine is actually built. Coined terms like that one are defined in [the glossary](./glossary.md).
+The **spine** is the 35 checks the toolkit ships, and this is the contributor-level walkthrough of how that spine is actually built. Coined terms like that one are defined in [the glossary](./glossary.md).
 
 It covers six things:
 
@@ -42,7 +42,7 @@ Both run the same checks. Only the framing differs.
 
 A check is one small file that answers a single question about a plugin, such as "is there a valid `library.json` here". It hands back a list of the problems it found, and an empty list means the plugin passed that question.
 
-That is worth stating plainly, because the gate has no other machinery. It is 34 of these files run in order, and the tier a plugin earns is decided by which of them came back empty. If you are adding a requirement to the Standard, a check module is the file you write, and the shape below is the whole contract you have to satisfy.
+That is worth stating plainly, because the gate has no other machinery. It is 35 of these files run in order, and the tier a plugin earns is decided by which of them came back empty. If you are adding a requirement to the Standard, a check module is the file you write, and the shape below is the whole contract you have to satisfy.
 
 Concretely, a check is an ES module under `scripts/checks/` with exactly two exports: a `meta` object and a synchronous `check(ctx)` function. That contract is uniform across all 35 spine checks.
 

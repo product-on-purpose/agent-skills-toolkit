@@ -2,7 +2,7 @@
 title: "Roadmap - what is open, what it depends on, and what done means"
 description: "The tracked PLAN counterpart to STATUS.md's STATE: every open item with its acceptance criteria verbatim, every deferral with a reopening condition, every decline with a reason"
 status: live
-last-updated: "2026-10-04"
+last-updated: "2026-10-23"
 ---
 
 # Roadmap
@@ -132,6 +132,14 @@ claim with its own 30-day clock (`FRESHNESS_DAYS = 30` in `scripts/lib/vendor-wa
 change lands this ADR must update the probe budget in the same change, or the third clock becomes an
 unbudgeted release blocker. See [Hard dates](#5-hard-dates).
 
+**Annotated 2026-10-23 - the vendor side of the ruling is now confirmed in prose, the toolkit side is
+still unwritten.** `cli-reference.md` documents `claude plugin eval`: it runs a plugin's eval cases
+"and reports scored results," isolated per run, with a `--ablation with-without` arm against a
+no-plugin baseline. That is the single-plugin, judged, behavioural shape the ADR's positioning rests
+on, confirmed rather than inferred. `grep` for "plugin eval" across `docs/explanation/` and
+`foundation/` still returns nothing: the ADR is still unwritten, the comparison page still has no eval
+row, and the third probe is still unminted.
+
 ## RS-C6 (the Agent Plugins root manifest): spike, then ADR
 
 - **Status: RULED 2026-08-31 (spike first, ADR follows the evidence), SPIKE OPEN.** Verified
@@ -153,6 +161,15 @@ gaining a components/skills mechanism in 1.1.0" - cannot arm: the merged 1.1.0 d
 property-identical to 1.0.0, with zero occurrences of skills, commands, agents, hooks, mcp_servers or
 components. The two triggers that CAN fire: **a future spec revision introducing a components
 mechanism**, or **a change in Codex's manifest resolution order**.
+
+**Annotated 2026-10-23 - the first dated read of this spec now exists, and the trigger still has not
+fired.** [`foundation/sources/agent-plugins.md`](../../foundation/sources/agent-plugins.md) records
+Agent Plugins 1.0.0, read end to end for the first time: "Agent Plugins v1 defines exactly two
+component types" - skills and MCP servers - the same property the 2026-08-31 reading already found in
+the 1.1.0 draft. Governance was also read: no single vendor may hold a majority of Core Maintainer
+seats, which is the fact [`docs/explanation/comparison.md`](../explanation/comparison.md) and the
+positioning claim it carries should be checked against, not assumed. Neither of the two triggers above
+has fired.
 
 ## RS-E1 (the cross-tool corroboration run)
 
@@ -292,16 +309,25 @@ D-06 put the audits in `_local/audit/`; D-07 is MOOT under
 [ADR 0057 (unshipped work carries a name, never a version number)](decisions/0057-unshipped-work-carries-a-name-never-a-version-number.md)
 a cut takes its version number at cut time and nowhere earlier.
 
-Cuts 1, 2 and 4 are SHIPPED - see [`STATUS.md`](STATUS.md). Cut 4, "current with the vendors", is
-v1.19.0, cut 2026-09-17.
+Cuts 1, 2, 4 and 6 are SHIPPED - see [`STATUS.md`](STATUS.md). Cut 4, "current with the vendors", is
+v1.19.0, cut 2026-09-17. Cut 6, "Standard 0.17, the graduations", is v1.20.0, cut 2026-10-05, on npm
+2026-10-14.
 
 | Cut | Identity | Carries | Blocked on |
 |---|---|---|---|
 | **3. "Evidence"** | the eval instrument becomes trustworthy enough to publish a number from | RS-B1 complete - the E16 ruling implemented, E17's adjudication, E20's key relocation, E15's runner fixes - then the E13 model-triple readings publish | **The implementation itself.** The ruling has been made since 2026-08-31 and nothing has been written. Independent work has correctly proceeded past it; cuts 2 and 4 did not queue behind it |
 | **5. "The graded cohort"** | the toolkit grades trees that are not ours, in public | RS-E2 (the cohort page) plus RS-E1's one-paragraph public summary, plus the sixth and last placement of the tier-scope routing sentence, which ships with the page | **Four things, none of them code.** (a) RS-E1's internal corroboration run has not happened. (b) The member list is unpicked - issue #300 closed NOT_PLANNED, deferred to this cut's planning. (c) Every member must be notified and given a reply window before publication. (d) The 2026-09-04 dry run found four of five candidates pass every portable check, so the page's framing has to be settled before it is built |
-| **6. "Standard 0.17, the graduations"** | the windows close, and no new ones open | The cap expiries, and nothing else. Ruled graduations-only | **The migration window only.** The content MERGED on 2026-09-21 ([PR #339](https://github.com/product-on-purpose/agent-skills-toolkit/pull/339)), and the pre-cut audit of the CHANGELOG merged on 2026-09-28 ([PR #349](https://github.com/product-on-purpose/agent-skills-toolkit/pull/349)). The source plan's timing constraint, quoted whole: *"No sooner than a real migration window after cut 4 (Recommended: 2 to 3 weeks, the 0.13-to-0.15 cadence)"*. Cut 4 shipped 2026-09-17. **The maintainer approved the cut on 2026-09-28 for a tag no earlier than 2026-10-01.** Per ADR 0057 the version number is still assigned at cut time |
 
-**What cut 6 actually closes, measured rather than asserted.** At `ab0dc20` four checks carry
+**Cut 6, closed.** It shipped as v1.20.0, tagged 2026-10-05, on npm 2026-10-14. The content MERGED on
+2026-09-21 ([PR #339](https://github.com/product-on-purpose/agent-skills-toolkit/pull/339)), and the
+pre-cut audit of the CHANGELOG merged on 2026-09-28
+([PR #349](https://github.com/product-on-purpose/agent-skills-toolkit/pull/349)). The source plan's
+timing constraint, quoted whole: *"No sooner than a real migration window after cut 4 (Recommended: 2
+to 3 weeks, the 0.13-to-0.15 cadence)"*. Cut 4 shipped 2026-09-17, and the maintainer approved the cut
+on 2026-09-28 for a tag no earlier than 2026-10-01. Per ADR 0057 the version number was assigned at cut
+time, not earlier.
+
+**What cut 6 actually closed, measured rather than asserted.** At `ab0dc20` four checks carried
 `until: "0.17"`: `U18` (the Codex command size cap), `G1` (hook documentation), `G2` (self-hosting)
 and `G8` (folder README).
 [ADR 0061 (U18 never gated; the strengthening set gets Standard 0.18)](decisions/0061-u18-is-permanently-warn-and-the-strengthening-set-is-standard-0-18.md)
@@ -322,8 +348,7 @@ its own `library.json` - with the fixes that edition requires, and the catalogue
 commit as it lands. This comes ahead of cut 5 (the graded cohort), cut 3 (evidence) and Standard 0.18.
 The basis, measured 2026-09-30: the six members pinned five different editions (0.8 to 0.16) and one
 declared none, and the two members with the most subagents, commands and workflows were the least
-governed. A measured change list with a suggested order is gitignored working material at
-`_local/plans/own-plugins-first-change-list.md`. The toolkit changes it found are
+governed. The toolkit changes the 2026-09-30 measurement found are
 [E72 (adopting a plugin can wipe its manifest fields)](backlog/enhancements.md), which must land first,
 [E73 (`U9` and private packages)](backlog/enhancements.md),
 [E74 (`U12` and template placeholders)](backlog/enhancements.md) and
@@ -331,7 +356,32 @@ governed. A measured change list with a suggested order is gitignored working ma
 cohort on 2026-09-28, then chose this after stating the project's goal as common standards across the
 plugins of a marketplace.
 
-**Rulings for the migration, 2026-10-04.** `pm-skills` uses the verified workarounds for E73 (`U9` and private packages) and E74 (`U12` and template placeholders) instead of waiting for 0.18. E75 (a marketplace minimum edition) gets ADR 0062 after the migration finishes. Whether `thinking-framework-skills` declares Silver or does the Gold work is still the maintainer's open call; it is not needed until the migration reaches that plugin.
+**The migration order, per plugin, committed here because this page's own test - a reader who has
+never opened `_local/` must be able to pick up any open item - does not allow the tactical order to
+live only in a gitignored plan.** Facts below are each plugin's own `origin/HEAD`, measured 2026-10-23
+unless marked otherwise; a plugin that keeps moving needs a re-measure before its row is actioned.
+
+| # | Plugin | Standard today | What blocks the move to 0.17 | Done is measured by |
+|---|---|---|---|---|
+| 1 | agent-skills-toolkit (this repository) | 0.17 | Nothing - shipped in cut 6, v1.20.0 | Already true: `library.json` pins 0.17 and the gate is green |
+| 2 | critique-skills | 0.17, Silver, v0.2.0 | Nothing - moved 2026-09-30 (its PR 56) | Already true, same test |
+| 3 | product-lifecycle-templates | 0.12, now at v0.21.0 | Its `origin/HEAD` has moved past the commit the 2026-09-30 measurement pinned, so the small fix (change `standard`, regenerate `INDEX.md`) needs a re-measure against the current commit before it ships. *Confidence: medium - the fix is likely still that small, but unverified against v0.21.0* | `library.json.standard` reads `0.17`; the toolkit grades it Gold, 0 errors |
+| 4 | writing-style-catalog | 0.11, v0.14.0 | A one-line `standard` change; expect Bronze, 3 `U5` warnings, which are [E63 (`U5` rewards a template)](backlog/enhancements.md) advice, not blockers | `standard` reads `0.17`; the toolkit grades it Bronze, 0 errors |
+| 5 | pm-skills | none - no `library.json` | [E72](backlog/enhancements.md) must land first, so adoption cannot wipe the native manifests' hand-written fields; then a new `library.json` declaring `tier: universal`, using the [E74](backlog/enhancements.md)-ruled workaround (a keyword line in its template) and the [E73](backlog/enhancements.md)-ruled workaround (a real version on its tooling `package.json`) until Standard 0.18 ships `U9`'s exemption properly, plus repointing the docs links its own restructuring broke | `library.json` exists, declares `0.17` and `universal`; the toolkit grades it Bronze, 0 errors |
+| 6 | thinking-framework-skills | 0.8, v0.18.6 | **Ruled 2026-10-14: do the Gold work, not declare Silver.** Measured 2026-09-30 at its then-pinned commit, so re-measure at v0.18.6 before executing: 71 folder READMEs, frontmatter on 7 docs pages, and `G10`'s four Diataxis folders plus two architecture pages | `library.json.standard` reads `0.17`, `tier` stays `advanced`; the toolkit grades it Gold, 0 errors |
+| 7 | agent-plugins (the marketplace catalogue) | pins four different editions across the six members (two of them, agent-skills-toolkit and critique-skills, already at 0.17), and one member (pm-skills) declares none | Each member above releases its own move first | `.claude-plugin/marketplace.json` pins each member's post-migration commit; [E75](backlog/enhancements.md) gets ADR 0062 after the last one lands |
+
+**Suggested order**, carried from the 2026-09-30 measurement: `product-lifecycle-templates`,
+`writing-style-catalog` and `critique-skills` first, as the small, independent moves (critique-skills
+is already done); then the E72 toolkit fix, before any plugin runs `gen-manifest` during adoption; then
+`pm-skills` to Bronze; then the `thinking-framework-skills` Gold work; then the catalogue re-pins as
+each plugin releases.
+
+**Rulings for the migration.** 2026-10-04: `pm-skills` uses the verified workarounds for
+[E73](backlog/enhancements.md) (`U9` and private packages) and [E74](backlog/enhancements.md) (`U12`
+and template placeholders) instead of waiting for 0.18; [E75](backlog/enhancements.md) (a marketplace
+minimum edition) gets ADR 0062 after the migration finishes. 2026-10-14: `thinking-framework-skills`
+does the Gold work rather than declaring Silver, with the counts in row 6 above.
 
 ---
 
