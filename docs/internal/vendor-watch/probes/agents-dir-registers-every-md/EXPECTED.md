@@ -34,10 +34,10 @@ The directory holds four files. Count how many became subagents, and which.
 
 ## Scope, and do not generalise past it
 
-**This probe covers a FLAT directory only.** Recursion into subdirectories and the colon-exclusion rule
-are separate QUOTE claims (`agents-scanned-recursively`, `agent-filename-colon-excluded`) with their own
-evidence. Generalising this probe past its evidence is exactly what let nested agents bypass `U14` and
-`U15` until review wave 1 caught it.
+**This probe covers a FLAT directory only.** Recursion into subdirectories and the skip-list's scope
+are separate QUOTE claims (`agents-scanned-recursively`, `plugin-agents-outside-skip-list`) with their
+own evidence. Generalising this probe past its evidence is exactly what let nested agents bypass `U14`
+and `U15` until review wave 1 caught it.
 
 ## Run log
 

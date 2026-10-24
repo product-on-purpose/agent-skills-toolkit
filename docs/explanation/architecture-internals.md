@@ -14,7 +14,7 @@ doc-role: architecture-detailed
 
 This page is for someone extending or debugging `scripts/` who wants detail that matches the source rather than a summary. It assumes you have read [the architecture overview](./architecture.md) first.
 
-The **spine** is the 34 checks the toolkit ships, and this is the contributor-level walkthrough of how that spine is actually built. Coined terms like that one are defined in [the glossary](./glossary.md).
+The **spine** is the 35 checks the toolkit ships, and this is the contributor-level walkthrough of how that spine is actually built. Coined terms like that one are defined in [the glossary](./glossary.md).
 
 It covers six things:
 
@@ -42,7 +42,7 @@ Both run the same checks. Only the framing differs.
 
 A check is one small file that answers a single question about a plugin, such as "is there a valid `library.json` here". It hands back a list of the problems it found, and an empty list means the plugin passed that question.
 
-That is worth stating plainly, because the gate has no other machinery. It is 34 of these files run in order, and the tier a plugin earns is decided by which of them came back empty. If you are adding a requirement to the Standard, a check module is the file you write, and the shape below is the whole contract you have to satisfy.
+That is worth stating plainly, because the gate has no other machinery. It is 35 of these files run in order, and the tier a plugin earns is decided by which of them came back empty. If you are adding a requirement to the Standard, a check module is the file you write, and the shape below is the whole contract you have to satisfy.
 
 Concretely, a check is an ES module under `scripts/checks/` with exactly two exports: a `meta` object and a synchronous `check(ctx)` function. That contract is uniform across all 35 spine checks.
 
@@ -216,6 +216,16 @@ They are separate questions and they produce a single cap. The two are compared 
 The ceiling is a ceiling and never a floor. A severity already at or below a cap is left as resolved, so `off` and suppression still win.
 
 It is also recorded only when it BINDS. A version condition that changes no outcome is not debt, and recording it anyway would print a due date for a finding that was never held.
+
+#### The newer-Standard notice (E77)
+
+`standardDebtLine` states one direction. A plugin pinned BELOW this toolkit's own edition holds findings that are already being capped. The other direction states nothing by default. A plugin can declare a `standard` edition ABOVE this toolkit's own. A clean grade then reads as full conformance. It really only means the plugin conforms to every rule this toolkit's older edition knows to check.
+
+`newerStandardNotice(declared, shipped)` in `scripts/check.mjs` prints one line for exactly that case. `declared` is the graded plugin's own `library.json.standard`, read directly. It is never read through the `pinned` value `runGate()` passes into `resolveFindings`, because `--strict` nulls that one out and must not silence this notice. `shipped` is `shippedStandardEdition()` from `scripts/lib/shipped-standard.mjs`, which reads THIS repository's own `STANDARD.md` header. It is resolved relative to that module's own file, never relative to the plugin being graded. This mirrors how `sarif-render.mjs`'s `toolVersion()` resolves this repo's own `package.json`.
+
+It is a hint and nothing more, the same promise `gate-config.md` makes for the missing-profile hint. It changes no finding, no severity, and no tier. It changes neither the error nor the warning counts, the exit code, nor the SARIF document. It returns `""` for every case but one: a real, parseable declared edition strictly newer than a real, parseable shipped edition. Four cases print nothing instead. There is no declaration at all, or an equal or older one (`standardDebtLine`'s case, not this one's). There is a malformed declaration. Or this toolkit's own shipped edition failed to resolve.
+
+The same text is carried in `check.mjs --json`'s `standardEditionNotice` field, `null` when it does not apply. It is carried, for parity, in `evaluate.mjs`'s plugin-scope report object too. Both surfaces read the one function in `scripts/check.mjs`; neither duplicates it.
 
 #### The published-verdict trust step
 

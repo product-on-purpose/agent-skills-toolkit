@@ -15,7 +15,8 @@ import { computeTierReport } from "./tier-report.mjs";
 import { checkAgentskills } from "./checks/agentskills.mjs";
 import { finding, SEVERITY, isOperatorFinding } from "./lib/findings.mjs";
 import { readJsonSafe, SKIP_DIRS, normalizeArgPath } from "./lib/fs-utils.mjs";
-import { gateExitFromFindings } from "./check.mjs";
+import { gateExitFromFindings, newerStandardNotice } from "./check.mjs";
+import { shippedStandardEdition } from "./lib/shipped-standard.mjs";
 
 function groupByRule(findings) {
   const byRule = {};
@@ -137,6 +138,10 @@ export function evaluate(target, opts = {}) {
       tier: t.tier, satisfies: t.satisfies, blocked: t.blocked,
       profile: cfg.profile.value, mode: cfg.mode.value,
       dispositions: dispositions(resolved),
+      // E77: the same presentation-only notice check.mjs's buildJsonReport carries, read directly from
+      // the DECLARED pin (never the ceiling-only `pinned` resolveFindings used above) against this
+      // toolkit's own shipped STANDARD.md edition. null when it does not apply - see newerStandardNotice.
+      standardEditionNotice: newerStandardNotice(ctx.library?.data?.standard, shippedStandardEdition()) || null,
     };
   }
   const f = finding("scope-detection", SEVERITY.ERROR, "not a plugin or skill: expected a library.json (plugin) or a SKILL.md (component) at " + target);

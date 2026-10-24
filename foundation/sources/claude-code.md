@@ -20,9 +20,9 @@ The surface most of this Standard's Claude-side requirements rest on.
 
 | Page | `method` | Claims it pins, and each claim's `verifiedOn` | What depends on it |
 | --- | --- | --- | --- |
-| `https://code.claude.com/docs/en/plugins/components` | `read` | `plugin-agent-supported-fields` **2026-09-28**. Both probes below also name this page as their source. **Until 2026-09-28 this row was `https://code.claude.com/docs/en/plugins-reference`**, which now serves only the manifest reference; see the 2026-09-28 section below | `U14`'s remediation list. The older `docs.claude.com` host 301-redirects to `code.claude.com` |
-| `https://code.claude.com/docs/en/skills` | `read` | `commands-merged-into-skills` **2026-08-15**, `invocation-control-frontmatter` **2026-08-16** | `STANDARD.md` sec 3.2's commands-into-skills premise, and the invocation-control frontmatter |
-| `https://code.claude.com/docs/en/sub-agents` | `read` | `agents-scanned-recursively` **2026-08-15**, `agent-filename-colon-excluded` **2026-08-16** (**GONE from the page on 2026-10-13**, see [E81 (the colon rule now names the frontmatter `name`, not the filename)](../../docs/internal/backlog/enhancements.md)), `plugin-agent-unsupported-fields` **2026-09-28** (moved here from the plugins reference) | `U14` (restricted fields on plugin-shipped agents): the whole check, and the vendor sentence every `U14` finding quotes. Subagent discovery: recursion, scoped identifiers, the colon exclusion. **Added 2026-08-15**, after review wave 1 found `U15` had been built on a flat-directory assumption nothing was watching |
+| `https://code.claude.com/docs/en/plugins/components` | `read` | `plugin-agent-supported-fields` **2026-10-23**. Both probes below also name this page as their source. **Until 2026-09-28 this row was `https://code.claude.com/docs/en/plugins-reference`**, which now serves only the manifest reference; see the 2026-09-28 section below | `U14`'s remediation list. The older `docs.claude.com` host 301-redirects to `code.claude.com` |
+| `https://code.claude.com/docs/en/skills` | `read` | `commands-merged-into-skills` **2026-10-23**, `invocation-control-frontmatter` **2026-10-23** | `STANDARD.md` sec 3.2's commands-into-skills premise, and the invocation-control frontmatter |
+| `https://code.claude.com/docs/en/sub-agents` | `read` | `agents-scanned-recursively` **2026-10-23**, `plugin-agents-outside-skip-list` **2026-10-23** (retired `agent-filename-colon-excluded` **2026-08-16**, GONE from the page on 2026-10-13; see [E81 (the colon rule now names the frontmatter `name`, not the filename)](../../docs/internal/backlog/enhancements.md)), `plugin-agent-unsupported-fields` **2026-10-23** (moved here from the plugins reference) | `U14` (restricted fields on plugin-shipped agents): the whole check, and the vendor sentence every `U14` finding quotes. Subagent discovery: recursion, scoped identifiers, and the skip-list's scope (project/user/managed/`--add-dir` only, never a plugin's). **Added 2026-08-15**, after review wave 1 found `U15` had been built on a flat-directory assumption nothing was watching |
 
 **The dates are the claims' own `verifiedOn` values, not this file's.** They are copied here so a reader can judge age without opening the JSON, and they are the one thing in this table that will go stale: if they disagree with `../claims/vendor-claims.json`, the JSON wins and this table is wrong.
 
@@ -60,6 +60,47 @@ The record had been surveyed through `2.1.235` on 2026-08-18. `claude --version`
 - **The components page lists a FOURTH ignored field, and it was deliberately not adopted.** Its next bullet reads *"Ignored fields: `permissionMode`, `hooks`, `mcpServers`, and `initialPrompt`."* It gives no security rationale. The sub-agents frontmatter table agrees that `initialPrompt` is *"Ignored for plugin subagents"*, and explains that the field only takes effect when an agent runs as the main session agent. Adding a field to `U14`'s denylist is red-ward under ADR 0045, so it needs a Standard minor with finding-level migration metadata and a maintainer ruling. It is filed as [E70 (`initialPrompt` on plugin agents)](../../docs/internal/backlog/enhancements.md). **Measured blast radius on 2026-09-28: zero agent files declare `initialPrompt` anywhere under the product-on-purpose family, including gitignored copies and worktrees.**
 - **The vendor now says "ignored" where this repository said "refused".** `STANDARD.md` sec 2.1 used to say the field "is refused rather than ignored". The vendor's own sentence says the fields "are ignored when loading agents from a plugin", so that contrast was dropped from the Standard's rationale. The requirement itself did not change.
 - **The source record was re-pointed rather than a fifth source added.** The ledger's source for the plugins reference page was renamed `cc-plugins-components` and pointed at the components page, and the two probes moved with it, because they named the old page only for its `agents/` discovery text. Nothing pinned depended on the manifest page itself.
+
+## 2026-10-23 readings
+
+Three separate readings, done the same day for the same release. None of them is a survey: the version pin and survey date above stay as recorded in the 2026-09-05 section.
+
+**autoCompactWindow joins the plugin-agent supported list (E83, the supported-fields list gained autoCompactWindow).** `https://code.claude.com/docs/en/plugins/components` now reads: *"Supported fields: `name`, `description`, `model`, `effort`, `maxTurns`, `autoCompactWindow`, `tools`, `disallowedTools`, `skills`, `memory`, `background`, `omitClaudeMd`, `isolation`, `color`, and the `cacheTtl` key of `experimental`."* The new field sits between `maxTurns` and `tools`. This list only builds `U14`'s remediation prose, so the change is green-ward under [ADR 0045 (restricted fields on plugin-shipped agents)](../../docs/internal/decisions/0045-restricted-fields-on-plugin-shipped-agents.md): a pin refresh and a constant update, not a Standard minor. `plugin-agent-supported-fields` was re-pinned to the new sentence and measured against the watch's own fetch and normaliser (`npm run vendor-watch`) before this was written. Filed as [E83 (the supported-fields list gained autoCompactWindow)](../../docs/internal/backlog/enhancements.md).
+
+**E81 (the colon rule now names the frontmatter `name`, not the filename), the two-agent fixture run.** [E81](../../docs/internal/backlog/enhancements.md) was ruled 2026-10-14: measure, then change. The fixture ran today in a `node:24` Linux container (NTFS cannot hold a colon, so this could not run on Windows), Claude Code 2.1.309, plugin installed with `--scope local`. Fixture `probe-colon`, `agents/`: `colon:file.md` (colon in the filename; frontmatter `name: plain-name-in-colon-file`), `plain-file.md` (no colon in the filename; frontmatter `name: "colon:in-name"`), `control.md` (no colon anywhere; `name: control-agent`).
+
+```
+$ claude plugin details probe-colon
+probe-colon 0.0.1
+  Description: E81 colon fixture
+  Source: probe-colon@askit-e81-fixture
+
+Component inventory
+  Skills (0)
+  Agents (3)  plain-file, control, colon:file
+  Hooks (0)
+  MCP servers (0)
+  LSP servers (0)
+
+Projected token cost
+  Always-on:   ~51 tok   added to every session
+
+Per-component (rounded)
+  component   always-on  on-invoke
+  plain-file        ~20       < 20
+  control          < 20       < 20
+  colon:file        ~20       < 20
+```
+
+**Reading.** A colon in the FILENAME does not stop the plugin loader: `colon:file` is inventoried and costed like any other agent. A colon in the frontmatter `name` also does not remove the file from the inventory: `plain-file` is listed under its filename stem, not under its `name` field's value - plugin agents are identified by filename stem, matching the 2026-10-13 `agents-dir-registers-every-md` run. **Not measured:** whether a live, logged-in session refuses to invoke the `colon:in-name` agent; `claude agents` in 2.1.309 is the background-agent manager, not a subagent listing, so it could not answer this. The marketplace `add` and plugin `install` subcommands needed no login.
+
+This reading, together with the sub-agents page's own scoping sentence (pinned as `plugin-agents-outside-skip-list`, replacing `agent-filename-colon-excluded`), is why `isRuntimeAgentFile` in `scripts/lib/fs-utils.mjs` stopped excluding colon-named files: Claude Code 2.1.309 loads a plugin agent file with a colon in its filename, measured 2026-10-23, and the page's own scoping sentence, read the same day, names only project/user/managed/`--add-dir` `agents` directories, never a plugin's. `U14`, `U15`, and the registration checks that read `isRuntimeAgentFile`'s result (`S2`'s prefix check, `S3`'s components-index check, `S4`'s chain-contract check, and the components-mirror check) now see a colon-named plugin agent file that they did not before.
+
+**Three further facts from today's reading of the same pages, none changing a check.** First, the skip list (`https://code.claude.com/docs/en/sub-agents`, "Subagent files Claude Code skips") is explicitly scoped to "a project, user, or managed `agents` directory, or ... a directory you add with `--add-dir`" - never a plugin directory. Second, that same sub-agents page states its own exception for plugins: "A plugin subagent whose frontmatter has no `name` or doesn't parse still loads, under its filename." This corroborates `plugin-agents-outside-skip-list`'s antecedent from the plugin's own side of the scope, rather than only the skip list's side. Third, the plugins/components page states that a plugin agent whose frontmatter does not parse "still loads with every field ignored. It's named after the file, and its description reads `Agent from my-plugin plugin`," which drops EVERY field, while a `name` longer than 256 characters is narrower: "Claude Code ignores it and names the agent after its file, as it does when the field is missing" - only the `name` field is dropped, not the rest of the frontmatter. None of this is modelled by any check today; recorded here so a future reader does not have to re-discover it.
+
+**Family blast radius, measured with `git ls-tree origin/HEAD` on 2026-10-23: zero colon paths under `agents/`** in `pm-skills` (6 agent `.md` files), `thinking-framework-skills` (3), `writing-style-catalog` (0), `product-lifecycle-templates` (1), `critique-skills` (1), and `agent-skills-toolkit` itself (18). Widening `isRuntimeAgentFile` moves no family member's verdict today.
+
+**Five quote claims re-read and found still accurate: `commands-merged-into-skills`, `invocation-control-frontmatter`, `agents-scanned-recursively`, `plugin-agent-unsupported-fields`, and (on the Codex `cx-hooks` source) `cx-hook-handler-support`.** Each sentence and its surrounding section still mean what their `dependsOn` assumes; `verifiedOn` was refreshed to 2026-10-23 for all five. No wording changed on any of them.
 
 ## Two behaviours no page states, established by experiment
 
