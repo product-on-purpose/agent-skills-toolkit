@@ -155,7 +155,7 @@ test("W1-H2: a nested REGISTERED agent reports nothing, and its scoped name is p
   } finally { rmSync(dir, { recursive: true, force: true }); }
 });
 
-test("E81: a filename containing a colon IS loaded (the skip-list never covered plugin agents/)", () => {
+test("E81 (the colon rule now names the frontmatter name, not the filename): a filename containing a colon IS loaded (Claude Code 2.1.309 loaded one, measured 2026-10-23)", () => {
   // Asserted against the PREDICATE, never a filesystem fixture. A file named "bad:name.md" cannot exist
   // on Windows: NTFS reads the colon as the alternate-data-stream separator, so writeFileSync SUCCEEDS
   // and the directory ends up holding a file called "bad" with no extension. The fixture version of this

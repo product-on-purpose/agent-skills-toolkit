@@ -10,7 +10,7 @@
 //               covered by tests/unit/agent-restricted-fields.test.mjs
 
 /**
- * The vendor statements this module encodes, quoted verbatim from the live pages read on 2026-09-28.
+ * The vendor statements this module encodes, quoted verbatim from the live pages read on 2026-10-23.
  *
  * The refusal, from https://code.claude.com/docs/en/sub-agents (Choose the subagent scope):
  *
@@ -20,9 +20,9 @@
  * The supported list, from https://code.claude.com/docs/en/plugins/components (Frontmatter fields in
  * plugin agents):
  *
- *   "Supported fields: `name`, `description`, `model`, `effort`, `maxTurns`, `tools`, `disallowedTools`,
- *    `skills`, `memory`, `background`, `omitClaudeMd`, `isolation`, `color`, and the `cacheTtl` key of
- *    `experimental`. The only valid `isolation` value is \"worktree\"."
+ *   "Supported fields: `name`, `description`, `model`, `effort`, `maxTurns`, `autoCompactWindow`, `tools`,
+ *    `disallowedTools`, `skills`, `memory`, `background`, `omitClaudeMd`, `isolation`, `color`, and the
+ *    `cacheTtl` key of `experimental`. The only valid `isolation` value is \"worktree\"."
  *
  * The pages write "don't" with a typographic apostrophe. This file stores the ASCII apostrophe, because
  * these constants are read by HUMANS in finding text. The pinned CLAIMS in
@@ -46,7 +46,8 @@
  *   - the UNSUPPORTED list below is therefore UNCHANGED, so no plugin's verdict moves. Per ADR 0045 that
  *     makes this a pin refresh, not a Standard revision.
  *
- * What the 2026-10-23 re-read changed, against the 2026-09-28 reading (E83):
+ * What the 2026-10-23 re-read changed, against the 2026-09-28 reading (E83, the supported-fields list
+ * gained autoCompactWindow):
  *   - the SUPPORTED list gained `autoCompactWindow`, between `maxTurns` and `tools`. It is read only to
  *     build U14's remediation prose, so this is green-ward under ADR 0045: a pin refresh and a constant
  *     update, not a Standard minor. No plugin's verdict moves.
@@ -74,7 +75,7 @@
  * The docs host has already moved once (docs.claude.com now 301s to code.claude.com). A host move is a
  * documentation edit, not a Standard revision.
  */
-export const AGENT_FIELDS_DOC = "https://code.claude.com/docs/en/sub-agents (Choose the subagent scope; read 2026-09-28)";
+export const AGENT_FIELDS_DOC = "https://code.claude.com/docs/en/sub-agents (Choose the subagent scope; read 2026-10-23)";
 
 /** The vendor's sentence, quoted in every finding so a reader's "says who" is answered in place. */
 export const AGENT_FIELDS_QUOTE =

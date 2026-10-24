@@ -272,7 +272,8 @@ const MEANING_REVERSALS = Object.freeze({
     "Add disable-model-invocation: true to allow Claude to keep triggering it automatically.",
   "agents-scanned-recursively":
     "Plugin agents/ directories are no longer scanned recursively; only top-level files are registered.",
-  // E81: the reversal adds "plugin" to the scoped directory list, which is the exact page change this
+  // E81 (the colon rule now names the frontmatter name, not the filename): the reversal adds "plugin" to
+  // the scoped directory list, which is the exact page change this
   // claim's own onChange says would make the skip-list reach plugin agents/ again. Every other word of
   // the claim survives, so a watch that still reported "holds" would be matching vocabulary, not the one
   // word that decides whether plugin agents/ is in scope.

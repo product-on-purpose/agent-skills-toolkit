@@ -143,7 +143,8 @@ export function listSkillDirs(root) {
  * part of the scoped identity. A bare basename would collide `agents/security.md` with
  * `agents/review/security.md`, which are two different subagents.
  *
- * A filename containing `:` is NOT skipped (E81). An earlier reading of the vendor's docs tied the colon
+ * A filename containing `:` is NOT skipped (E81, the colon rule now names the frontmatter name, not the
+ * filename). An earlier reading of the vendor's docs tied the colon
  * rule to the FILENAME; a 2026-10-13 re-read found that sentence gone, replaced by a list scoped to "a
  * project, user, or managed `agents` directory, or ... a directory you add with `--add-dir`" - never a
  * plugin's `agents/`. A two-agent fixture run on 2026-10-23 corroborates that scope empirically: Claude
@@ -161,7 +162,8 @@ export function listSkillDirs(root) {
  * the colon case is asserted against this predicate directly instead (see
  * `tests/unit/agents-dir-registerable.test.mjs`).
  *
- * Any `.md` file loads (E81). Earlier, this excluded a filename containing `:`, on a reading of the
+ * Any `.md` file loads (E81, the colon rule now names the frontmatter name, not the filename). Earlier,
+ * this excluded a filename containing `:`, on a reading of the
  * vendor's docs that has since moved: the sentence now ties the colon rule to the frontmatter `name`
  * field, and scopes it to project/user/managed/`--add-dir` `agents` directories only - never a
  * plugin's. A 2026-10-23 fixture run measured a plugin agent file named `colon:file.md` loading
