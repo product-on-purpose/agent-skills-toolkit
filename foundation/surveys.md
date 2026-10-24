@@ -16,6 +16,54 @@ Newest first.
 
 ---
 
+## Survey 2026-10-23 (first-party provider survey, six clusters)
+
+Surveyed by: jprisant, with Claude. **Scope: a targeted cluster read, not a full re-sweep** - it covers
+six named clusters rather than every page on every surface. Claude Code CLI version at read time:
+**2.1.309**, drifting to 2.1.310 partway through (`check-parity.test.mjs`'s own CLI run reported
+2.1.310 in the same session).
+
+**Clusters and pages read.** Claude Code mods (`plugins/mods/overview.md`); the plugin CLI verbs
+(`plugins/cli-reference.md`, `plugin eval`/`plugin eval init`/`plugin tag`/`plugin test`/`plugin
+validate` sections); the Skills API frontmatter whitelist and Claude-Code-only fields
+(`skills.md`, and `platform.claude.com`'s Agent Skills overview for the Skills API's own `name` and
+`description` rules); plugin agent loading asymmetries (`sub-agents.md`); plugin directory readiness
+(`plugins/marketplace-reference.md`, `plugins/manifest-reference.md`); and the Agent Plugins
+open-standard spec (`agent-plugins.org/specification.md` and its `GOVERNANCE.md`). The Codex component
+list (`learn.chatgpt.com/docs/plugins.md`) and the Codex subagent configuration page
+(`learn.chatgpt.com/docs/agent-configuration/subagents.md`) were also re-read end to end.
+
+**What changed since the last read of each.** The Codex plugin-parts list dropped from six to four
+(Connectors and Scheduled task templates are gone; Skills, MCP servers, Browser extensions, Hooks
+remain) - `foundation/sources/codex.md` was last read 2026-08-18/v1.15.0 and said six. A Codex
+standalone-agent surface now exists at `.codex/agents/*.toml` with `[agents]` defaults in
+`config.toml`, not previously named in this repository's record of that surface. Agent Plugins is now
+a ratified **1.0.0** spec with a governance document; this repository had no dated read of it at any
+version before today. Everything else in the six clusters was new ground for this repository: no
+previous survey or source record covered mods, the CLI verbs, the Skills API whitelist, the plugin
+agent asymmetries, or the directory-readiness checks.
+
+**Where each finding went.** The two Codex facts and the Agent Plugins read went to
+[`foundation/sources/codex.md`](sources/codex.md) and the new
+[`foundation/sources/agent-plugins.md`](sources/agent-plugins.md) (new file, listed in
+[`sources/README.md`](sources/README.md)'s inventory). The Agent Plugins finding also annotated
+[`docs/internal/roadmap.md`](../docs/internal/roadmap.md)'s RS-C6 (the root-manifest question),
+because that is the item it bears on and duplicating it as a second backlog entry was judged worse
+than annotating the existing one. The plugin-eval CLI verb corroborated roadmap.md's RS-C5 and
+annotated it the same way. Six findings needed a decision or a build rather than a documentation fix,
+and became [E84 through E89](backlog/enhancements.md#first-party-provider-survey-2026-10-23) (Claude
+Code mods; the `plugin tag` version-agreement preflight; the Skills API frontmatter whitelist; plugin
+agent loading asymmetries; the unchecked root-`SKILL.md` plugin shape; plugin directory readiness). One
+finding (Codex's hook handler types versus Claude Code's five) was folded into `E48` as a dated note
+rather than a new entry, because it is the same surface `E48` already tracks on an adjacent axis.
+
+**What this survey did NOT do.** Re-sweep every page on any of the four pinned surfaces end to end;
+confirm, beyond a redirect this pass did not follow, whether OpenAI's own docs point new packages at
+the Agent Plugins format (recorded as low confidence in the new source record); or resolve any of the
+six new backlog entries, all of which are open.
+
+---
+
 ## Survey 2026-08-18 (the first, and a partial one)
 
 Surveyed by: jprisant, with Claude (Opus 5). **Scope: partial, and stated as such** - this survey ran as

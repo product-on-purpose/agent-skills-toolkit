@@ -754,6 +754,7 @@ Three findings from the first pass of [`foundation/synthesis/tier-basis.md`](../
 - **The reading found the drift this entry predicted.** Codex documents **eleven** events; the capability matrix recorded ten and `tier-basis.md` said nine. **`SessionEnd` was absent from our record**, corroborated four ways on the page: the event table, a config example, the timeout rules, and the parameters table. Matrix and `tier-basis.md` both corrected.
 - **NOT fully closed: Claude Code's "31 events" is still an unpinned count.** Half a boundary grounded is still half a boundary open, and saying so is the point of the file this entry came from.
 - **Status:** RESOLVED for the Codex half 2026-08-22; the Claude Code count remains open.
+- **Dated note, 2026-10-23 survey.** A second, adjacent asymmetry, on a different axis from the event count this entry tracks: `hooks.md` documents five Claude Code handler types (`command`, `http`, `mcp_tool`, `prompt`, `agent`) on most events, where the `cx-hook-handler-support` claim already pinned above records that Codex supports only two (`command`, `mcp_tool`). Not folded into this entry's own scope, which is the event-count boundary; recorded here because it is the same surface and the same "Codex supports a narrower set" shape. No action beyond the note: nothing in the spine checks handler-type portability today.
 
 ### E49 - the Codex subagent absence is quotable and was never landed as a claim  [correctness, effort XS, found writing tier-basis.md]
 
@@ -1093,3 +1094,64 @@ critique-skills built its seventh skill, `critique-forms` (its N2), through `ask
 - **Consequence.** The run is permanently red although the release landed. A reader of the Actions tab sees a failed publish. Re-running the job is the wrong repair, because it repeats `npm publish` on a version that already exists.
 - **Recommended fix.** Widen the window to a bounded few minutes, for example 24 attempts ten seconds apart, which is about four minutes of waiting. Six request ceilings of 15 seconds each become 24, so the worst case is about ten minutes, still inside the job's 20-minute cap that the F10 paragraph cites. Update that paragraph with the two measurements above. The `sleep` function is injected, so the unit tests stay fast.
 - **Status:** **OPEN.** Not urgent: the next publish is the earliest it can recur, and the failure mode is a false red, never a false green.
+
+## First-party provider survey (2026-10-23)
+
+Six clusters read on Claude Code CLI 2.1.309-2.1.310 and the ChatGPT/Codex and Agent Plugins docs
+hosts: Claude Code mods, plugin CLI verbs, the Skills API's frontmatter whitelist, plugin agent
+loading asymmetries, the unchecked root-`SKILL.md` plugin shape, and plugin directory readiness.
+Dated entries recording a documentation-accuracy fact went straight to
+[`foundation/sources/codex.md`](../../foundation/sources/codex.md) and a new
+[`foundation/sources/agent-plugins.md`](../../foundation/sources/agent-plugins.md), and to
+[`roadmap.md`](../roadmap.md)'s RS-C5 and RS-C6, which already tracked the plugin-eval and
+root-manifest questions these findings bear on. The dated note on `E48` above and the six entries
+below are the findings that needed a decision or build rather than a fact correction. See
+[`foundation/surveys.md`](../../foundation/surveys.md) for the full dated log.
+
+### E84 - Claude Code "mods" are a plugin kind this Standard does not name  [feature, effort M, OPEN]
+
+- **Target:** `STANDARD.md` sec 3 (the component model) and the Codex/Claude columns of [`foundation/synthesis/capability-matrix.md`](../../foundation/synthesis/capability-matrix.md).
+- **What happened.** `code.claude.com/docs/en/plugins/mods/overview.md`, read 2026-10-23: *"A mod is a plugin that changes how Claude Code looks and behaves. It's made of JavaScript or TypeScript event handlers: Claude Code calls one when an event happens, such as a tool call, a submitted prompt, or a part of the interface being drawn, and the handler can watch the event, change it, or take it over."* Its own CLI verb, `claude plugin test`, runs a mod's `.test.ts`/`.test.tsx` files with no session, sign-in, or network (`cli-reference.md`). `STANDARD.md` has zero occurrences of "mod".
+- **Why it matters.** This is a sixth Claude-Code-only component shape, beyond skills, commands, agents, hooks and MCP servers, that the component model does not name at all. A plugin that ships a mod with no tests is invisible to every check in the spine - not graded, not warned about, not mentioned.
+- **Options.** First, model it as a new optional component type, gated by `agent-targets: [claude]` the way subagents are, with a check that at least confirms `hooks.json`'s module path resolves and, optionally, that `claude plugin test` passes. Second, note it in the capability matrix only, the same posture this Standard already takes toward themes, workflows and monitors. Third, wait for population data before either. **Recommendation: the third**, for now. Zero family plugins ship a mod, by the same measure-first reasoning RS-C6 already uses for the Agent Plugins root manifest.
+- **Status:** **OPEN.** Found by the 2026-10-23 survey.
+
+### E85 - plugin CLI verbs worth adopting: `claude plugin tag`'s version-agreement preflight  [feature, effort S, OPEN]
+
+- **Target:** `docs/internal/execution/06-release-choreography.md` (the hand-run tagging step) and `release-ready`.
+- **What happened.** `cli-reference.md`, read 2026-10-23: *"Create an annotated git tag named `<name>--v<version>` for a plugin release. Before tagging, the command checks that the plugin's `plugin.json` and any marketplace entry that lists it agree on the version."* This repository tags `vX.Y.Z` by hand (`06-release-choreography.md:84`), a different naming scheme, and has no single preflight with that exact property - `plugin.json` against every marketplace entry that lists it - before a tag is cut. `claude plugin eval` is tracked separately, at `roadmap.md`'s RS-C5, which the survey confirmed rather than newly found; `claude plugin test` is scoped to mods and tracked at `E84` above, not a general plugin-test verb.
+- **Why it matters.** The audited drift this same release fixes (README naming `v1.18.0` against a shipped `v1.20.0`) is exactly the class a version-agreement preflight exists to catch, one step earlier, at tag time rather than after a release.
+- **Options.** First, add a house check with the same property - `library.json`'s version agrees with every marketplace entry that lists this plugin - to `release-ready`. Second, do nothing; `check-release-counts.mjs` already serves an adjacent purpose. Third, shell out to `claude plugin tag` itself, which changes this repository's tag-naming scheme and needs its own ruling. **Recommendation: the first**, smallest in size and no naming change.
+- **Status:** **OPEN.**
+
+### E86 - a SKILL.md portable here can hard-fail on claude.ai and the Skills API  [correctness, effort S, ruling needed, OPEN]
+
+- **Target:** `STANDARD.md` sec 3.1 (the portability claim) and a candidate new check beside `U4`/`U5`.
+- **What happened.** `code.claude.com/docs/en/skills.md`, read 2026-10-23, quotes the hard error claude.ai and the Skills API give when `SKILL.md` frontmatter carries a field outside the agentskills.io spec: *"Unexpected key(s) in SKILL.md frontmatter: argument-hint. Allowed properties are: allowed-tools, compatibility, description, license, metadata, name."* The same page documents at least fourteen further Claude-Code-only fields beyond that six-field set (`when_to_use`, `argument-hint`, `arguments`, `disable-model-invocation`, `user-invocable`, `disallowed-tools`, `model`, `effort`, `context`, `agent`, `background`, `hooks`, `paths`, `shell`), every one of which Claude Code itself accepts. Separately, `platform.claude.com`'s Agent Skills page states the Skills API `name` field "Cannot contain reserved words: \"anthropic\", \"claude\"."
+- **Why it matters.** `STANDARD.md` sec 3.1 and sec 6 claim the Universal tier is "portable across Claude Code and Codex unchanged." Nothing in the spine flags a `SKILL.md` that uses a Claude-Code-only field, so a skill that passes this toolkit's gate can still fail hard the moment someone uploads it through claude.ai or the Skills API. That is a falsifiable portability claim this repository makes and does not check.
+- **Options.** First, a new advisory check that flags a Claude-Code-only field as a portability warning, not a gating error, the same posture `U9`'s private-package exemption took before its ruling. Second, document the gap in sec 3.1 without a check. Third, do nothing. **Recommendation: the first.** The field list is small, closed, and already fully quoted above.
+- **Status:** **OPEN, ruling needed** on whether this becomes a gating check or stays advisory.
+
+### E87 - plugin-agent loading asymmetries this Standard does not model  [correctness, effort S to M, OPEN]
+
+- **Target:** `STANDARD.md` sec 2.1 (`U14`/the agent-field rules) and `scripts/lib/fs-utils.mjs` (`isRuntimeAgentFile`), the same surface `E81` already tracks.
+- **What happened.** `sub-agents.md`, read 2026-10-23, states that for a project, user or managed `agents` directory, Claude Code skips a file whose frontmatter `name` "starts with `-`, contains `:`, or is longer than 256 characters." The same page, for a plugin subagent specifically, says only that one whose frontmatter has no `name` or doesn't parse "still loads, under its filename" - it does not say whether the colon, dash or length rules also apply to a plugin agent. Separately, the page sets a cap of 32 on skills preloaded through a subagent's `skills` frontmatter field: "The full content of each listed skill is injected into the subagent's context at startup, up to the first 32 distinct names in the list."
+- **Why it matters.** `E81` is already open and ruled (option 1: measure, then change) on exactly this question for the colon rule. This finding extends the same open question to the 256-character cap and the leading-dash rule, and surfaces a separate 32-skill preload cap this repository has never tracked: a subagent declaring more than 32 skills would silently have the rest excluded from its startup context, with nothing here checking or warning about it.
+- **Options.** For the colon, dash and length rules: fold all three into `E81`'s planned two-agent fixture run rather than opening a second measurement track. For the 32-skill cap: first, a new advisory check that warns when a subagent's `skills` list exceeds 32; second, document only; third, no action. **Recommendation:** fold the first three into `E81`'s fixture; add the first option for the 32-skill cap as its own small check.
+- **Status:** **OPEN.** `E81`'s fixture, when it runs, should measure all three plugin-scope questions (colon, dash, length) in the same pass.
+
+### E88 - a root-level SKILL.md plugin shape that `claude plugin validate` skips  [correctness, effort S, measurement needed, OPEN]
+
+- **Target:** `scripts/lib/load-plugin.mjs` and whichever check assumes skills live under `skills/<name>/`.
+- **What happened.** `manifest-reference.md`'s Standard layout table, read 2026-10-23: "A plugin with `SKILL.md` at its root, no `skills/`, and no `skills` key loads as a single skill." `cli-reference.md`, same read: "A `SKILL.md` at the plugin root: when you run `claude plugin validate` against a plugin directory, Claude Code doesn't check a `SKILL.md` at the plugin root." A real, loadable plugin shape exists that the vendor's own validator does not check.
+- **Why it matters.** If this toolkit's loader also assumes every skill lives under `skills/<name>/SKILL.md`, a root-level single-skill plugin would grade as holding zero skills while the runtime actually loads one - the exact "the validator said nothing, so we assumed nothing was there" gap this Standard exists to catch in other plugins.
+- **Options.** First, build a one-skill root-`SKILL.md` fixture and run `load-plugin.mjs` and the full gate against it, and record the result. Second, once measured, file the fix (if any is needed) as its own entry. **Recommendation: the first.** This entry stays open until that measurement exists; no code change is proposed without it.
+- **Status:** **OPEN, measurement needed before any code change.**
+
+### E89 - plugin directory readiness checks no page here documents  [docs or feature, effort S, OPEN]
+
+- **Target:** `STANDARD.md` (no section covers plugin-directory submission readiness today) and `templates/seed-plugin`.
+- **What happened.** `marketplace-reference.md` and `manifest-reference.md`, both read 2026-10-23, document three directory-readiness surfaces `claude plugin validate` reports that no page in nine previously fetched vendor pages, and no page in this repository's `docs/`, had stated: a plugin- and marketplace-name impersonation rule set (reserved and official names, and the error "Plugin name \"x\" is reserved: it passes as one of Anthropic's own"); README/LICENSE/ICON directory checks such as `ICON_MISSING`; and that the five directory-listing-only `plugin.json` fields (`icon`, `documentationUrl`, `supportUrl`, `privacyPolicyUrl`, `termsOfServiceUrl`) are reported as unknown fields when placed in a marketplace entry instead of `plugin.json`.
+- **Why it matters.** This is not hypothetical for this repository: `tests/unit/check-parity.test.mjs`'s CLI tests, run this same session, show `claude plugin validate --strict` reporting an `ICON_MISSING` plugin-directory warning against `templates/seed-plugin` that this repository has never modelled or exempted. The parity harness is report-only by design (ADR 0042), so this does not fail the gate, but nothing explains the warning either.
+- **Options.** First, document the directory-readiness checks as a stated gap, the same practice ADR 0059 uses for MUST clauses with no check. Second, add house checks mirroring the impersonation and directory-listing rules to the `askit-build-*` templates this toolkit ships, starting with `templates/seed-plugin`'s icon. Third, do nothing. **Recommendation: the first now, and the second for `templates/seed-plugin` specifically**, since the parity test already surfaces it live.
+- **Status:** **OPEN.**
