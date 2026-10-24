@@ -43,12 +43,14 @@ export const DEFAULT_REGISTRY = "https://registry.npmjs.org";
  * human cancels it by hand.
  *
  * E82 (the publish verify step gives up before the registry finishes processing) widened this window.
- * The original window, six attempts five seconds apart, proved too short in practice. Two measurements
- * set the new bound. Publish run 35289925723 shipped 1.19.0, and the verify step passed on its first
- * attempt. Publish run 37270742085 shipped 1.20.0, and the verify step still had not seen the version
- * after six attempts five seconds apart. The registry served it as `latest` a few minutes later,
- * confirmed by running this same script by hand. Registry propagation can take minutes, not seconds, so
- * this window gives it minutes to finish.
+ * The original window, six attempts five seconds apart, proved too short in practice. Only one real
+ * measurement supports the new bound, not two. Publish run 37270742085 shipped 1.20.0, and the verify
+ * step still had not seen the version after six attempts five seconds apart. The registry served it as
+ * `latest` a few minutes later, confirmed by running this same script by hand. The earlier 1.19.0
+ * publish, run 35289925723, predates this script entirely. Commit a891221 added the script about 32
+ * minutes after that publish job had already completed, so the verify step never ran against that
+ * release. Registry propagation can take minutes, not seconds, so this window gives it minutes to
+ * finish.
  *
  * 24 attempts ten seconds apart is about four minutes of waiting. Add 24 request ceilings of 15 seconds
  * each, for a worst case of about ten minutes if every attempt times out. The publish job that runs this
