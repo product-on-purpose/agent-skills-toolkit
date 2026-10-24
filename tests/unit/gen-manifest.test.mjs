@@ -81,6 +81,7 @@ const CLAUDE_SPECS = [
   { field: "license", libKey: "license" },
   { field: "author", libKey: "author" },
   { field: "keywords", libKey: "keywords" },
+  { field: "description", libKey: "description" },
 ];
 const CODEX_SPECS = [...CLAUDE_SPECS, { field: "interface.displayName", libKey: "displayName" }, { field: "interface.category", libKey: "category" }];
 
@@ -232,4 +233,26 @@ test("CLI gen-manifest --write allows a field library.json supplies with a new v
   assert.equal(r.code, 1, "repository/license/author/keywords are still unsupplied, so those still refuse");
   assert.doesNotMatch(r.stderr, /- homepage/, "homepage must not be named: library.json supplied the new value deliberately");
   assert.match(r.stderr, /- repository/);
+});
+
+// A guard that cannot be shown failing is not a guard: this covers the "present but unparseable"
+// fail-closed branch, the same house style U9 and U11 already use for a malformed file.
+test("CLI gen-manifest --write refuses a present-but-invalid-JSON manifest and leaves it untouched", () => {
+  const root = mkdtempSync(path.join(tmpdir(), "askit-gen-manifest-malformed-"));
+  mkdirSync(path.join(root, "skills", "demo-skill"), { recursive: true });
+  writeFileSync(path.join(root, "library.json"), JSON.stringify(THIN_LIB, null, 2) + "\n", "utf8");
+  writeFileSync(
+    path.join(root, "skills", "demo-skill", "SKILL.md"),
+    "---\nname: demo-skill\ndescription: A demo skill. Use when testing gen-manifest field-loss protection.\n---\n\n# demo-skill\n",
+    "utf8"
+  );
+  mkdirSync(path.join(root, ".claude-plugin"), { recursive: true });
+  const brokenJson = "{ not json";
+  writeFileSync(path.join(root, ".claude-plugin/plugin.json"), brokenJson, "utf8");
+
+  const r = runGen([root, "--write", "--target=claude"]);
+
+  assert.equal(r.code, 1);
+  assert.match(r.stderr, /\(whole file\)/);
+  assert.equal(readFileSync(path.join(root, ".claude-plugin/plugin.json"), "utf8"), brokenJson, "a malformed existing manifest must be left exactly as it was");
 });

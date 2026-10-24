@@ -107,24 +107,17 @@ const RENDERERS = {
  * render. Each is paired with the library.json key allowed to justify a change. `field` is a
  * dotted path into the rendered/existing object. `libKey` is the top-level library.json key.
  */
+const SHARED_SPINE_FIELDS = [
+  { field: "homepage", libKey: "homepage" },
+  { field: "repository", libKey: "repository" },
+  { field: "license", libKey: "license" },
+  { field: "author", libKey: "author" },
+  { field: "keywords", libKey: "keywords" },
+  { field: "description", libKey: "description" },
+];
 const NATIVE_FIELD_LOSS_FIELDS = {
-  claude: [
-    { field: "homepage", libKey: "homepage" },
-    { field: "repository", libKey: "repository" },
-    { field: "license", libKey: "license" },
-    { field: "author", libKey: "author" },
-    { field: "keywords", libKey: "keywords" },
-  ],
-  codex: [
-    { field: "homepage", libKey: "homepage" },
-    { field: "repository", libKey: "repository" },
-    { field: "license", libKey: "license" },
-    { field: "author", libKey: "author" },
-    { field: "keywords", libKey: "keywords" },
-    { field: "description", libKey: "description" },
-    { field: "interface.displayName", libKey: "displayName" },
-    { field: "interface.category", libKey: "category" },
-  ],
+  claude: SHARED_SPINE_FIELDS,
+  codex: [...SHARED_SPINE_FIELDS, { field: "interface.displayName", libKey: "displayName" }, { field: "interface.category", libKey: "category" }],
 };
 
 /** True for undefined/null, an empty/whitespace-only string, an empty array, or an empty object. */
