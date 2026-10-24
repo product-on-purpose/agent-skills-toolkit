@@ -132,6 +132,14 @@ claim with its own 30-day clock (`FRESHNESS_DAYS = 30` in `scripts/lib/vendor-wa
 change lands this ADR must update the probe budget in the same change, or the third clock becomes an
 unbudgeted release blocker. See [Hard dates](#5-hard-dates).
 
+**Annotated 2026-10-23 - the vendor side of the ruling is now confirmed in prose, the toolkit side is
+still unwritten.** `cli-reference.md` documents `claude plugin eval`: it runs a plugin's eval cases
+"and reports scored results," isolated per run, with a `--ablation with-without` arm against a
+no-plugin baseline. That is the single-plugin, judged, behavioural shape the ADR's positioning rests
+on, confirmed rather than inferred. `grep` for "plugin eval" across `docs/explanation/` and
+`foundation/` still returns nothing: the ADR is still unwritten, the comparison page still has no eval
+row, and the third probe is still unminted.
+
 ## RS-C6 (the Agent Plugins root manifest): spike, then ADR
 
 - **Status: RULED 2026-08-31 (spike first, ADR follows the evidence), SPIKE OPEN.** Verified
@@ -153,6 +161,15 @@ gaining a components/skills mechanism in 1.1.0" - cannot arm: the merged 1.1.0 d
 property-identical to 1.0.0, with zero occurrences of skills, commands, agents, hooks, mcp_servers or
 components. The two triggers that CAN fire: **a future spec revision introducing a components
 mechanism**, or **a change in Codex's manifest resolution order**.
+
+**Annotated 2026-10-23 - the first dated read of this spec now exists, and the trigger still has not
+fired.** [`foundation/sources/agent-plugins.md`](../../foundation/sources/agent-plugins.md) records
+Agent Plugins 1.0.0, read end to end for the first time: "Agent Plugins v1 defines exactly two
+component types" - skills and MCP servers - the same property the 2026-08-31 reading already found in
+the 1.1.0 draft. Governance was also read: no single vendor may hold a majority of Core Maintainer
+seats, which is the fact [`docs/explanation/comparison.md`](../explanation/comparison.md) and the
+positioning claim it carries should be checked against, not assumed. Neither of the two triggers above
+has fired.
 
 ## RS-E1 (the cross-tool corroboration run)
 

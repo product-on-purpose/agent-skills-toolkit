@@ -34,6 +34,7 @@ It does not decide what a vendor change *means* for this Standard. That is `aski
 
 ## Inventory
 
+- `agent-plugins.md` - the vendor-neutral Agent Plugins 1.0.0 specification, found in the 2026-10-23 survey. Holds up nothing in the spine yet; it is new evidence for RS-C6 and the comparison page's positioning claim.
 - `agentskills-io.md` - the upstream specification the Universal tier tracks. No version and no release feed, so it is pinned by content hash.
 - `claude-code.md` - the surface most of this Standard's Claude-side checks rest on.
 - `claude-cowork.md` - Claude Desktop and Cowork, whose two load-bearing behaviours are both undocumented.
