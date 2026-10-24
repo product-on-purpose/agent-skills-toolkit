@@ -424,7 +424,7 @@ The Claude slash commands that give the core flows an explicit `/command` entry 
 
 ## Status
 
-**`v1.18.0`, Gold grade, installable.** The toolkit is a self-proving example of the Standard it defines: it declares `tier: advanced`, and CI grades it there - the gate is green and `tier-report` prints `advanced` with an empty burndown.
+**Gold grade, installable.** The toolkit is a self-proving example of the Standard it defines: it declares `tier: advanced`, and CI grades it there - the gate is green and `tier-report` prints `advanced` with an empty burndown.
 
 Two Gold checks are worth naming. `G1` (hooks) grades the toolkit's own demonstrative no-dash `PreToolUse` hook. `G6` (deprecation) is satisfied without exercise, because the toolkit ships no deprecated components yet.
 

@@ -2,7 +2,7 @@
 title: "Roadmap - what is open, what it depends on, and what done means"
 description: "The tracked PLAN counterpart to STATUS.md's STATE: every open item with its acceptance criteria verbatim, every deferral with a reopening condition, every decline with a reason"
 status: live
-last-updated: "2026-10-04"
+last-updated: "2026-10-23"
 ---
 
 # Roadmap
@@ -292,16 +292,25 @@ D-06 put the audits in `_local/audit/`; D-07 is MOOT under
 [ADR 0057 (unshipped work carries a name, never a version number)](decisions/0057-unshipped-work-carries-a-name-never-a-version-number.md)
 a cut takes its version number at cut time and nowhere earlier.
 
-Cuts 1, 2 and 4 are SHIPPED - see [`STATUS.md`](STATUS.md). Cut 4, "current with the vendors", is
-v1.19.0, cut 2026-09-17.
+Cuts 1, 2, 4 and 6 are SHIPPED - see [`STATUS.md`](STATUS.md). Cut 4, "current with the vendors", is
+v1.19.0, cut 2026-09-17. Cut 6, "Standard 0.17, the graduations", is v1.20.0, cut 2026-10-05, on npm
+2026-10-14.
 
 | Cut | Identity | Carries | Blocked on |
 |---|---|---|---|
 | **3. "Evidence"** | the eval instrument becomes trustworthy enough to publish a number from | RS-B1 complete - the E16 ruling implemented, E17's adjudication, E20's key relocation, E15's runner fixes - then the E13 model-triple readings publish | **The implementation itself.** The ruling has been made since 2026-08-31 and nothing has been written. Independent work has correctly proceeded past it; cuts 2 and 4 did not queue behind it |
 | **5. "The graded cohort"** | the toolkit grades trees that are not ours, in public | RS-E2 (the cohort page) plus RS-E1's one-paragraph public summary, plus the sixth and last placement of the tier-scope routing sentence, which ships with the page | **Four things, none of them code.** (a) RS-E1's internal corroboration run has not happened. (b) The member list is unpicked - issue #300 closed NOT_PLANNED, deferred to this cut's planning. (c) Every member must be notified and given a reply window before publication. (d) The 2026-09-04 dry run found four of five candidates pass every portable check, so the page's framing has to be settled before it is built |
-| **6. "Standard 0.17, the graduations"** | the windows close, and no new ones open | The cap expiries, and nothing else. Ruled graduations-only | **The migration window only.** The content MERGED on 2026-09-21 ([PR #339](https://github.com/product-on-purpose/agent-skills-toolkit/pull/339)), and the pre-cut audit of the CHANGELOG merged on 2026-09-28 ([PR #349](https://github.com/product-on-purpose/agent-skills-toolkit/pull/349)). The source plan's timing constraint, quoted whole: *"No sooner than a real migration window after cut 4 (Recommended: 2 to 3 weeks, the 0.13-to-0.15 cadence)"*. Cut 4 shipped 2026-09-17. **The maintainer approved the cut on 2026-09-28 for a tag no earlier than 2026-10-01.** Per ADR 0057 the version number is still assigned at cut time |
 
-**What cut 6 actually closes, measured rather than asserted.** At `ab0dc20` four checks carry
+**Cut 6, closed.** It shipped as v1.20.0, tagged 2026-10-05, on npm 2026-10-14. The content MERGED on
+2026-09-21 ([PR #339](https://github.com/product-on-purpose/agent-skills-toolkit/pull/339)), and the
+pre-cut audit of the CHANGELOG merged on 2026-09-28
+([PR #349](https://github.com/product-on-purpose/agent-skills-toolkit/pull/349)). The source plan's
+timing constraint, quoted whole: *"No sooner than a real migration window after cut 4 (Recommended: 2
+to 3 weeks, the 0.13-to-0.15 cadence)"*. Cut 4 shipped 2026-09-17, and the maintainer approved the cut
+on 2026-09-28 for a tag no earlier than 2026-10-01. Per ADR 0057 the version number was assigned at cut
+time, not earlier.
+
+**What cut 6 actually closed, measured rather than asserted.** At `ab0dc20` four checks carried
 `until: "0.17"`: `U18` (the Codex command size cap), `G1` (hook documentation), `G2` (self-hosting)
 and `G8` (folder README).
 [ADR 0061 (U18 never gated; the strengthening set gets Standard 0.18)](decisions/0061-u18-is-permanently-warn-and-the-strengthening-set-is-standard-0-18.md)
