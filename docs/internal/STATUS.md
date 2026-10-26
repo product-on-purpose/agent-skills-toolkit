@@ -368,7 +368,7 @@ how the runtime discovers subagents; sec 3.2 explains itself by reference to how
 skill. Claude Code says *"Custom commands have been merged into skills."* The 2026-08-10 internal audit had
 **already found this** and graded `S7` a CONFLICT. The evidence existed; nothing was re-reading it.
 
-`foundation/claims/vendor-claims.json` pins nine claims (7 quote, 2 probe) across four vendor pages, each carrying what
+`foundation/claims/vendor-claims.json` pins ten claims (8 quote, 2 probe) across five vendor pages, each carrying what
 depends on it and what to do when it fails. `npm run release-ready` re-checks them **inside `release.yml` and
 `publish-npm.yml`**, so a tag or a publish is blocked by a claim the vendor no longer makes; a monthly
 workflow opens an issue rather than editing anything. **Freshness blocks only what age can actually
@@ -437,9 +437,11 @@ blocked its own first real run** - on 7 failing tests and a stale count that had
   claims in `foundation/claims/vendor-claims.json` block releases from 2026-11-13** (their 30-day
   freshness window from the 2026-10-13 re-run), so a release cut after that date needs a fresh probe
   run before `vendor-watch` passes. **Corrected 2026-10-23: both probes were re-run UNCHANGED on
-  Claude Code 2.1.310 before that date arrived, so the window now blocks releases from 2026-11-23**
+  Claude Code 2.1.310 before that date arrived, so the window now blocked releases from 2026-11-23**
   instead; see [the probes README](vendor-watch/probes/README.md) for the boundary runs that
-  established it. **The npm publish for v1.21.0 awaits the maintainer's approval at
+  established it. **Corrected 2026-10-25: both probes were re-run UNCHANGED again, still on Claude
+  Code 2.1.310, so the window now blocks releases from 2026-11-25**, measured with
+  `node scripts/vendor-watch.mjs . --today`: 2026-11-24 reports 0 stale and 2026-11-25 reports 2. **The npm publish for v1.21.0 awaits the maintainer's approval at
   the `npm-publish` environment's reviewer gate, after the tag is pushed** - it is not done by this PR.
 
 - **ADR 0039 (marketplace-scope evaluation) is IMPLEMENTED** in v1.12.0: a third evaluation scope
