@@ -278,7 +278,7 @@ test("timing: every catalogue pattern has an adversarial-line entry (schema cove
   }
 });
 
-test("timing: every ADV3 pattern stays well under one second against every one of its adversarial lines", () => {
+test("timing: every ADV3 pattern stays under the 2000ms liveness bound against every one of its adversarial lines", () => {
   const cat = loadCatalogue();
   for (const p of cat.patterns) {
     const re = new RegExp(p.matcher.source, p.matcher.flags ?? "");

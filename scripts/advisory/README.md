@@ -155,15 +155,29 @@ same lines. The timing test (`tests/unit/adv3-security.test.mjs`) was restructur
 pattern against three generic adversarial shapes (a space run, a repeated-token run, and a letter run,
 each built from the pattern's own trigger word) plus a pattern-specific line where one is needed, rather
 than one hand-picked shape per pattern, so a fifth matcher shaped like these four cannot pass the same
-way these four did against measurement 2's narrower test. Re-measured over the full population: family
-corpus 1,186 files / 0 findings, audit corpus 14 verified + 6 reconstructed files / 0 findings, combined
-1,206 files / 0 findings - the same zero rate as measurements 1 and 2, because bounding a matcher only
-narrows it and cannot introduce a match that was not already there. `addLoaded()` (the `ctx.agentDocs`/
+way these four did against measurement 2's narrower test. Re-measured: family corpus 1,186 files / 0
+findings (rate 0/1186 = 0, within the 0.005 ceiling - this is what the pre-registered rule gates on).
+Audit corpus: the 14 verified files (`02-excellent-orphan`, `11-malformed-grader-config`) were
+re-scanned directly from disk, 0 findings. **The 6 reconstructed `h05`-`h09` files were NOT re-scanned
+this round** - the scratch reconstruction measurements 1 and 2 used no longer exists (it was session-
+scoped scratch, not a committed artifact), and `build.mjs`'s own path resolution is confirmed broken
+under the corpus's current layout (verified directly: it resolves `REPO` to a doubled, invalid Windows
+path), so reconstructing them again was not attempted this round rather than silently skipped. By the
+same narrowing argument stated above, bounding a matcher cannot have introduced a match in those 6
+files that measurement 2 did not already find (0), but that is an inference from the matcher change,
+not a measurement - it is recorded as such, not folded into a false "re-measured" combined count. This
+round's audit-corpus total is therefore **14 scanned, 0 findings**, not 20; the combined scanned count
+for measurement 3 is **1,200 files, 0 findings**, not the 1,206 of measurements 1-2. `addLoaded()` (the `ctx.agentDocs`/
 `ctx.commands` loader inside `listScanTargets()`) was also found, in the same review, to skip the
 1,000,000-byte size filter and the NUL-byte binary filter that `addFromDisk()` already applied; it now
 applies both, which does not change this measurement's denominator (no family or audit-corpus file in
-scope is oversized or binary-looking) but closes the gap for a future tree that has one. **Shipped:
-still true; no change to the registration.**
+scope is oversized or binary-looking) but closes the gap for a future tree that has one. Measurement 2's own text above states the
+`dangerous-command-curl-download-execute`/`wget` figure as "1312ms ... well over the 2000ms liveness
+bound" - 1312 is in fact under 2000; that sentence is left uncorrected here (editing a committed
+measurement record is itself a defect this ADV3 heading warns against), noted instead as a record note
+for the main loop: the 1312ms figure was over a 1000ms working bound used while drafting that
+measurement, not the 2000ms figure the test actually asserts. **Shipped: still true; no change to the
+registration.**
 
 ## Inventory
 
