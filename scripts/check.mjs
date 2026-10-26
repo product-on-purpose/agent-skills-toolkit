@@ -13,6 +13,7 @@
 import { statSync } from "node:fs";
 import { loadPlugin } from "./lib/load-plugin.mjs";
 import { runAllChecks, provenanceByReq } from "./lib/registry.mjs";
+import { runAdvisoryModules, ADVISORY_MODULES } from "./lib/advisory-registry.mjs";
 import { SINCE_BY_REQ } from "./lib/standard-gate.mjs";
 import { loadConfig, publicConfig, withGraderOptions, ORIGIN } from "./lib/config.mjs";
 import { isOperatorFinding } from "./lib/findings.mjs";
@@ -40,7 +41,7 @@ export function gateExitFromFindings(findings, declaredTier) {
   };
 }
 
-export function runGate(root, ctx = loadPlugin(root), { strict = false, mode, profile } = {}) {
+export function runGate(root, ctx = loadPlugin(root), { strict = false, mode, profile, noAdvisory = false, advisoryModules = ADVISORY_MODULES } = {}) {
   const raw = runAllChecks(ctx);
   // F1 (ADR 0027), now ADR 0044: the pin is honoured by a CEILING applied last inside resolveFindings,
   // not by a pre-pass. As a pre-pass it ran before configuration resolved, so a consumer's
@@ -73,8 +74,34 @@ export function runGate(root, ctx = loadPlugin(root), { strict = false, mode, pr
   // plugin failed", which is the falsehood F-011 is about. Decided HERE, in runGate, so the --json
   // document's own `exitCode` field and the process exit code cannot disagree.
   const exitCode = operatorErrorCount > 0 ? 2 : gateExit;
+  // ADR 0063 sec 1: the advisory layer runs BESIDE the spine, never through it - `advisoryFindings` is a
+  // separate array, never merged into `resolved`/`findings`, which is the only thing that keeps an
+  // advisory finding's `reqId: null` from being misread as a Universal error (tierForReq(null) is
+  // "universal"; the null reqId is not itself the protection, a point ADR 0063 makes explicitly).
+  // `advisoryModules` defaults to the real, empty ADVISORY_MODULES; a caller (the partition test) passes
+  // its own list to prove the separation without touching the registry file or an environment variable.
+  // `--no-advisory` turns the whole layer off, and the report says so explicitly through `advisoryLayer`
+  // rather than letting an empty array read as "ran and found nothing" when it did not run at all.
+  const advisoryLayer = noAdvisory ? "off" : "on";
+  let advisoryFindings = null;
+  if (!noAdvisory) {
+    // ADR 0063 sec 1 / ADR 0029: under a profile whose advisoryOff names an ADV id (plain-plugin turns
+    // off the house-provenance ones), that signal does not run for this grade AT ALL - filtered out of
+    // the MODULE LIST before a single one of them executes, not run and then discarded, so a turned-off
+    // module's own work (e.g. ADV4's pairwise description comparison) is never paid for under a profile
+    // that will not use it. The same "a warn is still a finding in a published report" reasoning ADR
+    // 0029 applied to the spine.
+    const activeProfile = PROFILES[effectiveConfig.profile.value] ?? PROFILES["askit-library"];
+    const advisoryOff = new Set(activeProfile.advisoryOff ?? []);
+    const modulesToRun = advisoryModules.filter((m) => !advisoryOff.has(m?.meta?.advisoryId));
+    advisoryFindings = runAdvisoryModules(ctx, modulesToRun);
+  }
   // `config` is published origin-free: provenance is a resolution input, not a new external contract.
-  return { findings: resolved, errorCount, warnCount, operatorErrorCount, exitCode, config: publicConfig(effectiveConfig), hints: hintsFor(ctx, effectiveConfig) };
+  return {
+    findings: resolved, errorCount, warnCount, operatorErrorCount, exitCode,
+    config: publicConfig(effectiveConfig), hints: hintsFor(ctx, effectiveConfig),
+    advisoryLayer, advisoryFindings,
+  };
 }
 
 /**
@@ -325,6 +352,30 @@ export function format(findings, declaredTier) {
   return parts.join("\n");
 }
 
+/**
+ * The advisory section of the text output: ADR 0063 sec 1's table, "a section of its own, after the
+ * conformance findings". `advisoryFindings` is `null` when the layer is off (see runGate), and this
+ * returns "" for both that case and an empty array - a reader running `--no-advisory` sees nothing
+ * printed, and a clean run with the layer on and nothing found also prints nothing, which is the
+ * distinction `advisoryLayer` on the --json/--sarif surfaces exists to make machine-readable; the human
+ * text output has no equivalent need, since silence already reads as "nothing to report" either way.
+ *
+ * Deliberately NOT reusing findingLine(): an advisory finding carries `advisoryId`, never `reqId`, and
+ * printing it through the `(reqId)` branch of findingLine would either print nothing where a reader
+ * expects the ADV id or require findingLine to special-case a shape it should never see.
+ * Exported for unit testing.
+ */
+export function formatAdvisorySection(advisoryFindings) {
+  if (!advisoryFindings || advisoryFindings.length === 0) return "";
+  const lines = advisoryFindings.map(
+    (f) => `  [advisory/${f.provenance ?? "house"}] ${f.advisoryId}: ${f.message}${f.file ? "  -> " + f.file : ""}`
+  );
+  return (
+    "\nAdvisory (informational; never affects the tier, the error count, or the exit code):\n" +
+    lines.join("\n")
+  );
+}
+
 // GitHub Actions workflow-command escaping (docs.github.com/actions: "Workflow commands for GitHub
 // Actions"), matching @actions/toolkit's own escapeData/escapeProperty: percent MUST be escaped first,
 // so it does not double-escape the percent signs the other substitutions introduce.
@@ -342,9 +393,14 @@ const ghaEscapeProperty = (s) => ghaEscapeData(s).replace(/:/g, "%3A").replace(/
  * Implemented as a plain function here rather than a separate CLI/emitter: it needs nothing that
  * check.mjs does not already compute (resolved findings, declaredTier), and a second binary would only
  * duplicate the loadPlugin/runGate wiring this file already owns.
+ *
+ * `advisoryFindings` (ADR 0063 sec 1) is a SEPARATE array, defaulting to empty, never merged into
+ * `findings` before this call - the same partition runGate keeps. Each one becomes a `::notice`, never
+ * an `::error` or `::warning` whatever its own severity, because it is informational by construction and
+ * must read that way on a PR diff the same way an above-tier finding already does.
  * Exported for unit testing.
  */
-export function formatGithubAnnotations(findings, declaredTier) {
+export function formatGithubAnnotations(findings, declaredTier, advisoryFindings = []) {
   const { grading, aboveTier } = sectionFindings(findings, declaredTier);
   const above = new Set(aboveTier);
   // Operator findings are annotated FIRST and labelled as such. sectionFindings no longer returns them,
@@ -383,7 +439,12 @@ export function formatGithubAnnotations(findings, declaredTier) {
       const notice = f.trustNotice ? ` [${f.trustNotice}]` : "";
       return `::${cmd}${paramStr}::${ghaEscapeData(label + f.message + notice)}`;
     });
-  return [...operatorLines, ...findingLines].join("\n");
+  const advisoryLines = (advisoryFindings ?? []).map((f) => {
+    const loc = f.file ? ` file=${ghaEscapeProperty(f.file)}` : "";
+    const label = `advisory (${f.advisoryId}): `;
+    return `::notice${loc}::${ghaEscapeData(label + f.message)}`;
+  });
+  return [...operatorLines, ...findingLines, ...advisoryLines].join("\n");
 }
 
 /**
@@ -394,7 +455,7 @@ export function formatGithubAnnotations(findings, declaredTier) {
  * for and exited 0. Exported for unit testing (tests/unit/argv-path-normalization.test.mjs).
  */
 export function parseArgs(argv) {
-  let root, mode, profile, strict = false, json = false, sarif = false, gha = false;
+  let root, mode, profile, strict = false, json = false, sarif = false, gha = false, noAdvisory = false;
   const unknown = [];
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
@@ -402,6 +463,10 @@ export function parseArgs(argv) {
     else if (a === "--json") json = true;
     else if (a === "--sarif") sarif = true;
     else if (a === "--gha") gha = true;
+    // ADR 0063 sec 1: turns off the ADV advisory layer only. Unrelated to evaluate.mjs's
+    // `--advisory <file.json>` (a model's scored review, merged by applyAdvisory()) - the two can both
+    // appear in one evaluate.mjs run; this flag is check.mjs's own, and check.mjs has no `--advisory`.
+    else if (a === "--no-advisory") noAdvisory = true;
     else if (a === "--mode") mode = argv[++i];
     else if (a.startsWith("--mode=")) mode = a.slice("--mode=".length);
     else if (a === "--profile") profile = argv[++i];
@@ -409,11 +474,11 @@ export function parseArgs(argv) {
     else if (a.startsWith("--")) unknown.push(a);
     else if (root === undefined) root = normalizeArgPath(a);
   }
-  return { root: root ?? process.cwd(), mode, profile, strict, json, sarif, gha, unknown };
+  return { root: root ?? process.cwd(), mode, profile, strict, json, sarif, gha, noAdvisory, unknown };
 }
 
 if (process.argv[1]?.endsWith("check.mjs")) {
-  const { root, mode, profile, strict, json, sarif, gha, unknown } = parseArgs(process.argv.slice(2));
+  const { root, mode, profile, strict, json, sarif, gha, noAdvisory, unknown } = parseArgs(process.argv.slice(2));
   // The early exits below print one short line to stderr and nothing to stdout, so process.exit() is
   // safe in them; the drain concern at the end of this block only arises once stdout has been written.
   if (unknown.length) {
@@ -443,7 +508,7 @@ if (process.argv[1]?.endsWith("check.mjs")) {
     process.exit(2);
   }
   const ctx = loadPlugin(root);
-  const r = runGate(root, ctx, { strict, mode, profile });
+  const r = runGate(root, ctx, { strict, mode, profile, noAdvisory });
 
   // In a machine-readable mode stdout must stay ONE document, so the operator block goes to stderr.
   // The findings themselves are still in the document (runGate partitions, it does not drop), and
@@ -457,7 +522,7 @@ if (process.argv[1]?.endsWith("check.mjs")) {
   } else if (sarif) {
     console.log(JSON.stringify(renderSarif(ctx, r), null, 2));
   } else if (gha) {
-    const out = formatGithubAnnotations(r.findings, ctx?.library?.data?.tier);
+    const out = formatGithubAnnotations(r.findings, ctx?.library?.data?.tier, r.advisoryFindings ?? []);
     if (out) console.log(out);
   } else {
     // ORDER (F-011, F-037): operator block, then the pre-verdict hints, then the findings, then the tier
@@ -471,6 +536,8 @@ if (process.argv[1]?.endsWith("check.mjs")) {
       const out = format(r.findings, ctx?.library?.data?.tier);
       if (out) console.log(out);
     }
+    const advisoryOut = formatAdvisorySection(r.advisoryFindings);
+    if (advisoryOut) console.log(advisoryOut);
     console.log(`\n${humanLine(computeTierReport(root, ctx, r.findings))}`);
     console.log(`\n${r.errorCount} error(s), ${r.warnCount} warning(s).`);
     // A decline is not a pass, and it must not read like one (ADR 0049).

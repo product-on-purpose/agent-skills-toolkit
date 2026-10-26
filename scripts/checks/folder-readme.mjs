@@ -50,7 +50,7 @@ const INVENTORY_SKIP = new Set([
 // `agents-dir-registerable` (U15) is the detecting half. Read them together, or removing either looks
 // safe.
 const FIXED_ROOTS = [
-  "scripts", "scripts/checks", "scripts/generators", "scripts/lib",
+  "scripts", "scripts/checks", "scripts/generators", "scripts/lib", "scripts/advisory",
   "templates", "evals", ".github/workflows", "site/scripts", "hooks",
 ];
 

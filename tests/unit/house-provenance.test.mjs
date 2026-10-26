@@ -4,6 +4,7 @@ import { provenanceByReq } from "../../scripts/lib/registry.mjs";
 import { PROFILES } from "../../scripts/lib/profiles.mjs";
 import { resolveFindings } from "../../scripts/lib/resolve-config.mjs";
 import { configFrom } from "../../scripts/lib/config.mjs";
+import { ADVISORY_REGISTRY, HOUSE_ADVISORY_IDS } from "../../scripts/lib/advisory-registry.mjs";
 
 // ADR 0029: reclassify U2 (AGENTS.md anatomy) and U5 (description-score heuristic) from portable
 // (objective / vendor-cited) to house provenance. The eval-target corpus run showed both fire on
@@ -44,4 +45,18 @@ test("invariant: plain-plugin turns off exactly the house-provenance checks", ()
   const houseReqs = [...PROV.entries()].filter(([, p]) => p === "house").map(([id]) => id).sort();
   const plainOff = Object.entries(PROFILES["plain-plugin"].rules).filter(([, sev]) => sev === "off").map(([id]) => id).sort();
   assert.deepEqual(plainOff, houseReqs, "the plain-plugin off-set and the house-provenance set must match");
+});
+
+// ADR 0063 sec 1: the same invariant, for the ADVISORY layer. plain-plugin must turn off EXACTLY the
+// house-provenance ADV ids (ADV4 today), so the profile's advisoryOff and the registry's own provenance
+// tags cannot drift apart - the failure mode the reqId invariant above already guards against.
+test("advisory invariant: plain-plugin's advisoryOff equals the house-provenance ADV ids", () => {
+  const houseAdvIds = ADVISORY_REGISTRY.filter((a) => a.provenance === "house").map((a) => a.advisoryId).sort();
+  assert.deepEqual(houseAdvIds, [...HOUSE_ADVISORY_IDS].sort(), "HOUSE_ADVISORY_IDS must be derived from the registry's own provenance tags");
+  const plainAdvisoryOff = [...PROFILES["plain-plugin"].advisoryOff].sort();
+  assert.deepEqual(plainAdvisoryOff, houseAdvIds, "plain-plugin's advisoryOff must equal exactly the house-provenance ADV ids");
+  // The non-plain profiles turn nothing off: portability and security matter most to exactly the
+  // third parties plain-plugin exists for (ADR 0063 sec 1), so only house-provenance signals are exempt.
+  assert.deepEqual([...PROFILES["askit-library"].advisoryOff], []);
+  assert.deepEqual([...PROFILES["house-style"].advisoryOff], []);
 });
