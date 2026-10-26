@@ -1,0 +1,86 @@
+{
+  "review": {
+    "model": "Sonnet 5",
+    "effort": "high",
+    "date": "2026-08-04",
+    "findings": [
+      {
+        "area": "cross-component consistency",
+        "severity": "major",
+        "message": "The /review-privacy-notice command prints its own seven-point checklist (categories, cookie banner, reading level, sale/sharing opt-out, consumer rights, named DPO, review date) and calls it 'the seven-point notice checklist.' The skill it runs, skills/privacy-notice-review/SKILL.md, defines a different seven-point checklist and calls it 'the canonical list' (categories, purposes of processing, third parties, retention, consumer rights, appeal path, contact details/effective date). Only item 1 (categories) and item 5 (consumer rights) match; the other five items on each list are different concepts entirely. A user running the command would be told to grade a notice on cookie banners, reading level, and a named DPO, none of which the skill's own procedure checks, and would never learn whether the notice discloses purposes of processing, third-party recipients, retention, or the appeal path, even though the skill's own changelog says the appeal path was added as a canonical item in 0.4.0.",
+        "file": "commands/review-privacy-notice.md",
+        "provenance": "verified"
+      },
+      {
+        "area": "internal contradiction within a skill",
+        "severity": "major",
+        "message": "skills/consent-log-audit/SKILL.md step 3 says to compute the retention deadline as 'expires_at = granted_at + retention_days' for every row, using granted_at unconditionally. Its own reference file, skills/consent-log-audit/references/log-schema.md, says the opposite under 'The retention clock': the window runs from renewed_at when that column is populated, and from granted_at 'only when it is empty,' explicitly warning that 'a record must never be treated as expired on the strength of its granted_at date alone.' Following SKILL.md's formula as written would misflag renewed, still-valid consents as expired. commands/audit-consent-log.md sides with the reference doc (it treats renewed_at as necessary for a retention audit), so the SKILL.md procedure step is the outlier that contradicts its own cited reference.",
+        "file": "skills/consent-log-audit/SKILL.md",
+        "provenance": "verified"
+      },
+      {
+        "area": "capability overclaim",
+        "severity": "major",
+        "message": "README.md's Output section claims 'The notice review also generates a signed PDF compliance certificate and emails it to your DPO once the review closes clean, so the assessment file is complete with no manual step.' Nothing in the plugin, no skill, command, or agent file, describes generating a PDF, signing anything, or sending email. skills/privacy-notice-review/SKILL.md explicitly frames its own output as 'a redline for a human reviewer, not a filing,' and commands/review-privacy-notice.md's Output section says only to 'paste the whole result into the assessment file.' The claim also contradicts the sentence immediately before it in the same README paragraph ('Every skill returns its result into the conversation as Markdown'). This is a fabricated capability an operator could plan a workflow around and not get.",
+        "file": "README.md",
+        "provenance": "verified"
+      },
+      {
+        "area": "broken cross-reference",
+        "severity": "major",
+        "message": "plugin.json declares \"agents\": [\"./agents/notice-reviewer.md\"], but no such file exists anywhere in the repo (confirmed by a repo-wide filename search); the only file in agents/ is privacy-reviewer.md. The deterministic gate reported 0 errors / 0 warnings on this target, so a manifest entry pointing at a file that is not on disk was not caught.",
+        "file": ".claude-plugin/plugin.json",
+        "provenance": "verified"
+      },
+      {
+        "area": "broken cross-reference",
+        "severity": "major",
+        "message": "commands/review-privacy-notice.md links to '../skills/privacy-notice-review/references/state-law-matrix.md' for the per-state deadline lookup. That file does not exist anywhere in the repo (confirmed by search); the actual reference file at that location is skills/privacy-notice-review/references/us-state-laws.md. A user following the command's own link gets a dead path. This passed the deterministic gate at 0E/0W.",
+        "file": "commands/review-privacy-notice.md",
+        "provenance": "verified"
+      },
+      {
+        "area": "domain accuracy (legal)",
+        "severity": "major",
+        "message": "skills/privacy-notice-review/references/us-state-laws.md names Colorado's privacy statute the 'Colorado Consumer Data Protection Act (CCDPA).' To the best of my knowledge the statute is the Colorado Privacy Act (CPA), C.R.S. 6-1-1301 et seq.; I am not aware of a 'Colorado Consumer Data Protection Act.' The CCDPA-style name reads like it was patterned off the Virginia row directly above it ('Consumer Data Protection Act (VCDPA)'). I cannot cross-check this against a live source inside this sandbox, so this is a high-confidence domain-knowledge flag rather than an independently re-verified correction, but it is exactly the kind of statute-name error a reviewer would repeat verbatim into a client-facing redline.",
+        "file": "skills/privacy-notice-review/references/us-state-laws.md",
+        "provenance": "inferred"
+      },
+      {
+        "area": "domain accuracy (legal)",
+        "severity": "major",
+        "message": "The 'Direction of consent' section states 'Colorado and Virginia run the other way: the consumer must opt in before any targeted advertising.' To my knowledge this is backwards for targeted advertising specifically: the Colorado Privacy Act and VCDPA give consumers an opt-out right for targeted advertising and sale, the same opt-out model CCPA uses; the opt-in consent requirement in both statutes attaches to processing sensitive-data categories (and, in Colorado, to a known child's data), not to targeted advertising in general. If a reviewer relies on this reference to grade a real notice, it would tell them a notice needs a consent banner for targeted advertising in CO/VA when an opt-out mechanism is what the statutes actually require. Flagged from domain knowledge; not independently re-verified against statute text in this sandbox.",
+        "file": "skills/privacy-notice-review/references/us-state-laws.md",
+        "provenance": "inferred"
+      },
+      {
+        "area": "trigger-surface collision",
+        "severity": "major",
+        "message": "skills/data-request-router and skills/dsar-intake-triage both trigger on essentially the same event and promise to answer the same two questions. data-request-router: 'Use when a data-subject access, deletion, correction, or opt-out request arrives and you need to decide which team owns it and by when.' dsar-intake-triage: 'Use when a consumer data request arrives and you need to know what kind of request it is, who must answer it, and by when.' Both classify the request type, both assign the same owner per type (support / data engineering / marketing operations / privacy lead), and both stamp a 45-day deadline. They are not identical: only data-request-router's routing table carries the California vendor-deletion-ticket exception and the Colorado universal-opt-out-signal check, and only dsar-intake-triage's procedure requires verifying the requester's identity before the clock starts. A model matching the more generic trigger (dsar-intake-triage) on a California deletion or Colorado opt-out request would silently miss the state-specific step that only the sibling skill documents.",
+        "file": "skills/data-request-router/SKILL.md",
+        "provenance": "verified"
+      },
+      {
+        "area": "unsupported orchestration claim",
+        "severity": "minor",
+        "message": "README.md's component table describes agents/privacy-reviewer as 'The read-only delegate the notice review dispatches for a second pass.' Neither skills/privacy-notice-review/SKILL.md's four-step procedure nor commands/review-privacy-notice.md's Output section mentions invoking this agent; the agent file itself only describes what it checks once handed a redline, not who hands it one or when. As written, nothing in the plugin actually dispatches the agent automatically; a user has to know to invoke it separately. The README overstates automation the components do not implement.",
+        "file": "README.md",
+        "provenance": "verified"
+      },
+      {
+        "area": "domain accuracy (legal)",
+        "severity": "info",
+        "message": "us-state-laws.md's 'Direction of consent' section states 'Under the GDPR, a controller may send direct marketing email to an individual until that individual objects.' This is a simplification: in most EU member states, unsolicited direct-marketing email to consumers is governed by ePrivacy-derived opt-in consent rules layered on top of GDPR (with a narrow 'soft opt-in' exception for existing customers), not by GDPR's legitimate-interest-plus-objection framework alone. The illustrative point (US opt-out model vs EU-style consent) is directionally reasonable, but the specific mechanism described for email marketing is arguably wrong. Lower confidence than the Colorado findings above; noted because the skill is legal-domain-facing.",
+        "file": "skills/privacy-notice-review/references/us-state-laws.md",
+        "provenance": "inferred"
+      }
+    ]
+  },
+  "insights": [
+    "The deterministic 0E/0W verdict is a structural pass only; every defect found here is semantic, a checklist that contradicts the skill it claims to run, a formula that contradicts the reference file the skill itself cites, a fabricated PDF/email capability, a mismatched statute name, and a reversed opt-in/opt-out characterization. None of these would be caught by schema or frontmatter validation alone.",
+    "Checker recommendation, shown with proof rather than asserted: plugin.json lists \"agents\": [\"./agents/notice-reviewer.md\"] and commands/review-privacy-notice.md links to '../skills/privacy-notice-review/references/state-law-matrix.md'; neither path resolves to a real file (confirmed by repo-wide search), yet the gate reported 0 errors. A cheap deterministic pass that resolves every manifest file path and every markdown relative link against the actual filesystem would have caught both without needing model judgment, and both look like the same seeded pattern: a file was renamed and the pointer to it was not updated.",
+    "The single most consequential defect for a real user is the checklist mismatch between commands/review-privacy-notice.md and skills/privacy-notice-review/SKILL.md: both files present themselves as authoritative ('the seven-point notice checklist' vs 'the canonical list') and agree on only 2 of 7 items. This is duplicated content with no single source of truth; SKILL.md was revised to 0.4.0 to add the appeal path as a canonical item, and the command's copy of the checklist was never touched.",
+    "data-request-router and dsar-intake-triage are close enough in trigger language and output shape that they read like one skill that was forked and diverged, rather than two skills with a clear division of labor; worth flagging as a design smell even though I did not find a case where the two skills give outright conflicting answers.",
+    "The two legal-accuracy findings (Colorado statute name, CO/VA opt-in vs opt-out for targeted advertising) are the kind of error that only domain judgment catches, not file diffing, and they sit in the reference file the whole notice-review skill treats as authoritative; I verified them against my own knowledge only, not a live source, so they should be spot-checked before being treated as ground truth for scoring."
+  ]
+}

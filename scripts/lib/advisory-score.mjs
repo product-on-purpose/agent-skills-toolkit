@@ -47,7 +47,10 @@ const PROVISIONAL_OUTCOMES = new Set([OUTCOME.REVIEW_REQUIRED, OUTCOME.NO_MATCH]
 const KEY_SCHEMA = "askit-seeded-defect-key/1";
 const DEFAULT_MATCH_FIELDS = ["area", "file", "message", "recommendation", "evidence", "title"];
 const REPO_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
-export const DEFAULT_KEY_REL = "tests/fixtures/anti/seeded-defects/privacy-notice-toolkit.key.json";
+// E20: the key lives outside tests/fixtures/anti/seeded-defects/ so nothing pointed at that fixture
+// tree can read it, and its filename carries the keyVersion so a bump ships as a new file rather than
+// an in-place mutation (tests/fixtures/seeded-defect-keys/README.md).
+export const DEFAULT_KEY_REL = "tests/fixtures/seeded-defect-keys/privacy-notice-toolkit.key.1.1.0.json";
 
 // ---------------------------------------------------------------------------
 // Loading
@@ -148,13 +151,27 @@ export function testRule(rule, text, flags = "i") {
 // Classification: one finding, read on its own
 // ---------------------------------------------------------------------------
 
-const result = (outcome, entryId = null, why = null) => ({ outcome, entryId, why });
+const result = (outcome, entryId = null, why = null, extra = {}) => ({ outcome, entryId, why, ...extra });
+
+/** ADR 0065, rule (a'): the three auto-credit steps applied to ONE engaged entry inside a multi-entry
+ *  engagement. A `mode: semantic` entry is never auto-credited, on a single-entry engagement or a
+ *  multi-entry one. An entry marked `verification: "not-required"` is always credited, because naming
+ *  the pair IS the finding. Otherwise the entry is credited only when its own `correct` clause
+ *  verifies against the finding's text and its `confabulation` clause does not - never when both
+ *  match, and never by borrowing another engaged entry's verdict. */
+function isAutoCreditable(entry, text, flags) {
+  if (entry.match.mode === "semantic") return false;
+  if (entry.match.verification === "not-required") return true;
+  const correct = testRule(entry.match.correct, text, flags);
+  const confabulated = testRule(entry.match.confabulation, text, flags);
+  return correct && !confabulated;
+}
 
 /**
  * Classify one finding's matchText against the key. The precedence is the key's
  * scoring.confabulationRule.mechanics, and nothing here guesses:
  *
- *   more than one entry engaged      -> review-required
+ *   more than one entry engaged      -> see below (ADR 0065, rule a')
  *   a semantic entry engaged         -> review-required
  *   verification not required        -> tp (naming the pair IS the finding)
  *   confabulation only               -> confabulation  (a false positive AND a miss)
@@ -165,15 +182,40 @@ const result = (outcome, entryId = null, why = null) => ({ outcome, entryId, why
  *   no entry, an outOfScope rule     -> out-of-scope
  *   nothing at all                   -> no-match       (a provisional false positive)
  *
+ * **Multi-entry engagement (ADR 0065, rule a'):** each engaged entry is tested on its own with
+ * `isAutoCreditable`, above. Unlike the single-entry path, a multi-entry engagement never resolves
+ * one individual entry to CONFABULATION or PARTIAL: an entry that fails the credit test here simply
+ * stays uncredited, because a finding that correctly describes one engaged entry is not thereby wrong
+ * about the others (the asymmetry ADR 0065 names - a multi-entry finding is never scored as an
+ * automatic false positive on account of one engaged entry's confabulation clause matching). The
+ * result carries `multi: true`, every engaged entry's id (`engagedIds`), and the subset that verified
+ * on its own (`creditedIds`, possibly empty). Whether the finding ends up a fresh true positive, a
+ * duplicate, or still review-required depends on the run's running satisfied set, so that decision -
+ * and every multi-entry engagement's mandatory routing to the adjudication worklist, credited or not -
+ * is scoreAdvisory's job, not this one's. The single-entry path (`engaged.length === 1`, below) is
+ * unchanged by this ruling.
+ *
  * Satisfied-entry bookkeeping (duplicates, misses) belongs to scoreAdvisory, not here. The returned
  * entryId is the engaged entry's id, the bait or outOfScope rule's id, null when nothing engaged, or
- * the ids joined with "+" when a finding engaged several entries at once.
+ * (for a multi-entry engagement) the credited ids joined with "+", or, when none verified, every
+ * engaged id joined with "+".
  */
 export function classifyText(key, text) {
   const flags = key?.patternSyntax?.flags ?? "i";
   const engaged = (key.defects ?? []).filter((d) => testRule(d.match?.locate, text, flags));
   if (engaged.length > 1) {
-    return result(OUTCOME.REVIEW_REQUIRED, engaged.map((d) => d.id).join("+"), "engages more than one defect entry");
+    const engagedIds = engaged.map((d) => d.id);
+    const creditedIds = engaged.filter((d) => isAutoCreditable(d, text, flags)).map((d) => d.id);
+    const extra = { multi: true, engagedIds, creditedIds };
+    if (creditedIds.length === 0) {
+      return result(
+        OUTCOME.REVIEW_REQUIRED,
+        engagedIds.join("+"),
+        "engages more than one defect entry; no engaged entry verifies on its own",
+        extra,
+      );
+    }
+    return result(OUTCOME.TP, creditedIds.join("+"), null, extra);
   }
   if (engaged.length === 1) {
     const entry = engaged[0];
@@ -220,24 +262,74 @@ export function extractFindings(advisory) {
 
 const ratio = (numerator, denominator) => (denominator === 0 ? null : numerator / denominator);
 
+/** Validate and index an E17 adjudication document by finding index. Each resolution names the
+ *  finding it resolves (`index`, the same index the worklist reports), the engaged entry it rules on
+ *  (`entryId`), and the human's decision (`"credit"` or `"no-credit"`). A resolution may only name an
+ *  entry its own finding actually engages - checked against `classified.engagedIds` once the finding
+ *  is classified, below, because this function runs before classification and cannot see that list
+ *  yet. Several resolutions may target the same finding (one per engaged entry) or different findings;
+ *  this only groups them. Malformed input is refused loudly, the same discipline as a malformed
+ *  finding, because a silently-ignored adjudication would be worse than none. */
+function indexAdjudication(adjudication) {
+  const byIndex = new Map();
+  const resolutions = adjudication?.resolutions;
+  if (resolutions === undefined) return byIndex;
+  if (!Array.isArray(resolutions)) {
+    throw new AdvisoryScoreError("opts.adjudication.resolutions must be an array");
+  }
+  for (const r of resolutions) {
+    if (!r || typeof r !== "object" || typeof r.index !== "number") {
+      throw new AdvisoryScoreError("an adjudication resolution needs a numeric finding index");
+    }
+    if (typeof r.entryId !== "string" || r.entryId.length === 0) {
+      throw new AdvisoryScoreError(`adjudication resolution for finding ${r.index} needs an entryId`);
+    }
+    if (r.decision !== "credit" && r.decision !== "no-credit") {
+      throw new AdvisoryScoreError(
+        `adjudication resolution for finding ${r.index} has an unknown decision ${JSON.stringify(r.decision)}; expected "credit" or "no-credit"`,
+      );
+    }
+    if (!byIndex.has(r.index)) byIndex.set(r.index, []);
+    byIndex.get(r.index).push(r);
+  }
+  return byIndex;
+}
+
 /**
  * Score one advisory result against one key.
  *
- * Precision is TP / (TP + FP) and recall is TP / planted defects. A CONFABULATION is appended to the
- * false positives and its entry is NOT added to the satisfied set, which is what produces the second
- * penalty (the miss) with no extra bookkeeping: it is never a true positive. An out-of-scope finding is
+ * Precision counts findings: TP / (TP + FP), and a credited multi-entry finding is one true positive
+ * however many entries it credits. Recall counts satisfied ENTRIES: satisfied.size / planted defects -
+ * not truePositives / planted defects, which agrees with it only while every true positive satisfies
+ * exactly one entry. Under ADR 0065's rule (a'), a multi-entry finding can satisfy more than one entry
+ * at once (for example Opus index 0 on key 1.1.0 credits both SD-03 and SD-07 and is still one true
+ * positive), so the two counts are kept separate here. A CONFABULATION is appended to the false
+ * positives and its entry is NOT added to the satisfied set, which is what produces the second penalty
+ * (the miss) with no extra bookkeeping: it is never a true positive. An out-of-scope finding is
  * excluded from both formulas and reported as the run's noise share. Findings are processed in the
- * order the advisory lists them, so the partition is reproducible.
+ * order the advisory lists them, so the partition is reproducible, and an optional `opts.adjudication`
+ * document (E17) is folded into that same pass rather than patched on afterward.
  *
  * @param {object|Array} advisory the advisory result (dispatch-reviewer shape)
  * @param {object} key a loaded seeded-defect scoring key
- * @param {{model?:string, effort?:string, runId?:string}} [opts] cell labels for the record
+ * @param {{model?:string, effort?:string, runId?:string, adjudication?:{resolutions:Array}}} [opts]
+ *   cell labels for the record, plus an optional E17 adjudication document. Each resolution is
+ *   `{index, entryId, decision: "credit"|"no-credit"}`; `index` is the finding's position in the
+ *   advisory's findings array, the same index the worklist reports.
  */
 export function scoreAdvisory(advisory, key, opts = {}) {
   if (!key || typeof key !== "object") throw new AdvisoryScoreError("scoreAdvisory needs a loaded scoring key");
   const defects = Array.isArray(key.defects) ? key.defects : [];
   const findings = extractFindings(advisory);
   const review = (!Array.isArray(advisory) && advisory?.review) || {};
+  const adjudicationByIndex = indexAdjudication(opts.adjudication);
+  // Every index named in the document must land on an actual multi-entry engagement, or the human's
+  // ruling never reaches the published partition and the cell silently stays as if it were never
+  // adjudicated at all - the exact failure "a silently-ignored adjudication would be worse than none"
+  // (indexAdjudication's own docstring) warns against. Single-entry and no-match adjudication are
+  // deliberately out of scope for this increment (E17's worklist here is the mandatory multi-entry
+  // one only), so a resolution naming either is refused rather than quietly dropped.
+  const consumedIndices = new Set();
 
   const satisfied = new Set();
   const rows = [];
@@ -248,7 +340,48 @@ export function scoreAdvisory(advisory, key, opts = {}) {
     const classified = classifyFinding(key, finding);
     let outcome = classified.outcome;
     let why = classified.why;
-    if (outcome === OUTCOME.TP) {
+    let adjudicated = false;
+
+    if (classified.multi) {
+      // ADR 0065, rule (a'): every multi-entry engagement is mandatory-adjudication, credited or not
+      // (enforced below via `provisional`). An E17 resolution may add or withdraw credit for one of
+      // the entries THIS finding actually engages; it may not name an entry the finding never engaged.
+      let creditedIds = classified.creditedIds;
+      const resolutions = adjudicationByIndex.get(index);
+      if (resolutions) {
+        adjudicated = true;
+        consumedIndices.add(index);
+        const credited = new Set(creditedIds);
+        for (const r of resolutions) {
+          if (!classified.engagedIds.includes(r.entryId)) {
+            throw new AdvisoryScoreError(
+              `adjudication resolution for finding ${index} names ${r.entryId}, which finding ${index} does not engage (engages ${classified.engagedIds.join(", ")})`,
+            );
+          }
+          if (r.decision === "credit") credited.add(r.entryId);
+          else credited.delete(r.entryId);
+        }
+        creditedIds = [...credited];
+      }
+      if (creditedIds.length === 0) {
+        outcome = OUTCOME.REVIEW_REQUIRED;
+        why = adjudicated ? "adjudicated: no engaged entry credited" : why;
+      } else {
+        // First satisfying finding wins, same rule as the single-entry path below: a fresh credit on
+        // ANY of this finding's credited entries makes it one true positive; if every credited entry
+        // was already satisfied elsewhere, the finding collapses to a duplicate instead.
+        const fresh = creditedIds.filter((id) => !satisfied.has(id));
+        if (fresh.length > 0) {
+          outcome = OUTCOME.TP;
+          why = adjudicated ? "adjudicated: credited by a human adjudication" : null;
+          for (const id of fresh) satisfied.add(id);
+        } else {
+          outcome = OUTCOME.DUPLICATE;
+          why = "every credited entry was already satisfied by an earlier finding";
+        }
+      }
+      classified.creditedIds = creditedIds;
+    } else if (outcome === OUTCOME.TP) {
       // First satisfying finding wins. A later one restates a real defect somewhere else, which is
       // thoroughness rather than noise, so it is collapsed and counted neither way.
       if (satisfied.has(classified.entryId)) {
@@ -265,9 +398,27 @@ export function scoreAdvisory(advisory, key, opts = {}) {
       why: why ?? null,
       file: typeof finding.file === "string" ? finding.file : null,
       provenance: typeof finding.provenance === "string" ? finding.provenance : null,
-      provisional: PROVISIONAL_OUTCOMES.has(outcome),
+      // A multi-entry engagement stays provisional (mandatory adjudication) whatever it was credited,
+      // UNLESS an adjudication resolution already resolved it - that is what "fold into the published
+      // partition" means: a resolved item comes off the worklist instead of asking for it again.
+      provisional: (PROVISIONAL_OUTCOMES.has(outcome) || classified.multi === true) && !adjudicated,
+      multi: classified.multi === true,
+      adjudicated,
+      engagedIds: classified.engagedIds ?? null,
+      creditedIds: classified.creditedIds ?? null,
     });
   });
+
+  for (const index of adjudicationByIndex.keys()) {
+    if (!consumedIndices.has(index)) {
+      const row = rows.find((r) => r.index === index);
+      throw new AdvisoryScoreError(
+        row
+          ? `adjudication resolution for finding ${index} is refused: finding ${index} is not a multi-entry engagement (outcome ${row.outcome}); single-entry and no-match adjudication are outside this increment`
+          : `adjudication resolution for finding ${index} is refused: the advisory has no finding ${index}`,
+      );
+    }
+  }
 
   const tally = (outcome) => rows.filter((r) => r.outcome === outcome).length;
   const truePositives = tally(OUTCOME.TP);
@@ -279,14 +430,43 @@ export function scoreAdvisory(advisory, key, opts = {}) {
   const misses = defects.map((d) => d.id).filter((id) => !satisfied.has(id));
 
   const precision = ratio(truePositives, truePositives + falsePositives);
-  const recall = ratio(truePositives, defects.length);
-  const recallByMisses = ratio(truePositives, truePositives + misses.length);
+  // Recall counts satisfied ENTRIES, not true-positive findings (ADR 0065, Implementation sites).
+  const recall = ratio(satisfied.size, defects.length);
+  const recallByMisses = ratio(satisfied.size, satisfied.size + misses.length);
   const verified = rows.filter((r) => r.provenance === "verified");
   const semantic = defects.filter((d) => d.match?.mode === "semantic").length;
   const byId = new Map(defects.map((d) => [d.id, d]));
   const worklist = rows
     .filter((r) => r.provisional)
     .map((r) => {
+      if (r.multi) {
+        // A multi-entry worklist item carries every engaged entry's locations and, for any engaged
+        // entry that is a semantic one, its hint set - the adjudicator needs the whole engagement to
+        // rule on it, not just the one id the row happens to key its outcome on.
+        const engagedEntries = (r.engagedIds ?? []).map((id) => byId.get(id)).filter(Boolean);
+        const locations = [...new Set(engagedEntries.flatMap((e) => (e.locations ?? []).map((l) => l.file)))];
+        const semanticHints = engagedEntries
+          .filter((e) => e.match?.mode === "semantic")
+          .map((e) => ({
+            entryId: e.id,
+            tpCriterion: e.match.tpCriterion ?? null,
+            confabulationCriterion: e.match.confabulationCriterion ?? null,
+            correct: e.match.correct?.anyOf ?? [],
+            confabulation: e.match.confabulation?.anyOf ?? [],
+          }));
+        return {
+          index: r.index,
+          entryId: r.entryId,
+          file: r.file,
+          reason: r.creditedIds?.length
+            ? `multi-entry engagement: ${r.creditedIds.join("+")} credited automatically; mandatory adjudication (ADR 0065)`
+            : "multi-entry engagement: no engaged entry verifies on its own; mandatory adjudication (ADR 0065)",
+          engagedIds: r.engagedIds,
+          creditedIds: r.creditedIds,
+          locations,
+          hints: semanticHints.length ? semanticHints : null,
+        };
+      }
       const entry = byId.get(r.entryId);
       return {
         index: r.index,
@@ -333,12 +513,17 @@ export function scoreAdvisory(advisory, key, opts = {}) {
       duplicates: tally(OUTCOME.DUPLICATE),
       verified: verified.length,
       plantedDefects: defects.length,
+      satisfiedEntries: satisfied.size,
+      multiEntryEngagements: rows.filter((r) => r.multi).length,
+      adjudicated: rows.filter((r) => r.adjudicated).length,
     },
     precision,
     recall,
     recallByMisses,
-    // TP/(TP+misses) and TP/defects are the same number whenever the duplicate rule was applied
-    // correctly, so a disagreement is a harness defect and is surfaced rather than smoothed over.
+    // satisfied.size/(satisfied.size+misses) and satisfied.size/defects.length are the same number
+    // whenever misses was built from the same satisfied set, so a disagreement is a harness defect
+    // (for example a stray id in `satisfied` that is not one of the key's defect ids) and is surfaced
+    // rather than smoothed over.
     recallAgrees: sameNumber(recall, recallByMisses),
     // A semantic entry can never be auto-credited, so this is the highest recall an auto score can
     // report on this key. Reading a run's recall against it is the difference between "the model
@@ -382,12 +567,12 @@ export function formatScoreReport(score) {
   lines.push(`  ${pad("duplicate", 18)}${pad(c.duplicates, 8)}${pad("out of scope", 18)}${c.outOfScope}`);
   lines.push("");
   lines.push(`  precision       ${pair(score.precision)}   (${c.truePositives} tp / ${c.truePositives + c.falsePositives} scored claims)`);
-  lines.push(`  recall          ${pair(score.recall)}   (${c.truePositives} tp / ${c.plantedDefects} planted defects)`);
+  lines.push(`  recall          ${pair(score.recall)}   (${c.satisfiedEntries} entries / ${c.plantedDefects} planted defects)`);
   lines.push(`  auto ceiling    ${pair(score.recallAutoCeiling)}   (a semantic entry can never be auto-credited)`);
   lines.push(`  noise share     ${pair(score.noiseShare)}   (${c.outOfScope} of ${c.findings} findings excluded from both formulas)`);
   lines.push(`  false-verified  ${pair(score.falseVerifiedRate)}   (findings marked verified whose claim was wrong, of ${c.verified} marked verified)`);
   if (!score.recallAgrees) {
-    lines.push(`  WARNING: TP/(TP+misses) is ${pair(score.recallByMisses)}, which disagrees with TP/planted. The duplicate rule was applied wrongly.`);
+    lines.push(`  WARNING: entries/(entries+misses) is ${pair(score.recallByMisses)}, which disagrees with entries/planted. The duplicate rule was applied wrongly.`);
   }
   lines.push("");
   lines.push(`  misses          ${score.misses.length ? score.misses.join(", ") : "none"}`);

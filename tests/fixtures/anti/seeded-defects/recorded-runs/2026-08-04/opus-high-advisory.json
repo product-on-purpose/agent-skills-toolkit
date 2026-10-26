@@ -1,0 +1,178 @@
+{
+  "review": {
+    "model": "Opus 5",
+    "effort": "high",
+    "date": "2026-08-04",
+    "findings": [
+      {
+        "area": "command-skill contradiction",
+        "severity": "major",
+        "message": "The command declares it 'Runs skills/privacy-notice-review' and then restates the seven-point checklist with a different list. The skill calls its list canonical: 'This is the canonical list. Every review reports a verdict for each of the seven items, in this order, and never renumbers them.' Only items 1 (categories) and 5 (rights) survive. The skill's items 2 purposes, 3 third parties, 4 retention, 6 appeal path, 7 contact and effective date are replaced in the command by 2 cookie banner, 3 grade-10 reading level, 4 sale and sharing disclosure, 6 named data protection officer, 7 review date inside twelve months. A user who invokes the command gets a verdict table that the skill, its output contract, and the privacy-reviewer agent (which checks that the table 'follows the checklist order and does not renumber the items') all disagree with. Three of the command's substitutes are also not US state notice-disclosure requirements at all: a cookie banner is an ePrivacy consent mechanism, a named DPO is a GDPR Article 37 role, and a twelve-month review date is a housekeeping convention.",
+        "file": "commands/review-privacy-notice.md",
+        "provenance": "verified"
+      },
+      {
+        "area": "stale reference",
+        "severity": "major",
+        "message": "references/output-contract.md section 4 'Writing the result back' documents a --write flag that overwrites the source notice, and warns 'the previous version is not retained anywhere'. SKILL.md's own changelog says the opposite two minor versions earlier: '0.3.0 - removed the in-place write. The review now returns a report and never edits the source notice.' The README agrees with the skill ('Every skill returns its result into the conversation as Markdown'). The reference is the only file still describing the removed behavior, and it is the file the SKILL.md procedure step 4 sends the model to. A model following the linked contract will offer, and can perform, a destructive overwrite the skill retired at 0.3.0. Section 4 is also wrong in a second way: it describes a CLI flag, and this plugin ships no script, hook, or MCP server, so there is no invocation surface a --write could belong to.",
+        "file": "skills/privacy-notice-review/references/output-contract.md",
+        "provenance": "verified"
+      },
+      {
+        "area": "skill-reference contradiction",
+        "severity": "major",
+        "message": "The audit procedure computes expiry as 'expires_at = granted_at + retention_days'. Its own linked schema states the opposite rule: 'The retention window runs from renewed_at when that column is populated, and from granted_at only when it is empty. A subject who reconfirmed last month has a fresh window even when the original grant is years old, so a record must never be treated as expired on the strength of its granted_at date alone.' The SKILL.md formula does exactly what the schema forbids. The tell that the SKILL body is the stale half: its 'Before you start' section makes the presence of renewed_at a precondition ('An export missing renewed_at is a partial export') for a procedure that then never reads the column. Concrete consequence: every renewed row whose original grant is older than retention_days is reported as an expired consent that 'must be re-collected', which drives unnecessary re-consent campaigns against subjects whose consent is current.",
+        "file": "skills/consent-log-audit/SKILL.md",
+        "provenance": "verified"
+      },
+      {
+        "area": "capability overclaim",
+        "severity": "major",
+        "message": "The README states the notice review 'also generates a signed PDF compliance certificate and emails it to your DPO once the review closes clean, so the assessment file is complete with no manual step.' Nothing in this plugin can do either. The full file inventory is one plugin.json, one README, four SKILL.md, three references, two commands, one agent: no scripts directory, no hooks, no .mcp.json (loadPlugin reports mcpServers: []). No skill, command, or agent mentions a certificate, a PDF, signing, or email. The claim also contradicts the same README two paragraphs later ('Every skill returns its result into the conversation as Markdown') and the skill itself ('The output is a redline for a human reviewer, not a filing'). 'Signed' additionally implies a cryptographic attestation, which is the highest-stakes word in the document and the one with the least backing.",
+        "file": "README.md",
+        "provenance": "verified"
+      },
+      {
+        "area": "trigger-surface collision",
+        "severity": "major",
+        "message": "dsar-intake-triage and data-request-router are near-duplicates that will both fire on the same input. Both descriptions enumerate the same four request types and end with the same promise: 'who must answer it, and by when' versus 'which team owns it and by when'. Both classify the request into access/deletion/correction/opt-out/appeal, both assign an owner, and both stamp '45 days from receipt of the verifiable request, with one 45-day extension'. Their owner tables are identical in all five rows (access->support, deletion->data engineering, correction->support, opt-out->marketing operations, appeal->the privacy lead). The router adds only two side tasks in a 'State exceptions' column and an escalation rule; the triage skill adds only identity verification. Neither file names or defers to the other, so on a real inbound request the model picks arbitrarily and silently drops either the verification step or the escalation rule. This is a library-level defect: neither component is wrong on its own, only the pair is.",
+        "file": "skills/data-request-router/SKILL.md",
+        "provenance": "verified"
+      },
+      {
+        "area": "manifest",
+        "severity": "major",
+        "message": "plugin.json declares 'agents': ['./agents/notice-reviewer.md']. No such file exists. The only agent on disk is agents/privacy-reviewer.md, which is the name the README uses ('agents/privacy-reviewer'). The manifest is the only place the name notice-reviewer appears anywhere in the plugin. Whichever way the host resolves the field (as an additional path alongside default discovery of agents/, or as an override of it), the declaration points at nothing: at best it is dead weight in the only machine-read file in the plugin, at worst it suppresses the real agent. Verified by file listing and by loading the plugin context, which reports claudeManifest keys including 'agents' and subagents: ['privacy-reviewer'].",
+        "file": ".claude-plugin/plugin.json",
+        "provenance": "verified"
+      },
+      {
+        "area": "dangling reference",
+        "severity": "major",
+        "message": "The command links '[the state law matrix](../skills/privacy-notice-review/references/state-law-matrix.md)' for the per-state response deadline. That file does not exist; the reference on disk is references/us-state-laws.md. Two problems compound: the link is dead, and the section is scope leakage. A notice review has no requester and no response clock, so 'the response deadline that applies to the requester's state' is a DSAR concept imported into the wrong component. The deadline material belongs to dsar-intake-triage and data-request-router, both of which already carry it.",
+        "file": "commands/review-privacy-notice.md",
+        "provenance": "verified"
+      },
+      {
+        "area": "legal accuracy",
+        "severity": "major",
+        "message": "The 'Direction of consent' section is inverted on both sides, and it is the section the document presents as the correction of 'the most common drafting error we see'. (a) 'Under the GDPR, a controller may send direct marketing email to an individual until that individual objects' describes an opt-out regime. Unsolicited direct marketing EMAIL in the EU is governed by the ePrivacy Directive 2002/58/EC Article 13, which requires prior consent, with a narrow soft opt-in for an existing customer's similar products; GDPR Article 21(2) supplies an absolute right to object on top of that, it does not supply an until-you-object permission for email. The attribution to GDPR alone is a second error inside the first. (b) 'Colorado and Virginia run the other way: the consumer must opt in before any targeted advertising' is backwards for adults. Both the Colorado Privacy Act and the VCDPA give consumers a right to OPT OUT of processing for targeted advertising; opt-in consent attaches to sensitive data and to minors, not to targeted advertising generally. The two errors push harm in opposite directions: a drafter following (a) omits a consent gate the EU requires (real exposure), and a drafter following (b) builds a consent banner the two states do not require (friction plus a false record of what the law demanded). File content verified; the legal correction is from my own knowledge of the statutes, not from a primary source opened in this session.",
+        "file": "skills/privacy-notice-review/references/us-state-laws.md",
+        "provenance": "inferred"
+      },
+      {
+        "area": "legal accuracy",
+        "severity": "major",
+        "message": "The triage skill makes the statutory clock start at verification: step 1 says 'An unverified request is not a statutory request yet, and the clock has not started', and 'What good triage looks like' says 'The deadline is recorded against the verification date, not the arrival date.' All four statutes in this plugin's own reference run the clock from RECEIPT of the request, and the CCPA regulations are explicit that the 45-day period begins on the day the business receives the request regardless of the time required to verify; VCDPA and the Colorado Privacy Act are both drafted as 45 days from receipt of the request. This is the plugin's most consequential defect because it silently consumes real days: verification latency is subtracted from the response window rather than added to it, and the skill's stated purpose is 'so the response clock is never started late'. The rule defeats the skill. Note the same phrase 'from receipt of the verifiable request' appears in data-request-router step 4 and in the state reference, so the ambiguity is library-wide, but only dsar-intake-triage resolves it in the wrong direction explicitly. File content verified; the legal correction is from my own knowledge, not from a primary source opened in this session.",
+        "file": "skills/dsar-intake-triage/SKILL.md",
+        "provenance": "inferred"
+      },
+      {
+        "area": "scope overclaim",
+        "severity": "major",
+        "message": "The skill description promises review against 'the US state privacy statutes' (definite, unbounded) and procedure step 3 instructs the model to 'Check the state-specific requirements in the state law reference for every state the notice names, plus every state the product actually sells into.' The only reference covers four states and says so honestly ('the four statutes that drive most of our reviews'). As of 2026 roughly twenty states have comprehensive consumer privacy laws in force. Step 3 is therefore unexecutable as written for any product selling nationally, and the skill gives no rule for what to do when a named state is absent from the table: no fallback, no 'record as not covered', no instruction to stop. The predictable failure is silence, which a reviewer reads as coverage. Either the description should scope to the four states or the procedure should require an explicit not-covered verdict per uncovered state.",
+        "file": "skills/privacy-notice-review/SKILL.md",
+        "provenance": "verified"
+      },
+      {
+        "area": "legal accuracy",
+        "severity": "minor",
+        "message": "The statute table names Colorado's law the 'Colorado Consumer Data Protection Act (CCDPA)'. No such statute exists; Colorado's is the Colorado Privacy Act (CPA), Colo. Rev. Stat. 6-1-1301 et seq. The invented name and abbreviation appear to be contamination from the Virginia row directly above it (Virginia Consumer Data Protection Act, VCDPA), which is correctly named. The operative content of the row (in force July 1, 2023; 45 days plus one 45-day extension) is right, so nothing downstream computes wrong, but a compliance reference that cites a statute by a name it does not have will not survive contact with counsel. Verified in the file; the naming correction is from my own knowledge.",
+        "file": "skills/privacy-notice-review/references/us-state-laws.md",
+        "provenance": "inferred"
+      },
+      {
+        "area": "legal accuracy",
+        "severity": "minor",
+        "message": "The universal opt-out section frames signal recognition as a Colorado-only duty ('The Colorado statute requires ... from July 1, 2024', and 'A notice that offers only a web form and no signal recognition is out of date for Colorado consumers'). The July 1, 2024 Colorado date is correct, but the framing is under-inclusive against this plugin's own four-state scope: Connecticut's CTDPA requires recognition of an opt-out preference signal from January 1, 2025, and California's CCPA regime requires honoring opt-out preference signals as a valid opt-out request. A notice cleared against this section is under-tested for two of the four states the reference itself covers.",
+        "file": "skills/privacy-notice-review/references/us-state-laws.md",
+        "provenance": "inferred"
+      },
+      {
+        "area": "legal accuracy",
+        "severity": "minor",
+        "message": "The sensitive-data section says 'All four statutes treat a defined set of categories as sensitive' and then lists four categories. Two problems. The list is materially under-inclusive against every statute it claims to summarize (omitting at least genetic data, citizenship or immigration status, and personal data of a known child, plus, for California, government identifiers, account credentials, and contents of communications). And the sentence flattens two different legal regimes into one: Virginia, Colorado, and Connecticut require opt-in consent before processing sensitive data, whereas California grants a right to LIMIT use and disclosure of sensitive personal information. A notice drafted against 'all four treat these as sensitive' will get the California mechanism wrong.",
+        "file": "skills/privacy-notice-review/references/us-state-laws.md",
+        "provenance": "inferred"
+      },
+      {
+        "area": "description altitude",
+        "severity": "minor",
+        "message": "The manifest description sells the third capability as 'audit an exported consent log against US state privacy law'. The consent-log-audit skill does not reference a US statute anywhere; it audits an export against a vendor schema for expiry, missing lawful_basis, and state/timestamp disagreement. Its central concept, lawful_basis with the enum consent | legitimate_interest, is GDPR Article 6 vocabulary that has no counterpart in any US state comprehensive privacy law. The component is a GDPR-shaped marketing-consent hygiene tool wearing a US-state-law label in the only machine-read description a marketplace will surface. Either the manifest should describe it as it is, or the skill should acquire the state-law grounding the manifest promises.",
+        "file": ".claude-plugin/plugin.json",
+        "provenance": "verified"
+      },
+      {
+        "area": "orchestration claim",
+        "severity": "minor",
+        "message": "The README describes the agent as 'The read-only delegate the notice review dispatches for a second pass.' Nothing implements that dispatch. privacy-notice-review SKILL.md's four-step procedure ends at returning the redline and never mentions the agent; the command never mentions it; the agent file describes what to do when handed a redline but names nothing that hands it one. The agent is a well-written component with no caller, and the README asserts a wiring that does not exist.",
+        "file": "README.md",
+        "provenance": "verified"
+      },
+      {
+        "area": "internal coherence",
+        "severity": "minor",
+        "message": "The router states its own design rationale as 'Routing is by request type first and by the requester's state second, because two states put the same request type in different queues.' Its routing table contradicts that: the Default queue column is unconditional for all five types, and the two State exceptions (California deletion also opens a vendor-deletion ticket, Colorado opt-out also checks universal opt-out signal handling) are additional side tasks, not different queues. No state changes any queue anywhere in the table. Step 2's careful work to establish the requester's state therefore changes nothing about the routing decision the skill exists to make.",
+        "file": "skills/data-request-router/SKILL.md",
+        "provenance": "verified"
+      },
+      {
+        "area": "command-skill contradiction",
+        "severity": "minor",
+        "message": "The command and the skill give different instructions for the same precondition. The command says an export without renewed_at 'cannot be audited for retention, only for data quality', which is a hard gate. The skill says such an export 'is a partial export, and the audit says so instead of guessing', which is a proceed-and-annotate rule. Same input, two different behaviors depending on entry point. Both, separately, sit on top of a procedure that never reads renewed_at at all (see the expiry-formula finding), so the precondition is enforced twice and honored zero times.",
+        "file": "commands/audit-consent-log.md",
+        "provenance": "verified"
+      },
+      {
+        "area": "unbacked mechanism",
+        "severity": "minor",
+        "message": "Several procedure steps instruct actions the plugin has no mechanism to perform and documents no manual handoff for: 'use the billing address on the account' (router step 2) requires reading account records; 'Stamp the deadline on the ticket' (router step 4) and 'California requests also open a vendor-deletion ticket' require a ticketing system; 'goes to the privacy lead the same day' requires a notification path. The plugin ships no MCP server, no script, and no hook, so each of these resolves to the model asserting it did something it cannot do, or asking the user, which the text does not tell it to do. The README's honest 'it does not read your production systems' is in direct tension with the router's account lookup.",
+        "file": "skills/data-request-router/SKILL.md",
+        "provenance": "verified"
+      },
+      {
+        "area": "procedure gap",
+        "severity": "minor",
+        "message": "The schema declares consent_state as an enum of active | withdrawn | pending, but the procedure handles only two of the three values: step 2 drops withdrawn, and steps 3-5 treat everything remaining as if it were active. A pending row therefore receives a retention verdict computed from a grant that has not completed, and can be reported as an 'expired consent that must be re-collected' when there is no consent yet to expire. The skill needs an explicit rule for pending, even if that rule is to exclude and count it.",
+        "file": "skills/consent-log-audit/SKILL.md",
+        "provenance": "verified"
+      },
+      {
+        "area": "domain gap",
+        "severity": "minor",
+        "message": "The canonical seven-point checklist has no item for the sale and sharing disclosure or the opt-out route, which is among the most enforced US state notice requirements (California requires a clear and conspicuous Do Not Sell or Share My Personal Information link, and every statute in the plugin's reference grants an opt-out right for sale and for targeted advertising). Item 5 covers 'Consumer rights and how to exercise them, with a working request route' in general terms and could be stretched to cover it, but the checklist is explicitly canonical and per-item, so a stretched item produces one verdict where two obligations live. Worth noting that the command's otherwise-wrong checklist carries this requirement as its item 4, which suggests the two lists were drafted from different sources rather than one being derived from the other.",
+        "file": "skills/privacy-notice-review/SKILL.md",
+        "provenance": "verified"
+      },
+      {
+        "area": "legal accuracy",
+        "severity": "info",
+        "message": "The California row reads 'California Consumer Privacy Act (CCPA), as amended by the CPRA | In force since January 1, 2020'. January 1, 2020 is the CCPA's operative date; the CPRA amendments became operative January 1, 2023 with a lookback to January 1, 2022. A single In force since cell cannot carry a statute plus an amendment with different operative dates, and the row as written implies the amended text has applied since 2020.",
+        "file": "skills/privacy-notice-review/references/us-state-laws.md",
+        "provenance": "inferred"
+      },
+      {
+        "area": "checker",
+        "severity": "info",
+        "message": "CHECKER RECOMMENDATION (not a plugin defect): U6 reference-links resolves relative links only inside skills. Its check(ctx) body is a single loop, `for (const s of ctx.skills)`, which scans the SKILL.md body against s.dir and then each skills/<name>/references/*.md against that references dir. It never reads ctx.commands or ctx.subagents, both of which loadPlugin already populates (this fixture loads commands ['audit-consent-log','review-privacy-notice'] and subagents ['privacy-reviewer']). The proof is in this target: commands/review-privacy-notice.md links `[the state law matrix](../skills/privacy-notice-review/references/state-law-matrix.md)`, the file does not exist, and the gate is 0E/0W. The fix needs no new rule and no new severity, only two more inputs to the existing scanLinks: ctx.commands with baseDir = <root>/commands, ctx.subagents with baseDir = <root>/agents. The same stripCode and SKIP_SCHEME strips apply unchanged, and like every strip in that module the change can only add findings for targets that already have dead links.",
+        "file": "scripts/checks/reference-links.mjs",
+        "provenance": "verified"
+      },
+      {
+        "area": "checker",
+        "severity": "info",
+        "message": "CHECKER RECOMMENDATION (not a plugin defect): no check resolves the component-path arrays declared inside .claude-plugin/plugin.json, so a manifest entry pointing at a nonexistent file is invisible. Verified by grep: ctx.claudeManifest is consumed in exactly two modules. manifest-drift (U8) compares only name and version against library.json and opens with `const lib = ctx.library?.data; if (!lib) return []`, so with no library.json (this fixture: library.data is null) it is fully inert. per-target-presence (S6) is house-provenance and off under plain-plugin. U13 skill-registration covers the phantom-registration class but only for skills, and only via library.json components.skills or marketplace.json plugins[].source; resolveRegistrationSource returns null here (rung 3), so U13 no-ops too. Net effect: `\"agents\": [\"./agents/notice-reviewer.md\"]` pointing at a file that does not exist passes with 0E/0W. A U6-family extension that resolves every string in the manifest's agents / commands / skills / hooks path arrays against disk would be objective, portable, and vendor-grounded (a declared component that cannot be delivered is broken for any host), and it generalizes U13's phantom half from skills to all component types.",
+        "file": "scripts/checks/manifest-drift.mjs",
+        "provenance": "verified"
+      }
+    ]
+  },
+  "insights": [
+    "The dominant defect family here is not error, it is DRIFT WITH A DIRECTION: in three separate places the SKILL.md is the newer and more correct artifact and its satellite file is stale. The output contract still documents a --write the changelog removed at 0.3.0; the command still carries a checklist the skill calls canonical and does not match; the consent-log SKILL body never adopted the renewed_at rule its own schema states. Any review that reads SKILL.md files and stops sees four healthy skills. Freshness is a property of the component graph, not of a file.",
+    "Every cross-file contradiction I found is between two files where one file names the other by relative link or by a 'Runs skills/<name>' line. That is a cheap and high-yield locus for future work: a file that links a sibling is asserting agreement with it, so the linked pairs are exactly where a semantic diff pays for itself. The set is small (a SKILL and its references, a command and its backing skill, a README and its component table), which makes it tractable for a judge and possibly for a targeted model-assisted check.",
+    "The most dangerous content in this plugin is not the broken links; it is the two legal inversions, and both are wearing the costume of the correction. 'These deadlines are commonly misread as calendar months. They are not' and 'mixing them up is the most common drafting error we see' are the sentences a careful reader trusts most, because the author appears to be pre-empting a known failure. A reviewer scanning for hedging, uncertainty, or thin sourcing would flag neither. Confident corrective framing should be treated as an elevated-scrutiny signal in a domain reference, not a reassurance.",
+    "Advisory review and the deterministic gate found different classes here, and the split is diagnostic. Nothing mechanical will ever know that Colorado's statute is not called the CCDPA or that the CCPA clock runs from receipt regardless of verification: that is what a judge is for. But two of my structural findings (the dead link in a command, the phantom agent path in the manifest) are objective, portable, and checkable today with input-scope changes only. Finding those by judgment is not a win for the judge, it is a measurement of a gate coverage hole. A useful ratio for this program to track per run: of the structural findings the advisory layer produces, how many should have been the gate's.",
+    "The duplicate-skill finding (dsar-intake-triage versus data-request-router) exists only in the pair. Each file is competent, well-scoped, and internally consistent; the defect is that both claim the same trigger surface and the same five-row owner table. No per-component review, human or automated, can see it. This is the concrete case for grading whole libraries rather than units, and it is worth keeping as a canonical example of the class.",
+    "I deliberately did not open tests/fixtures/anti/seeded-defects/privacy-notice-toolkit.key.json. The fixture README points at it as the authoritative account of what is wrong, and reading it would have made this review a transcription rather than a measurement. Flagging it because the key sits one directory above the target and a less careful delegate would find it while listing the tree; the harness may want the key stored outside the fixture tree, or the target path handed over with an explicit no-key instruction."
+  ]
+}

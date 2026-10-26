@@ -1,0 +1,65 @@
+{
+  "review": {
+    "model": "Haiku 4.5",
+    "effort": "high",
+    "date": "2026-08-04",
+    "findings": [
+      {
+        "area": "manifest-agent-reference",
+        "severity": "major",
+        "message": "plugin.json references agent './agents/notice-reviewer.md' but the file is actually named 'privacy-reviewer.md'. This broken path will prevent the plugin from loading the agent. The frontmatter inside privacy-reviewer.md declares name: 'privacy-reviewer', confirming the name mismatch.",
+        "file": ".claude-plugin/plugin.json (line 15) vs agents/privacy-reviewer.md (actual)",
+        "provenance": "verified"
+      },
+      {
+        "area": "capability-overclaim",
+        "severity": "major",
+        "message": "README.md claims 'The notice review also generates a signed PDF compliance certificate and emails it to your DPO once the review closes clean, so the assessment file is complete with no manual step.' However, neither the privacy-notice-review skill nor the review-privacy-notice command describes any PDF generation, signing, or email functionality. The skill explicitly states the output is 'a redline for a human reviewer, not a filing', and the command output is just 'the verdict table, then the evidence, then the recommended wording'. This capability does not exist in the implementation.",
+        "file": "README.md (line 22-23) vs skills/privacy-notice-review/SKILL.md (lines 11-12, 44-47) and commands/review-privacy-notice.md (lines 8-9, 27-30)",
+        "provenance": "verified"
+      },
+      {
+        "area": "command-skill-checklist-mismatch",
+        "severity": "major",
+        "message": "The /review-privacy-notice command specifies a seven-item checklist (lines 11-20) that is completely different from the privacy-notice-review skill's seven-item checklist (SKILL.md lines 13-24). Command items include 'cookie banner' and 'reading level' and 'DPO contact', while skill items include 'purposes of processing', 'third parties', and 'appeal path'. The command claims to run the skill but its documented checklist contradicts the skill's actual checklist, creating confusion about what will actually be reviewed.",
+        "file": "commands/review-privacy-notice.md (lines 11-20) vs skills/privacy-notice-review/SKILL.md (lines 13-24)",
+        "provenance": "verified"
+      },
+      {
+        "area": "missing-referenced-file",
+        "severity": "major",
+        "message": "commands/review-privacy-notice.md line 25 references '[the state law matrix](../skills/privacy-notice-review/references/state-law-matrix.md)' but this file does not exist. The actual reference file is 'us-state-laws.md'. This broken link will prevent users from accessing the referenced information.",
+        "file": "commands/review-privacy-notice.md (line 25) vs skills/privacy-notice-review/references/ (actual files)",
+        "provenance": "verified"
+      },
+      {
+        "area": "stale-reference-documentation",
+        "severity": "major",
+        "message": "skills/privacy-notice-review/references/output-contract.md (lines 21-26) describes a '--write' flag that allows writing the redlined notice back to the source file. However, the skill's own changelog (SKILL.md line 44-46) explicitly states that version 0.3.0 'removed the in-place write' and 'never edits the source notice.' The output contract describes functionality that was deliberately removed, making it obsolete documentation that contradicts the current skill behavior.",
+        "file": "skills/privacy-notice-review/references/output-contract.md (lines 21-26) vs skills/privacy-notice-review/SKILL.md (lines 44-46)",
+        "provenance": "verified"
+      },
+      {
+        "area": "unclear-skill-sequencing",
+        "severity": "minor",
+        "message": "Two skills appear to serve overlapping purposes: dsar-intake-triage performs verification, classification, owner assignment, and deadline setting for an incoming request; data-request-router performs classification, state-based routing, and deadline setting. The README lists both but does not clarify whether they are meant to be used sequentially or if data-request-router is an alternative pathway. A user arriving at the plugin would not know which skill to invoke first when a data request arrives.",
+        "file": "README.md (lines 12-13) vs skills/dsar-intake-triage/SKILL.md and skills/data-request-router/SKILL.md",
+        "provenance": "inferred"
+      },
+      {
+        "area": "version-metadata-mismatch",
+        "severity": "minor",
+        "message": "The skills declare different metadata versions: privacy-notice-review is 0.4.0, consent-log-audit is 0.2.0, dsar-intake-triage is 0.3.0, data-request-router is 0.2.0. The plugin.json declares the overall plugin version as 0.4.0. The README does not specify any version for the overall toolkit or document when each skill version should be used. There is no clear versioning strategy or migration path across these mismatched skill versions.",
+        "file": "plugin.json (line 3) vs individual skill metadata (privacy-notice-review 0.4.0, others 0.2.0-0.3.0)",
+        "provenance": "verified"
+      }
+    ]
+  },
+  "insights": [
+    "The plugin has a critical defect that will prevent it from loading: the manifest references a non-existent agent file. This is a load-blocking issue that the deterministic checker may not have caught if it only validates JSON structure rather than path resolution.",
+    "The README makes a significant capability claim (PDF generation and DPO emailing) that is not implemented anywhere in the codebase. This is a high-risk finding because end users or purchasers reading the README would expect this functionality to exist.",
+    "The command /review-privacy-notice contains a completely different checklist from the skill it claims to wrap, which means either: (a) the command documentation is stale and wrong, or (b) the skill has been refactored but the command was not updated. Either way, the inconsistency creates a coherence failure - a user reading both will see contradictory definitions of what gets reviewed.",
+    "The output-contract.md describes a feature that was explicitly removed in v0.3.0. This is stale reference documentation that should have been updated or removed when the feature was removed. It may mislead users into trying an unsupported --write flag.",
+    "The README is written for end users and makes promises about functionality, capability, and legal accuracy, while the footer warns 'statements in it, including statements about law, may be wrong on purpose.' This creates a disorienting reading experience where the user cannot trust any statement in the README, including basic feature descriptions."
+  ]
+}

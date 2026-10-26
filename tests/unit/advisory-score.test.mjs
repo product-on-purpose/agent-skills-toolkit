@@ -25,11 +25,18 @@ import {
 //   4. Reproducibility. The same result against the same key yields the identical partition and the
 //      identical pair, every time.
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
-const KEY_PATH = path.join(ROOT, "tests/fixtures/anti/seeded-defects/privacy-notice-toolkit.key.json");
+const KEY_PATH = path.join(ROOT, "tests/fixtures/seeded-defect-keys/privacy-notice-toolkit.key.1.1.0.json");
 const RUNS = path.join(ROOT, "tests/fixtures/anti/seeded-defects/simulated-runs");
 const STRONG = path.join(RUNS, "strong-frontier.advisory.json");
 const CHEAP = path.join(RUNS, "reading-17-cheap.advisory.json");
 const MODULE = path.join(ROOT, "scripts/lib/advisory-score.mjs");
+// E13's real recorded runs (byte-frozen, batch 2026-08-04), the fixtures RS-B1 criteria 2-3 are
+// measured against. Each is the real triple's advisory at effort high, moved out of `_local/` so a
+// clean checkout can re-score them (ADR 0065, Implementation sites: "Regression fixtures").
+const RECORDED = path.join(ROOT, "tests/fixtures/anti/seeded-defects/recorded-runs/2026-08-04");
+const HAIKU_RUN = path.join(RECORDED, "haiku-high-advisory.json");
+const SONNET_RUN = path.join(RECORDED, "sonnet-high-advisory.json");
+const OPUS_RUN = path.join(RECORDED, "opus-high-advisory.json");
 
 const key = loadKey(KEY_PATH);
 const readJson = (p) => JSON.parse(readFileSync(p, "utf8"));
@@ -256,9 +263,13 @@ test("the reading-17 cheap simulated run scores precision 0.00 and recall 0.00",
 });
 
 test("the two recall formulas agree on every scored run, which is the duplicate rule's proof", () => {
-  for (const file of [STRONG, CHEAP]) {
+  for (const file of [STRONG, CHEAP, HAIKU_RUN, SONNET_RUN, OPUS_RUN]) {
     const s = scoreAdvisory(readJson(file), key);
-    assert.equal(s.recall, s.recallByMisses, `${path.basename(file)}: TP/defects and TP/(TP+misses) must agree`);
+    assert.equal(
+      s.recall,
+      s.recallByMisses,
+      `${path.basename(file)}: satisfied/defects.length and satisfied/(satisfied+misses) must agree`,
+    );
     assert.ok(s.recallAgrees);
   }
 });
@@ -475,4 +486,327 @@ test("CLI: a refusal is loud - exit 2 and a message on stderr", () => {
 test("CLI: --help exits 0 and states that it dispatches no model", () => {
   const { stdout } = cli(["--help"]);
   assert.match(stdout, /no model/i);
+});
+
+// ---------------------------------------------------------------------------
+// 9. ADR 0065, rule (a'): multi-entry credit (E16) and E17's adjudication input (RS-B1 criteria 2-3)
+// ---------------------------------------------------------------------------
+//
+// These score the three REAL, byte-frozen E13 advisories (Haiku, Sonnet and Opus at effort high,
+// batch 2026-08-04) against key 1.1.0, not a hand-built fixture: the ruled numbers in ADR 0065 and
+// the RS-B1 section of docs/internal/roadmap.md were measured against exactly these files, so a test
+// built on different findings could pass while the real rule was wrong. The single-entry path is
+// untouched by this ruling, so every test above this section stays green unmodified.
+
+const haikuScore = () => scoreAdvisory(readJson(HAIKU_RUN), key, { model: "haiku", effort: "high" });
+const sonnetScore = () => scoreAdvisory(readJson(SONNET_RUN), key, { model: "sonnet", effort: "high" });
+const opusScore = () => scoreAdvisory(readJson(OPUS_RUN), key, { model: "opus", effort: "high" });
+
+test("rule (a'): recall on key 1.1.0 is exactly Haiku 0.46, Sonnet 0.54, Opus 0.92 (RS-B1 criterion 2)", () => {
+  const haiku = haikuScore();
+  const sonnet = sonnetScore();
+  const opus = opusScore();
+  assert.equal(haiku.recall.toFixed(2), "0.46", `haiku recall was ${haiku.recall}`);
+  assert.equal(sonnet.recall.toFixed(2), "0.54", `sonnet recall was ${sonnet.recall}`);
+  assert.equal(opus.recall.toFixed(2), "0.92", `opus recall was ${opus.recall}`);
+});
+
+test("rule (a'): Opus precision is 11 of 11 and recall is 12 of 13 (ADR 0065, Implementation sites)", () => {
+  const opus = opusScore();
+  assert.equal(opus.counts.truePositives, 11);
+  assert.equal(opus.counts.falsePositives, 0);
+  assert.equal(opus.precision, 1, "11 of 11 scored claims");
+  assert.equal(opus.counts.satisfiedEntries, 12);
+  assert.equal(opus.counts.plantedDefects, 13);
+  assert.equal(opus.recall, 12 / 13, "12 of 13 planted entries satisfied");
+  // The worked misattribution ADR 0065 names: finding index 0 credits BOTH SD-03 and SD-07, which is
+  // why 11 true-positive findings satisfy 12 entries rather than 11.
+  const zeroRow = opus.findings.find((r) => r.index === 0);
+  assert.deepEqual(zeroRow.creditedIds, ["SD-03", "SD-07"]);
+  assert.equal(zeroRow.outcome, OUTCOME.TP);
+});
+
+test("ADR 0065 decision driver: Opus index 7 is credited to SD-05, the entry it did NOT report", () => {
+  // Index 7 textually reports only SD-06 (the semantic entry, which `isAutoCreditable` always
+  // refuses). Rule (a') credits SD-05 instead, because SD-05's OWN correct clause happens to verify
+  // against the same text (it names the Colorado Privacy Act in passing). This is the measured
+  // misattribution ADR 0065's decision drivers name, kept as a named test rather than an incidental
+  // byproduct of the recall assertion above.
+  const opus = opusScore();
+  const row7 = opus.findings.find((r) => r.index === 7);
+  assert.deepEqual(row7.engagedIds, ["SD-05", "SD-06"]);
+  assert.deepEqual(row7.creditedIds, ["SD-05"], "SD-06 is semantic-blocked; SD-05 verifies on its own text");
+  assert.equal(row7.outcome, OUTCOME.TP);
+  assert.ok(opus.worklist.some((w) => w.index === 7), "still mandatory adjudication whether or not it was credited");
+});
+
+test("ADR 0065 decision driver: Opus index 8 describes neither entry it engages, credited anyway, and collapses to a duplicate", () => {
+  // Index 8 engages SD-01 (credited because verification is not-required - naming the pair IS the
+  // finding) and SD-05 (credited because its correct clause verifies against index 8's text, though
+  // index 8 does not describe SD-05). Both were already satisfied earlier (SD-01 by index 4, SD-05 by
+  // index 7 above), so index 8 collapses to a DUPLICATE - order-dependent, and real only because the
+  // fixtures are byte-frozen and the order is therefore stable.
+  const opus = opusScore();
+  const row8 = opus.findings.find((r) => r.index === 8);
+  assert.deepEqual(row8.engagedIds, ["SD-01", "SD-05"]);
+  assert.deepEqual(row8.creditedIds, ["SD-01", "SD-05"]);
+  assert.equal(row8.outcome, OUTCOME.DUPLICATE, "both credited entries were already satisfied by earlier findings");
+  assert.ok(opus.worklist.some((w) => w.index === 8), "a duplicate multi-entry engagement is STILL mandatory adjudication");
+});
+
+test("ADR 0065 decision driver: Sonnet's order-dependence counterpart - index 6 is the one that collapses", () => {
+  // Sonnet lists its findings the other way round from Opus: a single-entry SD-05 true positive comes
+  // BEFORE its one multi-entry engagement, so index 6 (SD-05+SD-06, SD-05 credited) is the one that
+  // collapses to a duplicate here, not an earlier index. Same masking, opposite position - the ADR's
+  // point that the masking depends on finding order, not on which model wrote the advisory.
+  const sonnet = sonnetScore();
+  const row6 = sonnet.findings.find((r) => r.index === 6);
+  assert.deepEqual(row6.engagedIds, ["SD-05", "SD-06"]);
+  assert.deepEqual(row6.creditedIds, ["SD-05"]);
+  assert.equal(row6.outcome, OUTCOME.DUPLICATE, "SD-05 was already satisfied by an earlier single-entry finding");
+  assert.ok(sonnet.satisfied.includes("SD-05"));
+});
+
+test("rule (a'): recallByMisses is entry-counted, not finding-counted (ADR 0065, Implementation sites)", () => {
+  // Opus index 0 alone credits two entries (SD-03 and SD-07), so 11 true-positive FINDINGS satisfy 12
+  // entries. A `recallByMisses` built from `truePositives` rather than `satisfied.size` would read
+  // 11/12 here, disagreeing with `recall`'s 12/13 and tripping the CLI's WARNING line - the exact
+  // "false harness defect" ADR 0065 predicts if this count is ever finding-counted instead of
+  // entry-counted. This is a named regression test for that disagreement, not an incidental byproduct
+  // of the "two recall formulas agree" loop above.
+  const opus = opusScore();
+  assert.equal(opus.counts.truePositives, 11);
+  assert.equal(opus.counts.satisfiedEntries, 12);
+  assert.equal(opus.recallByMisses, 12 / 13, "recallByMisses must be satisfied.size / (satisfied.size + misses.length), not truePositives-based");
+  assert.equal(opus.recall, 12 / 13);
+  assert.ok(opus.recallAgrees, "recall and recallByMisses must agree");
+  const { stdout } = cli([OPUS_RUN, KEY_PATH]);
+  assert.doesNotMatch(stdout, /WARNING/, "a correct recallByMisses never trips the CLI's disagreement warning");
+});
+
+test("rule (a'): the ceiling invariant - no reported recall exceeds recallAutoCeiling for its key", () => {
+  for (const score of [haikuScore(), sonnetScore(), opusScore()]) {
+    assert.ok(
+      score.recall <= score.recallAutoCeiling + Number.EPSILON,
+      `recall ${score.recall} exceeded recallAutoCeiling ${score.recallAutoCeiling}`,
+    );
+  }
+  // Opus sits exactly AT the ceiling (12 of 13; SD-06 is mode: semantic and never auto-credited), the
+  // case ADR 0065 was written to get right: the falsified alternative (rule a, full credit) would have
+  // published Opus recall at 1.00 here, above this same 0.92 ceiling.
+  const opus = opusScore();
+  assert.equal(opus.recallAutoCeiling.toFixed(2), "0.92");
+  assert.equal(opus.recall, opus.recallAutoCeiling, "Opus reaches the ceiling and never crosses it");
+});
+
+test("rule (a') REVERT PROOF: zero-credit-on-multi-engagement reproduces the pre-ruling baseline, not the ruled numbers", () => {
+  // This re-derives the OLD (pre-ADR-0065) multi-entry outcome locally - without touching the shipped
+  // module - and asserts that it reproduces the documented pre-ruling baseline (Haiku 0.38, Opus 0.62)
+  // while the LIVE module's recall does not. It is itself one of the tests that goes red on a revert:
+  // reverting classifyText's multi-entry branch back to this shape makes the live and zero-credit
+  // recalls equal, which trips the `assert.notEqual` calls below. This was verified directly during
+  // implementation (ADR 0065, RS-B1 criterion 2): temporarily reverting the multi-entry branch to
+  // unconditional review-required turned this test and seven others red (the ruled-number assertions
+  // above, the ceiling-at-exactly-Opus assertion, and the adjudication demonstrations, which all
+  // depend on a multi-entry engagement existing to adjudicate), and restoring the implementation
+  // turned the whole suite green again. (Re-verified after this section grew to its current size:
+  // the same mutation turns exactly 12 of these tests red.)
+  const zeroCreditRecall = (file) => {
+    const advisory = readJson(file);
+    const findings = extractFindings(advisory);
+    const satisfied = new Set();
+    for (const finding of findings) {
+      const text = matchTextOf(finding, key);
+      const engaged = (key.defects ?? []).filter((d) => testRule(d.match?.locate, text, key.patternSyntax?.flags ?? "i"));
+      if (engaged.length !== 1) continue; // the old behaviour: >1 engaged credits NOTHING
+      const entry = engaged[0];
+      if (entry.match.mode === "semantic") continue;
+      if (entry.match.verification === "not-required") { satisfied.add(entry.id); continue; }
+      const correct = testRule(entry.match.correct, text, key.patternSyntax?.flags ?? "i");
+      const confabulated = testRule(entry.match.confabulation, text, key.patternSyntax?.flags ?? "i");
+      if (correct && !confabulated) satisfied.add(entry.id);
+    }
+    return satisfied.size / key.defects.length;
+  };
+  assert.equal(zeroCreditRecall(HAIKU_RUN).toFixed(2), "0.38", "the zero-credit baseline, reproduced");
+  assert.equal(zeroCreditRecall(OPUS_RUN).toFixed(2), "0.62", "the zero-credit baseline, reproduced");
+  // And the live module does NOT reproduce that baseline: the ruled numbers are strictly higher.
+  assert.notEqual(haikuScore().recall.toFixed(2), zeroCreditRecall(HAIKU_RUN).toFixed(2));
+  assert.notEqual(opusScore().recall.toFixed(2), zeroCreditRecall(OPUS_RUN).toFixed(2));
+});
+
+test("rule (a'): determinism - the same recorded advisory scores identically across two runs", () => {
+  const a = scoreAdvisory(readJson(OPUS_RUN), loadKey(KEY_PATH), { model: "opus", effort: "high" });
+  const b = scoreAdvisory(readJson(OPUS_RUN), loadKey(KEY_PATH), { model: "opus", effort: "high" });
+  assert.deepEqual(a, b);
+  assert.equal(JSON.stringify(a), JSON.stringify(b));
+});
+
+test("E17: an adjudication document overrides one automatic multi-entry engagement", () => {
+  const before = sonnetScore();
+  // Finding #0 of the Sonnet run engages SD-07 and SD-08 at once and, under the automatic rule,
+  // credits neither (both fail their own correct/confabulation test), so it sits review-required and
+  // SD-07 is a miss. This is the mandatory-adjudication case ADR 0065 requires routing to a human for,
+  // not a hand-built example.
+  const row0 = before.findings.find((r) => r.index === 0);
+  assert.equal(row0.outcome, OUTCOME.REVIEW_REQUIRED);
+  assert.deepEqual(row0.engagedIds, ["SD-07", "SD-08"]);
+  assert.deepEqual(row0.creditedIds, []);
+  assert.ok(before.misses.includes("SD-07"));
+  assert.ok(before.worklist.some((w) => w.index === 0), "finding 0 is on the mandatory worklist");
+
+  const after = scoreAdvisory(readJson(SONNET_RUN), key, {
+    model: "sonnet",
+    effort: "high",
+    adjudication: { resolutions: [{ index: 0, entryId: "SD-07", decision: "credit" }] },
+  });
+  const after0 = after.findings.find((r) => r.index === 0);
+  assert.equal(after0.outcome, OUTCOME.TP, "the human's credit decision promotes the finding to a true positive");
+  assert.deepEqual(after0.creditedIds, ["SD-07"]);
+  assert.ok(after0.adjudicated);
+  assert.ok(!after0.provisional, "a resolved item leaves the mandatory worklist");
+  assert.ok(!after.worklist.some((w) => w.index === 0), "adjudication folds the item OUT of the published worklist");
+  assert.ok(after.satisfied.includes("SD-07"), "the adjudicated credit reaches the satisfied set");
+  assert.ok(!after.misses.includes("SD-07"));
+  assert.equal(after.recall, before.recall + 1 / key.defects.length, "recall moves by exactly one entry");
+  assert.equal(after.counts.adjudicated, 1);
+});
+
+test("E17: an adjudication resolution may deny credit, which still folds the item out of the worklist", () => {
+  // Opus finding #4 engages SD-01 (not-required, so auto-credited) and SD-12 (uncredited). A human who
+  // decides SD-01's auto-credit was wrong here can deny it; the finding then has zero credited entries
+  // and stays review-required, but it is no longer PENDING, because the adjudication resolved it.
+  const after = scoreAdvisory(readJson(OPUS_RUN), key, {
+    model: "opus",
+    effort: "high",
+    adjudication: { resolutions: [{ index: 4, entryId: "SD-01", decision: "no-credit" }] },
+  });
+  const row4 = after.findings.find((r) => r.index === 4);
+  assert.equal(row4.outcome, OUTCOME.REVIEW_REQUIRED);
+  assert.deepEqual(row4.creditedIds, []);
+  assert.ok(row4.adjudicated);
+  assert.ok(!row4.provisional, "denied credit still resolves the mandatory item");
+  assert.ok(!after.worklist.some((w) => w.index === 4));
+});
+
+test("E17: an adjudication resolution naming an entry the finding never engaged is refused", () => {
+  assert.throws(
+    () => scoreAdvisory(readJson(SONNET_RUN), key, {
+      adjudication: { resolutions: [{ index: 0, entryId: "SD-05", decision: "credit" }] },
+    }),
+    (e) => {
+      assert.ok(e instanceof AdvisoryScoreError);
+      assert.match(e.message, /does not engage/);
+      return true;
+    },
+  );
+});
+
+test("E17: a malformed adjudication resolution is refused, not silently ignored", () => {
+  for (const bad of [
+    { resolutions: [{ entryId: "SD-07", decision: "credit" }] }, // no index
+    { resolutions: [{ index: 0, decision: "credit" }] }, // no entryId
+    { resolutions: [{ index: 0, entryId: "SD-07", decision: "approve" }] }, // unknown decision
+    { resolutions: "not-an-array" },
+  ]) {
+    assert.throws(
+      () => scoreAdvisory(readJson(SONNET_RUN), key, { adjudication: bad }),
+      AdvisoryScoreError,
+    );
+  }
+});
+
+test("E17: an adjudication resolution for a single-entry finding is refused, not silently dropped", () => {
+  // Sonnet finding #1 is an ordinary single-entry engagement (not multi). A resolution naming it must
+  // be refused loudly rather than accepted and ignored - the exact failure indexAdjudication's own
+  // docstring warns against, and the one a silent-drop bug would hide from every caller.
+  const before = sonnetScore();
+  const row1 = before.findings.find((r) => r.index === 1);
+  assert.equal(row1.multi, false, "finding 1 is single-entry, the case this test needs");
+  assert.throws(
+    () => scoreAdvisory(readJson(SONNET_RUN), key, {
+      adjudication: { resolutions: [{ index: 1, entryId: row1.entryId ?? "SD-01", decision: "credit" }] },
+    }),
+    (e) => {
+      assert.ok(e instanceof AdvisoryScoreError);
+      assert.match(e.message, /not a multi-entry engagement/);
+      return true;
+    },
+  );
+});
+
+test("E17: an adjudication resolution for a finding index the advisory does not have is refused", () => {
+  assert.throws(
+    () => scoreAdvisory(readJson(SONNET_RUN), key, {
+      adjudication: { resolutions: [{ index: 9999, entryId: "SD-01", decision: "credit" }] },
+    }),
+    (e) => {
+      assert.ok(e instanceof AdvisoryScoreError);
+      assert.match(e.message, /no finding 9999/);
+      return true;
+    },
+  );
+});
+
+test("CLI: scoring the Opus recorded run prints recall as entries over planted defects (12 / 13), not findings", () => {
+  // formatScoreReport's recall line must read 12 (satisfied entries), never 11 (true-positive
+  // findings) - the two differ here because Opus index 0 alone credits two entries, SD-03 and SD-07.
+  const { stdout } = cli([OPUS_RUN, KEY_PATH]);
+  assert.match(stdout, /recall\s+0\.92\s+\(12 entries \/ 13 planted defects\)/);
+});
+
+test("rule (a'): a multi-entry engagement is NEVER classified CONFABULATION or PARTIAL for one entry", () => {
+  // The asymmetry ADR 0065 names: an engaged entry whose confabulation clause matches earns no credit,
+  // but the finding is not thereby an automatic false positive, because it may correctly describe a
+  // DIFFERENT engaged entry. This text engages SD-01 (not-required, so credited on its own) AND SD-05.
+  // SD-05 earns no credit here because its OWN correct clause does not verify against this text (it
+  // never names the Colorado Privacy Act, CPA, or SB 21-190) - the confabulation clause matching is
+  // incidental to that, not the reason. The next test below isolates the case where SD-05's correct
+  // clause DOES verify at the same time its confabulation clause does, which is the one
+  // `isAutoCreditable` actually has to refuse. Built directly rather than read off a recorded run,
+  // since none of the three recorded advisories happens to hit either exact sub-case.
+  const got = classifyText(
+    key,
+    `${LAWS}\ndsar-intake-triage and data-request-router have a collision in their trigger surfaces. Separately, the Colorado citation should be VCDPA.`,
+  );
+  assert.equal(got.multi, true);
+  assert.deepEqual(got.engagedIds, ["SD-01", "SD-05"]);
+  assert.deepEqual(got.creditedIds, ["SD-01"], "SD-05's own correct clause does not verify, so it earns no credit");
+  assert.notEqual(got.outcome, OUTCOME.CONFABULATION, "the finding as a whole is not an automatic false positive");
+  assert.notEqual(got.outcome, OUTCOME.PARTIAL);
+  assert.equal(got.outcome, OUTCOME.TP, "it is one true positive, credited via SD-01");
+});
+
+test("rule (a') GUARD: an engaged entry whose correct clause verifies AND confabulation clause also fires stays uncredited", () => {
+  // isAutoCreditable's actual guard is `correct && !confabulated`, not `correct` alone. The test above
+  // cannot see a revert of that guard to `return correct;`, because SD-05's correct clause never
+  // verifies there. This text makes BOTH of SD-05's clauses match within one engagement (the key's own
+  // review-required worked example for SD-05, reused here): it names the real statute ("Colorado
+  // Privacy Act", "CPA") AND asserts a wrong correction ("replaced with the CCPA-style ... form") in
+  // the same breath, alongside SD-01's not-required pair. If `isAutoCreditable` is ever reverted to
+  // credit on `correct` alone, SD-05 moves from absent to present in `creditedIds` and this test goes
+  // red; it does not merely sit silently passing either way.
+  const text = `${LAWS}\ndsar-intake-triage and data-request-router have a collision in their trigger surfaces. CCDPA does not exist. The statute is the Colorado Privacy Act (CPA); the name in the table looks like a blend of Virginia's VCDPA and California's CCPA, and it should be replaced with the CCPA-style short form used in the other rows.`;
+  const got = classifyText(key, text);
+  assert.equal(got.multi, true);
+  assert.deepEqual(got.engagedIds, ["SD-01", "SD-05"], "both SD-01 and SD-05 are engaged by this text");
+  // Confirm SD-05's own correct clause actually verifies here (unlike the test above), so the guard
+  // under test is the one that matters: correct matched AND confabulation matched, not correct alone
+  // failing to match.
+  const sd05 = key.defects.find((d) => d.id === "SD-05");
+  const flags = key.patternSyntax?.flags ?? "i";
+  assert.ok(testRule(sd05.match.correct, text, flags), "sanity: SD-05's correct clause verifies against this text");
+  assert.ok(testRule(sd05.match.confabulation, text, flags), "sanity: SD-05's confabulation clause also fires against this text");
+  assert.deepEqual(got.creditedIds, ["SD-01"], "SD-05 stays uncredited although its correct clause also verifies here");
+  assert.ok(!got.creditedIds.includes("SD-05"), "the confabulation clause firing is what withholds SD-05's credit, not a missing correct match");
+  assert.equal(got.outcome, OUTCOME.TP, "still one true positive via SD-01");
+});
+
+test("rule (a'): the single-entry path is unchanged - every precedence test above still holds", () => {
+  // Restated here as a named anchor for this section, not a new assertion: classifyText's
+  // `engaged.length === 1` branch was not touched by this ruling, and the suite's section 1 tests
+  // (lines ~50-73) already prove it precedence-by-precedence.
+  const got = classifyText(key, `${LAWS}\nThe Colorado row names a statute that does not exist. Colorado's law is the Colorado Privacy Act, SB 21-190.`);
+  assert.equal(got.outcome, OUTCOME.TP);
+  assert.equal(got.multi, undefined, "a single-entry classification carries no multi flag at all");
 });

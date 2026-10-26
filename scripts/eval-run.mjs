@@ -84,15 +84,29 @@ function runBatch(args) {
   if (dropped.length) console.log(`[bound] dropped: ${dropped.map((e) => e.id).join(", ")}`);
 
   const results = [];
+  const failures = [];
+  // R-PIPE-5 / E15 (RS-B1 reading 23): a batch is a set of INDEPENDENT runs. One target's refusal (an
+  // unreachable repo, an empty tree, a wrong pin) must not cost every other target in the same batch its
+  // run, so a refusal here is caught, recorded, and the batch continues - never a silent skip, since each
+  // one is printed immediately and rolled into the batch summary below.
   for (const entry of selected) {
-    const r = runOne(entry, {
-      repoRoot: REPO_ROOT,
-      profile: args.profile,
-      reportType: key(args, "report-type") ?? "review",
-      date: args.date,
-      outDir: key(args, "out-dir"),
-      bounds,
-    });
+    let r;
+    try {
+      r = runOne(entry, {
+        repoRoot: REPO_ROOT,
+        profile: args.profile,
+        reportType: key(args, "report-type") ?? "review",
+        date: args.date,
+        outDir: key(args, "out-dir"),
+        bounds,
+      });
+    } catch (e) {
+      if (!(e instanceof EvalRunError)) throw e;
+      failures.push({ id: entry.id, message: e.message });
+      console.error("");
+      console.error(`[${entry.id}] ${e.message}`);
+      continue;
+    }
     results.push(r);
     console.log("");
     console.log(`${r.runKey}: ${r.gate.verdict}  (gate exit ${r.gate.exitCode})`);
@@ -106,11 +120,15 @@ function runBatch(args) {
     const template = r.skeleton.advisory.dispatchTemplate ?? DISPATCH_TEMPLATES.review;
     console.log(`  advisory pending: dispatch with ${template}, then fill the advisory fields in the skeleton`);
   }
+  if (failures.length) {
+    console.log("");
+    console.log(`[batch] ${failures.length} of ${selected.length} target(s) refused and were skipped: ${failures.map((f) => f.id).join(", ")}`);
+  }
   if (results.length) {
     console.log("");
     console.log(`Next: node scripts/eval-run.mjs --aggregate ${results[0].date}   (appends the record rows and widens the dossier range)`);
   }
-  return results;
+  return { results, failures };
 }
 
 async function main() {
@@ -135,8 +153,10 @@ async function main() {
     console.log(formatAggregateSummary(summary, { dryRun: args.dryRun }));
     return 0;
   }
-  runBatch(args);
-  return 0;
+  const { failures } = runBatch(args);
+  // A batch with any refused target is not a clean run, even though the other targets completed; exit 2
+  // (the same code a single refusal has always used) rather than reporting success on a partial batch.
+  return failures.length ? 2 : 0;
 }
 
 if (process.argv[1]?.endsWith("eval-run.mjs")) {

@@ -293,6 +293,26 @@ export function runOne(entry, opts = {}, deps = {}) {
   }
   const report = readJsonSafe(outputs.json).data ?? {};
 
+  // The gate seam (`check`) and the render seam (`evaluate`) can disagree on a run's verdict for more
+  // than one reason, not only the one originally diagnosed (E15 / RS-B1 reading 20: a --subpath run can
+  // hand the gate seam a subject it grades as an empty plugin root while the render seam grades the same
+  // bytes correctly as a component). An unprofiled run against the default askit-library ladder can also
+  // disagree because the gate seam drops above-tier findings from its count while the render seam's summary
+  // counts them, which is a tier-ladder difference rather than a component-scope gap. Either way, a
+  // reportable disagreement is a refusal, never a stored-but-unflagged mismatch; the cause is for whoever
+  // reads the refusal to establish, not for this message to assert in advance.
+  if (report.summary && (report.summary.errors !== summary.errors || report.summary.warns !== summary.warns)) {
+    refuse(
+      `the gate seam and the render seam disagree on this run's verdict for ${target}: ` +
+      `gate (via "npm run check") says ${summary.errors}E / ${summary.warns}W, render (via "npm run evaluate") says ` +
+      `${report.summary.errors}E / ${report.summary.warns}W. Storing a disagreeing verdict without flagging it records ` +
+      `the wrong subject's grade; check whether this target needs a different scope or --subpath (the --subpath ` +
+      `component-scope gap this refusal was first built for), whether an unprofiled run is comparing above-tier ` +
+      `findings the gate excludes and the render includes, or whether the gate seam's own scope handling needs widening.`,
+      "seam-scope-mismatch"
+    );
+  }
+
   // 3. the run log and the coverage bounds (R-PIPE-5), then the record skeleton.
   const skillCount = listSkillDirs(target).length;
   const bounds = [
