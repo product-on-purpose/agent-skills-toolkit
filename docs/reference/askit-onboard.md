@@ -29,8 +29,8 @@ component itself, it has failed its own why-gate - see
 for the full delineation.
 
 This toolkit's own `docs/adoption/` funnel does not exist on disk; `askit-onboard` routes only to
-pages that are actually published under [`docs/how-to/`](../how-to/README.md) and
-[`docs/tutorials/`](../tutorials/README.md).
+pages that are actually published under `docs/how-to/` and `docs/tutorials/`. The skill's
+`references/routing-map.md` lists each one.
 
 ## Notes
 See [routing-map.md](../../skills/askit-onboard/references/routing-map.md) for the full map from
