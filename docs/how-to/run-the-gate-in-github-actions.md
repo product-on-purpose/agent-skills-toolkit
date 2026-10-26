@@ -93,8 +93,11 @@ the scope of the finding without leaving the page.
 ## Reading the result without opening a log
 
 The Action writes a **job summary** by default - the tier, the three counts, what blocks the next
-tier, and the top findings grouped by requirement - to the run's Summary page, the one a reviewer is
-already looking at on a pull request's Checks tab. It writes on a failing run too, because `if:
+tier, and the top findings grouped by requirement (capped, stating how many requirements the cap left
+out) - to the run's Summary page, the one a reviewer is already looking at on a pull request's Checks
+tab. Findings above your declared tier print separately, labelled informational with the tier they
+belong to, so a clean headline is never followed by an unlabelled `[error]` line for a requirement that
+cannot affect this grade. It writes on a failing run too, because `if:
 always()` governs the step that produces it: a red check is exactly when the detail is most wanted.
 Set `summary: false` to skip it. The step appends rather than overwrites, so it never erases a summary
 an earlier step in the same job already wrote.

@@ -19,7 +19,9 @@
 // used-by:      action.yml (this repository's own published GitHub Action)
 import { readFileSync, appendFileSync } from "node:fs";
 import { validateReport as validateCoreReport } from "./gha-action-outputs.mjs";
+import { sectionFindings } from "./check.mjs";
 import { isOperatorFinding } from "./lib/findings.mjs";
+import { tierForReq } from "./lib/tier.mjs";
 import { TIER_SCOPE_SENTENCE, LIMITATIONS_URL } from "./lib/tier-scope.mjs";
 
 /** How many requirement groups the "top findings" section shows before it states an omission count. */
@@ -84,6 +86,12 @@ export function renderStepSummary(report, { maxFindings = DEFAULT_MAX_FINDINGS }
     throw new Error(`gha-step-summary: report failed schema validation:\n${problems.map((p) => `  - ${p}`).join("\n")}`);
   }
   const { tierReport, errorCount, warnCount, operatorErrorCount, findings } = report;
+  // The same grading/above-tier split check.mjs's own text output (`format()`) and the SARIF renderer
+  // use, reused rather than re-derived - see scripts/lib/tier.mjs's isAboveDeclaredTier docblock on why
+  // the surfaces disagreeing is exactly the defect this guards against (2026-09-04 audit, F-032): a
+  // Convergent plugin's "0 error(s)" headline must never sit above a list that prints a Gold-only
+  // requirement as [error] with nothing marking it as outside this plugin's declared tier.
+  const { grading, aboveTier } = sectionFindings(findings, tierReport.declaredTier);
 
   const lines = [];
   lines.push("## Agent Skills Toolkit Grader");
@@ -108,7 +116,7 @@ export function renderStepSummary(report, { maxFindings = DEFAULT_MAX_FINDINGS }
   }
   lines.push("");
 
-  const groups = groupFindingsByReqId(findings);
+  const groups = groupFindingsByReqId(grading);
   if (groups.length === 0) {
     lines.push("No gating or warning findings.");
   } else {
@@ -119,13 +127,35 @@ export function renderStepSummary(report, { maxFindings = DEFAULT_MAX_FINDINGS }
       lines.push(`- **${g.reqId}** [${g.severity}] (${g.count} finding${g.count === 1 ? "" : "s"}) - ${g.sample}`);
     }
     const omitted = groups.length - shown.length;
-    // No silent caps: a cap that drops rows without saying so reads as a complete list when it is not.
+    // No silent caps: a cap that drops rows without saying so reads as a complete list when it is not,
+    // and scripts/README.md's own description of this section ("a stated cap") is true only when the
+    // cap itself - not just the omission count - appears in the rendered text.
     if (omitted > 0) {
       lines.push("");
-      lines.push(`_${omitted} further requirement${omitted === 1 ? "" : "s"} omitted; see the full gate output for the rest._`);
+      lines.push(
+        `_Showing the top ${shown.length} of ${groups.length} requirements; ` +
+          `${omitted} further requirement${omitted === 1 ? "" : "s"} omitted; see the full gate output for the rest._`
+      );
     }
   }
   lines.push("");
+
+  // Findings above the plugin's declared tier are real and still worth a reviewer's attention, but they
+  // cannot affect this grade or this exit code - mirroring check.mjs's own "Above your declared tier
+  // (informational...)" section (`format()`) rather than inventing a second wording for the same fact.
+  const aboveGroups = groupFindingsByReqId(aboveTier);
+  if (aboveGroups.length > 0) {
+    lines.push("### Above your declared tier (informational)");
+    lines.push("");
+    lines.push("_These cannot affect the grade or the exit code._");
+    lines.push("");
+    for (const g of aboveGroups) {
+      lines.push(
+        `- **${g.reqId}** [above: ${tierForReq(g.reqId)}] (${g.count} finding${g.count === 1 ? "" : "s"}) - ${g.sample}`
+      );
+    }
+    lines.push("");
+  }
 
   return lines.join("\n");
 }
