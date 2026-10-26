@@ -263,9 +263,13 @@ test("the reading-17 cheap simulated run scores precision 0.00 and recall 0.00",
 });
 
 test("the two recall formulas agree on every scored run, which is the duplicate rule's proof", () => {
-  for (const file of [STRONG, CHEAP]) {
+  for (const file of [STRONG, CHEAP, HAIKU_RUN, SONNET_RUN, OPUS_RUN]) {
     const s = scoreAdvisory(readJson(file), key);
-    assert.equal(s.recall, s.recallByMisses, `${path.basename(file)}: TP/defects and TP/(TP+misses) must agree`);
+    assert.equal(
+      s.recall,
+      s.recallByMisses,
+      `${path.basename(file)}: satisfied/defects.length and satisfied/(satisfied+misses) must agree`,
+    );
     assert.ok(s.recallAgrees);
   }
 });
@@ -563,6 +567,23 @@ test("ADR 0065 decision driver: Sonnet's order-dependence counterpart - index 6 
   assert.ok(sonnet.satisfied.includes("SD-05"));
 });
 
+test("rule (a'): recallByMisses is entry-counted, not finding-counted (ADR 0065, Implementation sites)", () => {
+  // Opus index 0 alone credits two entries (SD-03 and SD-07), so 11 true-positive FINDINGS satisfy 12
+  // entries. A `recallByMisses` built from `truePositives` rather than `satisfied.size` would read
+  // 11/12 here, disagreeing with `recall`'s 12/13 and tripping the CLI's WARNING line - the exact
+  // "false harness defect" ADR 0065 predicts if this count is ever finding-counted instead of
+  // entry-counted. This is a named regression test for that disagreement, not an incidental byproduct
+  // of the "two recall formulas agree" loop above.
+  const opus = opusScore();
+  assert.equal(opus.counts.truePositives, 11);
+  assert.equal(opus.counts.satisfiedEntries, 12);
+  assert.equal(opus.recallByMisses, 12 / 13, "recallByMisses must be satisfied.size / (satisfied.size + misses.length), not truePositives-based");
+  assert.equal(opus.recall, 12 / 13);
+  assert.ok(opus.recallAgrees, "recall and recallByMisses must agree");
+  const { stdout } = cli([OPUS_RUN, KEY_PATH]);
+  assert.doesNotMatch(stdout, /WARNING/, "a correct recallByMisses never trips the CLI's disagreement warning");
+});
+
 test("rule (a'): the ceiling invariant - no reported recall exceeds recallAutoCeiling for its key", () => {
   for (const score of [haikuScore(), sonnetScore(), opusScore()]) {
     assert.ok(
@@ -737,20 +758,48 @@ test("CLI: scoring the Opus recorded run prints recall as entries over planted d
 test("rule (a'): a multi-entry engagement is NEVER classified CONFABULATION or PARTIAL for one entry", () => {
   // The asymmetry ADR 0065 names: an engaged entry whose confabulation clause matches earns no credit,
   // but the finding is not thereby an automatic false positive, because it may correctly describe a
-  // DIFFERENT engaged entry. This text engages SD-01 (not-required, so credited on its own) AND SD-05
-  // (whose confabulation clause matches, VCDPA for Colorado's actual CPA), which would be a
-  // single-entry CONFABULATION in isolation. Built directly rather than read off a recorded run, since
-  // none of the three recorded advisories happens to hit this exact sub-case.
+  // DIFFERENT engaged entry. This text engages SD-01 (not-required, so credited on its own) AND SD-05.
+  // SD-05 earns no credit here because its OWN correct clause does not verify against this text (it
+  // never names the Colorado Privacy Act, CPA, or SB 21-190) - the confabulation clause matching is
+  // incidental to that, not the reason. The next test below isolates the case where SD-05's correct
+  // clause DOES verify at the same time its confabulation clause does, which is the one
+  // `isAutoCreditable` actually has to refuse. Built directly rather than read off a recorded run,
+  // since none of the three recorded advisories happens to hit either exact sub-case.
   const got = classifyText(
     key,
     `${LAWS}\ndsar-intake-triage and data-request-router have a collision in their trigger surfaces. Separately, the Colorado citation should be VCDPA.`,
   );
   assert.equal(got.multi, true);
   assert.deepEqual(got.engagedIds, ["SD-01", "SD-05"]);
-  assert.deepEqual(got.creditedIds, ["SD-01"], "SD-05's confabulation clause matched, so it earns no credit");
+  assert.deepEqual(got.creditedIds, ["SD-01"], "SD-05's own correct clause does not verify, so it earns no credit");
   assert.notEqual(got.outcome, OUTCOME.CONFABULATION, "the finding as a whole is not an automatic false positive");
   assert.notEqual(got.outcome, OUTCOME.PARTIAL);
   assert.equal(got.outcome, OUTCOME.TP, "it is one true positive, credited via SD-01");
+});
+
+test("rule (a') GUARD: an engaged entry whose correct clause verifies AND confabulation clause also fires stays uncredited", () => {
+  // isAutoCreditable's actual guard is `correct && !confabulated`, not `correct` alone. The test above
+  // cannot see a revert of that guard to `return correct;`, because SD-05's correct clause never
+  // verifies there. This text makes BOTH of SD-05's clauses match within one engagement (the key's own
+  // review-required worked example for SD-05, reused here): it names the real statute ("Colorado
+  // Privacy Act", "CPA") AND asserts a wrong correction ("replaced with the CCPA-style ... form") in
+  // the same breath, alongside SD-01's not-required pair. If `isAutoCreditable` is ever reverted to
+  // credit on `correct` alone, SD-05 moves from absent to present in `creditedIds` and this test goes
+  // red; it does not merely sit silently passing either way.
+  const text = `${LAWS}\ndsar-intake-triage and data-request-router have a collision in their trigger surfaces. CCDPA does not exist. The statute is the Colorado Privacy Act (CPA); the name in the table looks like a blend of Virginia's VCDPA and California's CCPA, and it should be replaced with the CCPA-style short form used in the other rows.`;
+  const got = classifyText(key, text);
+  assert.equal(got.multi, true);
+  assert.deepEqual(got.engagedIds, ["SD-01", "SD-05"], "both SD-01 and SD-05 are engaged by this text");
+  // Confirm SD-05's own correct clause actually verifies here (unlike the test above), so the guard
+  // under test is the one that matters: correct matched AND confabulation matched, not correct alone
+  // failing to match.
+  const sd05 = key.defects.find((d) => d.id === "SD-05");
+  const flags = key.patternSyntax?.flags ?? "i";
+  assert.ok(testRule(sd05.match.correct, text, flags), "sanity: SD-05's correct clause verifies against this text");
+  assert.ok(testRule(sd05.match.confabulation, text, flags), "sanity: SD-05's confabulation clause also fires against this text");
+  assert.deepEqual(got.creditedIds, ["SD-01"], "SD-05 stays uncredited although its correct clause also verifies here");
+  assert.ok(!got.creditedIds.includes("SD-05"), "the confabulation clause firing is what withholds SD-05's credit, not a missing correct match");
+  assert.equal(got.outcome, OUTCOME.TP, "still one true positive via SD-01");
 });
 
 test("rule (a'): the single-entry path is unchanged - every precedence test above still holds", () => {
