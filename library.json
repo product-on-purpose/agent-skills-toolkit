@@ -186,6 +186,13 @@
         "status": "active"
       },
       {
+        "name": "askit-onboard",
+        "path": "skills/askit-onboard/SKILL.md",
+        "version": "0.1.0",
+        "tier": "universal",
+        "status": "active"
+      },
+      {
         "name": "askit-release",
         "path": "skills/askit-release/SKILL.md",
         "version": "0.1.0",

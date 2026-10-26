@@ -1,0 +1,32 @@
+{
+  "covers": { "skill": "askit-onboard" },
+  "description": "Skill triggering set for askit-onboard: verifies the skill fires on a request to get started with this toolkit, a request for a personalized adoption plan, and a return visit asking what to do next, and stays silent on greenfield plugin scaffolding, foreign-repo migration, single-component authoring or fixing, and plain tier/conformance questions that name an existing skill directly.",
+  "cases": [
+    { "query": "I'm new to this toolkit, where do I even start", "should_trigger": true },
+    { "query": "help me get started adopting agent-skills-toolkit for my plugin", "should_trigger": true },
+    { "query": "survey my plugin and tell me where I stand with this toolkit", "should_trigger": true },
+    { "query": "assess how far along I am adopting this toolkit's skills", "should_trigger": true },
+    { "query": "interview me and build a personalized plan for adopting this toolkit", "should_trigger": true },
+    { "query": "plan out my adoption of this toolkit over the next few weeks", "should_trigger": true },
+    { "query": "I don't want to read every doc page, just tell me what to do in order", "should_trigger": true },
+    { "query": "sequence the steps for me to go from nothing to a graded tier, personalized to my repo", "should_trigger": true },
+    { "query": "I was here last week working through a plan, what's next", "should_trigger": true },
+    { "query": "pick up where my onboarding roadmap left off", "should_trigger": true },
+    { "query": "what should I do next in my adoption plan", "should_trigger": true },
+    { "query": "re-enter my askit onboarding roadmap and tell me the next step", "should_trigger": true },
+    { "query": "I have a plugin already, tell me which parts of this toolkit I haven't touched yet", "should_trigger": true },
+    { "query": "onboard me into using this toolkit well over time, not just once", "should_trigger": true },
+    { "query": "what capability regions of this toolkit am I missing, sequenced for me personally", "should_trigger": true },
+    { "query": "start a new plugin from scratch", "should_trigger": false },
+    { "query": "scaffold a new plugin with the full Bronze anatomy, I have no code yet", "should_trigger": false },
+    { "query": "I have a folder of Claude skills I want to bring up to the Standard", "should_trigger": false },
+    { "query": "adopt this foreign skills library into my plugin ecosystem", "should_trigger": false },
+    { "query": "fix the description quality of this skill", "should_trigger": false },
+    { "query": "fix the broken reference links in my skill", "should_trigger": false },
+    { "query": "build me a new command for this plugin right now", "should_trigger": false },
+    { "query": "run a conformance check on my plugin and tell me the tier", "should_trigger": false },
+    { "query": "what tier does my plugin currently reach", "should_trigger": false },
+    { "query": "write the minimal library.json so this repo becomes gradeable", "should_trigger": false },
+    { "query": "create a new skill inside my existing plugin", "should_trigger": false }
+  ]
+}

@@ -21,7 +21,7 @@ Most skill collections are a flat, single-agent, ungoverned pile. This is the St
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-Apache--2.0-blue?style=flat-square" alt="License: Apache-2.0"></a>
   <img src="https://img.shields.io/badge/version-1.21.0-blue?style=flat-square" alt="Version 1.21.0">
   <a href="https://product-on-purpose.github.io/agent-skills-toolkit/badges/tier.json"><img src="https://img.shields.io/endpoint?url=https%3A%2F%2Fproduct-on-purpose.github.io%2Fagent-skills-toolkit%2Fbadges%2Ftier.json&style=flat-square" alt="Tier badge, generated in CI at the graded commit sha - click through for the raw JSON (tier, sha, Standard pin, date)"></a>
-  <a href="#the-catalog"><img src="https://img.shields.io/badge/skills-26-brightgreen?style=flat-square" alt="Skills: 26"></a>
+  <a href="#the-catalog"><img src="https://img.shields.io/badge/skills-27-brightgreen?style=flat-square" alt="Skills: 27"></a>
   <img src="https://img.shields.io/badge/checks-35-brightgreen?style=flat-square" alt="Validation checks: 35">
   <a href="https://agentskills.io/specification"><img src="https://img.shields.io/badge/spec-agentskills.io-orange?style=flat-square" alt="Agent Skills Spec"></a>
 </p>
@@ -324,7 +324,7 @@ Invoke `askit-evaluate` (or run `node scripts/check.mjs`) at any point to see th
 
 ## The catalog
 
-**26 skills, 7 subagents, 2 commands** on disk. Skills carry the `askit-` prefix and emit for both agents unless a one-liner notes a Claude-only output; subagents and commands are Claude-only. Full per-component reference lives in [`docs/reference/`](docs/reference/) and on the [live docs site](https://product-on-purpose.github.io/agent-skills-toolkit/); [`INDEX.md`](INDEX.md) is the generated map.
+**27 skills, 7 subagents, 2 commands** on disk. Skills carry the `askit-` prefix and emit for both agents unless a one-liner notes a Claude-only output; subagents and commands are Claude-only. Full per-component reference lives in [`docs/reference/`](docs/reference/) and on the [live docs site](https://product-on-purpose.github.io/agent-skills-toolkit/); [`INDEX.md`](INDEX.md) is the generated map.
 
 ### Authoring (11)
 
@@ -366,14 +366,15 @@ Managing backlogs, decisions, releases, deprecations, templates, and the upstrea
 - **askit-template-manager** - add or update the global templates directory and keep templates in sync with the shapes the scaffolders produce.
 - **askit-standards-watch** - check whether the pinned agentskills.io upstream spec has moved, map each change to the Universal checks it lands on, and draft the proposal ADR (it proposes; it never amends a check or the Standard).
 
-### Onboarding and adoption (4)
+### Onboarding and adoption (5)
 
-Starting new plugins and marketplaces, migrating existing repos, and advising on targets and tier.
+Starting new plugins and marketplaces, migrating existing repos, advising on targets and tier, and sequencing a person's adoption of this toolkit over time.
 
 - **askit-init-plugin** - scaffold a new Bronze-anatomy plugin from scratch and onboard the maintainer via interview, questionnaire, or hybrid mode.
 - **askit-init-marketplace** - stand up or validate a marketplace index that catalogs plugins, checking each entry, plugin reference, and version.
 - **askit-migrate** - assess an existing skills repo against the Standard, write the minimal manifest, and produce a staged bring-to-conformance plan.
 - **askit-capability-advisor** - report which component types a target agent can run and recommend a conformance tier before a plugin is built.
+- **askit-onboard** - assess where an adopter stands, plan a personalized roadmap through a short interview, and name the next step on a return visit; routes into the skills and docs pages above and never scaffolds or fixes anything itself.
 
 ### Subagents (7, Claude-only)
 
@@ -433,7 +434,7 @@ Install from the `product-on-purpose` marketplace (see [Install](#install)).
 - **Version** - `1.21.0` (Standard `v0.17`).
 - **Tier** - Advanced (Gold), self-validated. *This tier reports structural conformance to a written Standard - deterministic and reproducible; it is not a content review, a safety audit, or a statement that the skills work.* See [what a tier does not certify](docs/explanation/limitations.md).
 - **Install** - `product-on-purpose` marketplace (`agent-plugins`).
-- **Components** - 26 skills, 7 subagents, 2 commands.
+- **Components** - 27 skills, 7 subagents, 2 commands.
 - **Validation spine** - 35 checks (`U1-U9`, `U11-U18`, `S1-S8`, `G1-G10`), graded against the Standard version a plugin PINS: a requirement introduced or tightened after your pin is surfaced as Standard debt, never a gate failure, until you adopt it.
 - **Evaluation scopes** - 3: one plugin, one component, or a whole `marketplace.json` catalogue ([marketplace scope](docs/reference/marketplace-scope.md)).
 - **Agents** - Claude Code and Codex; agentskills.io-compatible at Bronze.
