@@ -41,6 +41,35 @@ export function gateExitFromFindings(findings, declaredTier) {
   };
 }
 
+/**
+ * Compute the advisory layer for one grade: ADR 0063 sec 1's `advisoryLayer` ("on"|"off") and
+ * `advisoryFindings` (an array, or `null` when the layer is off). Shared by `runGate()` below AND by
+ * `scripts/evaluate.mjs`'s own pipeline (`evaluate()`, `evaluateComponent()`), which builds its report
+ * object WITHOUT going through `runGate()` - see ADR 0063's Implementation sites, "Every verdict path",
+ * and this file's own "What was considered and refused" precedent against writing the same removal
+ * logic separately in more than one place.
+ *
+ * `profile` is the RESOLVED profile NAME (e.g. `effectiveConfig.profile.value` in runGate, or
+ * `cfg.profile.value` in evaluate.mjs) - never a raw, unvalidated CLI string - so the off-set lookup
+ * below always resolves to a real entry in PROFILES. `advisoryModules` defaults to the real, empty
+ * ADVISORY_MODULES; a caller (the partition test, in either file) passes its own list to prove the
+ * separation without touching the registry file or an environment variable.
+ */
+export function computeAdvisoryLayer(ctx, { noAdvisory = false, profile, advisoryModules = ADVISORY_MODULES } = {}) {
+  const advisoryLayer = noAdvisory ? "off" : "on";
+  if (noAdvisory) return { advisoryLayer, advisoryFindings: null };
+  // ADR 0063 sec 1 / ADR 0029: under a profile whose advisoryOff names an ADV id (plain-plugin turns
+  // off the house-provenance ones), that signal does not run for this grade AT ALL - filtered out of
+  // the MODULE LIST before a single one of them executes, not run and then discarded, so a turned-off
+  // module's own work (e.g. ADV4's pairwise description comparison) is never paid for under a profile
+  // that will not use it. The same "a warn is still a finding in a published report" reasoning ADR
+  // 0029 applied to the spine.
+  const activeProfile = PROFILES[profile] ?? PROFILES["askit-library"];
+  const advisoryOff = new Set(activeProfile.advisoryOff ?? []);
+  const modulesToRun = advisoryModules.filter((m) => !advisoryOff.has(m?.meta?.advisoryId));
+  return { advisoryLayer, advisoryFindings: runAdvisoryModules(ctx, modulesToRun) };
+}
+
 export function runGate(root, ctx = loadPlugin(root), { strict = false, mode, profile, noAdvisory = false, advisoryModules = ADVISORY_MODULES } = {}) {
   const raw = runAllChecks(ctx);
   // F1 (ADR 0027), now ADR 0044: the pin is honoured by a CEILING applied last inside resolveFindings,
@@ -78,24 +107,13 @@ export function runGate(root, ctx = loadPlugin(root), { strict = false, mode, pr
   // separate array, never merged into `resolved`/`findings`, which is the only thing that keeps an
   // advisory finding's `reqId: null` from being misread as a Universal error (tierForReq(null) is
   // "universal"; the null reqId is not itself the protection, a point ADR 0063 makes explicitly).
-  // `advisoryModules` defaults to the real, empty ADVISORY_MODULES; a caller (the partition test) passes
-  // its own list to prove the separation without touching the registry file or an environment variable.
-  // `--no-advisory` turns the whole layer off, and the report says so explicitly through `advisoryLayer`
-  // rather than letting an empty array read as "ran and found nothing" when it did not run at all.
-  const advisoryLayer = noAdvisory ? "off" : "on";
-  let advisoryFindings = null;
-  if (!noAdvisory) {
-    // ADR 0063 sec 1 / ADR 0029: under a profile whose advisoryOff names an ADV id (plain-plugin turns
-    // off the house-provenance ones), that signal does not run for this grade AT ALL - filtered out of
-    // the MODULE LIST before a single one of them executes, not run and then discarded, so a turned-off
-    // module's own work (e.g. ADV4's pairwise description comparison) is never paid for under a profile
-    // that will not use it. The same "a warn is still a finding in a published report" reasoning ADR
-    // 0029 applied to the spine.
-    const activeProfile = PROFILES[effectiveConfig.profile.value] ?? PROFILES["askit-library"];
-    const advisoryOff = new Set(activeProfile.advisoryOff ?? []);
-    const modulesToRun = advisoryModules.filter((m) => !advisoryOff.has(m?.meta?.advisoryId));
-    advisoryFindings = runAdvisoryModules(ctx, modulesToRun);
-  }
+  // W5a stage B: the computation itself is factored into computeAdvisoryLayer() below so
+  // scripts/evaluate.mjs (which does not go through runGate) can share the exact same profile-off-set
+  // filtering and module-run logic rather than re-implementing it a second time - the "every consumer
+  // must remember" cost ADR 0063 itself warns against (sec 1, "What was considered and refused").
+  const { advisoryLayer, advisoryFindings } = computeAdvisoryLayer(ctx, {
+    noAdvisory, advisoryModules, profile: effectiveConfig.profile.value,
+  });
   // `config` is published origin-free: provenance is a resolution input, not a new external contract.
   return {
     findings: resolved, errorCount, warnCount, operatorErrorCount, exitCode,

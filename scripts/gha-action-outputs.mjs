@@ -1,9 +1,9 @@
 // what-it-is:   the GitHub Action's outputs bridge
 // what-it-does: reads the --json report scripts/check.mjs already produced (buildJsonReport's shape:
-//               tierReport.tier, errorCount, warnCount, exitCode, plus the full findings/config
-//               check.mjs already computes), VALIDATES that shape, and prints GITHUB_OUTPUT-format
-//               "name=value" lines for the four outputs action.yml exposes: tier, errors, warnings,
-//               operator-errors
+//               tierReport.tier, errorCount, warnCount, exitCode, advisoryLayer, advisoryFindings, plus
+//               the full findings/config check.mjs already computes), VALIDATES that shape, and prints
+//               GITHUB_OUTPUT-format "name=value" lines for the five outputs action.yml exposes: tier,
+//               errors, warnings, operator-errors, advisory-count
 // why:          Standard sec 4.1/4.4 (CI-agnostic runner, local/CI parity) requires CI configuration
 //               to hold no validation logic of its own, only invoke a portable script; action.yml
 //               states the same invariant applies to the published Action. This file is where the
@@ -59,6 +59,19 @@ export function validateReport(report) {
   if (!Number.isInteger(report.operatorErrorCount) || report.operatorErrorCount < 0) {
     problems.push(`operatorErrorCount: expected a non-negative integer, got ${JSON.stringify(report.operatorErrorCount)}`);
   }
+  // ADR 0063 sec 1: "A missing advisoryLayer, or a value that disagrees with the array, is a
+  // validation problem, because a field that silently dropped out of the report must never read as
+  // zero." Fail-closed, exactly like every count above: a report missing advisoryLayer entirely (an
+  // older toolkit version, or a JSON-contract drift) must never let advisory-count silently read "0"
+  // or "" - either reading would claim the layer ran (or did not) when this file actually has no idea.
+  const layer = report.advisoryLayer;
+  if (layer !== "on" && layer !== "off") {
+    problems.push(`advisoryLayer: expected "on" or "off", got ${JSON.stringify(layer)}`);
+  } else if (layer === "off" && report.advisoryFindings !== null) {
+    problems.push(`advisoryFindings: expected null when advisoryLayer is "off", got ${JSON.stringify(report.advisoryFindings)}`);
+  } else if (layer === "on" && !Array.isArray(report.advisoryFindings)) {
+    problems.push(`advisoryFindings: expected an array when advisoryLayer is "on", got ${JSON.stringify(report.advisoryFindings)}`);
+  }
   return problems;
 }
 
@@ -76,11 +89,18 @@ export function toGithubOutputLines(report) {
   // different questions and a workflow running with `fail-on-error: false` reads them. `errors` is what
   // is wrong with the plugin; `operator-errors` is what is wrong with the run. Folding them would put
   // back the very falsehood F-011 removed, in the one place a machine reads it.
+  // ADR 0063 sec 1: "`"on"` projects the array's length, and a `0` then means 'ran and found
+  // nothing'. `"off"` projects an empty output, not `0`." A consumer's workflow that reads
+  // advisory-count as a number must be able to tell "nothing found" from "the layer did not run" -
+  // collapsing "off" to "0" would erase exactly that distinction on the one surface a workflow author
+  // is most likely to read without opening the JSON report at all.
+  const advisoryCount = report.advisoryLayer === "on" ? String(report.advisoryFindings.length) : "";
   return [
     `tier=${report.tierReport.tier}`,
     `errors=${report.errorCount}`,
     `warnings=${report.warnCount}`,
     `operator-errors=${report.operatorErrorCount}`,
+    `advisory-count=${advisoryCount}`,
   ];
 }
 

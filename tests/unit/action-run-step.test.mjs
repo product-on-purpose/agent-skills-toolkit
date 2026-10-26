@@ -77,7 +77,7 @@ function parseGithubOutput(text) {
 // Runs the real gate-step script under bash, simulating exactly the env vars action.yml wires up
 // (ASKIT_* inputs, ACTION_PATH, plus the runner-supplied RUNNER_TEMP/GITHUB_OUTPUT). Caller owns
 // cleanup of the returned dirs so sarif-path assertions can still read the file afterward.
-function runGateStep({ failOnError, sarif, annotations = "false", fixture = FAILING_FIXTURE, actionPath = ROOT_POSIX }) {
+function runGateStep({ failOnError, sarif, annotations = "false", advisory = "true", fixture = FAILING_FIXTURE, actionPath = ROOT_POSIX }) {
   const script = loadGateStepScript();
   const workDir = mkdtempSync(path.join(tmpdir(), "askit-action-step-")).replace(/\\/g, "/");
   const runnerTemp = mkdtempSync(path.join(tmpdir(), "askit-runner-temp-")).replace(/\\/g, "/");
@@ -91,6 +91,7 @@ function runGateStep({ failOnError, sarif, annotations = "false", fixture = FAIL
     ASKIT_STRICT: "false",
     ASKIT_ANNOTATIONS: annotations,
     ASKIT_SARIF: sarif,
+    ASKIT_ADVISORY: advisory,
     ASKIT_FAIL_ON_ERROR: failOnError,
     ACTION_PATH: actionPath,
     RUNNER_TEMP: runnerTemp,
@@ -175,6 +176,22 @@ for (const failOnError of ["true", "false"]) {
 
 // --- symmetry sanity check: the fix must not regress the PASSING path ---
 
+// ADR 0063: the advisory input is the ONE way the Action's own surface can reach --no-advisory (the
+// CLI flag itself has no YAML presence otherwise). advisory-count must read "0" (ran, found nothing -
+// no real ADV module ships yet) when the input is left at its "true" default, and EMPTY (not "0", the
+// distinction validateReport's fail-closed rule exists to preserve) when it is turned off.
+test("gate step: advisory input true (default) emits advisory-count=0; advisory input false emits advisory-count empty, via --no-advisory", () => {
+  const on = runGateStep({ failOnError: "true", sarif: "false", advisory: "true", fixture: PASSING_FIXTURE });
+  const off = runGateStep({ failOnError: "true", sarif: "false", advisory: "false", fixture: PASSING_FIXTURE });
+  try {
+    assert.equal(on.outputs["advisory-count"], "0", "the layer ran and found nothing - no real ADV module ships yet");
+    assert.equal(off.outputs["advisory-count"], "", "the layer did not run, so the output is EMPTY, not the string '0'");
+  } finally {
+    cleanup(on);
+    cleanup(off);
+  }
+});
+
 test("gate step on a PASSING fixture: fail-on-error=true, sarif=true never fails the step, and sarif-path is still emitted", () => {
   const result = runGateStep({ failOnError: "true", sarif: "true", fixture: PASSING_FIXTURE });
   try {
@@ -256,6 +273,10 @@ if (argv.includes("--json")) {
     exitCode: 1,
     config: {},
     tierReport: { tier: "none", satisfies: [], blocked: {}, declaredTier: null },
+    // ADR 0063: the outputs bridge also fail-closes on a missing/mismatched advisoryLayer. The stub
+    // mirrors the real buildJsonReport shape here too, same reasoning as operatorErrorCount above.
+    advisoryLayer: "on",
+    advisoryFindings: [],
   };
   process.stdout.write(JSON.stringify(report, null, 2) + "\\n");
   process.exit(1);

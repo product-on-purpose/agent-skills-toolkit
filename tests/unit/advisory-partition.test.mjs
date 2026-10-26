@@ -2,12 +2,20 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { mkdtempSync, mkdirSync, writeFileSync, cpSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { execFileSync } from "node:child_process";
 import {
   runGate, gateExitFromFindings, sectionFindings, standardDebtLine, format,
   formatGithubAnnotations, formatAdvisorySection, buildJsonReport, parseArgs,
 } from "../../scripts/check.mjs";
 import { computeTierReport } from "../../scripts/tier-report.mjs";
 import { loadPlugin } from "../../scripts/lib/load-plugin.mjs";
+import { gatingFindings } from "../../scripts/lib/resolve-config.mjs";
+import { evaluate, dispositions } from "../../scripts/evaluate.mjs";
+import { releaseReport } from "../../scripts/lib/release-report.mjs";
+import { migrateReport } from "../../scripts/lib/migrate-report.mjs";
+import { evaluateMarketplace } from "../../scripts/lib/marketplace/evaluate-marketplace.mjs";
 
 // ADR 0063 sec 1 and "What was considered and refused": advisory findings are never placed in
 // findings[]. They carry reqId: null and their ID in advisoryId, but reqId: null protects nothing -
@@ -17,7 +25,7 @@ import { loadPlugin } from "../../scripts/lib/load-plugin.mjs";
 //
 // This is the PARTITION TEST named in ADR 0063's Implementation sites. It is deliberately extensible:
 // VERDICT_PATHS is a list of [name, deriveFn] pairs, one per verdict path already covered. A later stage
-// (W5b) appends to this list rather than writing a new test file, so the whole set keeps running under
+// (W5a stage B) appends to this list rather than writing a new test file, so the whole set keeps running under
 // one stub registration.
 //
 // SHOWN FAILING against the real production code, not just against a value built inline in the test
@@ -35,6 +43,27 @@ import { loadPlugin } from "../../scripts/lib/load-plugin.mjs";
 //       verdict" (its own "before" assertion failed, because production had already leaked by then -
 //       the strongest possible proof that the mutation moves the EARLIEST point in the pipeline).
 // A guard that cannot fail is not a guard (RS-E4's criterion 2, reused by ADR 0063).
+//
+// W5a STAGE B: the same demonstration repeated against the TWO PATHS this stage adds, each a
+// separate mutation applied and reverted (git diff clean afterward in both cases):
+//
+//   Mutant 1 - scripts/evaluate.mjs baseReport(): `findings: [...findings, ...(advisory.advisoryFindings
+//   ?? [])]`. Run against this file (18 tests at the time): BEFORE 18/18 pass; AFTER 16/18 pass, 2 fail -
+//   "pipeline: an error-severity stub advisory finding changes NO evaluate()-derived verdict path" and
+//   "pipeline: releaseReport() and migrateReport() inherit evaluate()'s advisory fields and verdict,
+//   unaffected by the stub". The marketplace tests (17, 18) stayed green under THIS mutant, because
+//   gradeMember() goes through runGate(), not evaluate() - proving the two pipelines are genuinely
+//   independent seams, not one guard covering both by accident.
+//
+//   Mutant 2 - scripts/check.mjs runGate()'s return: `findings: [...resolved, ...(advisoryFindings ??
+//   [])]`. Run against the same 18 tests: AFTER 13/18 pass, 5 fail - the three original runGate-path
+//   tests (2, 3, 4) RE-FAIL exactly as Stage A's own mutant reproduced, PLUS the two marketplace tests
+//   (17, 18), because gradeMember() runs every member through this same runGate(). Test 4's own "before"
+//   assertion failed again here too, for the identical reason Stage A recorded: the leak had already
+//   happened before the test's manual construction ran.
+//
+// Each mutant was reverted immediately after capturing its result; neither left any trace in the
+// committed diff.
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
 // A fixture that currently passes clean at its declared tier (Universal/Bronze), so a leaked
@@ -83,6 +112,10 @@ const VERDICT_PATHS = [
     const j = buildJsonReport(FIXTURE, ctx, r);
     return { tier: j.tierReport.tier, errorCount: j.errorCount, exitCode: j.exitCode, findingsLength: j.findings.length };
   }],
+  // W5a stage B addition: resolve-config.mjs's gatingFindings, the ADR's own-named verdict path for
+  // that file. A pure filter on `findings[]`, so it is unaffected by construction, but it is listed in
+  // the ADR's Implementation sites and gets its own entry rather than being left implicit.
+  ["resolve-config.mjs gatingFindings(r.findings).length", (ctx, r) => gatingFindings(r.findings).length],
 ];
 
 test("partition: the stub advisory module really fires (otherwise the rest of this test checks nothing)", () => {
@@ -206,4 +239,140 @@ test("formatGithubAnnotations defaults advisoryFindings to empty (existing 2-arg
   const findings = [{ check: "c", severity: "error", effectiveSeverity: "error", message: "boom", file: "a.md", reqId: "U6" }];
   const out = formatGithubAnnotations(findings, undefined);
   assert.equal(out, "::error file=a.md::c (U6): boom");
+});
+
+// ADR 0063's own named deliverable ("the CLI... help says that --no-advisory and --advisory
+// <file.json> are unrelated") had NO guard until this test: scripts/evaluate.mjs had no --help at all
+// before this stage, so `--help` matched nothing in runCli's own argv parsing and silently graded
+// process.cwd() instead of printing anything - the exact gap this test exists to catch a regression of.
+test("scripts/evaluate.mjs --help prints usage naming --no-advisory and --advisory <file.json> as unrelated, and does not grade anything", () => {
+  const out = execFileSync(process.execPath, [path.join(ROOT, "scripts/evaluate.mjs"), "--help"], { encoding: "utf8" });
+  assert.match(out, /--no-advisory/);
+  assert.match(out, /--advisory <file\.json>/);
+  assert.match(out, /unrelated/i);
+  assert.doesNotMatch(out, /Evaluating \(/, "--help must not fall through to grading the current directory");
+});
+
+// =====================================================================================================
+// W5a stage B: the EVALUATE.MJS-side pipelines. ADR 0063's Implementation sites names evaluate(),
+// evaluateComponent(), release-report.mjs's releaseReport(), migrate-report.mjs's migrateReport() and
+// marketplace/evaluate-marketplace.mjs's gradeMember()/evaluateMarketplace() as verdict paths. None of
+// these take a runGate() result as input (Stage A's handoff flagged this as the stage B structural
+// limit) - each builds its own pipeline, so each needs its OWN injection seam. evaluate() and
+// evaluateComponent() both accept `advisoryModules` in their `opts` bag (threaded to the shared
+// computeAdvisoryLayer() in scripts/check.mjs); releaseReport()/migrateReport() forward `opts` straight
+// into evaluate() unchanged, so the same seam reaches them for free; evaluateMarketplace() forwards
+// `opts` into gradeMember(), which forwards it into runGate() exactly as a plugin graded alone would.
+// =====================================================================================================
+
+const PIPELINE_STUB = { meta: { advisoryId: "ADV-STUB" }, check: () => [
+  { check: "stub-advisory", severity: "error", message: "stub advisory finding (test-only)", file: null, reqId: null },
+] };
+
+function evaluateWith(stubOn) {
+  return evaluate(FIXTURE, { advisoryModules: stubOn ? [PIPELINE_STUB] : [] });
+}
+
+test("pipeline: evaluate() really runs the stub (advisoryFindings carries it)", () => {
+  const r = evaluateWith(true);
+  assert.deepEqual(r.advisoryFindings.map((f) => f.advisoryId), ["ADV-STUB"]);
+  assert.equal(r.advisoryFindings[0].reqId, null);
+});
+
+// Every value derived from an evaluate()-shaped report that a verdict path reads, covered the same way
+// VERDICT_PATHS covers runGate(): identical with the stub on or off.
+const PIPELINE_PATHS = [
+  ["evaluate(): tier / satisfies / blocked", (r) => ({ tier: r.tier, satisfies: r.satisfies, blocked: r.blocked })],
+  ["evaluate(): summary.errors/warns", (r) => r.summary],
+  ["evaluate(): dispositions(r.findings)", (r) => dispositions(r.findings)],
+  ["evaluate(): no element of findings[] carries advisoryId", (r) => r.findings.map((f) => f.advisoryId)],
+];
+
+test("pipeline: an error-severity stub advisory finding changes NO evaluate()-derived verdict path", () => {
+  const without = evaluateWith(false);
+  const withStub = evaluateWith(true);
+  for (const [name, derive] of PIPELINE_PATHS) {
+    assert.deepEqual(derive(withStub), derive(without), `${name} must be unchanged by the stub advisory module`);
+  }
+});
+
+test("pipeline GUARD CAN FAIL: merging evaluate()'s advisoryFindings into findings[] visibly changes dispositions/tier", () => {
+  const r = evaluateWith(true);
+  // The stub's unregistered "ADV-STUB" id falls back to "house" provenance (runAdvisoryModules'
+  // documented fallback), so a leaked copy lands in `profileConformance`, not `realIssues` - dispositions
+  // partitions by provenance, and this is the correct partition for an unregistered id, not a bug in
+  // the test. The tier is the sharper, provenance-independent demonstration: tierForReq(null) is
+  // "universal" regardless of provenance, so the leak fails the declared tier either way.
+  const before = { tier: r.tier, profileConformance: dispositions(r.findings).profileConformance };
+  assert.equal(before.tier, "universal", "the unmodified fixture must satisfy its declared Bronze/Universal tier");
+  const leaked = [...r.findings, ...r.advisoryFindings.map((f) => ({ ...f, severity: "error", effectiveSeverity: "error" }))];
+  const after = { tier: computeTierReport(FIXTURE, loadPlugin(FIXTURE), leaked).tier, profileConformance: dispositions(leaked).profileConformance };
+  assert.equal(after.tier, "none", "a leaked null-reqId error buckets as Universal and fails the declared tier");
+  assert.notEqual(after.tier, before.tier);
+  assert.notEqual(after.profileConformance, before.profileConformance);
+});
+
+test("pipeline: releaseReport() and migrateReport() inherit evaluate()'s advisory fields and verdict, unaffected by the stub", () => {
+  const relWithout = releaseReport(FIXTURE, { advisoryModules: [] });
+  const relWith = releaseReport(FIXTURE, { advisoryModules: [PIPELINE_STUB] });
+  assert.deepEqual(relWith.release, relWithout.release, "release.goNoGo/gateExit must be unchanged by the stub");
+  assert.equal(relWith.advisoryFindings.length, 1, "releaseReport() still carries the advisory field through, inherited from evaluate()");
+
+  const migWithout = migrateReport(FIXTURE, { advisoryModules: [], targetTier: "advanced" });
+  const migWith = migrateReport(FIXTURE, { advisoryModules: [PIPELINE_STUB], targetTier: "advanced" });
+  assert.deepEqual(migWith.migration, migWithout.migration, "migration.stages/blockers must be unchanged by the stub");
+});
+
+// --- marketplace scope: gradeMember() runs the stub through the SAME runGate() a plugin graded alone
+// uses, so the seam is `opts.advisoryModules` on evaluateMarketplace() itself, forwarded unchanged. ---
+
+function tmpMarketplace() {
+  const root = mkdtempSync(path.join(tmpdir(), "askit-advisory-partition-mp-"));
+  const memberDir = path.join(root, "member");
+  const SEED = path.join(ROOT, "templates", "seed-plugin");
+  cpSync(SEED, memberDir, { recursive: true });
+  writeFileSync(
+    path.join(memberDir, "library.json"),
+    JSON.stringify({ name: "member", version: "0.1.0", description: "REPLACE - what this plugin does and when to use it, with concrete trigger keywords.", standard: "0.12", tier: "universal" }, null, 2),
+  );
+  mkdirSync(path.join(root, "catalogue", ".claude-plugin"), { recursive: true });
+  writeFileSync(
+    path.join(root, "catalogue", ".claude-plugin", "marketplace.json"),
+    JSON.stringify({ name: "test-catalogue", metadata: { version: "1.0.0" }, plugins: [{ name: "member", source: "../member" }] }, null, 2),
+  );
+  return { root, catalogueDir: path.join(root, "catalogue") };
+}
+
+test("pipeline: marketplace scope - gradeMember() carries the stub's advisoryFindings into members[], unaffected verdict", () => {
+  const { root, catalogueDir } = tmpMarketplace();
+  try {
+    const without = evaluateMarketplace(catalogueDir, { advisoryModules: [] });
+    const withStub = evaluateMarketplace(catalogueDir, { advisoryModules: [PIPELINE_STUB] });
+    assert.equal(without.members[0].advisoryFindings.length, 0);
+    assert.equal(withStub.members[0].advisoryFindings.length, 1, "the member's own advisoryFindings must carry the stub");
+    // Every verdict-shaped field on the member, and the collection verdict itself, unchanged:
+    assert.equal(withStub.verdict, without.verdict);
+    assert.equal(withStub.members[0].exitCode, without.members[0].exitCode);
+    assert.equal(withStub.members[0].errors, without.members[0].errors);
+    assert.equal(withStub.members[0].failsOwnClaim, without.members[0].failsOwnClaim);
+    assert.equal(withStub.members[0].earnedTier, without.members[0].earnedTier);
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test("pipeline GUARD CAN FAIL: leaking a member's advisoryFindings into its own gate findings visibly changes failsOwnClaim", () => {
+  const { root, catalogueDir } = tmpMarketplace();
+  try {
+    const withStub = evaluateMarketplace(catalogueDir, { advisoryModules: [PIPELINE_STUB] });
+    const member = withStub.members[0];
+    assert.equal(member.failsOwnClaim, false, "the unmodified member must satisfy its own declared tier");
+    const ctx = loadPlugin(path.join(root, "member"));
+    const leakedFindings = member.advisoryFindings.map((f) => ({ ...f, severity: "error", effectiveSeverity: "error" }));
+    const afterTier = computeTierReport(path.join(root, "member"), ctx, leakedFindings).tier;
+    assert.equal(afterTier, "none", "a leaked null-reqId error fails the member's own declared Universal tier");
+    assert.notEqual(afterTier, member.earnedTier);
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
 });

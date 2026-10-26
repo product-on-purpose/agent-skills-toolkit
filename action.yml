@@ -78,6 +78,10 @@ inputs:
     description: "Write a SARIF 2.1.0 document (--sarif) and expose its path as the sarif-path output."
     required: false
     default: "false"
+  advisory:
+    description: "Run the deterministic ADV1-ADV4 advisory layer (observations beside the grade, never gating). false passes --no-advisory; the advisory-count output is then empty."
+    required: false
+    default: "true"
   node-version:
     description: "Node version to set up for the gate."
     required: false
@@ -100,6 +104,9 @@ outputs:
   operator-errors:
     description: "Problems with the RUN rather than the plugin: an askit.config.json that does not load. Non-zero means the grade beside it was computed with default configuration, so read it before trusting a green `errors`."
     value: ${{ steps.gate.outputs.operator-errors }}
+  advisory-count:
+    description: "Count of deterministic advisory findings (the ADV1-ADV4 layer); never affects errors, warnings, or the gate. Empty when the advisory input turned the layer off, not 0."
+    value: ${{ steps.gate.outputs.advisory-count }}
   sarif-path:
     description: "Path to the generated SARIF document, when sarif: true. Empty otherwise."
     value: ${{ steps.gate.outputs.sarif-path }}
@@ -139,6 +146,7 @@ runs:
         ASKIT_STRICT: ${{ inputs.strict }}
         ASKIT_ANNOTATIONS: ${{ inputs.annotations }}
         ASKIT_SARIF: ${{ inputs.sarif }}
+        ASKIT_ADVISORY: ${{ inputs.advisory }}
         ASKIT_FAIL_ON_ERROR: ${{ inputs.fail-on-error }}
         ACTION_PATH: ${{ github.action_path }}
       run: |
@@ -146,6 +154,7 @@ runs:
         FLAGS=()
         if [ -n "$ASKIT_PROFILE" ]; then FLAGS+=(--profile "$ASKIT_PROFILE"); fi
         if [ "$ASKIT_STRICT" = "true" ]; then FLAGS+=(--strict); fi
+        if [ "$ASKIT_ADVISORY" = "false" ]; then FLAGS+=(--no-advisory); fi
 
         # Every gate invocation below runs under explicit exit-code CAPTURE, never bare "set -e"
         # propagation: a normal gate failure exits non-zero by design (that is how check.mjs reports a

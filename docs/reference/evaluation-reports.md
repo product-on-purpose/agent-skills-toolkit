@@ -49,7 +49,12 @@ npx agent-skills-toolkit evaluate <path> --report=release --format=md
 
 ## The deterministic / advisory boundary
 
-The conformance gate alone decides the tier (Design Principle 3 / ADR 0023). The review and behavioral reports add a layer that is judged by a model at runtime, so the renderer keeps it strictly beside the verdict, never on top of it:
+Three layers, not two (ADR 0063, an advisory layer beside the tier). The conformance gate alone decides the tier (Design Principle 3 / ADR 0023). Beside it sit two advisory layers, both outside the verdict and never inside `findings[]`, but different in how they are produced:
+
+- **The deterministic advisory layer (`ADV1`-`ADV4`).** Computed by this process, with no model and no sampling - re-running the gate reproduces it exactly, the same as the conformance checks. It travels on the report object's own `advisoryLayer` / `advisoryFindings` fields, turned off with `--no-advisory`, and rendered in its own "Advisory" section (never merged into the evidence ledger above it). See [limitations.md section 2](../explanation/limitations.md) for the OTHER advisory layer's measured limits, which do not apply to this one.
+- **The model-judgment advisory layer (`review` / `behavioral`, below).** Judged by a model at runtime over sampled inputs - not reproducible, and the layer the rest of this section describes.
+
+The review and behavioral reports add the model-judgment layer, so the renderer keeps it strictly beside the verdict, never on top of it:
 
 - The graded verdict in the masthead and the evidence ledger is the gate's, and the advisory layer NEVER changes it or the gate exit code.
 - The advisory content renders in a clearly-labeled block, and the methodology section is stamped with the generating model, effort, and date so a reader knows it is judgment, not a reproducible gate result.

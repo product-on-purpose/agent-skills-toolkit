@@ -197,11 +197,41 @@ function buildResults(findings, declaredTier) {
 }
 
 /**
+ * One SARIF result per ADVISORY finding (ADR 0063 sec 1's rendering table): level is ALWAYS `note` -
+ * never `isAboveDeclaredTier`-derived, because an advisory finding carries `reqId: null` and has no
+ * tier to be above or below - and every result carries an `askit/advisory` property naming the ADV id,
+ * NEVER combined with `askit/aboveDeclaredTier` on the same result (the two properties are how a
+ * consumer tells "above your declared tier" apart from "advisory", and ADR 0063 states a finding never
+ * carries both). `advisoryFindings` is `null` when the layer is off ("--no-advisory"); this returns []
+ * for both that case and an empty array, mirroring formatAdvisorySection in scripts/check.mjs.
+ */
+function buildAdvisoryResults(advisoryFindings) {
+  const out = [];
+  for (const f of advisoryFindings ?? []) {
+    const result = {
+      ruleId: f.advisoryId,
+      level: "note",
+      message: { text: f.message },
+      partialFingerprints: { "askitFinding/v1": fingerprintFinding(f) },
+      properties: { "askit/advisory": f.advisoryId },
+    };
+    if (f.file) {
+      const physicalLocation = { artifactLocation: { uri: toUri(f.file) } };
+      if (f.line != null) physicalLocation.region = { startLine: f.line };
+      result.locations = [{ physicalLocation }];
+    }
+    out.push(result);
+  }
+  return out;
+}
+
+/**
  * Render a SARIF 2.1.0 log from what scripts/check.mjs already computed. Pure and synchronous; mutates
  * neither `ctx` nor `r`.
  * @param {object} ctx the loadPlugin() context (for ctx.library.data.standard / .tier - the SUBJECT's
  *   own declared Standard and tier, not the toolkit's)
- * @param {{findings:Array<object>}} r runGate()'s return value (only `.findings` is read)
+ * @param {{findings:Array<object>, advisoryFindings?:Array<object>|null}} r runGate()'s return value
+ *   (`.findings` and `.advisoryFindings` are read; the latter may be `null` when the layer is off)
  * @returns {object} a SARIF 2.1.0 log object, JSON-serializable as-is
  */
 export function renderSarif(ctx, r) {
@@ -218,7 +248,10 @@ export function renderSarif(ctx, r) {
             rules: buildRules(),
           },
         },
-        results: buildResults(r.findings, ctx?.library?.data?.tier ?? null),
+        // ADR 0063 sec 1: advisory results are APPENDED, never merged into or re-derived from the
+        // conformance `findings` set - buildResults(r.findings, ...) above is computed exactly as it
+        // was before this layer existed, so a stub advisory finding can never move a conformance result.
+        results: [...buildResults(r.findings, ctx?.library?.data?.tier ?? null), ...buildAdvisoryResults(r.advisoryFindings)],
         properties: {
           standard: ctx?.library?.data?.standard ?? null,
           declaredTier: ctx?.library?.data?.tier ?? null,

@@ -309,7 +309,7 @@ test("F-011: the Action's own pipeline survives a broken rubric and reports it a
     const bridge = runCliScript("scripts/gha-action-outputs.mjs", [reportFile]);
     assert.equal(bridge.code, 0, `the outputs bridge must not reject an operator exit: ${bridge.stderr}`);
     const lines = bridge.stdout.trim().split("\n");
-    assert.deepEqual(lines, ["tier=universal", "errors=0", "warnings=1", "operator-errors=1"]);
+    assert.deepEqual(lines, ["tier=universal", "errors=0", "warnings=1", "operator-errors=1", "advisory-count=0"]);
 
     // `errors=0` is true and `operator-errors=1` is what stops it being a false pass: a workflow running
     // with fail-on-error: false reads both, and folding them into one number would put back the exact

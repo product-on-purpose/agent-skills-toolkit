@@ -18,9 +18,41 @@ const SILVER_FIXTURE = path.join(ROOT, "tests", "fixtures", "golden", "silver-fi
 
 // --- toGithubOutputLines: the pure function, given an already-built report object ---
 
-test("toGithubOutputLines projects tier/errorCount/warnCount/operatorErrorCount into GITHUB_OUTPUT-format lines", () => {
-  const lines = toGithubOutputLines({ tierReport: { tier: "advanced" }, errorCount: 0, warnCount: 2, exitCode: 0, operatorErrorCount: 0 });
-  assert.deepEqual(lines, ["tier=advanced", "errors=0", "warnings=2", "operator-errors=0"]);
+test("toGithubOutputLines projects tier/errorCount/warnCount/operatorErrorCount/advisory into GITHUB_OUTPUT-format lines", () => {
+  const lines = toGithubOutputLines({ tierReport: { tier: "advanced" }, errorCount: 0, warnCount: 2, exitCode: 0, operatorErrorCount: 0, advisoryLayer: "on", advisoryFindings: [] });
+  assert.deepEqual(lines, ["tier=advanced", "errors=0", "warnings=2", "operator-errors=0", "advisory-count=0"]);
+});
+
+// --- ADR 0063 sec 1: advisoryLayer / advisoryFindings, the fail-closed off-marker ---
+
+test("toGithubOutputLines projects advisory-count from advisoryFindings.length when the layer is on", () => {
+  const lines = toGithubOutputLines({ tierReport: { tier: "advanced" }, errorCount: 0, warnCount: 0, exitCode: 0, operatorErrorCount: 0, advisoryLayer: "on", advisoryFindings: [{ advisoryId: "ADV1" }, { advisoryId: "ADV2" }] });
+  assert.equal(lines[4], "advisory-count=2");
+});
+
+test("toGithubOutputLines projects advisory-count as EMPTY (not 0) when the layer is off", () => {
+  const lines = toGithubOutputLines({ tierReport: { tier: "advanced" }, errorCount: 0, warnCount: 0, exitCode: 0, operatorErrorCount: 0, advisoryLayer: "off", advisoryFindings: null });
+  assert.equal(lines[4], "advisory-count=", "an empty output, not a string '0', so a workflow can tell 'off' from 'ran and found nothing'");
+});
+
+test("validateReport rejects a report with no advisoryLayer at all", () => {
+  const problems = validateReport({ tierReport: { tier: "universal" }, errorCount: 0, warnCount: 0, exitCode: 0, operatorErrorCount: 0 });
+  assert.ok(problems.some((p) => p.startsWith("advisoryLayer:")), `expected an advisoryLayer problem, got:\n${problems.join("\n")}`);
+});
+
+test("validateReport rejects advisoryLayer \"off\" beside a non-null advisoryFindings array", () => {
+  const problems = validateReport({ tierReport: { tier: "universal" }, errorCount: 0, warnCount: 0, exitCode: 0, operatorErrorCount: 0, advisoryLayer: "off", advisoryFindings: [] });
+  assert.ok(problems.some((p) => p.startsWith("advisoryFindings:")), `expected an advisoryFindings problem, got:\n${problems.join("\n")}`);
+});
+
+test("validateReport rejects advisoryLayer \"on\" beside a non-array advisoryFindings", () => {
+  const problems = validateReport({ tierReport: { tier: "universal" }, errorCount: 0, warnCount: 0, exitCode: 0, operatorErrorCount: 0, advisoryLayer: "on", advisoryFindings: null });
+  assert.ok(problems.some((p) => p.startsWith("advisoryFindings:")), `expected an advisoryFindings problem, got:\n${problems.join("\n")}`);
+});
+
+test("validateReport accepts advisoryLayer \"off\" paired with advisoryFindings: null, and \"on\" paired with an array", () => {
+  assert.deepEqual(validateReport({ tierReport: { tier: "universal" }, errorCount: 0, warnCount: 0, exitCode: 0, operatorErrorCount: 0, advisoryLayer: "off", advisoryFindings: null }), []);
+  assert.deepEqual(validateReport({ tierReport: { tier: "universal" }, errorCount: 0, warnCount: 0, exitCode: 0, operatorErrorCount: 0, advisoryLayer: "on", advisoryFindings: [] }), []);
 });
 
 // Finding 2 (pre-release adversarial review, v1.11.0): the bridge must FAIL CLOSED, never substitute a
@@ -68,8 +100,8 @@ test("toGithubOutputLines throws on a non-integer or negative errorCount/warnCou
 // test's real job - that an out-of-domain or absent exitCode is refused rather than defaulted - is kept.
 test("toGithubOutputLines accepts exitCode 2 (an operator error) and throws on anything outside {0, 1, 2}", () => {
   assert.deepEqual(
-    toGithubOutputLines({ tierReport: { tier: "universal" }, errorCount: 0, warnCount: 1, exitCode: 2, operatorErrorCount: 1 }),
-    ["tier=universal", "errors=0", "warnings=1", "operator-errors=1"],
+    toGithubOutputLines({ tierReport: { tier: "universal" }, errorCount: 0, warnCount: 1, exitCode: 2, operatorErrorCount: 1, advisoryLayer: "on", advisoryFindings: [] }),
+    ["tier=universal", "errors=0", "warnings=1", "operator-errors=1", "advisory-count=0"],
     "a plugin whose GRADE is clean but whose rubric did not load still projects its grade"
   );
   assert.throws(
@@ -93,24 +125,24 @@ test("toGithubOutputLines refuses a report with no operatorErrorCount rather tha
 });
 
 test("toGithubOutputLines accepts a fully valid report and never substitutes a default", () => {
-  const lines = toGithubOutputLines({ tierReport: { tier: "advanced" }, errorCount: 0, warnCount: 0, exitCode: 0, operatorErrorCount: 0 });
-  assert.deepEqual(lines, ["tier=advanced", "errors=0", "warnings=0", "operator-errors=0"]);
+  const lines = toGithubOutputLines({ tierReport: { tier: "advanced" }, errorCount: 0, warnCount: 0, exitCode: 0, operatorErrorCount: 0, advisoryLayer: "on", advisoryFindings: [] });
+  assert.deepEqual(lines, ["tier=advanced", "errors=0", "warnings=0", "operator-errors=0", "advisory-count=0"]);
 });
 
 // --- validateReport: the underlying schema check, exercised directly ---
 
 test("validateReport returns an empty array for a fully valid report", () => {
-  assert.deepEqual(validateReport({ tierReport: { tier: "universal" }, errorCount: 0, warnCount: 0, exitCode: 0, operatorErrorCount: 0 }), []);
+  assert.deepEqual(validateReport({ tierReport: { tier: "universal" }, errorCount: 0, warnCount: 0, exitCode: 0, operatorErrorCount: 0, advisoryLayer: "on", advisoryFindings: [] }), []);
 });
 
 test("validateReport returns one problem per missing/invalid field, not just the first", () => {
   const problems = validateReport({});
-  assert.equal(problems.length, 5, `expected 5 problems (tier, errorCount, warnCount, exitCode, operatorErrorCount), got:\n${problems.join("\n")}`);
+  assert.equal(problems.length, 6, `expected 6 problems (tier, errorCount, warnCount, exitCode, operatorErrorCount, advisoryLayer), got:\n${problems.join("\n")}`);
 });
 
-// --- CLI: reads a real check.mjs --json file and emits the three lines ---
+// --- CLI: reads a real check.mjs --json file and emits the four lines ---
 
-test("CLI gha-action-outputs.mjs reads a check.mjs --json file and prints tier/errors/warnings/operator-errors lines", () => {
+test("CLI gha-action-outputs.mjs reads a check.mjs --json file and prints tier/errors/warnings/operator-errors/advisory-count lines", () => {
   const dir = mkdtempSync(path.join(tmpdir(), "askit-gha-out-"));
   try {
     const reportFile = path.join(dir, "gate.json");
@@ -118,11 +150,12 @@ test("CLI gha-action-outputs.mjs reads a check.mjs --json file and prints tier/e
     writeFileSync(reportFile, gateJson, "utf8");
     const out = execFileSync(process.execPath, [SCRIPT, reportFile], { encoding: "utf8" });
     const lines = out.trim().split("\n");
-    assert.equal(lines.length, 4);
+    assert.equal(lines.length, 5);
     assert.match(lines[0], /^tier=convergent$/);
     assert.match(lines[1], /^errors=\d+$/);
     assert.match(lines[2], /^warnings=\d+$/);
     assert.match(lines[3], /^operator-errors=0$/, "this fixture carries no askit.config.json, so nothing is wrong with the RUN");
+    assert.match(lines[4], /^advisory-count=0$/, "no ADV screen ships yet, so the layer runs and finds nothing");
   } finally {
     rmSync(dir, { recursive: true, force: true });
   }

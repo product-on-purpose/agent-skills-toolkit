@@ -120,11 +120,19 @@ const mkFinding = (check, severity, message, file) => finding(check, severity, m
 function gradeMember(resolution, opts) {
   try {
     const ctx = loadPlugin(resolution.dir);
-    const gate = runGate(resolution.dir, ctx, { mode: opts.mode, profile: opts.profile });
+    // ADR 0063 sec 1 ("Marketplace scope"): each member is graded through the SAME runGate() every
+    // other scope uses, so --no-advisory and advisoryModules (the partition test's injection seam)
+    // reach a member's grade exactly as they reach a plugin graded alone - no second implementation.
+    const gate = runGate(resolution.dir, ctx, { mode: opts.mode, profile: opts.profile, noAdvisory: opts.noAdvisory, advisoryModules: opts.advisoryModules });
     const tierReport = computeTierReport(resolution.dir, ctx, gate.findings);
     const live = gate.findings.filter((f) => !f.suppressed);
     return {
       library: ctx.library?.data ?? null,
+      // ADR 0063 sec 1: "each member's advisory findings... sit in that member's entry in the
+      // collection report's members[]". Namespaced exactly as every other scope's report carries them -
+      // never merged into `errors`/`warns`/`failsOwnClaim` above, which all read gate.findings only.
+      advisoryLayer: gate.advisoryLayer,
+      advisoryFindings: gate.advisoryFindings,
       declaredTier: ctx.library?.data?.tier ?? null,
       earnedTier: tierReport.tier,
       standardPin: ctx.library?.data?.standard ?? null,
@@ -164,6 +172,9 @@ function gradeMember(resolution, opts) {
       errors: 0, warns: 0, standardDebt: 0, exitCode: 0, failsOwnClaim: false,
       skills: [], subagents: [], agentDocs: [], skillNames: [], commandNames: [],
       gradingError: e?.message ?? String(e),
+      // Nothing graded here, so nothing ran: null/null matches the "member never resolved" shape
+      // below, never "on" with an empty array (which would read as "ran and found nothing").
+      advisoryLayer: null, advisoryFindings: null,
     };
   }
 }
@@ -211,7 +222,7 @@ export function evaluateMarketplace(target, opts = {}) {
       entry: r.entry,
     };
     if (r.status !== "resolved") {
-      return { ...base, library: null, declaredTier: null, earnedTier: null, standardPin: null, errors: 0, warns: 0, standardDebt: 0, exitCode: 0, failsOwnClaim: false, skills: [], subagents: [], agentDocs: [], skillNames: [], commandNames: [], gradingError: null, diverged: false };
+      return { ...base, library: null, declaredTier: null, earnedTier: null, standardPin: null, errors: 0, warns: 0, standardDebt: 0, exitCode: 0, failsOwnClaim: false, skills: [], subagents: [], agentDocs: [], skillNames: [], commandNames: [], gradingError: null, diverged: false, advisoryLayer: null, advisoryFindings: null };
     }
     const graded = { ...base, ...gradeMember(r, opts) };
     return { ...graded, diverged: Boolean(graded.pinSha && graded.gradedSha && graded.pinSha !== graded.gradedSha) };
