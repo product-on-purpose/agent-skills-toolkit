@@ -13,7 +13,7 @@
 - **Decision four: RS-E4 ships now as `ADV3`, and needs no Standard edition.** It was blocked only because a new spine check needs a `since` and a warn cap. An advisory finding needs neither, because it can never fail anything.
 - **Decision five: E86 is an advisory warning that never gates.** This answers the ruling E86's status line asked for.
 - **Decision six: the report object becomes versioned and additive**, with a JSON Schema at `schemas/report.v1.json`. This reopens item 1 of the roadmap's triage of the 2026-09-04 audit. Section 5 explains why D-01's partial ruling meets item 1's reopening condition.
-- **Status:** **Accepted (2026-10-25).** Ruled by the maintainer. Revised the same day after an adversarial review, before merge: the safety argument, the layer comparison, the calibration method and twelve smaller points were corrected. Not implemented in this change: this ADR records the design, and the implementing change carries the code.
+- **Status:** **Accepted (2026-10-25).** Ruled by the maintainer. Revised the same day after an adversarial review, before merge: the safety argument, the layer comparison, the calibration method and the remaining review points were corrected. Not implemented in this change: this ADR records the design, and the implementing change carries the code.
 
 - **Date:** 2026-10-25
 - **Deciders:** the maintainer
