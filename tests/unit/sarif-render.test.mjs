@@ -241,11 +241,13 @@ test("every result carries a partialFingerprints.askitFinding/v1 that is a 64-ch
   });
 });
 
-test("the v1 algorithm is pinned: a hand-computed hash for a fixed tuple, so a refactor cannot silently change it", () => {
-  // The literal below was computed independently, by hand, from the spec in the module docblock -
-  // sha256 of "U6\u0000skills/widget/SKILL.md\u0000\u0000link to ./missing.md is broken" - and pasted
-  // here as a value, not recomputed in this test. Recomputing it would pin nothing: a second copy of
-  // the same (possibly wrong) algorithm always agrees with itself.
+test("the v1 algorithm is pinned: a hash for a fixed tuple computed independently of fingerprintFinding(), so a refactor cannot silently change it", () => {
+  // The literal below was computed with a standalone script implementing the algorithm exactly as
+  // specified in the module docblock - sha256 of
+  // "U6\u0000skills/widget/SKILL.md\u0000\u0000link to ./missing.md is broken" - independent of
+  // fingerprintFinding() itself, and pasted here as a value, not recomputed in this test. Recomputing it
+  // with fingerprintFinding() would pin nothing: a second copy of the same (possibly wrong) algorithm
+  // always agrees with itself.
   const expected = "c7dc21f77fc3581efc69825bd2dbdec9198a5170f7820af510035b6455d0dee0";
   const finding = { reqId: "U6", check: "reference-links", file: "skills/widget/SKILL.md", line: null, message: "link to ./missing.md is broken" };
   const ctx = { library: { data: { tier: "universal" } } };
@@ -267,7 +269,7 @@ test("finding.key, when present, is the discriminator and wins over the message 
   assert.notEqual(fpA, fpB, "two different keys on the same message must fingerprint differently");
 });
 
-test("the message discriminator normalises runs of digits to # and collapses whitespace", () => {
+test("the message discriminator normalises a standalone integer count to # and collapses whitespace", () => {
   const base = { reqId: "U6", check: "reference-links", file: "a.md", line: null, effectiveSeverity: "error" };
   const ctx = { library: { data: { tier: "universal" } } };
   const a = renderSarif(ctx, { findings: [{ ...base, message: "3 broken links found" }] }).runs[0].results[0];
@@ -276,6 +278,45 @@ test("the message discriminator normalises runs of digits to # and collapses whi
     a.partialFingerprints["askitFinding/v1"],
     b.partialFingerprints["askitFinding/v1"],
     "a count that changes, or stray whitespace, must not change the finding's identity"
+  );
+});
+
+// The real-world production shape (scripts/checks/description-score.mjs): a standalone DECIMAL score,
+// not just an integer count, must also fold - this is what the module docblock's "0.65 vs 0.70" example
+// promises and what the integer-only test above does not prove.
+test("the message discriminator normalises a standalone decimal score to #, proven on the real U5 message shape", () => {
+  const base = { reqId: "U5", check: "description-score", file: "skills/widget/SKILL.md", line: null, effectiveSeverity: "warn" };
+  const ctx = { library: { data: { tier: "universal" } } };
+  const a = renderSarif(ctx, { findings: [{ ...base, message: "description scores 0.65 (< 0.70); state what it does AND when to use it, with concrete trigger keywords (Standard sec 8.1)." }] }).runs[0].results[0];
+  const b = renderSarif(ctx, { findings: [{ ...base, message: "description scores 0.58 (< 0.70); state what it does AND when to use it, with concrete trigger keywords (Standard sec 8.1)." }] }).runs[0].results[0];
+  assert.equal(
+    a.partialFingerprints["askitFinding/v1"],
+    b.partialFingerprints["askitFinding/v1"],
+    "two different decimal scores against the same threshold are the SAME finding recurring, not two identities"
+  );
+});
+
+test("a digit-bearing IDENTIFIER, not a standalone count, keeps two different findings distinct: step-1 vs step-2", () => {
+  const base = { reqId: "U6", check: "reference-links", file: "a.md", line: null, effectiveSeverity: "error" };
+  const ctx = { library: { data: { tier: "universal" } } };
+  const a = renderSarif(ctx, { findings: [{ ...base, message: "folder step-1 is missing a README" }] }).runs[0].results[0];
+  const b = renderSarif(ctx, { findings: [{ ...base, message: "folder step-2 is missing a README" }] }).runs[0].results[0];
+  assert.notEqual(
+    a.partialFingerprints["askitFinding/v1"],
+    b.partialFingerprints["askitFinding/v1"],
+    "step-1 and step-2 are findings about two DIFFERENT folders, not the same count recurring, and must not collide"
+  );
+});
+
+test("a digit-bearing filename, not a standalone count, keeps two different findings distinct: v1.md vs v2.md", () => {
+  const base = { reqId: "U6", check: "reference-links", file: "a.md", line: null, effectiveSeverity: "error" };
+  const ctx = { library: { data: { tier: "universal" } } };
+  const a = renderSarif(ctx, { findings: [{ ...base, message: "link to ./v1.md is broken" }] }).runs[0].results[0];
+  const b = renderSarif(ctx, { findings: [{ ...base, message: "link to ./v2.md is broken" }] }).runs[0].results[0];
+  assert.notEqual(
+    a.partialFingerprints["askitFinding/v1"],
+    b.partialFingerprints["askitFinding/v1"],
+    "v1.md and v2.md are DIFFERENT files, not the same count recurring, and must not collide"
   );
 });
 
@@ -302,17 +343,21 @@ test("fingerprinting is deterministic: rendering the same findings twice gives i
 // and assert no two results in one run share a fingerprint, and that re-running on the same input gives
 // identical fingerprints (the two guarantees a SARIF consumer actually relies on).
 
+// Every directory under both tests/fixtures/anti/ and tests/fixtures/golden/ that is itself a loadable
+// plugin (has a library.json), not a curated sample: a collision in any one check's message shape must
+// surface here, not only on fixtures someone remembered to list.
 function findingRichAntiFixtures() {
-  const antiDir = path.join(REPO, "tests/fixtures/anti");
-  const names = readdirSync(antiDir).filter((name) => {
-    const dir = path.join(antiDir, name);
-    return statSync(dir).isDirectory() && statSync(path.join(dir, "library.json"), { throwIfNoEntry: false });
-  });
-  // A representative, intentionally varied sample (not every anti fixture, to keep this test fast):
-  // multi-finding fixtures covering several different checks, so a collision in any one check's
-  // message shape is likely to surface here rather than only on fixtures nobody samples.
-  const wanted = ["weak-description", "bad-frontmatter", "docs-frontmatter-bad", "chain-orphan", "components-drift", "deprecated-incomplete"];
-  return wanted.filter((name) => names.includes(name)).map((name) => path.join(antiDir, name));
+  const roots = [];
+  for (const sub of ["tests/fixtures/anti", "tests/fixtures/golden"]) {
+    const base = path.join(REPO, sub);
+    for (const name of readdirSync(base)) {
+      const dir = path.join(base, name);
+      if (statSync(dir).isDirectory() && statSync(path.join(dir, "library.json"), { throwIfNoEntry: false })) {
+        roots.push(dir);
+      }
+    }
+  }
+  return roots;
 }
 
 function fingerprintsFor(root) {
@@ -321,18 +366,24 @@ function fingerprintsFor(root) {
   return renderSarif(ctx, r).runs[0].results.map((res) => res.partialFingerprints["askitFinding/v1"]);
 }
 
-test("no two results in one SARIF run share a fingerprint, across this repo and several finding-rich fixtures", () => {
+test("no two results in one SARIF run share a fingerprint, across this repo and EVERY fixture under tests/fixtures/anti/ and tests/fixtures/golden/", () => {
   const fixtures = findingRichAntiFixtures();
-  // This must actually exercise the thing it claims to: a fixture list that silently shrank to zero
-  // (a rename, a typo) would leave only REPO, whose own gate run is clean, and the uniqueness assertion
-  // below would then pass on an empty array while checking nothing.
-  assert.ok(fixtures.length >= 5, `expected at least 5 finding-rich anti fixtures to exist, found ${fixtures.length}`);
+  // This must actually exercise the thing it claims to: a directory listing that silently shrank to
+  // zero (a rename, a typo) would leave only REPO, whose own gate run is clean, and the per-root
+  // uniqueness assertion below would then pass on an empty sweep while checking almost nothing. The
+  // sweep is every fixture directory on disk, not a hand-picked sample, so this also guards against a
+  // sample that was never widened as new fixtures were added.
+  assert.ok(fixtures.length >= 40, `expected a wide sweep of fixtures under anti/ and golden/, found ${fixtures.length}`);
+  let totalFindings = 0;
   for (const root of [REPO, ...fixtures]) {
     const fps = fingerprintsFor(root);
-    if (root !== REPO) assert.ok(fps.length >= 2, `${path.basename(root)}: expected at least 2 findings, this fixture produced ${fps.length}`);
+    totalFindings += fps.length;
     const unique = new Set(fps);
     assert.equal(unique.size, fps.length, `${path.basename(root)}: ${fps.length} results produced only ${unique.size} distinct fingerprints`);
   }
+  // Anti fixtures are findings-rich by design and golden fixtures are clean by design; across the WHOLE
+  // sweep there must still be plenty of findings, or the per-root uniqueness checks above are vacuous.
+  assert.ok(totalFindings >= 50, `expected the sweep to produce plenty of findings overall, got ${totalFindings}`);
 });
 
 test("re-running the gate on the same fixture gives identical fingerprints run to run", () => {
