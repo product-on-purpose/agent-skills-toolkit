@@ -190,11 +190,25 @@ test("a marketplace.json with no entry naming this plugin: no row, no refusal", 
   assert.ok(!result.rows.some((r) => r.label.includes("marketplace.json")));
 });
 
-test("a marketplace.json present but with no sibling: never read when the repo root lacks one", () => {
+test("no marketplace.json at all: never produces a marketplace row", () => {
   // Sanity on the gating condition itself: a plain directory with no .claude-plugin/marketplace.json
   // at all must not somehow still produce a marketplace row.
   const dir = makeDir("1.11.0", { withLockfile: false, withPackage: false, withNative: false });
   const result = checkVersionAgreement(dir);
+  assert.ok(!result.rows.some((r) => r.label.includes("marketplace.json")));
+});
+
+test("a marketplace.json in a PARENT directory is never read - only the repo root's own", () => {
+  // The docblock's explicit negative constraint: "it must NOT read any external or sibling
+  // catalogue." A directory tree where the PARENT holds a catalogue disagreeing with the child
+  // plugin, and the child itself holds none, must pass exactly as if no catalogue existed anywhere -
+  // proving the scope by a case that would fail if this ever walked upward to find one.
+  const parent = mkdtempSync(path.join(os.tmpdir(), "askit-version-agreement-parent-"));
+  addMarketplace(parent, { name: "x", version: "9.9.9" });
+  const child = mkdtempSync(path.join(parent, "child-"));
+  writeFileSync(path.join(child, "library.json"), JSON.stringify({ name: "x", version: "1.11.0" }), "utf8");
+  const result = checkVersionAgreement(child);
+  assert.equal(result.ok, true);
   assert.ok(!result.rows.some((r) => r.label.includes("marketplace.json")));
 });
 
