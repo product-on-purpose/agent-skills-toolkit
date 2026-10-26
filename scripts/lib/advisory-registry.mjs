@@ -85,7 +85,24 @@ export function runAdvisoryModules(ctx, modules = ADVISORY_MODULES) {
     const id = mod?.meta?.advisoryId ?? null;
     const entry = id != null ? ADVISORY_BY_ID.get(id) : undefined;
     const provenance = entry?.provenance ?? mod?.meta?.provenance ?? "house";
-    for (const f of mod.check(ctx)) {
+    // ADR 0063 states the layer "can never fail anything" - a module that throws must not make
+    // check.mjs/evaluate.mjs crash with a non-gate exit code, which would read indistinguishable from a
+    // failing grade. Isolated per module so one broken screen cannot take the rest of the layer down
+    // with it; reported as its own advisory finding (reqId: null, same partition as every other
+    // advisory result) rather than only to stderr, so a thrown module is visible in --json/--sarif too,
+    // not just in a terminal a CI run may never show.
+    let findings;
+    try {
+      findings = mod.check(ctx);
+    } catch (e) {
+      out.push({
+        check: "advisory-module-error", severity: "warn", reqId: null, advisoryId: id, provenance,
+        message: `advisory module ${id ?? "(unregistered)"} threw and was skipped: ${e?.message ?? String(e)}`,
+        file: null,
+      });
+      continue;
+    }
+    for (const f of findings) {
       out.push({ ...f, reqId: null, advisoryId: id, provenance });
     }
   }

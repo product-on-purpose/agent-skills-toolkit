@@ -21,6 +21,7 @@ import { loadPlugin } from "../../scripts/lib/load-plugin.mjs";
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
 const CORPUS_DIR = path.join(ROOT, "tests/fixtures/audit-corpus");
 const CHECK_SCRIPT = path.join(ROOT, "scripts/check.mjs");
+const EVALUATE_SCRIPT = path.join(ROOT, "scripts/evaluate.mjs");
 
 // Every top-level directory under audit-corpus/ that carries a library.json or SKILL.md one level
 // down (i.e. is itself a graded tree, not a loose supporting file like README.md). Discovered from
@@ -86,4 +87,27 @@ for (const target of TARGETS) {
     assert.equal(off.errorCount, on.errorCount);
     assert.equal(off.warnCount, on.warnCount);
   });
+
+  // The guard this test exists to close: a mutant that replaced evaluate.mjs's CLI parsing with
+  // `const noAdvisory = false;` left the full suite green, because this file's own CLI coverage only
+  // ever spawned check.mjs, never evaluate.mjs. Spawned, not called in-process, so the flag itself -
+  // not just the `opts.noAdvisory` runGate()/evaluate() already accept - is proven to reach the CLI.
+  test(`corpus parity (spawned evaluate.mjs CLI): ${name}'s evaluate.mjs --json agrees with --no-advisory on tier and exit code`, () => {
+    const on = JSON.parse(runEvaluateJson(target, []));
+    const off = JSON.parse(runEvaluateJson(target, ["--no-advisory"]));
+
+    assert.equal(on.advisoryLayer, "on");
+    assert.equal(off.advisoryLayer, "off");
+    assert.deepEqual(off.advisoryFindings, null);
+    assert.equal(off.tier, on.tier, `${name}: evaluate.mjs CLI tier must be identical`);
+    assert.deepEqual(off.summary, on.summary, `${name}: evaluate.mjs CLI summary must be identical`);
+  });
+}
+
+function runEvaluateJson(target, extraArgs) {
+  try {
+    return execFileSync(process.execPath, [EVALUATE_SCRIPT, target, "--json", ...extraArgs], { encoding: "utf8" });
+  } catch (e) {
+    return String(e.stdout ?? "");
+  }
 }

@@ -67,6 +67,7 @@ import { CHECKS } from "./registry.mjs";
 import { isAboveDeclaredTier, tierForReq } from "./tier.mjs";
 import { LIMITATIONS_URL } from "./tier-scope.mjs";
 import { metaFor } from "./report-meta.mjs";
+import { ADVISORY_REGISTRY } from "./advisory-registry.mjs";
 
 const TOOL_NAME = "agent-skills-toolkit";
 const TOOL_INFO_URI = "https://github.com/product-on-purpose/agent-skills-toolkit";
@@ -113,7 +114,11 @@ function normalizeMessage(message) {
  *  (rather than naive string concatenation) keeps field boundaries from shifting into each other - a
  *  file named "12" and a line of 3 must not hash the same as a file named "1" and a line of 23. */
 function fingerprintFinding(f) {
-  const rule = f.reqId ?? f.check ?? "";
+  // An advisory finding's `reqId` is always null (advisory-registry.mjs) and its `check` is whatever
+  // string the module happened to use internally, which carries no uniqueness guarantee across advisory
+  // modules the way a reqId does across spine checks - `advisoryId` (ADV1-ADV4, unique per registry
+  // entry) is the correct identity for it and is checked first.
+  const rule = f.advisoryId ?? f.reqId ?? f.check ?? "";
   const file = toUri(f.file);
   const line = f.line != null ? String(f.line) : "";
   const discriminator = f.key != null ? String(f.key) : normalizeMessage(f.message);
@@ -196,6 +201,23 @@ function buildResults(findings, declaredTier) {
   return out;
 }
 
+/** One reportingDescriptor per ADV1-ADV4 registry entry (ADR 0063 sec 2), alongside the spine's own
+ *  rules from buildRules() above, so a SARIF consumer resolving `ruleId` for an advisory result finds a
+ *  real descriptor instead of an orphan id. Carries the registry's own `provenance` property, the same
+ *  shape buildRules() gives a spine check, so a consumer filters both the same way. The real module
+ *  list is empty today (no ADV screen ships yet - see advisory-registry.mjs), so this reflects the
+ *  METADATA the registry declares, independent of whether any module for that id has run. */
+function buildAdvisoryRules() {
+  return ADVISORY_REGISTRY.map((a) => ({
+    id: a.advisoryId,
+    name: a.title,
+    shortDescription: { text: a.title },
+    fullDescription: { text: a.title },
+    helpUri: LIMITATIONS_URL,
+    properties: { provenance: a.provenance, advisory: true },
+  }));
+}
+
 /**
  * One SARIF result per ADVISORY finding (ADR 0063 sec 1's rendering table): level is ALWAYS `note` -
  * never `isAboveDeclaredTier`-derived, because an advisory finding carries `reqId: null` and has no
@@ -245,7 +267,10 @@ export function renderSarif(ctx, r) {
             name: TOOL_NAME,
             informationUri: TOOL_INFO_URI,
             version: toolVersion(),
-            rules: buildRules(),
+            // The spine's own rules, plus one descriptor per ADV1-ADV4 registry entry (buildAdvisoryRules,
+            // above) so an advisory result's ruleId always resolves to a real reportingDescriptor, whether
+            // or not any module for that id has shipped or run yet.
+            rules: [...buildRules(), ...buildAdvisoryRules()],
           },
         },
         // ADR 0063 sec 1: advisory results are APPENDED, never merged into or re-derived from the
@@ -255,6 +280,11 @@ export function renderSarif(ctx, r) {
         properties: {
           standard: ctx?.library?.data?.standard ?? null,
           declaredTier: ctx?.library?.data?.tier ?? null,
+          // ADR 0063: lets a SARIF consumer tell "the advisory layer ran and found nothing" ("on", zero
+          // askit/advisory results) from "the layer was switched off" ("off") - the same distinction
+          // advisory-count already makes on the Action's own outputs (gha-action-outputs.mjs). `null`
+          // when `r` carries no advisoryLayer at all (a caller that predates this field).
+          advisoryLayer: r.advisoryLayer ?? null,
         },
       },
     ],

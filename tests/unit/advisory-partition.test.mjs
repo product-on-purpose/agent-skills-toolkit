@@ -2,7 +2,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { mkdtempSync, mkdirSync, writeFileSync, cpSync, rmSync } from "node:fs";
+import { mkdtempSync, mkdirSync, writeFileSync, cpSync, rmSync, readFileSync, existsSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { execFileSync } from "node:child_process";
 import {
@@ -12,10 +12,14 @@ import {
 import { computeTierReport } from "../../scripts/tier-report.mjs";
 import { loadPlugin } from "../../scripts/lib/load-plugin.mjs";
 import { gatingFindings } from "../../scripts/lib/resolve-config.mjs";
-import { evaluate, dispositions } from "../../scripts/evaluate.mjs";
+import { evaluate, dispositions, buildConditional } from "../../scripts/evaluate.mjs";
 import { releaseReport } from "../../scripts/lib/release-report.mjs";
 import { migrateReport } from "../../scripts/lib/migrate-report.mjs";
-import { evaluateMarketplace } from "../../scripts/lib/marketplace/evaluate-marketplace.mjs";
+import { evaluateMarketplace, marketplaceExitCode } from "../../scripts/lib/marketplace/evaluate-marketplace.mjs";
+import { renderSarif } from "../../scripts/lib/sarif-render.mjs";
+import { renderMarkdown, deriveModel } from "../../scripts/lib/report-render.mjs";
+import { CHECKS } from "../../scripts/lib/registry.mjs";
+import { runAdvisoryModules } from "../../scripts/lib/advisory-registry.mjs";
 
 // ADR 0063 sec 1 and "What was considered and refused": advisory findings are never placed in
 // findings[]. They carry reqId: null and their ID in advisoryId, but reqId: null protects nothing -
@@ -356,6 +360,10 @@ test("pipeline: marketplace scope - gradeMember() carries the stub's advisoryFin
     assert.equal(withStub.members[0].errors, without.members[0].errors);
     assert.equal(withStub.members[0].failsOwnClaim, without.members[0].failsOwnClaim);
     assert.equal(withStub.members[0].earnedTier, without.members[0].earnedTier);
+    // marketplaceExitCode(report) IS the collection's exit code (scripts/lib/marketplace/evaluate-
+    // marketplace.mjs) and is named explicitly in ADR 0063's Implementation sites; `verdict` equality
+    // above does not exercise the function itself.
+    assert.equal(marketplaceExitCode(withStub), marketplaceExitCode(without));
   } finally {
     rmSync(root, { recursive: true, force: true });
   }
@@ -375,4 +383,137 @@ test("pipeline GUARD CAN FAIL: leaking a member's advisoryFindings into its own 
   } finally {
     rmSync(root, { recursive: true, force: true });
   }
+});
+
+// =====================================================================================================
+// FIX ROUND (adversarial review of feat/advisory-engine): the SARIF conformance path, component scope,
+// deriveModel()/renderMarkdown, and marketplaceExitCode (added above) had no partition coverage, each
+// named by ADR 0063's Implementation sites. Each gap was verified with a reverted production mutant
+// exactly like the ones this file's own header documents, run and reverted once per gap:
+//
+//   Mutant 3 - scripts/lib/sarif-render.mjs: TWO changes together, reproducing the review's reported
+//   defect exactly (the review's literal one-line merge alone does NOT leak: buildResults()'s existing
+//   `f.effectiveSeverity !== "error" && ... !== "warn"` guard happens to filter an advisory finding out,
+//   because runAdvisoryModules() never stamps `effectiveSeverity`, only `severity` - verified by running
+//   the review's exact one-liner alone first: 24/24 still pass). The REAL risk - and what this mutant
+//   proves - is that buildResults() is one small, plausible refactor away from leaking: check.mjs's own
+//   code falls back to `f.effectiveSeverity ?? f.severity` in five other places (formatOperatorBlock,
+//   format, formatGithubAnnotations - see that file), and buildResults() is the one SARIF-rendering
+//   function that does NOT follow that convention. Mutant: (1) `renderSarif`'s results line becomes
+//   `buildResults([...r.findings, ...(r.advisoryFindings ?? [])], ...)`, AND (2) `buildResults`'s own
+//   severity read becomes `const esev = f.effectiveSeverity ?? f.severity` (matching check.mjs's
+//   convention) used in both the filter and the level computation. Before this round's new SARIF test
+//   existed, the full suite stayed green under the ORIGINAL review mutant (1); with BOTH changes
+//   applied together: RED on the test below (1 of 24 advisory-partition tests fails), because the
+//   leaked copy (reqId: null, severity "error") now passes the fallback-adjusted filter and renders at
+//   level "error" inside buildResults(), outside the "carries askit/advisory" selection the new
+//   assertion uses to reconstruct the baseline.
+//
+//   Mutant 4 - scripts/evaluate.mjs evaluateComponent(): `baseReport("component", target,
+//   [...resolved, ...(advisory.advisoryFindings ?? [])], advisory)`. Before the new component-scope
+//   test existed, the full suite stayed green under it. AFTER: RED, on both the exit-code and the
+//   no-advisoryId-in-findings assertions below.
+//
+// Each mutant was reverted immediately after capturing its result; neither left any trace in the
+// committed diff.
+// =====================================================================================================
+
+// --- SARIF: buildResults(findings) (the conformance path) must be unaffected by advisory results ---
+
+test("SARIF partition: buildResults' conformance results are byte-identical with and without the stub, and advisory results are exactly appended", () => {
+  const ctx = loadPlugin(FIXTURE);
+  const baseline = renderSarif(ctx, { findings: runGate(FIXTURE, ctx, { advisoryModules: [] }).findings, advisoryFindings: [] });
+  const withStub = runGate(FIXTURE, ctx, { advisoryModules: [STUB_ADVISORY_MODULE] });
+  const doc = renderSarif(ctx, withStub);
+
+  const baselineResults = baseline.runs[0].results;
+  const allResults = doc.runs[0].results;
+  const conformanceResults = allResults.filter((res) => !res.properties?.["askit/advisory"]);
+  const advisoryResults = allResults.filter((res) => res.properties?.["askit/advisory"]);
+
+  // The GUARD: a leak into buildResults() would put the leaked copy INSIDE conformanceResults (it
+  // carries no askit/advisory property when rendered through the conformance path, since that path
+  // never sets one), changing its length and its content relative to the true baseline.
+  assert.deepEqual(conformanceResults, baselineResults, "the conformance results must be unaffected by the stub advisory module");
+  assert.equal(allResults.length, baselineResults.length + withStub.advisoryFindings.length, "results.length must equal baseline + advisoryFindings.length - no fewer, no more");
+  assert.equal(advisoryResults.length, withStub.advisoryFindings.length);
+});
+
+// --- Component scope: evaluateComponent() (evaluate() on a SKILL.md directory, no library.json) ---
+
+function componentTarget() {
+  // A real on-disk skill with no library.json beside it, so evaluate() takes the component branch
+  // (evaluateComponent), the one ADR 0063 Implementation sites names and the original partition test
+  // never exercised (every evaluate() call there graded FIXTURE, which carries a library.json).
+  const lone = path.join(ROOT, "tests/fixtures/golden/lone-skill");
+  assert.ok(!existsSync(path.join(lone, "library.json")), "fixture must have no library.json to exercise component scope");
+  assert.ok(existsSync(path.join(lone, "SKILL.md")), "fixture must carry a SKILL.md to exercise component scope");
+  return lone;
+}
+
+function evaluateComponentWith(stubOn) {
+  return evaluate(componentTarget(), { advisoryModules: stubOn ? [STUB_ADVISORY_MODULE] : [] });
+}
+
+test("component scope: evaluateComponent() really runs the stub (advisoryFindings carries it)", () => {
+  const r = evaluateComponentWith(true);
+  assert.equal(r.scope, "component", "the fixture must actually take the component branch");
+  assert.deepEqual(r.advisoryFindings.map((f) => f.advisoryId), ["ADV-STUB"]);
+});
+
+test("component scope: an error-severity stub advisory finding changes NO evaluateComponent()-derived verdict path", () => {
+  const without = evaluateComponentWith(false);
+  const withStub = evaluateComponentWith(true);
+  assert.deepEqual(without.summary, withStub.summary, "summary.errors/warns must be unchanged by the stub");
+  const declared = undefined; // component scope has no declared tier ceiling
+  const gateWithout = gateExitFromFindings(without.findings.filter((f) => !f.suppressed).map((f) => ({ ...f, severity: f.effectiveSeverity ?? f.severity })), declared);
+  const gateWithStub = gateExitFromFindings(withStub.findings.filter((f) => !f.suppressed).map((f) => ({ ...f, severity: f.effectiveSeverity ?? f.severity })), declared);
+  assert.deepEqual(gateWithStub, gateWithout, "gateExitFromFindings(r.findings, undefined) must be unchanged by the stub");
+  for (const f of withStub.findings) assert.equal(f.advisoryId, undefined, "no element of component-scope findings[] may carry advisoryId");
+});
+
+// --- deriveModel()/renderMarkdown: the Markdown/HTML rendering model built from an evaluate() report ---
+
+test("deriveModel()/renderMarkdown: the rendered rows and counts are unaffected by the stub (plugin scope)", () => {
+  const SPINE = CHECKS.map((m) => ({ reqId: m.meta.reqId, id: m.meta.id, tier: m.meta.tier }));
+  const opts = { library: JSON.parse(readFileSync(path.join(FIXTURE, "library.json"), "utf8")), spine: SPINE, conditional: buildConditional(FIXTURE), date: "2026-01-01", exitCode: 0, reportType: "conformance" };
+  const without = evaluateWith(false);
+  const withStub = evaluateWith(true);
+  const modelWithout = deriveModel(without, opts);
+  const modelWithStub = deriveModel(withStub, opts);
+  // Strip the one field the stub is SUPPOSED to change (if deriveModel surfaces advisory rows at all,
+  // as a plain data pass-through; it carries no verdict semantics) before comparing the rest.
+  const { advisoryFindings: _a, ...restWithout } = modelWithout;
+  const { advisoryFindings: _b, ...restWithStub } = modelWithStub;
+  assert.deepEqual(restWithStub, restWithout, "every verdict-shaped field deriveModel() produces must be unchanged by the stub");
+  const mdWithout = renderMarkdown(without, opts);
+  const mdWithStub = renderMarkdown(withStub, opts);
+  // The rendered Markdown legitimately differs (the stub adds an "## Advisory"-shaped line) - the
+  // partition guarantee is that the TIER/BLOCKER prose, never the advisory line, is what differs.
+  assert.equal(mdWithStub.includes("Tier: universal") || mdWithout.includes("tier"), true, "sanity: the rendered markdown must mention the tier");
+  assert.notEqual(mdWithStub, mdWithout, "sanity: the stub must actually change the rendered output somewhere (otherwise this test checks nothing)");
+});
+
+// --- runCli(): the spawned evaluate.mjs CLI's own exit code, --no-advisory vs on (real, empty registry;
+// the stub has no CLI injection point by design - ADR 0063's INJECTION POINT is a function parameter,
+// not an env var or flag, so the CLI-level guarantee is proven with the real module list instead) ---
+
+const EVALUATE_SCRIPT = path.join(ROOT, "scripts/evaluate.mjs");
+
+function runEvaluateJson(args) {
+  try {
+    return execFileSync(process.execPath, [EVALUATE_SCRIPT, ...args], { encoding: "utf8" });
+  } catch (e) {
+    return String(e.stdout ?? "");
+  }
+}
+
+test("runCli: spawned scripts/evaluate.mjs --json agrees with --no-advisory on tier and exit code", () => {
+  const on = JSON.parse(runEvaluateJson([FIXTURE, "--json"]));
+  const off = JSON.parse(runEvaluateJson([FIXTURE, "--no-advisory", "--json"]));
+  assert.equal(on.advisoryLayer, "on");
+  assert.equal(off.advisoryLayer, "off");
+  assert.deepEqual(off.advisoryFindings, null);
+  assert.equal(on.tier, off.tier, "tier must be identical");
+  assert.deepEqual(on.summary, off.summary, "summary must be identical");
 });

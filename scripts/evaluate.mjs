@@ -15,7 +15,7 @@ import { computeTierReport } from "./tier-report.mjs";
 import { checkAgentskills } from "./checks/agentskills.mjs";
 import { finding, SEVERITY, isOperatorFinding } from "./lib/findings.mjs";
 import { readJsonSafe, SKIP_DIRS, normalizeArgPath } from "./lib/fs-utils.mjs";
-import { gateExitFromFindings, newerStandardNotice, computeAdvisoryLayer } from "./check.mjs";
+import { gateExitFromFindings, newerStandardNotice, computeAdvisoryLayer, formatAdvisorySection } from "./check.mjs";
 import { shippedStandardEdition } from "./lib/shipped-standard.mjs";
 
 function groupByRule(findings) {
@@ -182,6 +182,12 @@ export function formatReport(r) {
   }
   if (r.tier !== undefined) lines.push(`Tier: ${r.tier}`);
   lines.push(`${r.summary.errors} error(s), ${r.summary.warns} warning(s).`);
+  // ADR 0063 sec 1: the same "section of its own, after the conformance findings" check.mjs's text
+  // output already gives the advisory layer (formatAdvisorySection, scripts/check.mjs) - reused here
+  // rather than re-implemented, so the two CLIs render one advisory finding identically. "" (nothing
+  // printed) when the layer is off (advisoryFindings null) or on with nothing found (empty array).
+  const advisorySection = formatAdvisorySection(r.advisoryFindings);
+  if (advisorySection) lines.push(advisorySection);
   if (r.dispositions) {
     const d = r.dispositions;
     lines.push(`Real issues (objective + vendor-cited errors): ${d.realIssues}`);

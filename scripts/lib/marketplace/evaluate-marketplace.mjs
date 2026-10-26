@@ -11,7 +11,7 @@ import path from "node:path";
 import { existsSync, statSync } from "node:fs";
 import { loadPlugin } from "../load-plugin.mjs";
 import { listCommandFiles } from "../fs-utils.mjs";
-import { runGate } from "../../check.mjs";
+import { runGate, formatAdvisorySection } from "../../check.mjs";
 import { computeTierReport } from "../../tier-report.mjs";
 import { finding, SEVERITY } from "../findings.mjs";
 import { readMarketplaceManifest, looksLikeMarketplaceOfSkills, MANIFEST_REL } from "./manifest.mjs";
@@ -368,6 +368,13 @@ export function formatMarketplaceReport(r) {
       `  [${m.failsOwnClaim ? "FAILS OWN CLAIM" : "ok"}] ${label}: ${claim}; ${m.errors} error(s), ${m.warns} warning(s), Standard debt ${m.standardDebt}` +
       ` | pin ${short(m.pinSha)} entry ${m.entryVersion ?? "-"} graded ${short(m.gradedSha)}${m.diverged ? " DIVERGED" : ""}`
     );
+    // ADR 0063: the member's own advisory findings, the same "section of its own" check.mjs and
+    // evaluate.mjs give a single plugin, rendered per member so a catalogue's text output does not lose
+    // the layer just because it is grading several plugins at once. "" (nothing printed) when the
+    // member's own gate never ran (an unresolved/errored member: advisoryFindings is null) or ran and
+    // found nothing.
+    const memberAdvisory = formatAdvisorySection(m.advisoryFindings);
+    if (memberAdvisory) lines.push(memberAdvisory);
   }
   if (r.findings.length) {
     lines.push("");
