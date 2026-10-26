@@ -84,13 +84,18 @@ cannot reach into a run's prose summary for credit.
 ```mermaid
 flowchart TD
     F["one advisory finding"] --> L{"engages a defect entry?"}
-    L -- "more than one" --> RR["REVIEW_REQUIRED"]
+    L -- "more than one" --> MULTI["rule (a'): test each engaged entry on its own"]
+    MULTI --> MC{"any entry auto-creditable?"}
+    MC -- "none" --> MRR["REVIEW_REQUIRED, mandatory adjudication"]
+    MC -- "at least one" --> MD{"already satisfied?"}
+    MD -- "all already satisfied" --> MDUP["DUPLICATE, still mandatory adjudication"]
+    MD -- "a fresh entry credited" --> MTP["TRUE POSITIVE, still mandatory adjudication"]
     L -- "none" --> B{"bait or out of scope?"}
     B -- "bait" --> FP["FALSE POSITIVE"]
     B -- "out of scope" --> OOS["excluded from both formulas"]
     B -- "neither" --> FPP["FALSE POSITIVE (provisional, adjudicated)"]
     L -- "exactly one" --> M{"mode"}
-    M -- "semantic" --> RR
+    M -- "semantic" --> RR["REVIEW_REQUIRED"]
     M -- "auto" --> V{"verification"}
     V -- "not required" --> TP["TRUE POSITIVE"]
     V -- "required" --> C{"correct vs confabulation"}
@@ -103,9 +108,19 @@ flowchart TD
     PART --> MISS
 ```
 
-`precision = TP / (TP + FP)` and `recall = TP / (number of planted defects)`. Duplicates collapse, so
-the count of true positives equals the count of satisfied entries and `TP / (TP + misses)` is the same
-number; a scorer computes both and a disagreement means the duplicate rule was applied wrongly.
+A multi-entry engagement (ADR 0065, rule (a')) is never resolved to CONFABULATION or PARTIAL for one
+entry: an engaged entry that fails its own correct/confabulation test simply stays uncredited, because
+the finding may still correctly describe a different entry it also engages. A `mode: semantic` entry
+is never auto-credited, on a single-entry engagement or a multi-entry one, and every multi-entry
+engagement lands on the adjudication worklist whether or not anything was credited.
+
+`precision = TP findings / (TP + FP) scored claims` and `recall = satisfied entries / (number of
+planted defects)`. These stopped being the same shape as "true positives / planted defects" once rule
+(a') shipped: a single multi-entry finding can satisfy more than one entry at once (for example, one
+finding crediting both SD-03 and SD-07), so the count of true-positive findings and the count of
+satisfied entries can differ. The harness reports both `recall` (satisfied entries / planted defects)
+and `recallByMisses` (satisfied entries / (satisfied entries + misses)), computed from the same
+satisfied-entries count, and a disagreement between them means the duplicate rule was applied wrongly.
 Partials, review-required items and out-of-scope items are reported separately, never hidden.
 
 One extra rate is reported because it is the direct measurement of reading 17: **falseVerifiedRate**,
@@ -216,30 +231,41 @@ transcribed into [eval-runs.md](eval-runs.md) as measured cells:
 
 | Simulated run | Shape | Scores |
 | --- | --- | --- |
-| [`simulated-runs/strong-frontier.advisory.json`](../../../tests/fixtures/anti/seeded-defects/simulated-runs/strong-frontier.advisory.json) | catches all eight auto-scorable defects, states the semantic one correctly, makes no false claim, adds one house-scaffolding recommendation | precision **1.00**, recall **0.89** PROVISIONAL, noise 0.10, false-verified 0.00 |
+| [`simulated-runs/strong-frontier.advisory.json`](../../../tests/fixtures/anti/seeded-defects/simulated-runs/strong-frontier.advisory.json) | catches all eight auto-scorable defects, states the semantic one correctly, makes no false claim, adds one house-scaffolding recommendation | precision **1.00**, recall **0.62** PROVISIONAL, noise 0.10, false-verified 0.00 |
 | [`simulated-runs/reading-17-cheap.advisory.json`](../../../tests/fixtures/anti/seeded-defects/simulated-runs/reading-17-cheap.advisory.json) | four confabulations plus one bait claim, every one marked `verified` | precision **0.00**, recall **0.00**, nine misses, false-verified **1.00** |
 
 Three REAL runs are also tracked, under `recorded-runs/2026-08-04/`: the E13 model-triple batch
 (sensor reading 26), moved here from the gitignored `_local/` tree so the regression that
 [ADR 0065](../decisions/0065-a-multi-entry-finding-earns-credit-only-where-its-own-correct-clause-verifies.md)'s
-implementation needs does not depend on a path a clean checkout does not have. Scored against key
-1.1.0 under the zero-credit baseline still shipped at this writing (`engaged.length > 1` ->
-`review-required`, credited to no entry), these reproduce the batch 2026-08-04 figures exactly:
+implementation needs does not depend on a path a clean checkout does not have. When these were first
+moved here, they were scored under the zero-credit baseline this project shipped at the time
+(`engaged.length > 1` -> `review-required`, credited to no entry) and reproduced the batch 2026-08-04
+figures exactly under that baseline. **Rule (a') has since shipped** (ADR 0065; `classifyFinding` and
+`scoreAdvisory` in `scripts/lib/advisory-score.mjs`), so these three recorded runs now score under rule
+(a') instead, and the zero-credit figures that used to sit in this table are superseded and removed
+here per the RS-B1 criterion 5 publication gate (no detection-rate, precision, recall or
+model-ranking figure in `docs/**` ahead of that criterion closing). The ruled recall figures
+(regression-tested in `tests/unit/advisory-score.test.mjs`, section 9) live in
+[ADR 0065](../decisions/0065-a-multi-entry-finding-earns-credit-only-where-its-own-correct-clause-verifies.md)
+and the [RS-B1 row](../roadmap.md) of the roadmap, not duplicated here.
 
-| Recorded run | Precision | Recall |
-| --- | --- | --- |
-| [`recorded-runs/2026-08-04/haiku-high-advisory.json`](../../../tests/fixtures/anti/seeded-defects/recorded-runs/2026-08-04/haiku-high-advisory.json) | 0.83 | 0.38 |
-| [`recorded-runs/2026-08-04/sonnet-high-advisory.json`](../../../tests/fixtures/anti/seeded-defects/recorded-runs/2026-08-04/sonnet-high-advisory.json) | 1.00 | 0.54 |
-| [`recorded-runs/2026-08-04/opus-high-advisory.json`](../../../tests/fixtures/anti/seeded-defects/recorded-runs/2026-08-04/opus-high-advisory.json) | 1.00 | 0.62 |
+> **Record note for the maintainer:** RS-B1 criterion 5 itself (the grep whose empty result is the
+> evidence that no named surface carries a behavioral figure) has not been run or recorded as evidence
+> anywhere this branch touched. ADR 0065, the RS-B1 section of `docs/internal/roadmap.md` and
+> `docs/internal/eval-runs/eval-runs.md` already carry the ruled and recorded figures, so a literal
+> grep over `docs/**` for a recall or precision number is non-empty today. Whoever closes criterion 5
+> needs to either name those three locations as the intended exception (the ADR record, the roadmap
+> ruling, and `eval-runs.md`'s own recorded-batch table) or decide the gate means something narrower
+> than "nowhere in `docs/**`". This increment did not change that; it only stopped adding a fourth
+> figure-bearing location.
 
 These are unchanged bytes from the archived advisories; no PII or machine path was found in any of the
-three, so none needed redaction. Once rule (a') ships (E16), re-scoring these three against the same
-key is how its recall numbers (Haiku 0.46 / Sonnet 0.54 / Opus 0.92) get checked without redispatching
-a model.
+three, so none needed redaction.
 
-0.89 is the **auto ceiling**, not a shortfall: SD-06 is `semantic`, so eight of nine is the highest an
-auto score can report against this key. The harness prints the ceiling next to the recall so the two
-are never confused, and it marks any run carrying an unadjudicated item PROVISIONAL.
+The **auto ceiling** for key 1.1.0 is **0.92** (12 of 13), not a shortfall: SD-06 is `semantic`, so 12
+of 13 is the highest an auto score can report against this key. The harness prints the ceiling next to
+the recall so the two are never confused, and it marks any run carrying an unadjudicated item
+PROVISIONAL.
 
 Two rulings the key does not state, made in the harness and recorded here:
 
