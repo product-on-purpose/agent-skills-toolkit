@@ -44,6 +44,18 @@
 // "024" -> Number("024") === 24, coincidentally matching a real count of 24 and passing as
 // agreement). extractLabeledCounts reads the complete grouped number and normalizes the thousands
 // separator before comparing.
+//
+// Scope note, E90 (fixed 2026-10-25): every spine-size comparison - the `## Status` section's "N
+// checks" claim above, AND the present-tense SPINE_CLAIM scan over tracked docs below - runs ONLY
+// when `lib.name === "agent-skills-toolkit"`, the same gate the "at least 5 files" floor check
+// already used. `CHECKS.length` is this toolkit's OWN validation-spine size; it is not a number any
+// other plugin's docs are making a claim about. A third-party plugin's own "N-check gate" or "N
+// checks" names ITS OWN pipeline or gate step count, which has nothing to do with this registry, so
+// comparing the two compares unrelated numbers. Found 2026-10-25 moving product-lifecycle-templates
+// to Standard 0.17: its SKILL.md's "an 11-check gate" (its own bundle-gate step count) was reported
+// as disagreeing with this registry's 35. For a third-party-plugin repository the comparison is
+// skipped entirely, not loosened or redirected at a different number - a third party's own count is
+// a claim about its own gate, and this script has no basis for a claim about that.
 import { readFileSync, existsSync, readdirSync } from "node:fs";
 import { execFileSync } from "node:child_process";
 import path from "node:path";
@@ -220,10 +232,16 @@ if (declaredSkills != null) {
 // 4. The declared spine size must match the check registry. Same matchAll-over-all-occurrences
 // treatment as the skill count above, and the same reasoning: disagreement fails, repetition of the
 // same correct number does not.
+//
+// Scoped to this repository by name (E90; see the header docblock's scope note) for the same
+// reason the spine-claim floor check below already is: CHECKS.length is this toolkit's own
+// validation-spine size, and a third-party plugin's own "N checks" claim is about something else.
 const spineSize = CHECKS.length;
-for (const c of extractLabeledCounts(statusBody, "checks")) {
-  if (c.count !== spineSize) {
-    failures.push(`README.md  "## Status" claims a ${c.raw} spine; the registry has ${spineSize}`);
+if (lib?.name === "agent-skills-toolkit") {
+  for (const c of extractLabeledCounts(statusBody, "checks")) {
+    if (c.count !== spineSize) {
+      failures.push(`README.md  "## Status" claims a ${c.raw} spine; the registry has ${spineSize}`);
+    }
   }
 }
 
@@ -326,27 +344,34 @@ function walkMarkdown(root) {
   return out;
 }
 
+// Scoped to this repository by name, same reasoning as the spine-claim floor check below (and the
+// Status-section spine check above): see the E90 scope note in the header docblock. Third-party
+// counts are about their own gate, not this toolkit's spine, so the comparison is skipped entirely
+// for them, reusing the same `lib.name` scoping the floor check below already uses rather than
+// inventing a second scoping mechanism.
 const spineClaimFiles = [];
-for (const rel of tracked) {
-  const native = rel.split("/").join(path.sep);
-  if (HISTORICAL.some((h) => native === h || native.startsWith(h + path.sep))) continue;
-  const full = path.join(dir, native);
-  if (!existsSync(full)) continue;
-  const text = readFileSync(full, "utf8");
-  let sawClaim = false;
-  for (const re of SPINE_CLAIM) {
-    for (const m of text.matchAll(re)) {
-      sawClaim = true;
-      if (normalizeCount(m[1]) !== spineSize) {
-        failures.push(`${rel}  claims "${m[0]}"; the registry has ${spineSize}`);
+if (lib?.name === "agent-skills-toolkit") {
+  for (const rel of tracked) {
+    const native = rel.split("/").join(path.sep);
+    if (HISTORICAL.some((h) => native === h || native.startsWith(h + path.sep))) continue;
+    const full = path.join(dir, native);
+    if (!existsSync(full)) continue;
+    const text = readFileSync(full, "utf8");
+    let sawClaim = false;
+    for (const re of SPINE_CLAIM) {
+      for (const m of text.matchAll(re)) {
+        sawClaim = true;
+        if (normalizeCount(m[1]) !== spineSize) {
+          failures.push(`${rel}  claims "${m[0]}"; the registry has ${spineSize}`);
+        }
       }
     }
+    for (const m of text.matchAll(SPELLED_SPINE)) {
+      sawClaim = true;
+      failures.push(`${rel}  spells a spine count as a word ("${m[0]}"); write the digit so this guard can read it`);
+    }
+    if (sawClaim) spineClaimFiles.push(rel);
   }
-  for (const m of text.matchAll(SPELLED_SPINE)) {
-    sawClaim = true;
-    failures.push(`${rel}  spells a spine count as a word ("${m[0]}"); write the digit so this guard can read it`);
-  }
-  if (sawClaim) spineClaimFiles.push(rel);
 }
 
 // Guard the guard. If the scan silently matches nothing - a rephrase that drifts out of all four canonical
@@ -461,6 +486,12 @@ if (failures.length > 0) {
   process.exit(1);
 }
 
+// The spine-size figure in this line is THIS toolkit's own registry count (see the E90 scope note
+// above); for a third-party plugin it was never compared against anything, so the line says so
+// instead of printing a number that reads as a verified claim about that plugin's own docs.
+const spineSuffix = lib?.name === "agent-skills-toolkit"
+  ? `, ${spineSize} checks`
+  : ", spine-size claims not checked (not agent-skills-toolkit)";
 process.stdout.write(
-  `check-readme-version: OK (version ${libVersion}, ${declaredSkills ?? "?"} skills, ${spineSize} checks)\n`
+  `check-readme-version: OK (version ${libVersion}, ${declaredSkills ?? "?"} skills${spineSuffix})\n`
 );

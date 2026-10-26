@@ -19,9 +19,9 @@ const SPINE_SIZE = CHECKS.length;
 // libTier / statusTier default to undefined (no tier field in library.json, no Tier bullet in
 // Status): every existing call site that omits them keeps behaving exactly as before, since the
 // tier guard only activates when library.json actually declares a tier.
-function mkFixture(libVersion, badgeVersion, { statusVersion = libVersion, extraStatus = "", libTier, statusTier } = {}) {
+function mkFixture(libVersion, badgeVersion, { statusVersion = libVersion, extraStatus = "", libTier, statusTier, name = "test-lib" } = {}) {
   const dir = mkdtempSync(path.join(tmpdir(), "askit-readme-"));
-  const lib = { name: "test-lib", version: libVersion };
+  const lib = { name, version: libVersion };
   if (libTier !== undefined) lib.tier = libTier;
   writeFileSync(path.join(dir, "library.json"), JSON.stringify(lib), "utf8");
   const badgeLine = badgeVersion
@@ -142,8 +142,10 @@ test("check-readme-version: still reads Status when it is the LAST section in th
 
 test("check-readme-version: exits 1 when the Status section misstates the spine size", () => {
   // The spine count is read from the live check registry, so a README claiming a stale number fails
-  // without anyone having to remember to update a second list.
-  const dir = mkFixture("5.0.0", "5.0.0", { extraStatus: "- **Validation spine** - 1 checks.\n" });
+  // without anyone having to remember to update a second list. Scoped to this toolkit by name (E90):
+  // the registry CHECKS.length is THIS toolkit's own spine, so this comparison applies only when the
+  // graded repository IS this toolkit; see the E90 tests below for the third-party case.
+  const dir = mkFixture("5.0.0", "5.0.0", { name: "agent-skills-toolkit", extraStatus: "- **Validation spine** - 1 checks.\n" });
   try {
     const r = spawnSync(process.execPath, [SCRIPT, dir], { encoding: "utf8" });
     assert.equal(r.status, 1, "a wrong spine count must fail");
@@ -333,7 +335,9 @@ test("check-readme-version: exits 0 when the Status section repeats the SAME cor
 });
 
 test("check-readme-version: exits 1 when the Status section carries two contradictory spine-size claims", () => {
+  // Scoped to this toolkit by name (E90); see note above.
   const dir = mkFixture("18.0.0", "18.0.0", {
+    name: "agent-skills-toolkit",
     extraStatus: "- **Validation spine** - 30 checks.\n- **Also** - 1 checks, elsewhere.\n",
   });
   try {
@@ -382,7 +386,9 @@ test("check-readme-version: exits 1 when a second skill-count claim is a false g
 });
 
 test("check-readme-version: exits 1 when a second checks-count claim is a false grouped total (\"1,030 checks\" against a 30-check spine)", () => {
+  // Scoped to this toolkit by name (E90); see note above.
   const dir = mkFixture("20.0.0", "20.0.0", {
+    name: "agent-skills-toolkit",
     extraStatus: "- **Validation spine** - 30 checks.\n- **Also** - 1,030 checks, elsewhere.\n",
   });
   try {
@@ -633,6 +639,109 @@ test('a page that stops stating the range at all is reported, not silently passe
     const r = spawnSync(process.execPath, [SCRIPT, dir], { encoding: 'utf8' });
     assert.equal(r.status, 1);
     assert.match((r.stdout ?? '') + (r.stderr ?? ''), /no longer states the universal range/);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+// ---------------------------------------------------------------------------
+// E90: the spine-size comparison must not run against a THIRD-PARTY plugin's own gate-count claim.
+//
+// Found 2026-10-25 moving product-lifecycle-templates to Standard 0.17: that plugin's CI runs this
+// script, whose SPINE_CLAIM scan matched its SKILL.md's "an 11-check gate" - that plugin's own
+// bundle-gate step count, nothing to do with THIS registry - and reported it as disagreeing with
+// this registry's size. The adjacent "at least 5 files state the spine size" floor check was already
+// scoped to `lib.name === "agent-skills-toolkit"`; the per-match comparison above it was not. Fixed
+// by reusing that same scoping on the comparison itself, both for the tracked-files SPINE_CLAIM scan
+// and for the `## Status` section's own "N checks" claim.
+// ---------------------------------------------------------------------------
+
+test('E90: a third-party plugin\'s own "N-check gate" claim does not fail against this registry\'s spine size', () => {
+  const dir = mkdtempSync(path.join(tmpdir(), 'askit-e90-'));
+  try {
+    writeFileSync(
+      path.join(dir, 'library.json'),
+      JSON.stringify({ name: 'third-party-plugin', version: '1.0.0' }),
+      'utf8'
+    );
+    writeFileSync(
+      path.join(dir, 'README.md'),
+      '# T\n\n<img src="https://img.shields.io/badge/version-1.0.0-blue" alt="v">\n\n## Status\n\n- **Version** - `1.0.0`.\n',
+      'utf8'
+    );
+    mkdirSync(path.join(dir, 'skills', 'plt-fill-template'), { recursive: true });
+    writeFileSync(
+      path.join(dir, 'skills', 'plt-fill-template', 'SKILL.md'),
+      '# plt-fill-template\n\nRuns an 999-check gate before filling the template.\n',
+      'utf8'
+    );
+    const r = spawnSync(process.execPath, [SCRIPT, dir], { encoding: 'utf8' });
+    assert.equal(
+      r.status,
+      0,
+      'a third party\'s own gate-step count is a claim about ITS gate, never about this registry, so it must not be compared against spineSize'
+    );
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test('E90: a third-party plugin\'s "N checks" claim in its own Status section does not fail against this registry\'s spine size', () => {
+  const dir = mkFixture('2.0.0', '2.0.0', { extraStatus: '- **Gate** - 999 checks.\n' });
+  try {
+    const r = spawnSync(process.execPath, [SCRIPT, dir], { encoding: 'utf8' });
+    assert.equal(
+      r.status,
+      0,
+      'the Status-section spine comparison is scoped to this toolkit by name; a third party\'s own Status claim must pass untouched'
+    );
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test('E90: this repository\'s own stale spine claim still fails (a toolkit-named fixture with a wrong-count doc)', () => {
+  const dir = mkdtempSync(path.join(tmpdir(), 'askit-e90-own-'));
+  try {
+    writeFileSync(
+      path.join(dir, 'library.json'),
+      JSON.stringify({ name: 'agent-skills-toolkit', version: '9.9.9' }),
+      'utf8'
+    );
+    writeFileSync(
+      path.join(dir, 'README.md'),
+      [
+        '# T',
+        '',
+        '<img src="https://img.shields.io/badge/version-9.9.9-blue" alt="v">',
+        '',
+        '## Status',
+        '',
+        '- **Version** - `9.9.9`.',
+        '',
+      ].join('\n'),
+      'utf8'
+    );
+    mkdirSync(path.join(dir, 'docs', 'reference'), { recursive: true });
+    // Five tracked docs state the (correct) spine size so the floor check does not itself fail for
+    // an unrelated reason; a sixth, mutated doc states the WRONG spine size as its own claim.
+    for (let i = 0; i < 5; i += 1) {
+      writeFileSync(
+        path.join(dir, 'docs', 'reference', `spine-claim-${i}.md`),
+        `The spine is ${SPINE_SIZE} checks.\n`,
+        'utf8'
+      );
+    }
+    writeFileSync(
+      path.join(dir, 'docs', 'reference', 'mutated-spine-claim.md'),
+      `The spine is ${SPINE_SIZE + 1} checks.\n`,
+      'utf8'
+    );
+    const r = spawnSync(process.execPath, [SCRIPT, dir], { encoding: 'utf8' });
+    assert.equal(r.status, 1, 'a stale spine claim in this toolkit\'s own docs must still fail; the fix must not disable this repository\'s own guard');
+    const out = (r.stdout ?? '') + (r.stderr ?? '');
+    assert.match(out, /mutated-spine-claim\.md/, 'output must name the mutated file');
+    assert.match(out, new RegExp(`${SPINE_SIZE + 1} checks`), 'output must quote the stale claim');
   } finally {
     rmSync(dir, { recursive: true, force: true });
   }
