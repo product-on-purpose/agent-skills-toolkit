@@ -62,8 +62,8 @@ sensor reading 26 of 2026-08-04, recorded in
 
 Seven of Opus's twenty-three findings in that run were left `review-required` under key 1.1.0. Five of
 those seven engage two or more planted entries and are credited to none of them; one of the five
-engages three. The other two are single-entry cases: index 1 (`SD-03`, where the `correct` and
-`confabulation` clauses both match) and index 19 (`SD-06`, the semantic entry). The zero-credit
+engages three. The other two are single-entry cases: index 1 (`SD-03`, class `stale-doc-claim`, where
+the `correct` and `confabulation` clauses both match) and index 19 (`SD-06`, the semantic entry). The zero-credit
 baseline suppresses Opus's recall on key 1.1.0 (0.62). It does not suppress Opus's precision on that
 key, which is 1.00 under every rule considered here. Opus's precision suppression is measurable on
 key 1.0.0, where it scores 0.42 under zero credit and 0.50 under rule (a').
@@ -225,8 +225,8 @@ is recorded. Once the scorer change ships, these sites will carry the decision:
   - **Recall counts satisfied entries**: `satisfied.size / defects.length`. The current
     `truePositives / defects.length` gives the same number only while every true positive satisfies
     exactly one entry. Under rule (a') one finding can satisfy two. For example, Opus on key 1.1.0
-    has 11 true-positive findings but 12 satisfied entries, because its index 0 credits `SD-03` and
-    `SD-07`. Its precision is 11 of 11 and its recall is 12 of 13. The `recallByMisses` cross-check
+    has 11 true-positive findings but 12 satisfied entries, because its index 0 credits `SD-03` (class
+    `stale-doc-claim`) and `SD-07` (class `command-vs-skill-contradiction`). Its precision is 11 of 11 and its recall is 12 of 13. The `recallByMisses` cross-check
     must count entries as well (`satisfied.size / (satisfied.size + misses)`), or `recallAgrees` will
     report a false harness defect.
   - The `worklist` construction must place every multi-entry engagement on the mandatory adjudication
