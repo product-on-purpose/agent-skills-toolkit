@@ -118,6 +118,7 @@ additive presentation, never the grade itself.
 | `strict` | `false` | Grade against the full live Standard instead of the version your plugin pins. |
 | `node-version` | `24` | The Node version to set up. |
 | `summary` | `true` | Write a job summary - tier, counts, what blocks the next tier, and the top findings - to the run's **Summary** page. Set `false` to skip it. |
+| `advisory` | `true` | Run the deterministic ADV1-ADV4 advisory layer (ADR 0063, an advisory layer beside the tier). `false` passes `--no-advisory`; the layer's findings never affect `errors`, `warnings`, or the gate either way. |
 
 ## Outputs
 
@@ -128,6 +129,7 @@ additive presentation, never the grade itself.
 | `warnings` | `3` | Warnings, which never fail the gate. |
 | `operator-errors` | `0` | Problems with the **run**, not the plugin: an `askit.config.json` that does not load. Non-zero means the grade beside it was computed with default configuration, so read this before trusting a green `errors`. |
 | `sarif-path` | `/tmp/...sarif` | Empty unless `sarif: true`. |
+| `advisory-count` | `2` | Count of deterministic advisory findings (ADV1-ADV4); never affects `errors`, `warnings`, or the gate. Empty when the `advisory` input turned the layer off, not `0`. |
 
 The step's own exit status carries the same distinction: **1** means the plugin failed its declared
 tier, **2** means the run was misconfigured. With `fail-on-error: false` neither fails the build, which

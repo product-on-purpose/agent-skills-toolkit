@@ -230,6 +230,29 @@ test("renderHtml surfaces provenance in the section 05 evidence ledger", () => {
   assert.match(u6Row.slice(0, u6Row.indexOf("</div></div>") + 12), /house/, "the U6 ledger row must show its house provenance");
 });
 
+// ADR 0063 sec 1: "a section of its own, after the conformance findings" - rendered only when there is
+// something to show. No real ADV module ships yet, so this is exercised with a hand-built advisory
+// array spliced onto a real evaluate() report, rather than through a live fixture run.
+test("renderMarkdown and renderHtml render an Advisory section only when advisoryFindings is non-empty", () => {
+  const base = evaluate(SF);
+  const withFinding = { ...base, advisoryFindings: [{ advisoryId: "ADV1", provenance: "vendor-cited", message: "frontmatter key outside the Skills API whitelist", file: "skills/x/SKILL.md" }] };
+  const withoutFinding = { ...base, advisoryFindings: [] };
+
+  const mdWith = renderMarkdown(withFinding, optsFor(withFinding, SF));
+  const mdWithout = renderMarkdown(withoutFinding, optsFor(withoutFinding, SF));
+  assert.match(mdWith, /## 12 Advisory \(informational\)/);
+  assert.match(mdWith, /ADV1/);
+  assert.doesNotMatch(mdWithout, /## 12 Advisory/);
+
+  const htmlWith = renderHtml(withFinding, optsFor(withFinding, SF));
+  const htmlWithout = renderHtml(withoutFinding, optsFor(withoutFinding, SF));
+  assert.match(htmlWith, /id="s12"/);
+  assert.match(htmlWith, /href="#s12"/, "the TOC must link to the section when it exists");
+  assert.match(htmlWith, /ADV1/);
+  assert.doesNotMatch(htmlWithout, /id="s12"/);
+  assert.doesNotMatch(htmlWithout, /href="#s12"/);
+});
+
 // --- golden snapshots: the byte-for-byte regression lock (regenerate with UPDATE_SNAPSHOTS=1) ---
 
 const SNAP_DIR = path.join(FIXTURES, "golden/report-render");

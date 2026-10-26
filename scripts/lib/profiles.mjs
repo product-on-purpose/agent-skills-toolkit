@@ -6,6 +6,7 @@
 //               note sec 1); a profile removes it up front, deterministically, and is the opt-in home ADR
 //               0028 named for house preferences (a toggle, not a universal law)
 // used-by:      scripts/lib/config.mjs (validates the profile name), scripts/lib/resolve-config.mjs (applies it)
+import { HOUSE_ADVISORY_IDS } from "./advisory-registry.mjs";
 
 // The reqIds whose checks are askit-house conventions (provenance "house"): the askit manifest contract
 // (U1), the repo-root AGENTS.md anatomy file (U2) and the description-quality scorer (U5) - both
@@ -31,9 +32,16 @@ const offMap = (reqIds) => Object.freeze(Object.fromEntries(reqIds.map((r) => [r
 export const PROFILES = Object.freeze({
   // The identity profile (default): every rule keeps the severity its module declares. A no-op, so
   // selecting it (or omitting `profile`) reproduces the pre-F3 gate result byte for byte.
+  // Every profile also carries `advisoryOff`, ADR 0063 sec 1's per-profile advisory off-set: the ADV ids
+  // scripts/check.mjs drops from advisoryFindings under this profile, parallel to `rules`' per-reqId
+  // off-map but for the separate advisory layer. Identity for the two full-ladder profiles (nothing is
+  // house-provenance-exempt there); plain-plugin's is checked below for an exact match against
+  // HOUSE_ADVISORY_IDS by tests/unit/house-provenance.test.mjs, the same invariant ADR 0029 required
+  // for the spine's own house-provenance set.
   "askit-library": Object.freeze({
     description: "The full Bronze/Silver/Gold Advanced Skill Library Standard, as the modules declare it.",
     rules: Object.freeze({}),
+    advisoryOff: Object.freeze([]),
   }),
   // A lighter rubric: grade a vanilla plugin on the portable, vendor-grounded universal checks only
   // (the objective + vendor-cited set), turning the askit library-ladder and house checks off. This is
@@ -47,6 +55,11 @@ export const PROFILES = Object.freeze({
   "plain-plugin": Object.freeze({
     description: "Portable correctness only: the objective and vendor-grounded universal checks; the askit library-ladder (U1, U16, S1-S8) and Gold (G1-G10) checks off, and name-matches-dir (U4) advisory.",
     rules: Object.freeze({ ...offMap(HOUSE_REQIDS), U4: "warn" }),
+    // ADR 0063 sec 1: house-provenance advisory signals (ADV4 today) do not run under plain-plugin,
+    // for the same reason ADR 0029 turned off U1/U2/U5/U16 and the whole Convergent/Gold ladder there -
+    // grading a plugin you do not own on this repository's own conventions is illegitimate, and "a warn
+    // is still a finding in a published report" applies to an advisory finding too.
+    advisoryOff: HOUSE_ADVISORY_IDS,
   }),
   // The opt-in home ADR 0028 named for re-homed house preferences (e.g. a future dash rule). Empty in
   // v1.3.0 (no house check exists post-ADR-0028; the dash preference stays the shipped hooks/no-dashes.mjs
@@ -54,5 +67,6 @@ export const PROFILES = Object.freeze({
   "house-style": Object.freeze({
     description: "Opt-in house preferences (empty in v1.3.0; the slot ADR 0028 reserved for re-homed style rules).",
     rules: Object.freeze({}),
+    advisoryOff: Object.freeze([]),
   }),
 });

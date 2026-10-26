@@ -15,7 +15,7 @@ import { computeTierReport } from "./tier-report.mjs";
 import { checkAgentskills } from "./checks/agentskills.mjs";
 import { finding, SEVERITY, isOperatorFinding } from "./lib/findings.mjs";
 import { readJsonSafe, SKIP_DIRS, normalizeArgPath } from "./lib/fs-utils.mjs";
-import { gateExitFromFindings, newerStandardNotice } from "./check.mjs";
+import { gateExitFromFindings, newerStandardNotice, computeAdvisoryLayer, formatAdvisorySection } from "./check.mjs";
 import { shippedStandardEdition } from "./lib/shipped-standard.mjs";
 
 function groupByRule(findings) {
@@ -29,7 +29,12 @@ function groupByRule(findings) {
 
 const effSev = (f) => f.effectiveSeverity ?? f.severity; // resolved findings carry effectiveSeverity; unknown-scope findings fall back
 
-function baseReport(scope, target, findings) {
+// ADR 0063 sec 1: `advisoryLayer`/`advisoryFindings` default to "the layer did not run" (off/null)
+// rather than "on/empty", because baseReport() is also used for the "unknown" scope (not a plugin or a
+// skill), where there is no ctx to run a module against at all - "ran and found nothing" would be a
+// claim this function never made true. evaluate() and evaluateComponent() below compute the REAL
+// advisory result via computeAdvisoryLayer() and pass it in explicitly for plugin and component scope.
+function baseReport(scope, target, findings, advisory = { advisoryLayer: "off", advisoryFindings: null }) {
   return {
     scope,
     target,
@@ -39,6 +44,11 @@ function baseReport(scope, target, findings) {
       errors: findings.filter((f) => effSev(f) === "error" && !f.suppressed).length,
       warns: findings.filter((f) => effSev(f) === "warn" && !f.suppressed).length,
     },
+    // Namespaced and never merged into `findings`/`byRule` above - the identical partition runGate()
+    // keeps in scripts/check.mjs, for the identical reason (ADR 0063 sec 1: `reqId: null` does not
+    // protect a verdict path on its own; only the separate array does).
+    advisoryLayer: advisory.advisoryLayer,
+    advisoryFindings: advisory.advisoryFindings,
   };
 }
 
@@ -101,7 +111,11 @@ function evaluateComponent(target, opts = {}) {
   // Component scope has no library.json and therefore no pin: `pinned` stays undefined, so every version
   // constraint is inert and a single skill grades at full strength, exactly as it does today.
   const resolved = resolveFindings([...configFindings, ...checkAgentskills(ctx)], cfg, provenanceByReq(), { sinceByReq: SINCE_BY_REQ });
-  return { ...baseReport("component", target, resolved), profile: cfg.profile.value, mode: cfg.mode.value };
+  // ADR 0063: component scope runs the advisory layer too, honoring --no-advisory and the resolved
+  // profile's off-set exactly as plugin scope does (computeAdvisoryLayer is the one shared
+  // implementation - see its docblock in scripts/check.mjs).
+  const advisory = computeAdvisoryLayer(ctx, { noAdvisory: opts.noAdvisory, profile: cfg.profile.value, advisoryModules: opts.advisoryModules });
+  return { ...baseReport("component", target, resolved, advisory), profile: cfg.profile.value, mode: cfg.mode.value };
 }
 
 export function evaluate(target, opts = {}) {
@@ -133,8 +147,12 @@ export function evaluate(target, opts = {}) {
     const cfg = withGraderOptions(config, opts);
     const resolved = resolveFindings([...configFindings, ...raw], cfg, provenanceByReq(), { pinned: ctx.library?.data?.standard, sinceByReq: SINCE_BY_REQ });
     const t = computeTierReport(target, ctx, resolved);
+    // ADR 0063: the same shared advisory computation runGate() uses (scripts/check.mjs), so
+    // --no-advisory and a profile's house-provenance off-set behave IDENTICALLY whether a plugin is
+    // graded through check.mjs or through evaluate.mjs.
+    const advisory = computeAdvisoryLayer(ctx, { noAdvisory: opts.noAdvisory, profile: cfg.profile.value, advisoryModules: opts.advisoryModules });
     return {
-      ...baseReport("plugin", target, resolved),
+      ...baseReport("plugin", target, resolved, advisory),
       tier: t.tier, satisfies: t.satisfies, blocked: t.blocked,
       profile: cfg.profile.value, mode: cfg.mode.value,
       dispositions: dispositions(resolved),
@@ -164,6 +182,12 @@ export function formatReport(r) {
   }
   if (r.tier !== undefined) lines.push(`Tier: ${r.tier}`);
   lines.push(`${r.summary.errors} error(s), ${r.summary.warns} warning(s).`);
+  // ADR 0063 sec 1: the same "section of its own, after the conformance findings" check.mjs's text
+  // output already gives the advisory layer (formatAdvisorySection, scripts/check.mjs) - reused here
+  // rather than re-implemented, so the two CLIs render one advisory finding identically. "" (nothing
+  // printed) when the layer is off (advisoryFindings null) or on with nothing found (empty array).
+  const advisorySection = formatAdvisorySection(r.advisoryFindings);
+  if (advisorySection) lines.push(advisorySection);
   if (r.dispositions) {
     const d = r.dispositions;
     lines.push(`Real issues (objective + vendor-cited errors): ${d.realIssues}`);
@@ -311,8 +335,49 @@ export function applyAdvisory(base, report, adv = {}) {
 
 // Run the CLI as an async function (not a top-level await), so evaluate.mjs finishes evaluating before the
 // lazily-imported migrate-report / release-report modules import it back (avoids a cyclic top-level-await deadlock).
+// ADR 0063 sec 1 / sec 6: evaluate.mjs had no --help at all before this, so `agent-skills-toolkit
+// evaluate --help` (the bin dispatches "evaluate"'s own flags straight through, bin/agent-skills-
+// toolkit.mjs) silently fell through runCli()'s own argv parsing: "--help" matches no known flag, so
+// `rawTarget` stayed undefined and the CLI graded `process.cwd()` instead of printing anything - the
+// gap this text exists to close. The sentence distinguishing --no-advisory from --advisory <file.json>
+// is required by ADR 0063's Implementation sites ("the CLI... help says that --no-advisory and
+// --advisory <file.json> are unrelated"): the two flags share a word and nothing else - one is this
+// file's OWN switch for the deterministic ADV1-ADV4 layer, the other supplies an LLM's review/behavioral
+// block, and both can appear on one command line.
+function helpText() {
+  return `scripts/evaluate.mjs - the structured evaluator behind askit-evaluate
+
+Usage:
+  node scripts/evaluate.mjs [path] [flags]
+
+[path] defaults to the current directory.
+
+Flags:
+  --mode <local|published-verdict>   verdict mode (ADR 0044); default local
+  --profile <name>                   named severity profile (askit-library, plain-plugin, house-style)
+  --report <conformance|migration|release|review|behavioral>   which report object to build; default conformance
+  --target-tier <universal|convergent|advanced>   for --report=migration; default advanced
+  --format <text|json|md|html>       output format (--json is an alias for --format=json); default text
+  --out <file>                       write the rendered output to a file instead of stdout
+  --members <dir>                    (repeatable) a local checkout root to search for marketplace members
+  --no-advisory                      turn off the ADR 0063 deterministic ADV1-ADV4 advisory layer
+  --advisory <file.json>             supply the LLM-produced review/behavioral block for --report=review|behavioral
+  --help, -h                         show this help
+
+--no-advisory and --advisory <file.json> are UNRELATED flags that happen to share a word. --no-advisory
+turns off this file's own deterministic advisory layer (ADV1-ADV4, computed by this process, never a
+model); --advisory <file.json> supplies a SEPARATE, model-produced review or behavioral block for
+--report=review or --report=behavioral. Both may appear on the same command line at once.`;
+}
+
+// Run the CLI as an async function (not a top-level await), so evaluate.mjs finishes evaluating before the
+// lazily-imported migrate-report / release-report modules import it back (avoids a cyclic top-level-await deadlock).
 async function runCli() {
   const argv = process.argv.slice(2);
+  if (argv.includes("--help") || argv.includes("-h")) {
+    console.log(helpText());
+    return;
+  }
   const valueFlags = new Set(["--mode", "--out", "--format", "--report", "--target-tier", "--advisory", "--profile", "--members"]); // flags that consume the following arg
   const getFlag = (name) => {
     const eq = argv.find((a) => a.startsWith(name + "="));
@@ -332,6 +397,9 @@ async function runCli() {
   const targetTier = getFlag("--target-tier");
   const advisory = normArg(getFlag("--advisory"));
   const profile = getFlag("--profile");
+  // ADR 0063 sec 1: this file's OWN flag for the deterministic ADV1-ADV4 layer - see helpText() above
+  // for why it is unrelated to --advisory <file.json>.
+  const noAdvisory = argv.includes("--no-advisory");
   // --members: where to look for the local checkouts of a marketplace's members. Repeatable, and
   // normalized like every other path-valued argv site. Ignored outside marketplace scope, deliberately
   // rather than rejected: a wrapper script that always passes it should not fail on a plugin target.
@@ -372,15 +440,15 @@ async function runCli() {
     process.exit(2);
   }
   let r;
-  if (report === "migration") r = (await import("./lib/migrate-report.mjs")).migrateReport(target, { mode, targetTier, profile });
-  else if (report === "release") r = (await import("./lib/release-report.mjs")).releaseReport(target, { mode, profile });
+  if (report === "migration") r = (await import("./lib/migrate-report.mjs")).migrateReport(target, { mode, targetTier, profile, noAdvisory });
+  else if (report === "release") r = (await import("./lib/release-report.mjs")).releaseReport(target, { mode, profile, noAdvisory });
   else if (report === "review" || report === "behavioral") {
     if (!advisory) {
       console.error(`--report=${report} requires --advisory <file.json> carrying the advisory ${report} block (it comes from an LLM layer, not the deterministic gate)`);
       process.exit(2);
     }
-    r = applyAdvisory(evaluate(target, { mode, profile, searchRoots }), report, JSON.parse(readFileSync(advisory, "utf8")));
-  } else r = evaluate(target, { mode, profile, searchRoots });
+    r = applyAdvisory(evaluate(target, { mode, profile, searchRoots, noAdvisory }), report, JSON.parse(readFileSync(advisory, "utf8")));
+  } else r = evaluate(target, { mode, profile, searchRoots, noAdvisory });
   // Honor the same declared-tier ceiling as check.mjs, gating on the RESOLVED effective severity so the
   // two CLIs agree on pass/fail. Plugin scope reads the declared tier; component/unknown have no ceiling.
   // Computed before rendering so a designed report carries the same exit code the process returns.

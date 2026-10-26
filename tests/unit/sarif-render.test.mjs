@@ -127,6 +127,37 @@ test("renderSarif maps effectiveSeverity to level: error -> error, warn -> warni
   });
 });
 
+// ADR 0063 sec 1: advisory results are level "note" with an "askit/advisory" property naming the ADV
+// id, NEVER combined with "askit/aboveDeclaredTier" on the same result (the two properties are how a
+// consumer tells the two apart). No real ADV module ships yet, so this is exercised directly against
+// renderSarif rather than through a live fixture run (the same reason check.mjs's own
+// formatAdvisorySection tests exercise it directly in advisory-partition.test.mjs).
+test("renderSarif renders an advisory finding as level note with an askit/advisory property, never combined with aboveDeclaredTier", () => {
+  inFixture(({ ctx, r }) => {
+    const stubAdvisory = { advisoryId: "ADV1", provenance: "vendor-cited", message: "frontmatter key outside the Skills API whitelist", file: "skills/widget/SKILL.md", reqId: null };
+    const doc = renderSarif(ctx, { findings: r.findings, advisoryFindings: [stubAdvisory] });
+    const results = doc.runs[0].results;
+    const advisoryResults = results.filter((res) => res.properties?.["askit/advisory"]);
+    assert.equal(advisoryResults.length, 1, "exactly one advisory result must be appended");
+    const res = advisoryResults[0];
+    assert.equal(res.ruleId, "ADV1");
+    assert.equal(res.level, "note");
+    assert.equal(res.properties["askit/advisory"], "ADV1");
+    assert.equal(res.properties["askit/aboveDeclaredTier"], undefined, "an advisory result must never also carry askit/aboveDeclaredTier");
+    assert.equal(res.locations[0].physicalLocation.artifactLocation.uri, "skills/widget/SKILL.md");
+  });
+});
+
+test("renderSarif renders nothing extra when advisoryFindings is null (the layer is off) or empty", () => {
+  inFixture(({ ctx, r }) => {
+    const withNull = renderSarif(ctx, { findings: r.findings, advisoryFindings: null }).runs[0].results.length;
+    const withEmpty = renderSarif(ctx, { findings: r.findings, advisoryFindings: [] }).runs[0].results.length;
+    const baseline = renderSarif(ctx, { findings: r.findings }).runs[0].results.length;
+    assert.equal(withNull, baseline);
+    assert.equal(withEmpty, baseline);
+  });
+});
+
 test("an above-tier finding is level note and carries the rung, whatever its own severity says", () => {
   // The severity a finding declares is not the severity a consumer should act on when the requirement
   // belongs to a rung the plugin never claimed. Before this, a Bronze plugin's Security tab showed Gold

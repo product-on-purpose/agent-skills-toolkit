@@ -171,6 +171,13 @@ function deriveModel(report, opts = {}) {
     nextTier, nextTierName: nextTier ? TIER_NAME[nextTier] : null,
     insights: Array.isArray(report.insights) ? report.insights : null,
     summary: report.summary ?? { errors: counts.fail, warns: counts.warn },
+    // ADR 0063 sec 1: the deterministic ADV1-ADV4 layer, carried straight from the report object -
+    // never derived from `rows`/`findings` above, because advisory findings are never inside either.
+    // Defaults to "off"/null (the same "nothing claimed to have run" default baseReport() in
+    // evaluate.mjs uses) for a report object that predates this field, e.g. a hand-built --advisory
+    // review/behavioral fixture in an older test.
+    advisoryLayer: report.advisoryLayer ?? "off",
+    advisoryFindings: Array.isArray(report.advisoryFindings) ? report.advisoryFindings : null,
   };
 }
 
@@ -523,6 +530,22 @@ function renderMarkdown(report, opts = {}) {
   out.push("The conformance layer is deterministic and reproducible: re-run `node scripts/check.mjs .` to reproduce every row above. This report adds no judgment and does not change the verdict.");
   out.push("");
 
+  // 12 Advisory (ADR 0063): a section of its own, AFTER the conformance findings (sec 11 above), and
+  // rendered only when there is something to show - an empty or "off" advisory layer renders nothing,
+  // mirroring formatAdvisorySection in scripts/check.mjs, so a report built before any ADV screen
+  // shipped (every report today) is byte-identical to one rendered without this section at all.
+  if (m.advisoryFindings && m.advisoryFindings.length) {
+    out.push("## 12 Advisory (informational)");
+    out.push("");
+    out.push(`**Summary: ${m.advisoryFindings.length} deterministic advisory finding(s) (the ADV1-ADV4 layer). These are reported beside the conformance grade above and NEVER affect the tier, the error count, or the gate exit code.**`);
+    out.push("");
+    out.push(mdTable(
+      ["ADV ID", "Provenance", "Finding", "File"],
+      m.advisoryFindings.map((f) => [f.advisoryId ?? "", f.provenance ?? "", f.message ?? "", f.file ?? ""]),
+    ));
+    out.push("");
+  }
+
   return out.join("\n");
 }
 
@@ -816,6 +839,18 @@ function htmlGlossary(m) {
   return `<div class="tablecard glossary"><table><thead><tr><th style="width:200px">Check</th><th style="width:84px">Tier</th><th>Why it matters</th></tr></thead><tbody>${rows}</tbody></table></div>`;
 }
 
+// Section 12 body (ADR 0063): its own remediation table, deliberately NOT rows in REPORT_META (which
+// is keyed by spine reqId and guarded by a coverage test asserting every CHECKS entry has one - an ADV
+// id is not a reqId and must never be made to look like one there). Returns "" when there is nothing
+// to show, mirroring the Markdown twin, so a report with the layer off or empty renders no section at
+// all and every existing golden snapshot (built before any ADV screen shipped) stays byte-identical.
+function htmlAdvisorySection(m) {
+  if (!m.advisoryFindings || !m.advisoryFindings.length) return "";
+  const rows = m.advisoryFindings.map((f) => `<tr><td><span class="cn">${escapeHtml(f.advisoryId ?? "")}</span></td><td>${escapeHtml(f.provenance ?? "")}</td><td>${escapeHtml(f.message ?? "")}</td><td>${f.file ? `<span class="src">${escapeHtml(f.file)}</span>` : ""}</td></tr>`).join("");
+  const body = `<div class="tablecard"><table><thead><tr><th style="width:90px">ADV ID</th><th style="width:120px">Provenance</th><th>Finding</th><th>File</th></tr></thead><tbody>${rows}</tbody></table></div>`;
+  return htmlSection("s12", "12", "Advisory (informational)", `${m.advisoryFindings.length} deterministic advisory finding(s) (the ADV1-ADV4 layer), reported beside the grade above. They never affect the tier, the error count, or the gate exit code.`, body);
+}
+
 // Release readiness band (release reports): a prominent go / no-go right after the masthead.
 function htmlReleaseReadiness(m) {
   const rel = m.release;
@@ -1009,7 +1044,7 @@ function renderHtml(report, opts = {}) {
     <a href="#s08"><span class="ix">08</span><span>Insights</span></a>
     <a href="#s09"><span class="ix">09</span><span>Evidence and sources</span></a>
     <a href="#s10"><span class="ix">10</span><span>Report metadata</span></a>
-    <a href="#s11"><span class="ix">11</span><span>Per-check glossary</span></a>
+    <a href="#s11"><span class="ix">11</span><span>Per-check glossary</span></a>${(m.advisoryFindings && m.advisoryFindings.length) ? `\n    <a href="#s12"><span class="ix">12</span><span>Advisory</span></a>` : ""}
   </nav>`;
 
   return `<!DOCTYPE html>
@@ -1042,7 +1077,7 @@ function renderHtml(report, opts = {}) {
       ${htmlSection("s08", "08", "Insights", insLead, insBody)}
       ${htmlSection("s09", "09", "Evidence and sources", "Citations grounding the findings: the check module, Standard clause, or subject file.", `<ul class="refs">${refItems.join("")}</ul>`)}
       ${htmlSection("s10", "10", "Report metadata", "Provenance for this evaluation, plus the legend.", metaBody)}
-      ${htmlSection("s11", "11", "Per-check glossary", `Why each of the ${m.counts.total} checks matters, in one line - a plain-language reference for every row above. For what each check actually verifies, see the Standard and the checks reference.`, htmlGlossary(m))}
+      ${htmlSection("s11", "11", "Per-check glossary", `Why each of the ${m.counts.total} checks matters, in one line - a plain-language reference for every row above. For what each check actually verifies, see the Standard and the checks reference.`, htmlGlossary(m))}${htmlAdvisorySection(m) ? `\n      ${htmlAdvisorySection(m)}` : ""}
     </div>
   </main>
 </div>

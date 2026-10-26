@@ -67,6 +67,7 @@ import { CHECKS } from "./registry.mjs";
 import { isAboveDeclaredTier, tierForReq } from "./tier.mjs";
 import { LIMITATIONS_URL } from "./tier-scope.mjs";
 import { metaFor } from "./report-meta.mjs";
+import { ADVISORY_REGISTRY } from "./advisory-registry.mjs";
 
 const TOOL_NAME = "agent-skills-toolkit";
 const TOOL_INFO_URI = "https://github.com/product-on-purpose/agent-skills-toolkit";
@@ -113,7 +114,11 @@ function normalizeMessage(message) {
  *  (rather than naive string concatenation) keeps field boundaries from shifting into each other - a
  *  file named "12" and a line of 3 must not hash the same as a file named "1" and a line of 23. */
 function fingerprintFinding(f) {
-  const rule = f.reqId ?? f.check ?? "";
+  // An advisory finding's `reqId` is always null (advisory-registry.mjs) and its `check` is whatever
+  // string the module happened to use internally, which carries no uniqueness guarantee across advisory
+  // modules the way a reqId does across spine checks - `advisoryId` (ADV1-ADV4, unique per registry
+  // entry) is the correct identity for it and is checked first.
+  const rule = f.advisoryId ?? f.reqId ?? f.check ?? "";
   const file = toUri(f.file);
   const line = f.line != null ? String(f.line) : "";
   const discriminator = f.key != null ? String(f.key) : normalizeMessage(f.message);
@@ -196,12 +201,59 @@ function buildResults(findings, declaredTier) {
   return out;
 }
 
+/** One reportingDescriptor per ADV1-ADV4 registry entry (ADR 0063 sec 2), alongside the spine's own
+ *  rules from buildRules() above, so a SARIF consumer resolving `ruleId` for an advisory result finds a
+ *  real descriptor instead of an orphan id. Carries the registry's own `provenance` property, the same
+ *  shape buildRules() gives a spine check, so a consumer filters both the same way. The real module
+ *  list is empty today (no ADV screen ships yet - see advisory-registry.mjs), so this reflects the
+ *  METADATA the registry declares, independent of whether any module for that id has run. */
+function buildAdvisoryRules() {
+  return ADVISORY_REGISTRY.map((a) => ({
+    id: a.advisoryId,
+    name: a.title,
+    shortDescription: { text: a.title },
+    fullDescription: { text: a.title },
+    helpUri: LIMITATIONS_URL,
+    properties: { provenance: a.provenance, advisory: true },
+  }));
+}
+
+/**
+ * One SARIF result per ADVISORY finding (ADR 0063 sec 1's rendering table): level is ALWAYS `note` -
+ * never `isAboveDeclaredTier`-derived, because an advisory finding carries `reqId: null` and has no
+ * tier to be above or below - and every result carries an `askit/advisory` property naming the ADV id,
+ * NEVER combined with `askit/aboveDeclaredTier` on the same result (the two properties are how a
+ * consumer tells "above your declared tier" apart from "advisory", and ADR 0063 states a finding never
+ * carries both). `advisoryFindings` is `null` when the layer is off ("--no-advisory"); this returns []
+ * for both that case and an empty array, mirroring formatAdvisorySection in scripts/check.mjs.
+ */
+function buildAdvisoryResults(advisoryFindings) {
+  const out = [];
+  for (const f of advisoryFindings ?? []) {
+    const result = {
+      ruleId: f.advisoryId,
+      level: "note",
+      message: { text: f.message },
+      partialFingerprints: { "askitFinding/v1": fingerprintFinding(f) },
+      properties: { "askit/advisory": f.advisoryId },
+    };
+    if (f.file) {
+      const physicalLocation = { artifactLocation: { uri: toUri(f.file) } };
+      if (f.line != null) physicalLocation.region = { startLine: f.line };
+      result.locations = [{ physicalLocation }];
+    }
+    out.push(result);
+  }
+  return out;
+}
+
 /**
  * Render a SARIF 2.1.0 log from what scripts/check.mjs already computed. Pure and synchronous; mutates
  * neither `ctx` nor `r`.
  * @param {object} ctx the loadPlugin() context (for ctx.library.data.standard / .tier - the SUBJECT's
  *   own declared Standard and tier, not the toolkit's)
- * @param {{findings:Array<object>}} r runGate()'s return value (only `.findings` is read)
+ * @param {{findings:Array<object>, advisoryFindings?:Array<object>|null}} r runGate()'s return value
+ *   (`.findings` and `.advisoryFindings` are read; the latter may be `null` when the layer is off)
  * @returns {object} a SARIF 2.1.0 log object, JSON-serializable as-is
  */
 export function renderSarif(ctx, r) {
@@ -215,13 +267,24 @@ export function renderSarif(ctx, r) {
             name: TOOL_NAME,
             informationUri: TOOL_INFO_URI,
             version: toolVersion(),
-            rules: buildRules(),
+            // The spine's own rules, plus one descriptor per ADV1-ADV4 registry entry (buildAdvisoryRules,
+            // above) so an advisory result's ruleId always resolves to a real reportingDescriptor, whether
+            // or not any module for that id has shipped or run yet.
+            rules: [...buildRules(), ...buildAdvisoryRules()],
           },
         },
-        results: buildResults(r.findings, ctx?.library?.data?.tier ?? null),
+        // ADR 0063 sec 1: advisory results are APPENDED, never merged into or re-derived from the
+        // conformance `findings` set - buildResults(r.findings, ...) above is computed exactly as it
+        // was before this layer existed, so a stub advisory finding can never move a conformance result.
+        results: [...buildResults(r.findings, ctx?.library?.data?.tier ?? null), ...buildAdvisoryResults(r.advisoryFindings)],
         properties: {
           standard: ctx?.library?.data?.standard ?? null,
           declaredTier: ctx?.library?.data?.tier ?? null,
+          // ADR 0063: lets a SARIF consumer tell "the advisory layer ran and found nothing" ("on", zero
+          // askit/advisory results) from "the layer was switched off" ("off") - the same distinction
+          // advisory-count already makes on the Action's own outputs (gha-action-outputs.mjs). `null`
+          // when `r` carries no advisoryLayer at all (a caller that predates this field).
+          advisoryLayer: r.advisoryLayer ?? null,
         },
       },
     ],

@@ -33,7 +33,9 @@ The gate sees a well-formed `library.json`, a present `AGENTS.md`, resolvable li
 
 **What to do instead:** the advisory layer (`--report=review`) is the judgment pass, and it is explicitly *beside* the verdict, never inside it. See section 2 for what it can and cannot promise.
 
-## 2. The advisory layer is measured, not guaranteed
+## 2. The model-judgment advisory layer is measured, not guaranteed
+
+**Heading qualified 2026-10-25 (ADR 0063, an advisory layer beside the tier).** This section is about the MODEL-judgment advisory layer (`--report=review` / `--report=behavioral`) specifically. A second, deterministic advisory layer (`ADV1`-`ADV4`) also exists beside the gate's verdict; it runs no model and is reproducible, so nothing on this page about measurement, confabulation, or unverified claims applies to it. See [evaluation-reports.md](../reference/evaluation-reports.md#the-deterministic--advisory-boundary) for all three layers side by side.
 
 The advisory layer dispatches a model to read a plugin the way a reviewer would. It is genuinely useful, and it is not a guarantee.
 

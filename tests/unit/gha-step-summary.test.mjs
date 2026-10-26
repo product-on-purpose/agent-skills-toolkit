@@ -102,6 +102,8 @@ test("renderStepSummary reports an operator error in the headline without affect
     operatorErrorCount: 1,
     exitCode: 2,
     findings: [],
+    advisoryLayer: "on",
+    advisoryFindings: [],
   };
   const md = renderStepSummary(report);
   assert.match(md, /\*\*Tier: Advanced\*\* - 0 error\(s\), 0 warning\(s\), 1 operator error\(s\)/);
@@ -137,6 +139,8 @@ test("renderStepSummary caps the top-findings list and states how many requireme
     operatorErrorCount: 0,
     exitCode: 0,
     findings,
+    advisoryLayer: "on",
+    advisoryFindings: [],
   };
   const md = renderStepSummary(report, { maxFindings: 2 });
   assert.match(md, /U0/);
@@ -155,7 +159,7 @@ function findingsOf(n) {
   return findings;
 }
 function reportWith(findings) {
-  return { tierReport: { tier: "convergent", blocked: {} }, errorCount: 0, warnCount: findings.length, operatorErrorCount: 0, exitCode: 0, findings };
+  return { tierReport: { tier: "convergent", blocked: {} }, errorCount: 0, warnCount: findings.length, operatorErrorCount: 0, exitCode: 0, findings, advisoryLayer: "on", advisoryFindings: [] };
 }
 
 test("renderStepSummary at cap-1 (4 groups, maxFindings 5) shows everything with no omission line", () => {
@@ -189,6 +193,8 @@ test("renderStepSummary with no findings says so explicitly rather than printing
     operatorErrorCount: 0,
     exitCode: 0,
     findings: [],
+    advisoryLayer: "on",
+    advisoryFindings: [],
   };
   const md = renderStepSummary(report);
   assert.match(md, /No gating or warning findings\./);
@@ -198,7 +204,7 @@ test("renderStepSummary with no findings says so explicitly rather than printing
 
 test("validateReport accepts a fully valid report", () => {
   assert.deepEqual(
-    validateReport({ tierReport: { tier: "advanced" }, errorCount: 0, warnCount: 0, exitCode: 0, operatorErrorCount: 0, findings: [] }),
+    validateReport({ tierReport: { tier: "advanced" }, errorCount: 0, warnCount: 0, exitCode: 0, operatorErrorCount: 0, findings: [], advisoryLayer: "on", advisoryFindings: [] }),
     []
   );
 });
@@ -285,6 +291,8 @@ test("CLI gha-step-summary.mjs renders an operator-error report (exit 2 from che
       operatorErrorCount: 1,
       exitCode: 2,
       findings: [],
+      advisoryLayer: "on",
+      advisoryFindings: [],
     };
     const reportFile = path.join(dir, "gate.json");
     writeFileSync(reportFile, JSON.stringify(report), "utf8");
