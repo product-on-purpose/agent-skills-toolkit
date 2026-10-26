@@ -159,6 +159,30 @@
       "onChange": "SUPERSEDED IN PART BY ADR 0060, which is what happened when this actually changed. ADR 0051 said a namespacing runtime should RETIRE the two collision classes; the 2026-09-17 re-run found Claude Code namespacing LOUDLY - it refuses the bare name rather than resolving it silently - and the ruling was DOWNGRADE to warn, not retire. Two reasons that any future change must also clear: only CLAUDE CODE has been measured and Codex is the other emit target, and a refusal is a different harm rather than no harm. If Codex is measured and DOES share a namespace, the silent-winner harm is real there and the severity question reopens for Codex-targeting catalogues. If Claude Code reverts to silent resolution, both checks return to error. The instrument for either is the fixture pair at docs/internal/vendor-watch/probes/components-share-one-namespace/."
     },
     {
+      "id": "skills-api-frontmatter-whitelist",
+      "kind": "quote",
+      "source": "cc-skills",
+      "claim": "Allowed properties are: allowed-tools, compatibility, description, license, metadata, name",
+      "dependsOn": [
+        "ADV1 (portability), scripts/advisory/adv1-portability.mjs's SKILLS_API_WHITELIST constant",
+        "ADR 0063 sec 2's ADV1 table row, and backlog E86 (a SKILL.md portable here can hard-fail on claude.ai)"
+      ],
+      "verifiedOn": "2026-10-26",
+      "onChange": "ASYMMETRIC, the same shape as U14's unsupported-field list. A field ADDED to the allowed list is green-ward - widen SKILLS_API_WHITELIST, bump the read date, note it in a record (never CHANGELOG.md or STATUS.md from inside this repository's own release gate, per their own authorship rules). A field REMOVED from the allowed list, or the error shape changing, is red-ward: ADV1's message quotes this sentence directly in every finding, so a narrower vendor whitelist needs the constant and the finding text re-verified together, not a silent re-read. Pinned WITHOUT a trailing period: the live page's error-message example ends the code block at \"name\" with no period, and normalizeForMatch does not strip punctuation, so a period here would make the claim permanently MISSING against a page that never carries one."
+    },
+    {
+      "id": "plugin-agent-skills-preload-cap",
+      "kind": "quote",
+      "source": "cc-sub-agents",
+      "claim": "The full content of each listed skill is injected into the subagent's context at startup, up to the first 32 distinct names in the list.",
+      "dependsOn": [
+        "ADV2 (preload cap), scripts/advisory/adv2-preload-cap.mjs's PRELOAD_CAP constant",
+        "ADR 0063 sec 2's ADV2 table row, and backlog E87 (plugin-agent loading asymmetries this Standard does not model)"
+      ],
+      "verifiedOn": "2026-10-26",
+      "onChange": "ASYMMETRIC. The cap number CHANGING (in either direction) is red-ward: ADV2's message quotes this sentence and derives PRELOAD_CAP's test from it, so a new number needs the constant, the finding text, and the derived-constant test re-verified together, not a silent re-read. The field being renamed away from `skills:` is also red-ward, for the same reason U14's field-name constants are: a check reading the OLD name would fall silent on every plugin using the new one."
+    },
+    {
       "id": "plugin-eval-single-plugin-scope",
       "kind": "quote",
       "source": "cc-plugin-eval-cli",

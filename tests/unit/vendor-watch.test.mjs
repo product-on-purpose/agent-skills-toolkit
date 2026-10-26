@@ -294,6 +294,19 @@ const MEANING_REVERSALS = Object.freeze({
   "plugin-eval-single-plugin-scope":
     "Claude Code runs it several times in a single shared session with every installed plugin loaded " +
     "together, and never runs it without the plugins, so the report shows no difference.",
+  // ADV1 (portability) quotes this sentence directly in every finding. Identical vocabulary, a widened
+  // list: the reversal keeps "Allowed properties are" and four of the six field names, but drops two
+  // and claims they were removed, which is the exact shape a vendor-side narrowing of the whitelist
+  // would take. A watch still reporting "holds" here would let ADV1 keep citing a six-field spec the
+  // vendor no longer enforces.
+  "skills-api-frontmatter-whitelist":
+    "Allowed properties are: description and name only; allowed-tools, compatibility, license and metadata were removed.",
+  // ADV2 (preload cap) derives PRELOAD_CAP's own test from this sentence. Identical vocabulary, the one
+  // number changed: "32" becomes "16", so the reversal keeps every word of the claim except the digit
+  // that decides the cap. A watch still reporting "holds" here would leave ADV2 citing a cap the vendor
+  // no longer documents.
+  "plugin-agent-skills-preload-cap":
+    "The full content of each listed skill is injected into the subagent's context at startup, up to the first 16 distinct names in the list.",
 });
 
 test("W2-H3: every quote claim has a reversal recorded, so no fragment can be added unnoticed", () => {

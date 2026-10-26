@@ -8,12 +8,16 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import path from "node:path";
-import { mkdtempSync, mkdirSync, writeFileSync, rmSync } from "node:fs";
+import { fileURLToPath } from "node:url";
+import { mkdtempSync, mkdirSync, writeFileSync, rmSync, readFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { check, meta, PRELOAD_CAP, distinctPreloadNames } from "../../scripts/advisory/adv2-preload-cap.mjs";
 import { loadPlugin } from "../../scripts/lib/load-plugin.mjs";
 import { computeAdvisoryLayer } from "../../scripts/check.mjs";
 import { ADVISORY_MODULES } from "../../scripts/lib/advisory-registry.mjs";
+
+const REPO = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
+const CLAIMS = path.join(REPO, "foundation/claims/vendor-claims.json");
 
 const names = (n) => Array.from({ length: n }, (_, i) => `skill-${i}`);
 const yamlList = (arr) => arr.map((n) => `  - ${n}`).join("\n");
@@ -43,6 +47,18 @@ test("meta declares ADV2, vendor-cited", () => {
 
 test("PRELOAD_CAP is the vendor's 32", () => {
   assert.equal(PRELOAD_CAP, 32);
+});
+
+// DERIVE THE CONSTANT FROM THE CLAIM: the cap number is parsed OUT of the pinned claim's own text,
+// never typed a second time as a literal, so a vendor-side change to the number fails THIS test rather
+// than leaving PRELOAD_CAP stale beside a claim that has already moved on.
+test("PRELOAD_CAP is DERIVED from the plugin-agent-skills-preload-cap vendor claim, not a parallel literal", () => {
+  const d = JSON.parse(readFileSync(CLAIMS, "utf8"));
+  const claim = d.claims.find((c) => c.id === "plugin-agent-skills-preload-cap");
+  assert.ok(claim, "the claim this constant must be derived from is missing from the vendor-claims pin");
+  const m = claim.claim.match(/first (\d+) distinct names/);
+  assert.ok(m, `the claim's text does not match the expected "first N distinct names" shape: ${claim.claim}`);
+  assert.equal(Number(m[1]), PRELOAD_CAP, "a vendor-side cap change must fail this test, not silently leave the constant stale");
 });
 
 test("fires at 33 distinct names, naming the count and the names past the 32nd in list order", () => {
@@ -109,19 +125,32 @@ test("an unparseable agent frontmatter is another check's finding, not this one'
 });
 
 /* ----------------------------------------------------------------------
- * MUTATION PROOF, recorded per RS-E4's criterion 2 ("proven able to fail").
+ * MUTATION PROOF 1, recorded per RS-E4's criterion 2 ("proven able to fail").
  *
  * Mutant applied to scripts/advisory/adv2-preload-cap.mjs: `distinct.length <= PRELOAD_CAP` changed to
  * `distinct.length < PRELOAD_CAP` (an off-by-one widening the silent range by one), then this file was
- * re-run alone.
+ * re-run alone (12 tests, once the derived-constant test below exists).
  *
- *   BEFORE (correct code): 11 tests, 11 pass, 0 fail.
- *   AFTER  (mutant):       11 tests,  9 pass, 2 fail -
+ *   BEFORE (correct code): 12 tests, 12 pass, 0 fail.
+ *   AFTER  (mutant):       12 tests, 10 pass, 2 fail -
  *     "silent at exactly 32 distinct names" (the fixture that must be silent at the boundary now fired,
  *       because `< 32` treats exactly 32 as already over the cap)
  *     "silent at 33 ENTRIES with one duplicate (32 distinct names)" (33 entries deduplicate to exactly
  *       32 distinct names, the same boundary, so this fixture fired too)
  *
- * The mutant was reverted immediately after capturing this result; `git diff` on
- * scripts/advisory/adv2-preload-cap.mjs is clean.
+ * MUTATION PROOF 2 - the derived-constant test specifically, isolated from the module-side mutant
+ * above. Mutant applied to foundation/claims/vendor-claims.json instead: the
+ * plugin-agent-skills-preload-cap claim's text had its number changed from 32 to 16, leaving
+ * PRELOAD_CAP itself untouched, then this file was re-run alone.
+ *
+ *   BEFORE (correct claim): 12 tests, 12 pass, 0 fail.
+ *   AFTER  (mutant):        12 tests, 11 pass, 1 fail -
+ *     "PRELOAD_CAP is DERIVED from the plugin-agent-skills-preload-cap vendor claim" (the claim now
+ *       parses to 16, which no longer equals the constant's 32) - and ONLY that test: every firing
+ *       test still passed, because the SCREEN reads the constant, not the claim file at runtime. This
+ *       isolates what the derived-constant test actually proves: that the constant and the claim
+ *       cannot drift apart, nothing about ADV2's own firing behaviour.
+ *
+ * Both mutants were reverted immediately after capturing their results; `git diff` on
+ * scripts/advisory/adv2-preload-cap.mjs and foundation/claims/vendor-claims.json is clean.
  * ---------------------------------------------------------------------- */
