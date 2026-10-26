@@ -1,6 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { mkdtempSync, writeFileSync, mkdirSync, rmSync } from "node:fs";
+import { createHash } from "node:crypto";
+import { mkdtempSync, writeFileSync, mkdirSync, rmSync, readdirSync, statSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -9,6 +10,8 @@ import { LIMITATIONS_URL } from "../../scripts/lib/tier-scope.mjs";
 import { runGate } from "../../scripts/check.mjs";
 import { loadPlugin } from "../../scripts/lib/load-plugin.mjs";
 import { CHECKS } from "../../scripts/lib/registry.mjs";
+
+const REPO = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
 
 // Proves scripts/lib/sarif-render.mjs: a pure SARIF 2.1.0 serialization of what runGate() already
 // computes (no new severity, no new verdict - the governing constraint of E9). Hand-rolled structural
@@ -222,4 +225,112 @@ test("renderSarif is a pure projection: it mutates neither ctx nor r", () => {
     renderSarif(ctx, r);
     assert.equal(JSON.stringify(r.findings), before, "findings must be unchanged after rendering SARIF");
   });
+});
+
+// --- F-014 (SARIF carries no partialFingerprints): every result gets a stable, hashed identity ---
+// (scripts/lib/sarif-render.mjs's fingerprintFinding(), documented in that module's docblock).
+
+test("every result carries a partialFingerprints.askitFinding/v1 that is a 64-char lowercase hex sha256", () => {
+  inFixture(({ ctx, r }) => {
+    const results = renderSarif(ctx, r).runs[0].results;
+    assert.ok(results.length > 0, "the fixture must produce at least one result");
+    for (const res of results) {
+      const fp = res.partialFingerprints?.["askitFinding/v1"];
+      assert.match(fp, /^[0-9a-f]{64}$/, `${res.ruleId}'s fingerprint must be a 64-char lowercase hex sha256`);
+    }
+  });
+});
+
+test("the v1 algorithm is pinned: a hand-computed hash for a fixed tuple, so a refactor cannot silently change it", () => {
+  const finding = { reqId: "U6", check: "reference-links", file: "skills/widget/SKILL.md", line: null, message: "link to ./missing.md is broken" };
+  const expected = createHash("sha256")
+    .update(["U6", "skills/widget/SKILL.md", "", "link to ./missing.md is broken"].join("\u0000"), "utf8")
+    .digest("hex");
+  const ctx = { library: { data: { tier: "universal" } } };
+  const r = { findings: [{ ...finding, effectiveSeverity: "error" }] };
+  const result = renderSarif(ctx, r).runs[0].results[0];
+  assert.equal(result.partialFingerprints["askitFinding/v1"], expected);
+});
+
+test("finding.key, when present, is the discriminator and wins over the message text", () => {
+  const base = { reqId: "U6", check: "reference-links", file: "a.md", line: null, effectiveSeverity: "error" };
+  const ctx = { library: { data: { tier: "universal" } } };
+  const withoutKey = renderSarif(ctx, { findings: [{ ...base, message: "same message either way" }] }).runs[0].results[0];
+  const withKeyA = renderSarif(ctx, { findings: [{ ...base, message: "same message either way", key: "variant-a" }] }).runs[0].results[0];
+  const withKeyB = renderSarif(ctx, { findings: [{ ...base, message: "same message either way", key: "variant-b" }] }).runs[0].results[0];
+  const fpNoKey = withoutKey.partialFingerprints["askitFinding/v1"];
+  const fpA = withKeyA.partialFingerprints["askitFinding/v1"];
+  const fpB = withKeyB.partialFingerprints["askitFinding/v1"];
+  assert.notEqual(fpA, fpNoKey, "supplying a key must change the fingerprint from the message-only one");
+  assert.notEqual(fpA, fpB, "two different keys on the same message must fingerprint differently");
+});
+
+test("the message discriminator normalises runs of digits to # and collapses whitespace", () => {
+  const base = { reqId: "U6", check: "reference-links", file: "a.md", line: null, effectiveSeverity: "error" };
+  const ctx = { library: { data: { tier: "universal" } } };
+  const a = renderSarif(ctx, { findings: [{ ...base, message: "3 broken links found" }] }).runs[0].results[0];
+  const b = renderSarif(ctx, { findings: [{ ...base, message: "47   broken   links  found" }] }).runs[0].results[0];
+  assert.equal(
+    a.partialFingerprints["askitFinding/v1"],
+    b.partialFingerprints["askitFinding/v1"],
+    "a count that changes, or stray whitespace, must not change the finding's identity"
+  );
+});
+
+test("the line participates in the fingerprint: same finding at two different lines fingerprints differently", () => {
+  const base = { reqId: "U12", check: "mermaid-valid", file: "a.md", message: "mermaid diagram is invalid", effectiveSeverity: "error" };
+  const ctx = { library: { data: { tier: "universal" } } };
+  const noLine = renderSarif(ctx, { findings: [{ ...base, line: null }] }).runs[0].results[0];
+  const line10 = renderSarif(ctx, { findings: [{ ...base, line: 10 }] }).runs[0].results[0];
+  const line23 = renderSarif(ctx, { findings: [{ ...base, line: 23 }] }).runs[0].results[0];
+  const ids = new Set([noLine, line10, line23].map((res) => res.partialFingerprints["askitFinding/v1"]));
+  assert.equal(ids.size, 3, "no line, line 10, and line 23 must be three distinct identities");
+});
+
+test("fingerprinting is deterministic: rendering the same findings twice gives identical fingerprints", () => {
+  inFixture(({ ctx, r }) => {
+    const first = renderSarif(ctx, r).runs[0].results.map((res) => res.partialFingerprints["askitFinding/v1"]);
+    const second = renderSarif(ctx, r).runs[0].results.map((res) => res.partialFingerprints["askitFinding/v1"]);
+    assert.deepEqual(first, second);
+  });
+});
+
+// --- Collision check: run check.mjs's own gate (via runGate + renderSarif, the same path the CLI's
+// --sarif takes - see scripts/check.mjs) over this repository and over several finding-rich fixtures,
+// and assert no two results in one run share a fingerprint, and that re-running on the same input gives
+// identical fingerprints (the two guarantees a SARIF consumer actually relies on).
+
+function findingRichAntiFixtures() {
+  const antiDir = path.join(REPO, "tests/fixtures/anti");
+  const names = readdirSync(antiDir).filter((name) => {
+    const dir = path.join(antiDir, name);
+    return statSync(dir).isDirectory() && statSync(path.join(dir, "library.json"), { throwIfNoEntry: false });
+  });
+  // A representative, intentionally varied sample (not every anti fixture, to keep this test fast):
+  // multi-finding fixtures covering several different checks, so a collision in any one check's
+  // message shape is likely to surface here rather than only on fixtures nobody samples.
+  const wanted = ["weak-description", "bad-frontmatter", "docs-frontmatter-bad", "chain-orphan", "components-drift", "deprecated-incomplete"];
+  return wanted.filter((name) => names.includes(name)).map((name) => path.join(antiDir, name));
+}
+
+function fingerprintsFor(root) {
+  const ctx = loadPlugin(root);
+  const r = runGate(root, ctx);
+  return renderSarif(ctx, r).runs[0].results.map((res) => res.partialFingerprints["askitFinding/v1"]);
+}
+
+test("no two results in one SARIF run share a fingerprint, across this repo and several finding-rich fixtures", () => {
+  const roots = [REPO, ...findingRichAntiFixtures()];
+  for (const root of roots) {
+    const fps = fingerprintsFor(root);
+    const unique = new Set(fps);
+    assert.equal(unique.size, fps.length, `${path.basename(root)}: ${fps.length} results produced only ${unique.size} distinct fingerprints`);
+  }
+});
+
+test("re-running the gate on the same fixture gives identical fingerprints run to run", () => {
+  const roots = [REPO, ...findingRichAntiFixtures()];
+  for (const root of roots) {
+    assert.deepEqual(fingerprintsFor(root), fingerprintsFor(root), `${path.basename(root)}: fingerprints must be stable across two runs`);
+  }
 });

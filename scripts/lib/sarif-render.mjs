@@ -27,10 +27,25 @@
 //     every check except U12 mermaid-valid (see that check's docblock for why it was chosen); a result
 //     for any other finding gets a file-level physicalLocation with NO region key at all, which is
 //     valid SARIF, rather than a fabricated `startLine: 1`.
+//   - result.partialFingerprints (F-014) is how a SARIF consumer (GitHub code scanning chief among
+//     them) tracks ONE finding's identity across runs, instead of re-matching on array position or on
+//     message text that a wording pass can reshuffle. Every result carries `"askitFinding/v1"`: a
+//     sha256 hex digest of the tuple [reqId-or-check, the finding's repo-relative forward-slash file
+//     path (the same string this module already puts in physicalLocation.artifactLocation.uri), the
+//     line when the finding carries one, and a discriminator] - see fingerprintFinding() below. The
+//     discriminator is `finding.key` when a check supplies one (no check does yet; this is the escape
+//     hatch for the day one check's own message text cannot tell two of its findings apart), otherwise
+//     the finding's message with volatile tokens normalised (runs of digits folded to "#", whitespace
+//     collapsed). KNOWN LIMIT: a check that reword its own message changes every affected finding's
+//     fingerprint once, at the moment the wording changes - a consumer sees that one finding's alert
+//     thread close and a new one open, the same as if the check had changed id. This is a one-time
+//     cost per wording change, not an ongoing instability, and is the deliberate trade against hashing
+//     nothing stable at all.
 //
 // GOVERNING CONSTRAINT: every field here is a pure serialization of data runGate() and the check
 // registry already computed (provenance, effectiveSeverity, suppressed, line). Nothing here decides a
 // severity or a verdict; if a field needed new computation to fill, it does not appear here.
+import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -61,6 +76,31 @@ function toolVersion() {
 /** repo-relative paths are already forward-slash (scripts/lib/fs-utils.mjs relPath); pass through. */
 function toUri(file) {
   return String(file ?? "").split(path.sep).join("/");
+}
+
+/** Fold runs of digits to a single "#" and collapse whitespace, so a message that differs from another
+ *  only by a count or an index ("3 broken links" vs "4 broken links") still normalises to the same
+ *  discriminator - the two findings are the SAME kind of problem recurring, not two identities. See the
+ *  module docblock's partialFingerprints section for what this feeds and its documented limit. */
+function normalizeMessage(message) {
+  return String(message ?? "")
+    .replace(/\d+/g, "#")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+/** F-014: a stable identity for one finding, independent of its position in the findings array. See
+ *  the module docblock for the algorithm and its known limit. `finding.key`, when a check sets it, is
+ *  the discriminator; otherwise it is the finding's own message, normalised. The null-separated tuple
+ *  (rather than naive string concatenation) keeps field boundaries from shifting into each other - a
+ *  file named "12" and a line of 3 must not hash the same as a file named "1" and a line of 23. */
+function fingerprintFinding(f) {
+  const rule = f.reqId ?? f.check ?? "";
+  const file = toUri(f.file);
+  const line = f.line != null ? String(f.line) : "";
+  const discriminator = f.key != null ? String(f.key) : normalizeMessage(f.message);
+  const tuple = [rule, file, line, discriminator].join("\u0000");
+  return createHash("sha256").update(tuple, "utf8").digest("hex");
 }
 
 /** One reportingDescriptor per registered check, id = reqId (every registered check has one - see
@@ -101,6 +141,9 @@ function buildResults(findings, declaredTier) {
       ruleId: f.reqId ?? f.check,
       level,
       message: { text: f.message },
+      // F-014: a stable cross-run identity, independent of array position and of most rewordings - see
+      // the module docblock and fingerprintFinding() for the algorithm and its documented limit.
+      partialFingerprints: { "askitFinding/v1": fingerprintFinding(f) },
     };
     if (f.file) {
       const physicalLocation = { artifactLocation: { uri: toUri(f.file) } };
