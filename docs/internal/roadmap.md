@@ -72,6 +72,20 @@ eight below are the ones still carrying live acceptance criteria.
   [ADR 0065 (a multi-entry finding earns credit only where its own correct clause verifies)](decisions/0065-a-multi-entry-finding-earns-credit-only-where-its-own-correct-clause-verifies.md),
   merged in [PR #378](https://github.com/product-on-purpose/agent-skills-toolkit/pull/378). Criteria 2
   to 5 (the scorer change, its regression tests, and the publication-gate grep) are still OPEN.
+  **Annotated 2026-10-25, later the same day: criteria 2, 3 and 4 are MET; criterion 5 is NOT met.**
+  [PR #383](https://github.com/product-on-purpose/agent-skills-toolkit/pull/383) implements rule (a')
+  in `scripts/lib/advisory-score.mjs` (E16), accepts a multi-entry adjudication through
+  `opts.adjudication` (E17, partly), moves the key out of the fixture tree behind a content-based
+  mutation test (E20), and fixes the three runner defects (E15). The regression test asserts the ruled
+  recall values above and fails on a revert to zero credit; a second test pins the ceiling invariant.
+  **Criterion 5's grep is non-empty.** Two published pages, `docs/explanation/limitations.md` and
+  `docs/reference/token-usage-estimates.md`, carry behavioural figures, and so do historical
+  `CHANGELOG.md` entries. The criterion's literal `docs/**` also covers `docs/internal/**`. Both
+  questions wait on the maintainer, in section 7. **The E13 cells stay PROVISIONAL**: their
+  adjudications exist only as an agent-drafted document,
+  [`adjudication-2026-08-04.md`](eval-runs/adjudication-2026-08-04.md), marked DRAFT - PENDING
+  MAINTAINER SIGNATURE. The re-scored figures live in
+  [`eval-runs.md`](eval-runs/eval-runs.md) under batch 2026-08-04, and are not repeated here.
 - **Carried by:** those four entries plus this row. **Cut:** cut 3, "Evidence".
 - **Why it gates everything behavioural:** no detection-rate, precision, recall or model-ranking
   figure may publish anywhere until this lands. That is the audit's one refuse-to-do.
@@ -92,8 +106,19 @@ require a minimum Standard edition of its members), so the next free ADR number 
 
 ## RS-B2 (mutation-proof the check spine)
 
-- **Status: OPEN, nothing started.** Verified 2026-09-17: no inventory table exists in the tree, and
-  no registry-driven meta-test asserts that every spine reqId has a firing case.
+- **Status: DONE 2026-10-25, all four criteria met** by
+  [PR #381](https://github.com/product-on-purpose/agent-skills-toolkit/pull/381), unreleased.
+  (1) The inventory table is `tests/unit/spine-firing/README.md`. Its gap count is 0 of 35: every check
+  already had a firing test somewhere. Six were thin, with exactly one: `U7`, `S5`, `S6`, `G5`, `G6`
+  and `G7`. Each now has a second case. (2) The meta-test in
+  `tests/unit/spine-firing/spine-firing.test.mjs` reads `REQ_IDS` from `scripts/lib/registry.mjs` and
+  is green, so a check added without a firing case fails CI. (3) Deleting the `S5` case turns the
+  meta-test red. Inverting the guard of `U7`, `S6` and `G6`, one per band, turned only that check's
+  case red; so did moving `U5`'s threshold from 0.7 to 0.1. (4) The new file's five-run median is
+  152 ms when run alone. `node --test` runs each file in its own process, so that bounds its cost at
+  about 0.2 percent of a full run, far under the fifteen percent budget. Verified 2026-09-17, before
+  this work: no inventory table existed, and no registry-driven meta-test asserted that every spine
+  reqId has a firing case.
 - **Carried by:** this row. **Cut:** none - a cross-cutting rider that lands incrementally on any cut.
 - **Note on the count:** the criteria below say 34 checks. The spine is **35** at v1.19.0, and the
   criterion is deliberately written to READ the count from `scripts/lib/registry.mjs` rather than pin
@@ -317,7 +342,7 @@ with what it blocks.
 | **D-02** (the pin floor's deprecation window) | how long may a pin reach back, and what happens to pins older than the floor | [E62 (the pin has no floor)](backlog/enhancements.md) | OPEN. D-01 is ruled in part, and the health number's currency category will report how far behind a pin is while enforcing nothing, so D-02 is still unanswered |
 | **D-03** (U5's warning text) | does `U5` keep its current warning text, or change | [E63 (U5 rewards a template)](backlog/enhancements.md) | OPEN. Its cheap unblocked first step is DONE: the twenty labelled descriptions are now a tracked fixture |
 | **D-08** (the behavioural rung's shape) | a fourth tier name, or a modifier on Gold | the behavioural rung, deferred below | OPEN, and not urgent while the rung is deferred |
-| **E16's implementation** (the multi-entry credit rule) | none - it is RULED; the scorer change is unwritten | every behavioural claim this project publishes | RULED 2026-08-31; ADR 0065 (a multi-entry finding earns credit only where its own correct clause verifies) records it, meeting criterion 1 of RS-B1. The scorer change is unwritten |
+| **E16's implementation** (the multi-entry credit rule) | none - it is RULED; the scorer change is unwritten | every behavioural claim this project publishes | RULED 2026-08-31; ADR 0065 (a multi-entry finding earns credit only where its own correct clause verifies) records it, meeting criterion 1 of RS-B1. **IMPLEMENTED 2026-10-25** in [PR #383](https://github.com/product-on-purpose/agent-skills-toolkit/pull/383), unreleased. Publishing a final cell now waits on the maintainer's adjudication signature and the criterion 5 ruling, both in section 7 |
 | **RS-C6's spike** (the Agent Plugins root manifest) | does the root manifest carry components on the measured Codex version | the emit-or-dated-no ADR | evidence not gathered |
 
 **Already ruled, recorded here so they are not reopened:** D-04 became
@@ -343,7 +368,7 @@ v1.19.0, cut 2026-09-17. Cut 6, "Standard 0.17, the graduations", is v1.20.0, cu
 
 | Cut | Identity | Carries | Blocked on |
 |---|---|---|---|
-| **3. "Evidence"** | the eval instrument becomes trustworthy enough to publish a number from | RS-B1 complete - the E16 ruling implemented, E17's adjudication, E20's key relocation, E15's runner fixes - then the E13 model-triple readings publish | **The implementation itself.** The ruling has been made since 2026-08-31 and nothing has been written. Independent work has correctly proceeded past it; cuts 2 and 4 did not queue behind it |
+| **3. "Evidence"** | the eval instrument becomes trustworthy enough to publish a number from | RS-B1 complete - the E16 ruling implemented, E17's adjudication, E20's key relocation, E15's runner fixes - then the E13 model-triple readings publish | **Two maintainer rulings, no code.** The implementation merged 2026-10-25 in [PR #383](https://github.com/product-on-purpose/agent-skills-toolkit/pull/383): RS-B1's criteria 2 to 4 are met. (a) The E13 adjudication draft needs a human signature before any cell is FINAL. (b) RS-B1's criterion 5 grep is non-empty, and its scope needs a ruling. Both are in section 7. Until 2026-10-25 this cell read "the implementation itself" |
 | **5. "The graded cohort"** | the toolkit grades trees that are not ours, in public | RS-E2 (the cohort page) plus RS-E1's one-paragraph public summary, plus the sixth and last placement of the tier-scope routing sentence, which ships with the page | **Four things, none of them code.** (a) RS-E1's internal corroboration run has not happened. (b) The member list is unpicked - issue #300 closed NOT_PLANNED, deferred to this cut's planning. (c) Every member must be notified and given a reply window before publication. (d) The 2026-09-04 dry run found four of five candidates pass every portable check, so the page's framing has to be settled before it is built |
 
 **Cut 6, closed.** It shipped as v1.20.0, tagged 2026-10-05, on npm 2026-10-14. The content MERGED on
@@ -520,6 +545,30 @@ vendor probe.** ADR 0063's evidence section proposes a `probe` claim for the res
 cannot be quoted. A probe starts its own 30-day clock that blocks every release when it lapses, and
 ADR 0064 kept the budget at two the same day. Until the maintainer rules, ADV1 pins only its two
 `quote` claims, and the reserved-words screen is recorded as unverified.
+
+**Three cut 3 items await a maintainer ruling as of 2026-10-25.** None blocks other work. Each blocks
+publishing a final E13 cell.
+
+1. **Sign or amend the E13 adjudication draft,**
+   [`adjudication-2026-08-04.md`](eval-runs/adjudication-2026-08-04.md). Rule (a') makes adjudication
+   mandatory on every multi-entry engagement, and a human must adjudicate. The draft covers all eleven
+   worklist items. Two Opus findings need a ruling the key cannot give: index 8 (the response clock
+   starts at verification rather than receipt), which the draft recommends promoting under key 1.2.0,
+   and index 19 (checklist coverage of sale and sharing), which it drafts as out of scope. If either
+   claim is judged false instead, it scores as a false positive. Three of the eleven items are
+   single-entry, which the scorer cannot consume yet (E17 is partial), so their effect is computed by
+   hand in `eval-runs.md`.
+2. **Rule on RS-B1 criterion 5's scope.** The criterion names `docs/**`, which literally includes
+   `docs/internal/**`, where the ruled figures already live. The published hits are
+   `docs/explanation/limitations.md`, whose table still states the zero-credit figures, and
+   `docs/reference/token-usage-estimates.md`. Historical `CHANGELOG.md` entries carry figures too. The
+   ruling decides which surfaces count, and whether the published pages are emptied or updated once the
+   cells are signed.
+3. **Confirm the scope of ADR 0065's ceiling sentence.** Its Consequences say "No reported recall can
+   exceed `recallAutoCeiling`", without the word "automatic". A signed human credit for the semantic
+   entry `SD-06` legitimately puts a recall above the automatic ceiling. The test that pins the
+   invariant is correct for automatic scores, and it should be scoped to them, rather than trimming an
+   adjudication to satisfy it.
 
 **Until 2026-10-25: RS-E4 had no Standard revision to land on.** Its spec
 specifies `since: "0.16"` and `until: "0.17"`. Standard 0.16 shipped without it; 0.17 is ruled
