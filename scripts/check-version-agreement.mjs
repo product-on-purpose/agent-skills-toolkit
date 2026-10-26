@@ -111,7 +111,7 @@ export function checkVersionAgreement(root = process.cwd()) {
     {
       label: 'package-lock.json (packages[""].version)',
       relPath: "package-lock.json",
-      extract: (d) => (d.packages && Object.prototype.hasOwnProperty.call(d.packages, "") ? d.packages[""].version : null),
+      extract: (d) => (d.packages && Object.prototype.hasOwnProperty.call(d.packages, "") ? d.packages[""]?.version : null),
     },
   ];
 
@@ -126,6 +126,12 @@ export function checkVersionAgreement(root = process.cwd()) {
       data = readJson(abs, c.label);
     } catch (e) {
       problems.push(e.message);
+      continue;
+    }
+    // Valid JSON that is not an object (null, an array, a bare string) carries no version claim
+    // and cannot be read as one; refuse rather than let the extractor throw.
+    if (data === null || typeof data !== "object" || Array.isArray(data)) {
+      problems.push(`${c.label}: is not a JSON object`);
       continue;
     }
     const version = c.extract(data);

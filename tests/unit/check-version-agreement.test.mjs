@@ -224,6 +224,19 @@ test("a malformed in-repo marketplace.json refuses (exit 2), it does not pass or
   assert.equal(r.status, 2, r.stdout + r.stderr);
 });
 
+test("valid JSON that is not an object, or a null lockfile root package, refuses (exit 2) instead of throwing", () => {
+  for (const body of ["null", "[]", '"1.11.0"', JSON.stringify({ name: "x", version: "1.11.0", packages: { "": null } })]) {
+    const dir = makeDir("1.11.0", { withLockfile: false });
+    writeFileSync(path.join(dir, "package-lock.json"), body, "utf8");
+    const result = checkVersionAgreement(dir);
+    assert.equal(result.refused, true, `lockfile body ${body} should refuse`);
+    assert.equal(result.ok, false);
+
+    const r = spawnSync(process.execPath, [SCRIPT, dir], { encoding: "utf8" });
+    assert.equal(r.status, 2, `lockfile body ${body}: ${r.stdout}${r.stderr}`);
+  }
+});
+
 // ---------------------------------------------------------------------------------------------
 // Unreadable input exits 2, never a pass.
 // ---------------------------------------------------------------------------------------------
