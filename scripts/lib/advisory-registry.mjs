@@ -72,9 +72,12 @@ export const ADVISORY_MODULES = Object.freeze([]);
  * emitted) and `advisoryId` + `provenance` from the registry entry matching the module's own
  * `meta.advisoryId` - looked up here rather than trusted from the module, so a module cannot misreport
  * its own provenance. A module whose `advisoryId` is not registered (a test stub, deliberately) falls
- * back to the module's own `meta.provenance`, or "house" if it names none - the strictest-for-profiles
- * default, so an unregistered module is the one most likely to be turned off rather than the one most
- * likely to leak past a profile.
+ * back to the module's own `meta.provenance`, or "house" if it names none - the strictest *provenance
+ * label* available for a finding nobody can otherwise classify. This is cosmetic only: scripts/check.mjs
+ * filters the MODULE LIST by `advisoryId` membership in a profile's `advisoryOff`, never by provenance,
+ * so an unregistered id is never profile-exempt regardless of what provenance it is stamped with. Every
+ * module this repository ships MUST have its advisoryId registered in ADVISORY_REGISTRY above, or
+ * plain-plugin can never turn it off; add a test asserting that once the first module lands.
  */
 export function runAdvisoryModules(ctx, modules = ADVISORY_MODULES) {
   const out = [];
