@@ -271,8 +271,16 @@ objects is dropped without argument.
 
 ## RS-E4 (the prompt-injection and pipe-to-shell content scan), formerly E6
 
-- **Status: RULED 2026-10-25, unimplemented. It ships as advisory finding ADV3 (security screen),
-  outside the tier, and needs no Standard edition.** The ruling is recorded in
+- **Status: SHIPPED 2026-10-25, unreleased, in
+  [PR #386](https://github.com/product-on-purpose/agent-skills-toolkit/pull/386). All three criteria
+  are met.** (1) One seeded fixture per class fires. The false-positive ceiling, at most 1 false fire per
+  200 scanned files, was committed before the first measurement. The family corpus measured 0 false
+  fires in 1,186 scanned files, and no genuine fires either. (2) A data-driven test removes each of the
+  18 patterns in turn and asserts that its own fixture stops firing. (3) The documentation-discusses-
+  the-attack fixture is committed, produces zero findings, and fires when the scope is widened to
+  `docs/`. The three measurements, the scope rule and its known limits are recorded in
+  `scripts/advisory/README.md`. **Ruled earlier the same day:** it ships as advisory finding ADV3
+  (security screen), outside the tier, and needs no Standard edition. The ruling is recorded in
   [ADR 0063 (an advisory layer beside the tier, and a health number that never enters it)](decisions/0063-an-advisory-layer-beside-the-tier-and-a-health-number-that-never-enters-it.md).
   An advisory finding can never fail anything, so it needs no `since` and no warn cap. The three
   acceptance criteria below carry over unchanged. Verified 2026-09-17: no pattern catalogue existed in
@@ -458,7 +466,7 @@ deferral and decline below, which is what stops them from being zero-trace drops
 |---|---|---|---|
 | 1 | Schema-first report object with fingerprints, outcomes and inventory | **REOPENED 2026-10-25** | **Reopened by D-01 (a health number beside the tier), ruled in part 2026-10-25.** [ADR 0063 (an advisory layer beside the tier, and a health number that never enters it)](decisions/0063-an-advisory-layer-beside-the-tier-and-a-health-number-that-never-enters-it.md) section 5 specifies it: `schemaVersion`, a `run` block, `checks[]` with an outcome enum, `components[]`, `blockedFindings[]`, the advisory fields, `health{}`, and `schemas/report.v1.json`. It is additive, so no existing field is removed. The fingerprint half already shipped for SARIF as F-014 ([PR #375](https://github.com/product-on-purpose/agent-skills-toolkit/pull/375)). The original deferral, kept as history: reopen when D-01 (a health number beside the tier) is ruled ADOPT - the score needs this object's inventory pass - **or** when the first consumer outside this organisation reports a problem with the current `--json` or `--sarif` shape. A versioned report is a compatibility promise, and the audit's own version plan (1.19 / 1.20 / 2.0) is void under ADR 0057 |
 | 2 | Health score beside the tier | **ADOPT-RENAMED** | [E61 (the tier certifies file shape, so a plugin of placeholder files earns Gold)](backlog/enhancements.md). **REOPENED 2026-10-25:** D-01 is ruled in part, and ADR 0063 specifies five categories (substance, budget, portability, security, Standard currency), reported beside the tier and never on the badge in this pass |
-| 3 | Security posture axis, reported as its own non-tier axis | **ADOPT-RENAMED** | RS-E4 (the prompt-injection and pipe-to-shell scan) above, and [E6](backlog/enhancements.md). **Ruled 2026-10-25:** it ships as advisory finding ADV3 (security screen) outside the tier, needing no Standard edition, per ADR 0063 |
+| 3 | Security posture axis, reported as its own non-tier axis | **ADOPT-RENAMED** | RS-E4 (the prompt-injection and pipe-to-shell scan) above, and [E6](backlog/enhancements.md). **Ruled 2026-10-25:** it ships as advisory finding ADV3 (security screen) outside the tier, needing no Standard edition, per ADR 0063. **Shipped 2026-10-25, unreleased,** in [PR #386](https://github.com/product-on-purpose/agent-skills-toolkit/pull/386) |
 | 4 | Behavioural rung - executable eval sets above Gold | **DEFER** | Reopen when RS-B1 (the multi-entry credit gap) completes. A rung that certifies behaviour publishes a behavioural claim, and no behavioural claim may publish until the scoring key is trustworthy. D-08 (a fourth tier name, or a modifier on Gold) is the design question waiting behind it |
 | 5 | Autofix / codemod `--fix` for the mechanical set | **DEFER** | Reopen when [E47 (`askit-onboard`, the adoption funnel)](backlog/enhancements.md) ships and the mechanical-fix friction is still measured on a real adopter. The audit's own example - a scaffolded `G8` README that then fails `G7` - is a specific defect and reopens this on its own if anyone hits it. **E47 shipped 2026-10-25** ([PR #374](https://github.com/product-on-purpose/agent-skills-toolkit/pull/374)); the measurement half of the trigger is not yet met |
 | 6 | Context and token budget profiler | **DEFER** | Reopen with item 1. It is inside that object, not beside it; the audit itself files it as "inside 1". Item 1 reopened 2026-10-25 (ADR 0063), and its specified `components[]` will carry budget use per component; building a profiler beyond that still needs its own decision |
@@ -544,7 +552,12 @@ vendor probe.** ADR 0063's evidence section proposes a `probe` claim for the res
 "anthropic" and "claude", because the platform.claude.com page states them as a bullet fragment that
 cannot be quoted. A probe starts its own 30-day clock that blocks every release when it lapses, and
 ADR 0064 kept the budget at two the same day. Until the maintainer rules, ADV1 pins only its two
-`quote` claims, and the reserved-words screen is recorded as unverified.
+`quote` claims, and the reserved-words screen is recorded as unverified. **Corrected 2026-10-25, when
+ADV1 shipped in [PR #385](https://github.com/product-on-purpose/agent-skills-toolkit/pull/385):** no
+reserved-words screen ships at all, verified or not. ADV1 checks only the six-field whitelist, which
+one `quote` claim pins. The second `quote` claim in that PR pins ADV2's 32-skill preload cap. The
+reserved-words half, its platform.claude.com source and its probe claim are all absent until the
+maintainer rules.
 
 **Three cut 3 items await a maintainer ruling as of 2026-10-25.** None blocks other work. Each blocks
 publishing a final E13 cell.
