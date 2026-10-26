@@ -90,6 +90,19 @@ Every rule in the SARIF carries a `helpUri` pointing at
 [what a tier does not certify](../explanation/limitations.md), so a reader in the Security tab sees
 the scope of the finding without leaving the page.
 
+## Reading the result without opening a log
+
+The Action writes a **job summary** by default - the tier, the three counts, what blocks the next
+tier, and the top findings grouped by requirement - to the run's Summary page, the one a reviewer is
+already looking at on a pull request's Checks tab. It writes on a failing run too, because `if:
+always()` governs the step that produces it: a red check is exactly when the detail is most wanted.
+Set `summary: false` to skip it. The step appends rather than overwrites, so it never erases a summary
+an earlier step in the same job already wrote.
+
+If `GITHUB_STEP_SUMMARY` is unset - a local run, or a runner with job summaries disabled - the step
+reports that to its own log and writes nothing; it does not fail the build, because the summary is
+additive presentation, never the grade itself.
+
 ## Inputs
 
 | Input | Default | What it does |
@@ -101,6 +114,7 @@ the scope of the finding without leaving the page.
 | `profile` | *(none)* | A named severity profile to pass through to the gate. |
 | `strict` | `false` | Grade against the full live Standard instead of the version your plugin pins. |
 | `node-version` | `24` | The Node version to set up. |
+| `summary` | `true` | Write a job summary - tier, counts, what blocks the next tier, and the top findings - to the run's **Summary** page. Set `false` to skip it. |
 
 ## Outputs
 

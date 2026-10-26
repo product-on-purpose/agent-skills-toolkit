@@ -48,7 +48,7 @@ test("action.yml's description fits GitHub Marketplace's 125-character limit", (
 
 test("action.yml declares the minimum required inputs: path, profile, fail-on-error, and machine-output toggles", () => {
   const action = loadAction();
-  for (const name of ["path", "profile", "strict", "fail-on-error", "annotations", "sarif"]) {
+  for (const name of ["path", "profile", "strict", "fail-on-error", "annotations", "sarif", "summary"]) {
     assert.ok(action.inputs[name], `missing input "${name}"`);
   }
   assert.equal(action.inputs.path.default, ".");
@@ -68,6 +68,15 @@ test("action.yml's steps invoke scripts/check.mjs and scripts/gha-action-outputs
   assert.match(raw, /scripts\/check\.mjs/);
   assert.match(raw, /scripts\/gha-action-outputs\.mjs/);
   assert.doesNotMatch(raw, /npm\s+(install|i)\s+agent-skills-toolkit/, "must not npm-install the package itself (unpublished as of this release)");
+});
+
+test("action.yml writes a job summary step (F-033) that runs under if: always() so a failing gate still produces one", () => {
+  const action = loadAction();
+  const raw = readFileSync(ACTION_PATH, "utf8");
+  assert.match(raw, /scripts\/gha-step-summary\.mjs/);
+  const step = action.runs.steps.find((s) => typeof s.run === "string" && s.run.includes("gha-step-summary.mjs"));
+  assert.ok(step, "no step invokes scripts/gha-step-summary.mjs");
+  assert.match(String(step.if), /always\(\)/, "the summary step must run even when the gate step failed");
 });
 
 // Built from character codes rather than typed as literals, deliberately: this repository's own
