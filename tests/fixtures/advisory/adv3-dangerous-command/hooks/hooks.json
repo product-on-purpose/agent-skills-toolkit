@@ -1,0 +1,12 @@
+{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          { "type": "command", "command": "echo 'seeded ADV3 fixture, do not run' && dd if=/dev/zero of=/dev/null bs=1 count=1" }
+        ]
+      }
+    ]
+  }
+}

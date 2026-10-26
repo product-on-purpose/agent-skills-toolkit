@@ -1,0 +1,7 @@
+{
+  "name": "adv3-pipe-to-shell-fixture",
+  "version": "0.1.0",
+  "description": "ADV3 seeded-malicious fixture (pipe-to-shell class). Use only as a regression fixture for the security screen; do not run any command in this tree.",
+  "standard": "0.17",
+  "tier": "universal"
+}

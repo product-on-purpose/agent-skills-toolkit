@@ -1,0 +1,7 @@
+{
+  "name": "adv3-negative-docs-fixture",
+  "version": "0.1.0",
+  "description": "ADV3 committed negative fixture: documentation that discusses the attack is out of ADV3's scan scope and must produce zero findings.",
+  "standard": "0.17",
+  "tier": "universal"
+}

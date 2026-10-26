@@ -1,9 +1,9 @@
 // what-it-is:   the advisory registry (ADR 0063)
 // what-it-does: declares the ADV1-ADV4 advisory metadata (advisoryId, title, category, provenance) and
 //               runs the registered advisory modules over a check context, returning advisory findings.
-//               ADV1 (portability) and ADV2 (preload cap) ship as real screens, under
-//               scripts/advisory/. ADV3 and ADV4 exist here only as metadata; their screens arrive in
-//               later changes.
+//               ADV1 (portability), ADV2 (preload cap) and ADV3 (security screen) ship as real
+//               screens, under scripts/advisory/. ADV4 exists here only as metadata; its screen arrives
+//               in a later change.
 // why:          ADR 0063 decision 1: advisory findings are computed by modules registered in a registry
 //               SEPARATE from scripts/lib/registry.mjs, so no verdict path can reach them by accident.
 //               Every advisory finding is stamped with reqId: null here, at the one place findings leave
@@ -11,15 +11,21 @@
 //               even if it tried (tierForReq(null) is "universal", which is why the SEPARATE ARRAY - not
 //               the null reqId - is what scripts/check.mjs relies on to keep these out of findings[]).
 // used-by:      scripts/check.mjs (runs it beside runAllChecks); scripts/lib/profiles.mjs (reads the
-//               house-provenance id set for the plain-plugin advisory off-set); the partition test
+//               house-provenance id set for the plain-plugin advisory off-set); the partition test;
+//               tests/unit/adv3-security.test.mjs (ADV3's own fixture/mutation/timing coverage)
 import * as adv1Portability from "../advisory/adv1-portability.mjs";
 import * as adv2PreloadCap from "../advisory/adv2-preload-cap.mjs";
+import * as adv3Security from "../advisory/adv3-security.mjs";
 
 /**
  * ADV1-ADV4, exactly as ADR 0063 sec 2 names them. `category` is the health-number category (sec 3)
  * each ID's signals feed; it is metadata here and unused until the health number ships. No `modules`
  * list lives on an entry: a module names its own `advisoryId` in its `meta`, and runAdvisoryModules
  * below looks the provenance up from here rather than trusting the module to self-report it.
+ *
+ * ADV3's provenance is "objective" per this table; RS-E4's measured false-positive rate (0 fires over
+ * 1,206 files across the family and audit corpora, within the pre-registered 0.005 ceiling - see
+ * scripts/advisory/README.md's ADV3 heading) is what let it register in ADVISORY_MODULES below.
  */
 export const ADVISORY_REGISTRY = Object.freeze([
   Object.freeze({
@@ -58,10 +64,10 @@ export const HOUSE_ADVISORY_IDS = Object.freeze(
   ADVISORY_REGISTRY.filter((a) => a.provenance === "house").map((a) => a.advisoryId)
 );
 
-/** The real, shipped module list: ADV1 and ADV2 so far, each exporting
- * { meta: { advisoryId }, check(ctx) -> Finding[] } the same shape a spine check exports. ADV3 and ADV4
- * arrive in later changes. Frozen so a caller cannot mutate the shared default. */
-export const ADVISORY_MODULES = Object.freeze([adv1Portability, adv2PreloadCap]);
+/** The real, shipped module list: ADV1, ADV2 and ADV3 so far, each exporting
+ * { meta: { advisoryId }, check(ctx) -> Finding[] } the same shape a spine check exports. ADV4 arrives
+ * in a later change. Frozen so a caller cannot mutate the shared default. */
+export const ADVISORY_MODULES = Object.freeze([adv1Portability, adv2PreloadCap, adv3Security]);
 
 /**
  * Run every registered advisory module over ctx and return its findings, flattened and stamped.
