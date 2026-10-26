@@ -26,7 +26,7 @@ Two separate counts, because they answer different questions:
 
 - **Pre-existing firing-test gap: 0 of 35.** Every reqId already had at least one per-check unit test
   that makes its check fire somewhere in the suite, before this folder existed (the "pre-existing firing
-  test(s)" column). Seven of those - U7, S3, S5, S6, G5, G6, G7 - are flagged `thin`: each rests on a
+  test(s)" column). Six of those - U7, S5, S6, G5, G6, G7 - are flagged `thin`: each rests on a
   single firing test (or, for G7, one test with several assertions), so a regression in that one test's
   fixture is the only thing standing between the check and silently becoming a no-op.
 - **Cases added in this folder: 35 of 35, all firing green.** Three band agents filled
