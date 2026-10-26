@@ -26,7 +26,12 @@ export const PROVENANCE = Object.freeze({ OBJECTIVE: "objective", VENDOR: "vendo
  * scanning work they do not otherwise do. A consumer (e.g. scripts/lib/sarif-render.mjs) that wants a
  * SARIF `region.startLine` or a GitHub Actions `line=` annotation must treat a null `line` as "no line
  * known" and fall back to a file-level location - never invent line 1, which would fabricate evidence.
- * @returns {{check:string,severity:"error"|"warn",message:string,file:string|null,reqId:string|null,migration:{capAt:string,until:string,reason:string}|null,line:number|null}}
+ *
+ * `key`, when present, is an opaque string a check uses to tell two of its OWN findings apart when its
+ * message text cannot (F-014): scripts/lib/sarif-render.mjs's fingerprintFinding() uses it in place of
+ * the (normalised) message as the fingerprint discriminator. It is OPTIONAL and defaults to null; no
+ * check sets it yet - add it to a check only once a real collision is found, not speculatively.
+ * @returns {{check:string,severity:"error"|"warn",message:string,file:string|null,reqId:string|null,migration:{capAt:string,until:string,reason:string}|null,line:number|null,key:string|null}}
  */
 /**
  * OPERATOR, NOT CONFORMANCE (F-011, the grader config drags the tier down).
@@ -60,5 +65,6 @@ export function finding(check, severity, message, opts = {}) {
     reqId: opts.reqId ?? null,
     migration: opts.migration ?? null,
     line: opts.line ?? null,
+    key: opts.key ?? null,
   };
 }

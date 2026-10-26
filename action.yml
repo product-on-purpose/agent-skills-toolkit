@@ -82,6 +82,10 @@ inputs:
     description: "Node version to set up for the gate."
     required: false
     default: "24"
+  summary:
+    description: "Write a job summary (tier, counts, blockers, top findings) to GITHUB_STEP_SUMMARY."
+    required: false
+    default: "true"
 
 outputs:
   tier:
@@ -200,3 +204,12 @@ runs:
           exit 1
         fi
         exit 0
+
+    # F-033: a job summary, written from the SAME $RUNNER_TEMP/askit-gate.json the gate step above
+    # already wrote - no new computation, scripts/gha-step-summary.mjs decides what the summary says
+    # (Standard sec 4.1/4.4). `if: always()` so a FAILING gate still produces a summary: the gate step
+    # writes that file before its own final exit, whether it then exits 0 or 1.
+    - name: Write a job summary
+      if: always() && inputs.summary == 'true'
+      shell: bash
+      run: node "${{ github.action_path }}/scripts/gha-step-summary.mjs" "$RUNNER_TEMP/askit-gate.json"
