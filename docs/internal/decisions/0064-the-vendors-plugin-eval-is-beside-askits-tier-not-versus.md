@@ -8,7 +8,7 @@
 - **Status: Accepted.** Ruled 2026-08-31 (adopt, with a scope tripwire); this ADR recorded 2026-10-25.
 
 - **Date:** 2026-10-25
-- **Deciders:** maintainer (jprisant), with Claude (Sonnet 5)
+- **Deciders:** maintainer (jprisant), with Claude (Sonnet 5.5)
 
 ## Builds on
 
