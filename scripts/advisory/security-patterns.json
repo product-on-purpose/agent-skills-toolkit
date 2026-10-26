@@ -39,9 +39,9 @@
     {
       "id": "dangerous-command-rm-recursive-force",
       "class": "dangerous-command",
-      "matcher": { "source": "\\brm\\s+(?:.*\\s)?-\\w*r\\w*f", "flags": "" },
-      "source": "github.com/voodootikigod/skills-check, packages/cli/src/audit/checkers/commands.ts (DESTRUCTIVE_PATTERNS), read 2026-10-25 via `gh api repos/voodootikigod/skills-check/contents/packages/cli/src/audit/checkers/commands.ts`.",
-      "knownLimits": "Recognises `-rf`/`-fr` and interleaved-flag spellings such as `-r -f` only when both land in one combined flag token or `(?:.*\\s)?` carries them onto the same line as `rm`; `rm --recursive --force` (long-option spelling) is not matched."
+      "matcher": { "source": "\\brm\\s+(?:[^\\n]{0,200}\\s)?-[a-zA-Z]{0,8}r[a-zA-Z]{0,8}f", "flags": "" },
+      "source": "github.com/voodootikigod/skills-check, packages/cli/src/audit/checkers/commands.ts (DESTRUCTIVE_PATTERNS), read 2026-10-25 via `gh api repos/voodootikigod/skills-check/contents/packages/cli/src/audit/checkers/commands.ts`. Adapted: the vendor's own matcher is `/\\brm\\s+(?:.*\\s)?-\\w*r\\w*f/` (unbounded `.*` and `\\w*`); measured quadratic on this toolkit's own timing test (2339ms against a 100,000-character adversarial run of the letter \"r\", against a 2000ms bound), so the two unbounded spans are each capped here (200 characters before the flag token, 8 letters on either side of the required \"r\") for the linear-time requirement RS-E4 states. The cap does not change which real-world command lines match: no legitimate `rm` invocation carries an 8-letter run of flag characters or a 200-character argument between `rm` and its flags.",
+      "knownLimits": "Requires the literal letter \"r\" before the literal letter \"f\" in the flag token (matching the vendor's own ordering); `-fr` (force before recursive) does NOT match this pattern, though it would still match dangerous-command-rm-rf-root-or-home when the target is `/` or `~`. `rm --recursive --force` (long-option spelling) is not matched. The 200/8-character caps mean a flag token or a preceding argument longer than that is not seen; no real `rm` invocation is that long."
     },
     {
       "id": "dangerous-command-rm-rf-root-or-home",
@@ -81,16 +81,16 @@
     {
       "id": "dangerous-command-curl-download-execute",
       "class": "dangerous-command",
-      "matcher": { "source": "\\bcurl\\b.*&&\\s*(?:chmod\\s.*\\+x|bash|sh|\\./)", "flags": "" },
-      "source": "github.com/voodootikigod/skills-check, packages/cli/src/audit/checkers/commands.ts (DOWNLOAD_EXECUTE_PATTERNS), read 2026-10-25 via `gh api repos/voodootikigod/skills-check/contents/packages/cli/src/audit/checkers/commands.ts`.",
-      "knownLimits": "Only the `&&`-chained, same-line spelling is matched; a download and a separate execution step on two different lines (or in two different commands of a hook's `hooks` array) is not seen."
+      "matcher": { "source": "\\bcurl\\b[^\\n]{0,300}&&\\s*(?:chmod\\s[^\\n]{0,100}\\+x|bash|sh|\\./)", "flags": "" },
+      "source": "github.com/voodootikigod/skills-check, packages/cli/src/audit/checkers/commands.ts (DOWNLOAD_EXECUTE_PATTERNS), read 2026-10-25 via `gh api repos/voodootikigod/skills-check/contents/packages/cli/src/audit/checkers/commands.ts`. Adapted: the vendor's own matcher is `/\\bcurl\\b.*&&\\s*(?:chmod\\s.*\\+x|bash|sh|\\.\\/)/` (unbounded `.*` twice); measured quadratic on this toolkit's own timing test (1312ms against a 220,000-character adversarial line of repeated \" && chmod x\", against a 2000ms bound), so both spans are capped (300 characters between `curl` and `&&`, 100 characters between `chmod` and `+x`) for the linear-time requirement RS-E4 states. No legitimate single command line is that long.",
+      "knownLimits": "Only the `&&`-chained, same-line spelling is matched; a download and a separate execution step on two different lines (or in two different commands of a hook's `hooks` array) is not seen. The 300/100-character caps mean an unusually long intervening argument is not seen; no real command line is that long."
     },
     {
       "id": "dangerous-command-wget-download-execute",
       "class": "dangerous-command",
-      "matcher": { "source": "\\bwget\\b.*&&\\s*(?:chmod\\s.*\\+x|bash|sh|\\./)", "flags": "" },
-      "source": "github.com/voodootikigod/skills-check, packages/cli/src/audit/checkers/commands.ts (DOWNLOAD_EXECUTE_PATTERNS), read 2026-10-25 via `gh api repos/voodootikigod/skills-check/contents/packages/cli/src/audit/checkers/commands.ts`.",
-      "knownLimits": "Same same-line limit as dangerous-command-curl-download-execute."
+      "matcher": { "source": "\\bwget\\b[^\\n]{0,300}&&\\s*(?:chmod\\s[^\\n]{0,100}\\+x|bash|sh|\\./)", "flags": "" },
+      "source": "github.com/voodootikigod/skills-check, packages/cli/src/audit/checkers/commands.ts (DOWNLOAD_EXECUTE_PATTERNS), read 2026-10-25 via `gh api repos/voodootikigod/skills-check/contents/packages/cli/src/audit/checkers/commands.ts`. Adapted: same bounding as dangerous-command-curl-download-execute, for the same measured-quadratic reason.",
+      "knownLimits": "Same same-line and character-cap limits as dangerous-command-curl-download-execute."
     },
     {
       "id": "prompt-injection-ignore-prior-instructions",

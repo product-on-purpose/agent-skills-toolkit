@@ -102,6 +102,24 @@ registry.mjs`) as of this commit, because the measured rate clears the pre-regis
 
 This repository's own count: 148 files scanned under this toolkit's own tree, 0 ADV3 findings.
 
+**Measurement 2 (2026-10-25, after a post-measurement-1 pattern fix).** The timing test that
+accompanied measurement 1 used a generic adversarial-line heuristic that never actually entered any
+pattern's backtracking region (confirmed: it passed in under a millisecond against every pattern even
+while three were genuinely quadratic). Once the timing test was corrected to build a per-pattern
+adversarial line from each pattern's own unbounded sub-expression, three patterns failed it:
+`dangerous-command-rm-recursive-force` (2339ms against a 100,000-character line), and
+`dangerous-command-curl-download-execute` / `dangerous-command-wget-download-execute` (1312ms against a
+220,000-character line) - all three measured well over the 2000ms liveness bound. Per this heading's
+own pre-registered rule ("a pattern may be fixed BEFORE the measurement commit if it is plainly wrong
+... after it, any pattern change requires a full re-measurement, and both measurements are recorded
+here"): this is AFTER measurement 1's commit, so the fix is recorded as its own measurement rather than
+silently folded into measurement 1. All three matchers were bounded (the vendor's unbounded `.*`/`\w*`
+spans capped at 8-300 characters, which does not change which real-world command lines match - no
+legitimate command line carries an 8-letter flag run or a 300-character argument) and re-measured:
+family corpus 1,186 files / 0 findings, audit corpus 20 files / 0 findings, combined 1,206 files / 0
+findings - the same zero rate as measurement 1, because bounding a matcher only narrows it and cannot
+introduce a match that was not already there. **Shipped: still true; no change to the registration.**
+
 ## Inventory
 
 - `adv1-portability.mjs` - ADV1: a top-level SKILL.md frontmatter key outside the Skills API's six-field

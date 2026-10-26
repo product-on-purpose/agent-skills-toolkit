@@ -150,36 +150,74 @@ test("listScanTargets: covers hooks/** on the dangerous-command fixture", () => 
   assert.ok(rels.some((r) => r.startsWith("hooks/")));
 });
 
-// --- ReDoS / timing: every compiled pattern stays linear-time on a long adversarial line ---
+// --- ReDoS / timing: every compiled pattern stays linear-time on a PER-PATTERN adversarial line ---
 // Style follows resolve-bash.test.mjs's own timing assertions: a generous, documented bound (this is a
 // liveness guard against catastrophic backtracking, not a tight performance budget), checked against
 // the RAW regex (never the line-capped scan path), so a quadratic pattern cannot hide behind the
 // module's own MAX_LINE cap.
+//
+// Each line is built to actually ENTER the pattern's own backtracking region - a generic line (all
+// spaces, or the pattern's own trigger word with no surrounding construct) is NOT enough: an earlier
+// draft of this test used "a ".repeat(100000) and a line built from `p.matcher.source.match(/[A-Za-z]
+// {2,}/)` (e.g. "brm brm brm..." for \brm, which never satisfies \brm's own word boundary), and BOTH
+// passed in well under a millisecond against every pattern while three patterns were still genuinely
+// quadratic - the test was measuring nothing. Caught by re-deriving each adversarial line from the
+// pattern's own unbounded sub-expression instead of a generic heuristic.
+//
+// SHOWN FAILING (captured once against the as-shipped-in-the-prior-commit catalogue, then the three
+// patterns were bounded and the catalogue re-measured - see scripts/advisory/README.md's ADV3 heading
+// for both recorded measurements):
+//   dangerous-command-rm-recursive-force   (unbounded `/\brm\s+(?:.*\s)?-\w*r\w*f/`):            2339ms
+//     against "rm -" + "r".repeat(100000)  ->  bounded: 0ms
+//   dangerous-command-curl-download-execute (unbounded `/\bcurl\b.*&&\s*(?:chmod\s.*\+x|...)/`): 1312ms
+//     against "curl " + " && chmod x".repeat(20000)  ->  bounded: 0ms
+//   dangerous-command-wget-download-execute (same shape as curl's): measured identically quadratic
+//     before bounding, by construction (the two matchers differ only in the leading command name).
+// Every other pattern in the table below measured under 5ms against its own adversarial line even
+// BEFORE any bounding, so only these three needed a matcher change.
 
-test("timing: every ADV3 pattern tests in well under one second against a 200,000-character adversarial line with no match", () => {
+const ADVERSARIAL_LINES = {
+  "pipe-to-shell-curl": "curl " + "a".repeat(100_000),
+  "pipe-to-shell-wget": "wget " + "a".repeat(100_000),
+  "pipe-to-shell-curl-sudo": "curl " + "a".repeat(100_000),
+  "pipe-to-shell-bash-process-substitution": "bash " + "a".repeat(100_000),
+  "pipe-to-shell-sh-process-substitution": "sh " + "a".repeat(100_000),
+  "dangerous-command-rm-recursive-force": "rm -" + "r".repeat(100_000),
+  "dangerous-command-rm-rf-root-or-home": "rm -rf " + "a".repeat(100_000),
+  "dangerous-command-chmod-777": "chmod " + "7".repeat(100_000),
+  "dangerous-command-chmod-666": "chmod " + "6".repeat(100_000),
+  "dangerous-command-mkfs": "mkfs" + "a".repeat(100_000),
+  "dangerous-command-dd-to-device": "dd " + "a".repeat(100_000),
+  "dangerous-command-curl-download-execute": "curl " + " && chmod x".repeat(20_000),
+  "dangerous-command-wget-download-execute": "wget " + " && chmod x".repeat(20_000),
+  "prompt-injection-ignore-prior-instructions": "ignore " + "all ".repeat(50_000),
+  "prompt-injection-disregard-prior-instructions": "disregard " + "all ".repeat(50_000),
+  "prompt-injection-role-hijack": "you are now " + "a ".repeat(50_000),
+  "prompt-injection-forget-constraints": "forget " + "your ".repeat(50_000),
+  "prompt-injection-do-not-follow-prior": "do not follow " + "any ".repeat(50_000),
+};
+
+test("timing: every catalogue pattern has an adversarial-line entry (schema coverage for the timing test itself)", () => {
   const cat = loadCatalogue();
-  const adversarial = "a ".repeat(100_000); // no digit/dash/pipe/paren at all: forces maximal backtracking attempts
   for (const p of cat.patterns) {
-    const re = new RegExp(p.matcher.source, p.matcher.flags ?? "");
-    const started = Date.now();
-    re.test(adversarial);
-    const elapsedMs = Date.now() - started;
-    // 2000ms is deliberately large (mirrors resolve-bash.test.mjs's own stated reasoning): the point is
-    // to catch catastrophic (exponential) backtracking, not to assert a tight budget on a fast machine.
-    assert.ok(elapsedMs < 2000, `pattern ${p.id} took ${elapsedMs}ms against a 100k-char adversarial line - possible catastrophic backtracking`);
+    assert.ok(Object.hasOwn(ADVERSARIAL_LINES, p.id), `pattern ${p.id} has no adversarial-line entry in ADVERSARIAL_LINES - the timing test cannot cover it`);
+  }
+  for (const id of Object.keys(ADVERSARIAL_LINES)) {
+    assert.ok(cat.patterns.some((p) => p.id === id), `ADVERSARIAL_LINES names "${id}", which is not in the catalogue - stale entry`);
   }
 });
 
-test("timing: every ADV3 pattern tests in well under one second against a 200,000-character line built from its own trigger word", () => {
+test("timing: every ADV3 pattern stays well under one second against its own per-pattern adversarial line", () => {
   const cat = loadCatalogue();
   for (const p of cat.patterns) {
     const re = new RegExp(p.matcher.source, p.matcher.flags ?? "");
-    const triggerWord = p.matcher.source.match(/[A-Za-z]{2,}/)?.[0] ?? "a";
-    const adversarial = `${triggerWord} `.repeat(50_000);
+    const line = ADVERSARIAL_LINES[p.id];
     const started = Date.now();
-    re.test(adversarial);
+    re.test(line);
     const elapsedMs = Date.now() - started;
-    assert.ok(elapsedMs < 2000, `pattern ${p.id} took ${elapsedMs}ms against an adversarial line built from its own trigger word - possible catastrophic backtracking`);
+    // 2000ms is deliberately large (mirrors resolve-bash.test.mjs's own stated reasoning): the point is
+    // to catch catastrophic (here: quadratic-or-worse) backtracking, not to assert a tight budget.
+    assert.ok(elapsedMs < 2000, `pattern ${p.id} took ${elapsedMs}ms against its adversarial line (length ${line.length}) - possible catastrophic backtracking`);
   }
 });
 
