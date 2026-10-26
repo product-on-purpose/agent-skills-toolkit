@@ -81,7 +81,7 @@ The ruling proposed `A1` to `A4` and asked for the namespace to be confirmed fre
 1. **`A6` is a live identifier.** It names the marketplace `marketplace-agent-restricted-fields` reading in `scripts/lib/marketplace/analyze.mjs` and `scripts/lib/vendor-agent-fields.mjs`. It appears in two unit test files and one test fixture, and in ADRs 0045 and 0051. An advisory `A1` to `A4` beside a live `A6` would read as one series.
 2. **`tierForReq` already claims the `A` prefix.** `scripts/lib/tier.mjs` maps every reqId that does not start with `U` or `S` to `"advanced"`, and its comment names the `A`-prefix explicitly. `tests/unit/tier-lib.test.mjs` pins `tierForReq("A2") === "advanced"`. An advisory finding whose ID travelled in `reqId` would become a Gold requirement in the text sections, in SARIF's above-tier predicate and in the burndown.
 
-The rest are lexical: `RS-A1` to `RS-A4` are roadmap workstream IDs, and `A3` and `A4` name corpus batches in ADRs 0030 and 0031.
+The rest are lexical: `RS-A1` to `RS-A4` are roadmap workstream IDs, and `A3` and `A4` name corpus batches in ADR 0030 (calibrate U6, U11 and the plain-plugin tier label from the batch-2 corpus run) and ADR 0031 (calibrate U3 and U4 for display-label and namespaced skill names).
 
 **So two decisions, not one.**
 
