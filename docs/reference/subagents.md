@@ -10,7 +10,7 @@ tags: [subagents, chain, agents, reference]
 
 The seven askit subagents are bounded, read-only or narrowly scoped delegates that parent skills dispatch for specific phases of work. None owns its own conversation; each is invoked by a parent skill via the agent chain contract. Chain permissions are governed by `agents/_chain-permitted.yaml` - a subagent not listed there for a given parent may not be dispatched by that parent.
 
-**Four of the seven have a declared parent; three do not.** `askit-evaluator`, `askit-quality-grader`, `askit-reviewer`, and `askit-skill-author` each have a declared edge. The three general-purpose delegates (`askit-explorer`, `askit-file-ops`, `askit-file-search`) appear nowhere in `_chain-permitted.yaml`, because only two skills declare a `chain:` at all today (`askit-build-skill` and `askit-evaluate`) and neither names them. `S4` (`chain-contract`) validates the edges that are declared rather than requiring every subagent to have one, so this passes the gate - but it does mean no skill may currently dispatch those three under the contract. They were authored ahead of the skills that will declare them. This page states that gap rather than implying a permission the contract does not grant.
+**Five of the seven have a declared parent; two do not.** `askit-evaluator`, `askit-quality-grader`, `askit-reviewer`, `askit-skill-author`, and - since `askit-onboard` was added - `askit-explorer` each have a declared edge. Three skills declare a `chain:` today: `askit-build-skill`, `askit-evaluate`, and `askit-onboard`. The two remaining general-purpose delegates (`askit-file-ops`, `askit-file-search`) still appear nowhere in `_chain-permitted.yaml`, because no skill names them yet. `S4` (`chain-contract`) validates the edges that are declared rather than requiring every subagent to have one, so this passes the gate - but it does mean no skill may currently dispatch those two under the contract. They were authored ahead of the skills that will declare them. This page states that gap rather than implying a permission the contract does not grant.
 
 ## askit-evaluator
 
@@ -27,10 +27,12 @@ The seven askit subagents are bounded, read-only or narrowly scoped delegates th
 
 **Purpose.** A bounded, read-only discovery delegate. Surveys a repository broadly and returns a structural map of its components and layout: what component types are present, where they live, what manifests exist, and what conventions the repo follows. It reads excerpts to locate and classify, not whole files, and never edits. The broad counterpart to `askit-file-search` (which resolves a single known query).
 
-**Parent skill.** None declared. Its natural caller is a discovery-heavy skill such as `askit-migrate` (assess mode), where a foreign repo must be surveyed before it can be graded, but `askit-migrate` declares no `chain:` today.
+**Parent skill.** `askit-onboard` (assess mode), where a foreign repo must be surveyed before a tier
+can be reported. `askit-migrate` (assess mode) is the same shape of discovery problem but still
+declares no `chain:` today.
 
 **Chain permissions** (from `agents/_chain-permitted.yaml`).
-- No entry. No skill declares an edge to it, so no skill may dispatch it under the chain contract.
+- Permitted callers: `askit-onboard`
 
 ---
 
