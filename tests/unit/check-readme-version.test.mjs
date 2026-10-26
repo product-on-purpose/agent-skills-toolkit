@@ -11,6 +11,22 @@ const SCRIPT = path.resolve(HERE, "../../scripts/check-readme-version.mjs");
 const { CHECKS } = await import("../../scripts/lib/registry.mjs");
 const SPINE_SIZE = CHECKS.length;
 
+// A fixture named "agent-skills-toolkit" also activates the unrelated "at least 5 present-tense
+// pages state the spine size" floor check (E90), which exits 1 with a message that itself matches
+// /spine/i. Any test on an agent-skills-toolkit-named fixture that asserts only `status === 1` and
+// `/spine/i` cannot tell the real Status-section comparison apart from that floor check firing on
+// its own - it would pass identically if the real comparison were deleted outright. Call this after
+// `mkFixture(..., { name: "agent-skills-toolkit" })` to satisfy the floor so a test's assertions are
+// actually exercising the comparison they name, and tighten those assertions to the specific
+// `"## Status" claims a <N> checks spine` message the real comparison emits.
+function seedSpineFloor(dir) {
+  const refDir = path.join(dir, "docs", "reference");
+  mkdirSync(refDir, { recursive: true });
+  for (let i = 0; i < 5; i += 1) {
+    writeFileSync(path.join(refDir, `spine-floor-${i}.md`), `The spine is ${SPINE_SIZE} checks.\n`, "utf8");
+  }
+}
+
 // Every fixture carries a `## Status` section because the guard treats a missing one as a hard
 // failure. That is deliberate: a check that quietly passes when the thing it inspects is absent is
 // worse than no check, which is the lesson `docs/internal/STATUS.md` learned the expensive way.
@@ -145,12 +161,27 @@ test("check-readme-version: exits 1 when the Status section misstates the spine 
   // without anyone having to remember to update a second list. Scoped to this toolkit by name (E90):
   // the registry CHECKS.length is THIS toolkit's own spine, so this comparison applies only when the
   // graded repository IS this toolkit; see the E90 tests below for the third-party case.
+  //
+  // seedSpineFloor keeps the unrelated "at least 5 present-tense pages state the spine size" floor
+  // check (also scoped to this name, also exits 1 with /spine/i in its message) from satisfying this
+  // test's assertions by itself; the assertion below is pinned to the exact Status-section message so
+  // deleting the real comparison fails this test rather than passing it.
   const dir = mkFixture("5.0.0", "5.0.0", { name: "agent-skills-toolkit", extraStatus: "- **Validation spine** - 1 checks.\n" });
+  seedSpineFloor(dir);
   try {
     const r = spawnSync(process.execPath, [SCRIPT, dir], { encoding: "utf8" });
     assert.equal(r.status, 1, "a wrong spine count must fail");
     const out = (r.stdout ?? "") + (r.stderr ?? "");
-    assert.match(out, /spine/i, "output must name the spine claim");
+    assert.match(
+      out,
+      /"## Status" claims a 1 checks spine; the registry has \d+/,
+      "output must name the Status section's specific wrong spine-count claim, not just mention the word spine"
+    );
+    assert.doesNotMatch(
+      out,
+      /spine-claim scan found claims in only/,
+      "this assertion must be exercising the Status-section comparison, not the unrelated floor check"
+    );
   } finally {
     rmSync(dir, { recursive: true, force: true });
   }
@@ -335,16 +366,33 @@ test("check-readme-version: exits 0 when the Status section repeats the SAME cor
 });
 
 test("check-readme-version: exits 1 when the Status section carries two contradictory spine-size claims", () => {
-  // Scoped to this toolkit by name (E90); see note above.
+  // Scoped to this toolkit by name (E90); see note above. seedSpineFloor and the tightened assertion
+  // carry the same reasoning as the previous test: without them this test would pass identically even
+  // if the real Status-section comparison were deleted, because the unrelated floor check also fires.
   const dir = mkFixture("18.0.0", "18.0.0", {
     name: "agent-skills-toolkit",
     extraStatus: "- **Validation spine** - 30 checks.\n- **Also** - 1 checks, elsewhere.\n",
   });
+  seedSpineFloor(dir);
   try {
     const r = spawnSync(process.execPath, [SCRIPT, dir], { encoding: "utf8" });
     assert.equal(r.status, 1, "a second, contradictory spine-size claim must not be invisible to a first-match-only check");
     const out = (r.stdout ?? "") + (r.stderr ?? "");
-    assert.match(out, /spine/i, "output must name the spine claim");
+    assert.match(
+      out,
+      /"## Status" claims a 30 checks spine; the registry has \d+/,
+      "output must name the first disagreeing Status-section spine claim"
+    );
+    assert.match(
+      out,
+      /"## Status" claims a 1 checks spine; the registry has \d+/,
+      "output must ALSO name the second, contradictory Status-section spine claim (not just the first match)"
+    );
+    assert.doesNotMatch(
+      out,
+      /spine-claim scan found claims in only/,
+      "this assertion must be exercising the Status-section comparison, not the unrelated floor check"
+    );
   } finally {
     rmSync(dir, { recursive: true, force: true });
   }

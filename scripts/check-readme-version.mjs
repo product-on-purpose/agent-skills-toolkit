@@ -3,7 +3,9 @@
 // what-it-does: reads library.json (version, tier, skill count) and the check registry (spine
 //               size), then fails if the README's version badge, its `## Status` section's
 //               version / tier / skill-count / spine-size claims, or a self-referencing
-//               `<owner>/<this library>@vX.Y.Z` in action.yml / action.yaml, disagrees with any of them
+//               `<owner>/<this library>@vX.Y.Z` in action.yml / action.yaml, disagrees with any of
+//               them (spine-size comparisons run only when grading this toolkit itself; see the
+//               E90 scope note below)
 // why:          docs/internal/RELEASE.md promises "README Status matches the declared tier +
 //               version (drift = error)". Through v1.10.0 this script covered only the version half
 //               of that promise (badge plus the Status prose); the tier half was never read at all,
