@@ -145,9 +145,10 @@ itself absorb in many different splits) is what is needed to enter that region, 
 Measured directly against the then-current (post-measurement-2) catalogue, before any further change:
 `pipe-to-shell-curl` 2936ms, `pipe-to-shell-wget` 2920ms, `pipe-to-shell-curl-sudo` 2933ms, and
 `dangerous-command-dd-to-device` 2790ms, each against a `"<trigger> " + " ".repeat(100_000)` line (all
-well over the 2000ms bound); a second repeated-token shape (`"<trigger> ".repeat(20_000)`) also measured
-quadratic on the same four patterns (337-589ms at 60,000-100,000 characters), confirming the growth is
-in the matcher, not an artifact of one line shape. All four matchers were bounded the same way as
+well over the 2000ms bound); a second repeated-token shape (`"<trigger> ".repeat(20_000)`) measured
+337-589ms at a single length (60,000-100,000 characters) on the same four patterns - one data point per
+pattern, not a multi-length series, but consistent with the same quadratic growth the review's own
+4,000-to-50,004-character series showed directly on this shape before bounding. All four matchers were bounded the same way as
 measurement 2's three (the unbounded `.*`/`\s+.*` span capped at 300 characters, which does not change
 which real-world command lines match - no legitimate single command line carries a 300-character
 argument between `curl`/`wget`/`dd` and the pipe or `of=/dev/`) and re-measured at 7-37ms against the
@@ -173,11 +174,10 @@ for measurement 3 is **1,200 files, 0 findings**, not the 1,206 of measurements 
 applies both, which does not change this measurement's denominator (no family or audit-corpus file in
 scope is oversized or binary-looking) but closes the gap for a future tree that has one. Measurement 2's own text above states the
 `dangerous-command-curl-download-execute`/`wget` figure as "1312ms ... well over the 2000ms liveness
-bound" - 1312 is in fact under 2000; that sentence is left uncorrected here (editing a committed
-measurement record is itself a defect this ADV3 heading warns against), noted instead as a record note
-for the main loop: the 1312ms figure was over a 1000ms working bound used while drafting that
-measurement, not the 2000ms figure the test actually asserts. **Shipped: still true; no change to the
-registration.**
+bound" - 1312 is in fact under 2000, so that sentence is inconsistent with the figure it reports. Left
+as written rather than silently edited; the record does not show why it was written that way, and this
+is flagged here as a record note for the main loop rather than resolved with an invented explanation.
+**Shipped: still true; no change to the registration.**
 
 ## Inventory
 
