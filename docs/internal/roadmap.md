@@ -2,7 +2,7 @@
 title: "Roadmap - what is open, what it depends on, and what done means"
 description: "The tracked PLAN counterpart to STATUS.md's STATE: every open item with its acceptance criteria verbatim, every deferral with a reopening condition, every decline with a reason"
 status: live
-last-updated: "2026-10-23"
+last-updated: "2026-10-25"
 ---
 
 # Roadmap
@@ -68,6 +68,10 @@ eight below are the ones still carrying live acceptance criteria.
   [E16 (advisory-score credits nothing on a multi-entry engagement)](backlog/enhancements.md),
   E17 (the harness cannot consume an adjudication), E20 (the scoring key is readable from inside the
   fixture tree) and E15 (three eval-run runner defects) all still read `Status: OPEN`.
+  **Annotated 2026-10-25:** criterion 1 is met by
+  [ADR 0065 (a multi-entry finding earns credit only where its own correct clause verifies)](decisions/0065-a-multi-entry-finding-earns-credit-only-where-its-own-correct-clause-verifies.md),
+  merged in [PR #378](https://github.com/product-on-purpose/agent-skills-toolkit/pull/378). Criteria 2
+  to 5 (the scorer change, its regression tests, and the publication-gate grep) are still OPEN.
 - **Carried by:** those four entries plus this row. **Cut:** cut 3, "Evidence".
 - **Why it gates everything behavioural:** no detection-rate, precision, recall or model-ranking
   figure may publish anywhere until this lands. That is the audit's one refuse-to-do.
@@ -82,8 +86,9 @@ eight below are the ones still carrying live acceptance criteria.
 **The ruling, so nobody has to re-derive it.** Option (a') - full credit restricted to entries whose
 own `correct` clause verifies, `mode: semantic` entries never auto-credited, and adjudication
 MANDATORY on every multi-engagement. Option (a) was proposed and then falsified by measurement: it
-publishes Opus at 1.00 through an instrument documenting 0.92 as its maximum. **Criterion 1 is the
-ADR that does not exist yet** - the next free ADR number is **0062**.
+publishes Opus at 1.00 through an instrument documenting 0.92 as its maximum. **Criterion 1 is met
+as of 2026-10-25:** ADR 0065 records the ruling. ADR 0062 stays reserved for E75 (a marketplace cannot
+require a minimum Standard edition of its members), so the next free ADR number is **0066**.
 
 ## RS-B2 (mutation-proof the check spine)
 
@@ -113,7 +118,9 @@ each* - that is the same gap counted from the other end.
 
 ## RS-C5 (the stance on the vendor's own plugin eval): the positioning ADR
 
-- **Status: RULED 2026-08-31 (adopt, with a scope tripwire), ADR OPEN.** Verified 2026-09-17: `grep`
+- **Status: CLOSED 2026-10-25.** Ruled 2026-08-31 (adopt, with a scope tripwire); ADR 0064 accepted
+  2026-10-25. See the closing annotation at the end of this section. The text below is kept as history.
+  Verified 2026-09-17: `grep`
   for "plugin eval" across `docs/explanation/` and `foundation/` returns nothing, so the ADR is
   unwritten, the comparison page has no eval row, and the third probe has not been minted - the
   ledger holds exactly two `kind: "probe"` claims.
@@ -139,6 +146,20 @@ no-plugin baseline. That is the single-plugin, judged, behavioural shape the ADR
 on, confirmed rather than inferred. `grep` for "plugin eval" across `docs/explanation/` and
 `foundation/` still returns nothing: the ADR is still unwritten, the comparison page still has no eval
 row, and the third probe is still unminted.
+
+**Annotated 2026-10-25 - closed.**
+[ADR 0064 (the vendor's `claude plugin eval` is beside askit's tier, not versus it)](decisions/0064-the-vendors-plugin-eval-is-beside-askits-tier-not-versus.md)
+is accepted, merged in [PR #378](https://github.com/product-on-purpose/agent-skills-toolkit/pull/378).
+All three acceptance criteria are met:
+
+- The comparison page carries the eval paragraph in `docs/explanation/comparison.md`.
+- The single-plugin scope sentence is pinned as the quote claim `plugin-eval-single-plugin-scope` in
+  `foundation/claims/vendor-claims.json`, and `node scripts/vendor-watch.mjs .` confirms it holds.
+- The probe-class reproduction was not needed. `cli-reference.md` states the single-plugin,
+  isolated-session scope in a complete sentence, so the precondition for a probe in
+  `docs/internal/vendor-watch/probes/README.md` did not hold. **No third probe was minted, and the
+  probe budget stays at two.** The release-blocking cost the 2026-09-17 annotation above predicted
+  therefore never arrived.
 
 ## RS-C6 (the Agent Plugins root manifest): spike, then ADR
 
@@ -225,11 +246,16 @@ objects is dropped without argument.
 
 ## RS-E4 (the prompt-injection and pipe-to-shell content scan), formerly E6
 
-- **Status: OPEN, and BLOCKED on a revision to land on.** Verified 2026-09-17: no pattern catalogue
-  exists in the tree and no content-scan check is registered in the spine.
-- **Carried by:** [E6 (prompt-injection and curl-pipe-bash content scan)](backlog/enhancements.md),
-  status `backlog` since 2026-05-31, and this row.
-- **Cut:** none. It was written for the Standard 0.16 train and missed it.
+- **Status: RULED 2026-10-25, unimplemented. It ships as advisory finding ADV3 (security screen),
+  outside the tier, and needs no Standard edition.** The ruling is recorded in
+  [ADR 0063 (an advisory layer beside the tier, and a health number that never enters it)](decisions/0063-an-advisory-layer-beside-the-tier-and-a-health-number-that-never-enters-it.md).
+  An advisory finding can never fail anything, so it needs no `since` and no warn cap. The three
+  acceptance criteria below carry over unchanged. Verified 2026-09-17: no pattern catalogue existed in
+  the tree and no content-scan check was registered in the spine.
+- **Carried by:** [E6 (prompt-injection and curl-pipe-bash content scan)](backlog/enhancements.md)
+  and this row.
+- **Cut:** none assigned, per ADR 0057 (unshipped work carries a name, never a version number). It no
+  longer needs a Standard revision.
 
 > **Acceptance criteria.**
 > 1. Seeded-malicious fixtures (one per pattern class) each fire; the family corpus fires zero or every fire is examined and either exempted-by-rule or genuine; **and the measured false-positive rate required by change item 3 is recorded as a NUMBER, with a stated ceiling above which the catalog does not ship.** (Amended 2026-08-31: the disjunction "fires zero OR every fire is examined" exhausts the outcome space and so cannot fail, and the measurement the change section demanded was required by no criterion at all - it could be skipped without failing the item.)
@@ -287,19 +313,21 @@ with what it blocks.
 
 | Decision | The question | Blocks | State |
 |---|---|---|---|
-| **D-01** (a health number beside the tier) | does the badge gain a second number, or does the tier stay alone on it | [E61 (the tier certifies file shape)](backlog/enhancements.md), and through it D-02 | **DEFERRED.** It changes what every badge already in the wild means. Anything depending on it is parked, deliberately |
-| **D-02** (the pin floor's deprecation window) | how long may a pin reach back, and what happens to pins older than the floor | [E62 (the pin has no floor)](backlog/enhancements.md) | OPEN, downstream of D-01 |
+| **D-01** (a health number beside the tier) | does the badge gain a second number, or does the tier stay alone on it | [E61 (the tier certifies file shape)](backlog/enhancements.md), and through it D-02 | **RULED IN PART 2026-10-25.** Reports gain a health number beside the tier; the tier and the badge stay unchanged in this pass. **The badge half stays OPEN** and must be re-measured before any pass puts a number on the badge. The deferral's reason - it changes what every badge in the wild means - was measured on 2026-10-24 and found no outside payer: 111 npm downloads in a month, 3 stars, 0 forks, no outside issue. Recorded in [ADR 0063 (an advisory layer beside the tier, and a health number that never enters it)](decisions/0063-an-advisory-layer-beside-the-tier-and-a-health-number-that-never-enters-it.md) |
+| **D-02** (the pin floor's deprecation window) | how long may a pin reach back, and what happens to pins older than the floor | [E62 (the pin has no floor)](backlog/enhancements.md) | OPEN. D-01 is ruled in part, and the health number's currency category will report how far behind a pin is while enforcing nothing, so D-02 is still unanswered |
 | **D-03** (U5's warning text) | does `U5` keep its current warning text, or change | [E63 (U5 rewards a template)](backlog/enhancements.md) | OPEN. Its cheap unblocked first step is DONE: the twenty labelled descriptions are now a tracked fixture |
 | **D-08** (the behavioural rung's shape) | a fourth tier name, or a modifier on Gold | the behavioural rung, deferred below | OPEN, and not urgent while the rung is deferred |
-| **E16's implementation** (the multi-entry credit rule) | none - it is RULED; the scorer change is unwritten | every behavioural claim this project publishes | RULED 2026-08-31; the ADR recording it is criterion 1 of RS-B1 and does not exist |
-| **RS-C5's ADR** (the vendor plugin-eval stance) | none - it is RULED adopt; the ADR is unwritten | nothing; it is positioning | RULED 2026-08-31 |
+| **E16's implementation** (the multi-entry credit rule) | none - it is RULED; the scorer change is unwritten | every behavioural claim this project publishes | RULED 2026-08-31; ADR 0065 (a multi-entry finding earns credit only where its own correct clause verifies) records it, meeting criterion 1 of RS-B1. The scorer change is unwritten |
 | **RS-C6's spike** (the Agent Plugins root manifest) | does the root manifest carry components on the measured Codex version | the emit-or-dated-no ADR | evidence not gathered |
 
 **Already ruled, recorded here so they are not reopened:** D-04 became
 [ADR 0059 (every MUST maps to a check, a SHOULD or a stated gap)](decisions/0059-every-must-maps-to-a-check-a-should-or-a-stated-gap.md);
 D-05 shipped in PR #319 (an above-tier finding is a notice carrying its rung);
 D-06 put the audits in `_local/audit/`; D-07 is MOOT under
-[ADR 0057 (unshipped work carries a name, never a version number)](decisions/0057-unshipped-work-carries-a-name-never-a-version-number.md).
+[ADR 0057 (unshipped work carries a name, never a version number)](decisions/0057-unshipped-work-carries-a-name-never-a-version-number.md);
+RS-C5's ADR became
+[ADR 0064 (the vendor's `claude plugin eval` is beside askit's tier, not versus it)](decisions/0064-the-vendors-plugin-eval-is-beside-askits-tier-not-versus.md)
+on 2026-10-25.
 
 ---
 
@@ -373,10 +401,10 @@ unless marked otherwise; a plugin that keeps moving needs a re-measure before it
 |---|---|---|---|---|
 | 1 | agent-skills-toolkit (this repository) | 0.17 | Nothing - shipped in cut 6, v1.20.0 | Already true: `library.json` pins 0.17 and the gate is green |
 | 2 | critique-skills | 0.17, Silver, v0.2.0 | Nothing - moved 2026-09-30 (its PR 56) | Already true, same test |
-| 3 | product-lifecycle-templates | 0.12, now at v0.21.0 | Its `origin/HEAD` has moved past the commit the 2026-09-30 measurement pinned, so the small fix (change `standard`, regenerate `INDEX.md`) needs a re-measure against the current commit before it ships. *Confidence: medium - the fix is likely still that small, but unverified against v0.21.0* | `library.json.standard` reads `0.17`; the toolkit grades it Gold, 0 errors |
-| 4 | writing-style-catalog | 0.11, v0.14.0 | A one-line `standard` change; expect Bronze, 3 `U5` warnings, which are [E63 (`U5` rewards a template)](backlog/enhancements.md) advice, not blockers | `standard` reads `0.17`; the toolkit grades it Bronze, 0 errors |
-| 5 | pm-skills | none - no `library.json` | **[E72](backlog/enhancements.md) SHIPPED in v1.21.0** (2026-10-23), so adoption no longer risks wiping the native manifests' hand-written fields. What remains: a new `library.json` declaring `tier: universal`, using the [E74](backlog/enhancements.md)-ruled workaround (a keyword line in its template) and the [E73](backlog/enhancements.md)-ruled workaround (a real version on its tooling `package.json`) until Standard 0.18 ships `U9`'s exemption properly, plus repointing the docs links its own restructuring broke | `library.json` exists, declares `0.17` and `universal`; the toolkit grades it Bronze, 0 errors |
-| 6 | thinking-framework-skills | 0.8, v0.18.6 | **Ruled 2026-10-14: do the Gold work, not declare Silver.** Measured 2026-09-30 at its then-pinned commit, so re-measure at v0.18.6 before executing: 71 folder READMEs, frontmatter on 7 docs pages, and `G10`'s four Diataxis folders plus two architecture pages | `library.json.standard` reads `0.17`, `tier` stays `advanced`; the toolkit grades it Gold, 0 errors |
+| 3 | product-lifecycle-templates | 0.12, now at v0.21.0 | Its `origin/HEAD` has moved past the commit the 2026-09-30 measurement pinned, so the small fix (change `standard`, regenerate `INDEX.md`) needs a re-measure against the current commit before it ships. *Confidence: medium - the fix is likely still that small, but unverified against v0.21.0*. **Re-measured 2026-10-25 and PR open** (product-lifecycle-templates#324, a draft): graded Advanced with 0 errors and 0 warnings by the toolkit at `main`. It stays a draft because its CI pins `TOOLKIT_REF: v1.10.0`, and moving that pin needs a toolkit release carrying [E90 (spine-size prose compared outside this toolkit)](backlog/enhancements.md) | `library.json.standard` reads `0.17`; the toolkit grades it Gold, 0 errors |
+| 4 | writing-style-catalog | 0.11, v0.14.0 | A one-line `standard` change; expect Bronze, 3 `U5` warnings, which are [E63 (`U5` rewards a template)](backlog/enhancements.md) advice, not blockers. **PR open 2026-10-25** (writing-style-catalog#165, CI green): graded Universal (Bronze) with 0 errors and 3 warnings, as expected. Merge and release wait for the maintainer | `standard` reads `0.17`; the toolkit grades it Bronze, 0 errors |
+| 5 | pm-skills | none - no `library.json` | **[E72](backlog/enhancements.md) SHIPPED in v1.21.0** (2026-10-23), so adoption no longer risks wiping the native manifests' hand-written fields. What remains: a new `library.json` declaring `tier: universal`, using the [E74](backlog/enhancements.md)-ruled workaround (a keyword line in its template) and the [E73](backlog/enhancements.md)-ruled workaround (a real version on its tooling `package.json`) until Standard 0.18 ships `U9`'s exemption properly, plus repointing the docs links its own restructuring broke. **PR open 2026-10-25** (pm-skills#326, CI green): graded Universal (Bronze) with 0 errors and 40 `U5` warnings. Merge and release wait for the maintainer | `library.json` exists, declares `0.17` and `universal`; the toolkit grades it Bronze, 0 errors |
+| 6 | thinking-framework-skills | 0.8, v0.18.6 | **Ruled 2026-10-14: do the Gold work, not declare Silver.** Measured 2026-09-30 at its then-pinned commit, so re-measure at v0.18.6 before executing: 71 folder READMEs, frontmatter on 7 docs pages, and `G10`'s four Diataxis folders plus two architecture pages. **PR open 2026-10-25** (thinking-framework-skills#217, CI green): graded Advanced (Gold) with 0 errors and 7 `U5` warnings, after adding 74 folder READMEs that each describe that folder's actual contents. Merge and release wait for the maintainer | `library.json.standard` reads `0.17`, `tier` stays `advanced`; the toolkit grades it Gold, 0 errors |
 | 7 | agent-plugins (the marketplace catalogue) | pins four different editions across the six members (two of them, agent-skills-toolkit and critique-skills, already at 0.17), and one member (pm-skills) declares none | Each member above releases its own move first | `.claude-plugin/marketplace.json` pins each member's post-migration commit; [E75](backlog/enhancements.md) gets ADR 0062 after the last one lands |
 
 **Suggested order**, carried from the 2026-09-30 measurement: `product-lifecycle-templates`,
@@ -403,21 +431,21 @@ deferral and decline below, which is what stops them from being zero-trace drops
 
 | # | The audit's item | Disposition | Carried by, or the trigger that reopens it |
 |---|---|---|---|
-| 1 | Schema-first report object with fingerprints, outcomes and inventory | **DEFER** | Reopen when D-01 (a health number beside the tier) is ruled ADOPT - the score needs this object's inventory pass - **or** when the first consumer outside this organisation reports a problem with the current `--json` or `--sarif` shape. A versioned report is a compatibility promise, and the audit's own version plan (1.19 / 1.20 / 2.0) is void under ADR 0057 |
-| 2 | Health score beside the tier | **ADOPT-RENAMED** | [E61 (the tier certifies file shape, so a plugin of placeholder files earns Gold)](backlog/enhancements.md). PARKED on D-01, which is deferred |
-| 3 | Security posture axis, reported as its own non-tier axis | **ADOPT-RENAMED** | RS-E4 (the prompt-injection and pipe-to-shell scan) above, and [E6](backlog/enhancements.md). Open; needs a revision to land on |
+| 1 | Schema-first report object with fingerprints, outcomes and inventory | **REOPENED 2026-10-25** | **Reopened by D-01 (a health number beside the tier), ruled in part 2026-10-25.** [ADR 0063 (an advisory layer beside the tier, and a health number that never enters it)](decisions/0063-an-advisory-layer-beside-the-tier-and-a-health-number-that-never-enters-it.md) section 5 specifies it: `schemaVersion`, a `run` block, `checks[]` with an outcome enum, `components[]`, `blockedFindings[]`, the advisory fields, `health{}`, and `schemas/report.v1.json`. It is additive, so no existing field is removed. The fingerprint half already shipped for SARIF as F-014 ([PR #375](https://github.com/product-on-purpose/agent-skills-toolkit/pull/375)). The original deferral, kept as history: reopen when D-01 (a health number beside the tier) is ruled ADOPT - the score needs this object's inventory pass - **or** when the first consumer outside this organisation reports a problem with the current `--json` or `--sarif` shape. A versioned report is a compatibility promise, and the audit's own version plan (1.19 / 1.20 / 2.0) is void under ADR 0057 |
+| 2 | Health score beside the tier | **ADOPT-RENAMED** | [E61 (the tier certifies file shape, so a plugin of placeholder files earns Gold)](backlog/enhancements.md). **REOPENED 2026-10-25:** D-01 is ruled in part, and ADR 0063 specifies five categories (substance, budget, portability, security, Standard currency), reported beside the tier and never on the badge in this pass |
+| 3 | Security posture axis, reported as its own non-tier axis | **ADOPT-RENAMED** | RS-E4 (the prompt-injection and pipe-to-shell scan) above, and [E6](backlog/enhancements.md). **Ruled 2026-10-25:** it ships as advisory finding ADV3 (security screen) outside the tier, needing no Standard edition, per ADR 0063 |
 | 4 | Behavioural rung - executable eval sets above Gold | **DEFER** | Reopen when RS-B1 (the multi-entry credit gap) completes. A rung that certifies behaviour publishes a behavioural claim, and no behavioural claim may publish until the scoring key is trustworthy. D-08 (a fourth tier name, or a modifier on Gold) is the design question waiting behind it |
-| 5 | Autofix / codemod `--fix` for the mechanical set | **DEFER** | Reopen when [E47 (`askit-onboard`, the adoption funnel)](backlog/enhancements.md) ships and the mechanical-fix friction is still measured on a real adopter. The audit's own example - a scaffolded `G8` README that then fails `G7` - is a specific defect and reopens this on its own if anyone hits it |
-| 6 | Context and token budget profiler | **DEFER** | Reopen with item 1. It is inside that object, not beside it; the audit itself files it as "inside 1" |
+| 5 | Autofix / codemod `--fix` for the mechanical set | **DEFER** | Reopen when [E47 (`askit-onboard`, the adoption funnel)](backlog/enhancements.md) ships and the mechanical-fix friction is still measured on a real adopter. The audit's own example - a scaffolded `G8` README that then fails `G7` - is a specific defect and reopens this on its own if anyone hits it. **E47 shipped 2026-10-25** ([PR #374](https://github.com/product-on-purpose/agent-skills-toolkit/pull/374)); the measurement half of the trigger is not yet met |
+| 6 | Context and token budget profiler | **DEFER** | Reopen with item 1. It is inside that object, not beside it; the audit itself files it as "inside 1". Item 1 reopened 2026-10-25 (ADR 0063), and its specified `components[]` will carry budget use per component; building a profiler beyond that still needs its own decision |
 | 7 | Standard-to-check coverage table, generated | **ADOPT - BUILT 2026-09-18; six of seven dispositions UNAPPLIED** | [ADR 0059 (every MUST maps to a check, a SHOULD or a stated gap)](decisions/0059-every-must-maps-to-a-check-a-should-or-a-stated-gap.md), accepted 2026-09-08. The table shipped in [PR #334](https://github.com/product-on-purpose/agent-skills-toolkit/pull/334) as `scripts/gen-standard-coverage.mjs` -> [`../reference/standard-coverage.md`](../reference/standard-coverage.md), drift-guarded in `npm test`. One disposition is applied: Standard 0.17 demoted the sec 7.3 `HISTORY.md` clause to SHOULD. The other six still read `MUST`, and applying them is a Standard revision with no date. **Corrected 2026-09-28:** this row said NOT BUILT for ten days after the table was built |
-| 8 | Pin floor and staleness | **ADOPT-RENAMED** | [E62 (the Standard pin has no floor)](backlog/enhancements.md). PARKED on D-02, which is downstream of D-01 |
-| 9 | Report diff and trend badge | **DEFER** | Reopen with item 1. It needs that object's fingerprints and cannot be built before them |
+| 8 | Pin floor and staleness | **ADOPT-RENAMED** | [E62 (the Standard pin has no floor)](backlog/enhancements.md). PARKED on D-02 (the pin floor's deprecation window), which is still open. D-01 was ruled in part 2026-10-25, and the health number's currency category will show a pin's age without enforcing anything |
+| 9 | Report diff and trend badge | **DEFER** | Reopen with item 1. It needs that object's fingerprints and cannot be built before them. Item 1 reopened 2026-10-25 (ADR 0063); building this item still needs its own decision |
 | 10 | Published JSON Schema and a conformance suite | **ADOPT-RENAMED** | [E8 (published conformance suite)](backlog/enhancements.md), `backlog` since 2026-05-31. The JSON-Schema half rides item 1; the fixture-suite half does not and can start at any time |
 | 11 | Corpus benchmarking / percentile | **DECLINE** | It publishes a distribution computed over other people's repositories - the graded cohort's governance problem without the cohort's consent step - and the audit itself notes the reference corpora are of uneven quality. **Reopens only if** cut 5 ships with notify-before-publish honoured and a member asks for a comparison figure |
-| 12 | Marketplace rollup | **DEFER** | Marketplace scope already ships. The rollup needs item 1's per-member object, so it reopens with item 1 |
-| 13 | One-command triage (`doctor`) | **SPLIT: ADOPT-RENAMED and DEFER** | The on-ramp problem - a beginner's first run is eight red lines - is carried by [E47 (`askit-onboard`)](backlog/enhancements.md)'s `assess` mode. The CLI subcommand is a different surface and is DEFERRED; **reopen when E47 has shipped and the same friction is measured for a user who is not inside an agent session** |
+| 12 | Marketplace rollup | **DEFER** | Marketplace scope already ships. The rollup needs item 1's per-member object, so it reopens with item 1. Item 1 reopened 2026-10-25 (ADR 0063); building this item still needs its own decision |
+| 13 | One-command triage (`doctor`) | **SPLIT: ADOPT-RENAMED and DEFER** | The on-ramp problem - a beginner's first run is eight red lines - is carried by [E47 (`askit-onboard`)](backlog/enhancements.md)'s `assess` mode. The CLI subcommand is a different surface and is DEFERRED; **reopen when E47 has shipped and the same friction is measured for a user who is not inside an agent session**. E47 shipped 2026-10-25 ([PR #374](https://github.com/product-on-purpose/agent-skills-toolkit/pull/374)). The beginner's-first-run defect, F-037, was already fixed on 2026-09-17, so the measurement half of the trigger is not met |
 | 14 | Prompt-injection surface analysis of skill bodies | **ADOPT-RENAMED, with one half deferred** | The catalogue half is RS-E4 above. The audit's preferred variant - integrate a third-party scanner's SARIF rather than compete - is DEFERRED; **reopen when one of those scanners publishes a versioned, pinnable SARIF contract**, because a deterministic gate cannot depend on an unpinned third party |
-| 15 | Runtime-truth checks (vendor CLIs as parity oracles inside the gate) | **DEFER** | The vendor CLIs are external, unpinned and, in the case of `claude plugin eval`, undocumented. **Reopen when `claude plugin validate`'s output has a documented, versioned contract** - which is exactly the surface RS-C5's scope tripwire already watches, so the trigger has an instrument |
+| 15 | Runtime-truth checks (vendor CLIs as parity oracles inside the gate) | **DEFER** | The vendor CLIs are external and unpinned, and `claude plugin eval` is documented only in prose, with no versioned output contract (ADR 0064, 2026-10-25). **Reopen when `claude plugin validate`'s output has a documented, versioned contract** - which is exactly the surface RS-C5's scope tripwire already watches, so the trigger has an instrument |
 
 ## The audit's five rejections
 
@@ -446,13 +474,16 @@ corrected here rather than carried.
 | ~~2026-09-18 to 09-20~~ | re-verify the two vendor probes | **SUPERSEDED.** Both probes were re-run and re-verified on **2026-09-17** (PR #327), with both `kind: "probe"` claims now reading `verifiedOn: 2026-09-17`. The window closed early and correctly |
 | ~~2026-09-23/24~~ | the probes go stale and block every release | **SUPERSEDED by the re-run.** The 30-day clock restarts at 2026-09-17, so both probes go STALE on **2026-10-18** and block every release from that day. Measured, not reasoned: `npm run vendor-watch -- --today 2026-10-17` reports `9 claims: 7 hold, 0 MISSING, 0 stale, 2 unchecked` and exits 0, and `--today 2026-10-18` reports `2 stale` and exits 1. There is no boundary ambiguity to hedge: `scripts/lib/vendor-watch.mjs` parses both dates at `T00:00:00Z`, so the age is a whole number of days and `age > 30` flips on one date - a UTC date, because `scripts/vendor-watch.mjs` takes `today` from `new Date().toISOString()`, so a run in the Americas on the evening of 10-17 local already reports stale. **Do not plan a release against the last day of the window** - re-run the probes a week early, as was done this month |
 | ~~2026-11-13~~ | the probes go stale and block every release | **SUPERSEDED by the re-run.** Both probes were re-run UNCHANGED on 2026-10-13 on Claude Code 2.1.296, so the 2026-10-18 date above no longer applied either. Measured then: `npm run vendor-watch -- --today 2026-11-12` reported 0 stale and `--today 2026-11-13` reported 2, but both probes were re-run UNCHANGED again on **2026-10-23** on Claude Code 2.1.310, before that date arrived, so the clock restarted and the row below is now the current one. **The separate blocker this row used to carry is CLEARED 2026-10-23:** the two-agent fixture ran, [E81 (the colon rule now names the frontmatter `name`, not the filename)](backlog/enhancements.md) SHIPPED in v1.21.0, and the retired quote claim `agent-filename-colon-excluded` is replaced by `plugin-agents-outside-skip-list`, which holds |
-| 2026-11-23 | the probes go stale and block every release | Both probes were re-run UNCHANGED on 2026-10-23 on Claude Code 2.1.310: `agents-dir-registers-every-md` via `claude plugin details`, `components-share-one-namespace` via the headless resolution reproduction in both install orders. Measured: `node scripts/vendor-watch.mjs . --today 2026-11-22` reports 0 stale and `--today 2026-11-23` reports 2 |
+| ~~2026-11-23~~ | the probes go stale and block every release | **SUPERSEDED by the re-run.** Both probes were re-run UNCHANGED on 2026-10-23 on Claude Code 2.1.310, and measured then: `--today 2026-11-22` reported 0 stale and `--today 2026-11-23` reported 2. Both were re-run UNCHANGED again on **2026-10-25** ([PR #378](https://github.com/product-on-purpose/agent-skills-toolkit/pull/378)), so the clock restarted and the row below is now the current one |
+| 2026-11-25 | the probes go stale and block every release | Both probes were re-run UNCHANGED on 2026-10-25 on Claude Code 2.1.310: `agents-dir-registers-every-md` via `claude plugin details`, `components-share-one-namespace` via the headless resolution reproduction in both install orders. Measured 2026-10-25: `node scripts/vendor-watch.mjs . --today 2026-11-24` reports `10 claims: 8 hold, 0 MISSING, 0 stale, 2 unchecked` and exits 0, and `--today 2026-11-25` reports 2 stale and exits 1 |
 | ~~2026-11-15~~ | earliest revisit of the standards-watch gating question | **MOVED to 2026-12-15 at the earliest.** [E58 (should standards-watch gate release-ready)](backlog/enhancements.md) requires three clean SCHEDULED runs and says the count RESTARTS if any of them refuses or finds drift. The 2026-09-15 run was not clean: it crashed before reading the upstream, which proves nothing, the same as a refusal (recorded here as "found drift" until 2026-09-27). The next three scheduled runs are 10-15, 11-15 and 12-15. **The 10-15 run was clean:** run `38735137025`, `event: schedule`, `VERDICT: unchanged`. The count stands at one of three |
 
 **A note on the probe clock, because it is the one date that can block a release with no warning.**
-If RS-C5's ADR lands, it mints a third probe with its own independent 30-day clock starting on the
-day its reproduction is run. The budget arithmetic must move from two probes to three in the same
-change.
+Until 2026-10-25 this note warned that RS-C5's ADR would mint a third probe with its own 30-day clock.
+**It did not.** ADR 0064 pinned a `quote` claim, because the vendor page states the scope in a full
+sentence, so the probe budget stays at two. **The next possible third probe** is the reserved-words
+claim for ADV1 (portability) that ADR 0063's evidence section proposes. Minting it would start a third
+independent clock, so it waits on a maintainer ruling rather than riding an implementation change.
 
 ---
 
@@ -476,10 +507,21 @@ clone with `npm test`.
 
 # 7. Blocked and awaiting a ruling
 
-One thing on this page needs a maintainer decision that no existing ruling covers, and it is recorded
-here rather than answered.
+**Nothing here is blocked on a Standard ruling as of 2026-10-25.** RS-E4 (the prompt-injection and
+pipe-to-shell scan) was the one item, and the maintainer ruled on 2026-10-25 that it ships as an
+advisory finding (ADV3) outside the tier. An advisory finding needs no `since`, no warn cap and no
+Standard edition. The ruling is recorded in
+[ADR 0063 (an advisory layer beside the tier, and a health number that never enters it)](decisions/0063-an-advisory-layer-beside-the-tier-and-a-health-number-that-never-enters-it.md).
+The paragraph below is kept as history.
 
-**RS-E4 (the prompt-injection and pipe-to-shell scan) has no Standard revision to land on.** Its spec
+**One item awaits a maintainer ruling as of 2026-10-25: whether ADV1 (portability) mints a third
+vendor probe.** ADR 0063's evidence section proposes a `probe` claim for the reserved name words
+"anthropic" and "claude", because the platform.claude.com page states them as a bullet fragment that
+cannot be quoted. A probe starts its own 30-day clock that blocks every release when it lapses, and
+ADR 0064 kept the budget at two the same day. Until the maintainer rules, ADV1 pins only its two
+`quote` claims, and the reserved-words screen is recorded as unverified.
+
+**Until 2026-10-25: RS-E4 had no Standard revision to land on.** Its spec
 specifies `since: "0.16"` and `until: "0.17"`. Standard 0.16 shipped without it; 0.17 is ruled
 graduations-only and opens no windows; and Standard 0.18 is named for the five-item strengthening set,
 which does not include this check. A new check needs a `since` so that a plugin pinned below it is not
