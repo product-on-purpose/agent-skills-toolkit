@@ -36,7 +36,7 @@
 //     discriminator is `finding.key` when a check supplies one (no check does yet; this is the escape
 //     hatch for the day one check's own message text cannot tell two of its findings apart), otherwise
 //     the finding's message with volatile tokens normalised (runs of digits folded to "#", whitespace
-//     collapsed). KNOWN LIMIT: a check that reword its own message changes every affected finding's
+//     collapsed). KNOWN LIMIT: a check that rewords its own message changes every affected finding's
 //     fingerprint once, at the moment the wording changes - a consumer sees that one finding's alert
 //     thread close and a new one open, the same as if the check had changed id. This is a one-time
 //     cost per wording change, not an ongoing instability, and is the deliberate trade against hashing

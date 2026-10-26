@@ -1,10 +1,10 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { createHash } from "node:crypto";
 import { mkdtempSync, writeFileSync, mkdirSync, rmSync, readdirSync, statSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { execFileSync } from "node:child_process";
 import { renderSarif } from "../../scripts/lib/sarif-render.mjs";
 import { LIMITATIONS_URL } from "../../scripts/lib/tier-scope.mjs";
 import { runGate } from "../../scripts/check.mjs";
@@ -242,10 +242,12 @@ test("every result carries a partialFingerprints.askitFinding/v1 that is a 64-ch
 });
 
 test("the v1 algorithm is pinned: a hand-computed hash for a fixed tuple, so a refactor cannot silently change it", () => {
+  // The literal below was computed independently, by hand, from the spec in the module docblock -
+  // sha256 of "U6\u0000skills/widget/SKILL.md\u0000\u0000link to ./missing.md is broken" - and pasted
+  // here as a value, not recomputed in this test. Recomputing it would pin nothing: a second copy of
+  // the same (possibly wrong) algorithm always agrees with itself.
+  const expected = "c7dc21f77fc3581efc69825bd2dbdec9198a5170f7820af510035b6455d0dee0";
   const finding = { reqId: "U6", check: "reference-links", file: "skills/widget/SKILL.md", line: null, message: "link to ./missing.md is broken" };
-  const expected = createHash("sha256")
-    .update(["U6", "skills/widget/SKILL.md", "", "link to ./missing.md is broken"].join("\u0000"), "utf8")
-    .digest("hex");
   const ctx = { library: { data: { tier: "universal" } } };
   const r = { findings: [{ ...finding, effectiveSeverity: "error" }] };
   const result = renderSarif(ctx, r).runs[0].results[0];
@@ -320,9 +322,14 @@ function fingerprintsFor(root) {
 }
 
 test("no two results in one SARIF run share a fingerprint, across this repo and several finding-rich fixtures", () => {
-  const roots = [REPO, ...findingRichAntiFixtures()];
-  for (const root of roots) {
+  const fixtures = findingRichAntiFixtures();
+  // This must actually exercise the thing it claims to: a fixture list that silently shrank to zero
+  // (a rename, a typo) would leave only REPO, whose own gate run is clean, and the uniqueness assertion
+  // below would then pass on an empty array while checking nothing.
+  assert.ok(fixtures.length >= 5, `expected at least 5 finding-rich anti fixtures to exist, found ${fixtures.length}`);
+  for (const root of [REPO, ...fixtures]) {
     const fps = fingerprintsFor(root);
+    if (root !== REPO) assert.ok(fps.length >= 2, `${path.basename(root)}: expected at least 2 findings, this fixture produced ${fps.length}`);
     const unique = new Set(fps);
     assert.equal(unique.size, fps.length, `${path.basename(root)}: ${fps.length} results produced only ${unique.size} distinct fingerprints`);
   }
@@ -332,5 +339,31 @@ test("re-running the gate on the same fixture gives identical fingerprints run t
   const roots = [REPO, ...findingRichAntiFixtures()];
   for (const root of roots) {
     assert.deepEqual(fingerprintsFor(root), fingerprintsFor(root), `${path.basename(root)}: fingerprints must be stable across two runs`);
+  }
+});
+
+// The in-process tests above call runGate()+renderSarif() directly - fast, but they never prove the
+// fingerprints survive the CLI's own JSON.stringify -> stdout -> JSON.parse round trip. This spawns the
+// real `check.mjs --sarif` entry point the task names, twice per root, over the same roots (anti
+// fixtures exit 1, hence the try/catch - same idiom as tests/unit/check-machine-outputs.test.mjs's runCli).
+function sarifFingerprintsViaCli(root) {
+  let stdout;
+  try {
+    stdout = execFileSync(process.execPath, [path.join(REPO, "scripts/check.mjs"), root, "--sarif"], { encoding: "utf8" });
+  } catch (e) {
+    stdout = String(e.stdout ?? "");
+  }
+  const doc = JSON.parse(stdout);
+  return doc.runs[0].results.map((res) => res.partialFingerprints["askitFinding/v1"]);
+}
+
+test("CLI check.mjs --sarif: no collisions and stable fingerprints run to run, over the real subprocess path", () => {
+  const roots = [REPO, path.join(REPO, "tests/fixtures/anti/weak-description"), path.join(REPO, "tests/fixtures/anti/bad-frontmatter"), path.join(REPO, "tests/fixtures/anti/chain-orphan")];
+  for (const root of roots) {
+    const first = sarifFingerprintsViaCli(root);
+    const second = sarifFingerprintsViaCli(root);
+    if (root !== REPO) assert.ok(first.length >= 2, `${path.basename(root)}: expected at least 2 CLI results, got ${first.length}`);
+    assert.equal(new Set(first).size, first.length, `${path.basename(root)}: CLI run produced a fingerprint collision`);
+    assert.deepEqual(first, second, `${path.basename(root)}: two CLI runs must give identical fingerprints`);
   }
 });
