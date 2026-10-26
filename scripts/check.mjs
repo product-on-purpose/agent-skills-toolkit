@@ -51,7 +51,7 @@ export function gateExitFromFindings(findings, declaredTier) {
  *
  * `profile` is the RESOLVED profile NAME (e.g. `effectiveConfig.profile.value` in runGate, or
  * `cfg.profile.value` in evaluate.mjs) - never a raw, unvalidated CLI string - so the off-set lookup
- * below always resolves to a real entry in PROFILES. `advisoryModules` defaults to the real, empty
+ * below always resolves to a real entry in PROFILES. `advisoryModules` defaults to the real, shipped
  * ADVISORY_MODULES; a caller (the partition test, in either file) passes its own list to prove the
  * separation without touching the registry file or an environment variable.
  */
