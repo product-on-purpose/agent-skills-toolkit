@@ -34,6 +34,7 @@ Reference material: one page per askit-* skill plus the per-tier conformance-che
 - `askit-init-marketplace.md` - the "askit init marketplace" page.
 - `askit-init-plugin.md` - the "askit init plugin" page.
 - `askit-migrate.md` - the "askit migrate" page.
+- `askit-onboard.md` - the "askit onboard" page.
 - `askit-release.md` - the "askit release" page.
 - `askit-standards-watch.md` - the "askit standards watch" page.
 - `askit-template-manager.md` - the "askit template manager" page.

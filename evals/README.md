@@ -14,4 +14,5 @@ The eval and regression sets that cover chain edges and hook events; the determi
 - `evaluate-to-quality-grader.eval.json` - the evaluate-to-quality-grader eval/regression set.
 - `evaluate-to-reviewer.eval.json` - the evaluate-to-reviewer eval/regression set.
 - `no-dashes-hook.eval.json` - the no-dashes-hook eval/regression set.
+- `onboard-to-explorer.eval.json` - the onboard-to-explorer eval/regression set.
 - `skill-author-to-evaluator.eval.json` - the skill-author-to-evaluator eval/regression set.

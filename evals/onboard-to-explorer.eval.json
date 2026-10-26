@@ -1,0 +1,10 @@
+{
+  "covers": { "chain": ["askit-onboard", "askit-explorer"] },
+  "description": "askit-onboard delegates the read-only repository survey in assess mode to askit-explorer.",
+  "cases": [
+    {
+      "given": "a request to assess where an adopter's plugin stands with this toolkit",
+      "expect": "askit-onboard surveys the repository via askit-explorer (inline when the harness cannot dispatch it) and reports the current tier and component inventory without writing any file"
+    }
+  ]
+}

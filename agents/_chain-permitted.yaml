@@ -7,3 +7,5 @@ askit-evaluate:
   - askit-reviewer
 askit-skill-author:
   - askit-evaluator
+askit-onboard:
+  - askit-explorer
