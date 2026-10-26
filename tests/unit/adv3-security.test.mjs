@@ -228,19 +228,27 @@ test("listScanTargets: covers hooks/** on the dangerous-command fixture", () => 
 // shape to be entered at all (recorded per-id below). A generic shape alone is not enough, and neither
 // is a specific shape alone - round 1 and round 2 each slipped past the other's shape.
 
+// LINE_LENGTH is three times the 100,000 characters the measurements above used. At 100,000 the four
+// unbounded patterns took 2790-2936ms, only 40-48 percent over the 2000ms bound, so a faster machine
+// could let a quadratic pattern pass. Tripling the length multiplies a quadratic pattern's time by about
+// nine and a linear one's by three (measured 2026-10-25: the original download-execute matchers went
+// from 1314ms at 220,005 characters to 5209ms at 440,005), which keeps the bound far from both.
+const LINE_LENGTH = 300_000;
+const TOKEN_REPEATS = LINE_LENGTH / 5;
+
 const GENERIC_SHAPES = (trigger) => [
-  `${trigger} ` + " ".repeat(100_000),
-  `${trigger} ` + `${trigger} `.repeat(20_000),
-  `${trigger} ` + "a".repeat(100_000),
+  `${trigger} ` + " ".repeat(LINE_LENGTH),
+  `${trigger} ` + `${trigger} `.repeat(TOKEN_REPEATS),
+  `${trigger} ` + "a".repeat(LINE_LENGTH),
 ];
 
 // Pattern-specific lines, kept from measurement 2's own per-pattern derivation, for sub-expressions a
 // generic trigger-word shape does not reach (the `-rf`/flag-token shape, and the `&&`-chained shape).
 const SPECIFIC_LINES = {
-  "dangerous-command-rm-recursive-force": ["rm -" + "r".repeat(100_000)],
-  "dangerous-command-rm-rf-root-or-home": ["rm -rf " + "a".repeat(100_000)],
-  "dangerous-command-curl-download-execute": ["curl " + " && chmod x".repeat(20_000)],
-  "dangerous-command-wget-download-execute": ["wget " + " && chmod x".repeat(20_000)],
+  "dangerous-command-rm-recursive-force": ["rm -" + "r".repeat(LINE_LENGTH)],
+  "dangerous-command-rm-rf-root-or-home": ["rm -rf " + "a".repeat(LINE_LENGTH)],
+  "dangerous-command-curl-download-execute": ["curl " + " && chmod x".repeat(TOKEN_REPEATS)],
+  "dangerous-command-wget-download-execute": ["wget " + " && chmod x".repeat(TOKEN_REPEATS)],
 };
 
 const TRIGGER_WORD = {
@@ -283,12 +291,12 @@ test("timing: every ADV3 pattern stays under the 2000ms liveness bound against e
   for (const p of cat.patterns) {
     const re = new RegExp(p.matcher.source, p.matcher.flags ?? "");
     for (const line of ADVERSARIAL_LINES[p.id]) {
-    const started = Date.now();
-    re.test(line);
-    const elapsedMs = Date.now() - started;
-    // 2000ms is deliberately large (mirrors resolve-bash.test.mjs's own stated reasoning): the point is
-    // to catch catastrophic (here: quadratic-or-worse) backtracking, not to assert a tight budget.
-    assert.ok(elapsedMs < 2000, `pattern ${p.id} took ${elapsedMs}ms against an adversarial line (length ${line.length}) - possible catastrophic backtracking`);
+      const started = Date.now();
+      re.test(line);
+      const elapsedMs = Date.now() - started;
+      // 2000ms is deliberately large (mirrors resolve-bash.test.mjs's own stated reasoning): the point is
+      // to catch catastrophic (here: quadratic-or-worse) backtracking, not to assert a tight budget.
+      assert.ok(elapsedMs < 2000, `pattern ${p.id} took ${elapsedMs}ms against an adversarial line (length ${line.length}) - possible catastrophic backtracking`);
     }
   }
 });

@@ -179,6 +179,19 @@ as written rather than silently edited; the record does not show why it was writ
 is flagged here as a record note for the main loop rather than resolved with an invented explanation.
 **Shipped: still true; no change to the registration.**
 
+**Correction to measurement 2 (2026-10-25, by measurement, not inference).** The original
+`dangerous-command-curl-download-execute` and `dangerous-command-wget-download-execute` matchers (from
+commit `dbb36a8`) were re-timed against the same `"curl " + " && chmod x".repeat(n)` shape at five
+lengths. Each doubling of the line roughly quadrupled the time: about 21ms at 27,505 characters, 84ms
+at 55,005, 331ms at 110,005, 1,314ms at 220,005, and 5,209ms at 440,005. So both matchers were
+genuinely quadratic, and bounding them was right. What measurement 2 got wrong is one clause: at
+220,005 characters they took about 1,314ms, which is UNDER the 2000ms bound, not "well over" it. The
+timing test would not have failed on them at that length. The same re-timing confirms
+`dangerous-command-rm-recursive-force`'s figure: 2,383ms at 100,004 characters, over the bound. **The
+timing test's lines are now 300,000 characters** (`LINE_LENGTH` in `tests/unit/adv3-security.test.mjs`),
+three times the length the measurements used, because the four patterns measurement 3 bounded had
+failed the bound by only 40 to 48 percent at 100,000 characters.
+
 ## Inventory
 
 - `adv1-portability.mjs` - ADV1: a top-level SKILL.md frontmatter key outside the Skills API's six-field
