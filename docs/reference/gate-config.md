@@ -118,3 +118,8 @@ Both scripts also run a deterministic advisory layer (`ADV1` to `ADV4`, ADR 0063
 
 - **`--no-advisory`** switches the layer off for one run. The report then carries `advisoryLayer: "off"` and `advisoryFindings: null`, so a reader can tell "switched off" apart from "ran and found nothing".
 - **Each profile carries an advisory off-set.** `plain-plugin` turns off the house-provenance advisory IDs, the same way it turns off the house checks. The vendor-cited and objective advisory IDs still run under it, because portability and security matter most when grading someone else's plugin.
+
+Screens shipped so far, both vendor-cited and both running under `plain-plugin`:
+
+- **`ADV1` (portability)** - a top-level `SKILL.md` frontmatter key outside the Skills API's six-field whitelist (`allowed-tools`, `compatibility`, `description`, `license`, `metadata`, `name`); claude.ai and the Skills API reject it, Claude Code itself accepts it.
+- **`ADV2` (preload cap)** - a subagent `skills:` frontmatter list naming more than 32 distinct skills, the count Claude Code preloads into the subagent's startup context.

@@ -1,8 +1,9 @@
 // what-it-is:   the advisory registry (ADR 0063)
 // what-it-does: declares the ADV1-ADV4 advisory metadata (advisoryId, title, category, provenance) and
 //               runs the registered advisory modules over a check context, returning advisory findings.
-//               The module list is EMPTY today - ADV1-ADV4 exist here only as metadata, and their screen
-//               modules (under scripts/advisory/) arrive in later changes.
+//               ADV1 (portability) and ADV2 (preload cap) ship as real screens, under
+//               scripts/advisory/. ADV3 and ADV4 exist here only as metadata; their screens arrive in
+//               later changes.
 // why:          ADR 0063 decision 1: advisory findings are computed by modules registered in a registry
 //               SEPARATE from scripts/lib/registry.mjs, so no verdict path can reach them by accident.
 //               Every advisory finding is stamped with reqId: null here, at the one place findings leave
@@ -11,6 +12,8 @@
 //               the null reqId - is what scripts/check.mjs relies on to keep these out of findings[]).
 // used-by:      scripts/check.mjs (runs it beside runAllChecks); scripts/lib/profiles.mjs (reads the
 //               house-provenance id set for the plain-plugin advisory off-set); the partition test
+import * as adv1Portability from "../advisory/adv1-portability.mjs";
+import * as adv2PreloadCap from "../advisory/adv2-preload-cap.mjs";
 
 /**
  * ADV1-ADV4, exactly as ADR 0063 sec 2 names them. `category` is the health-number category (sec 3)
@@ -55,15 +58,15 @@ export const HOUSE_ADVISORY_IDS = Object.freeze(
   ADVISORY_REGISTRY.filter((a) => a.provenance === "house").map((a) => a.advisoryId)
 );
 
-/** The real, shipped module list. EMPTY today: screens arrive in later changes, each exporting
- * { meta: { advisoryId }, check(ctx) -> Finding[] } the same shape a spine check exports. Frozen so a
- * caller cannot mutate the shared default. */
-export const ADVISORY_MODULES = Object.freeze([]);
+/** The real, shipped module list: ADV1 and ADV2 so far, each exporting
+ * { meta: { advisoryId }, check(ctx) -> Finding[] } the same shape a spine check exports. ADV3 and ADV4
+ * arrive in later changes. Frozen so a caller cannot mutate the shared default. */
+export const ADVISORY_MODULES = Object.freeze([adv1Portability, adv2PreloadCap]);
 
 /**
  * Run every registered advisory module over ctx and return its findings, flattened and stamped.
  *
- * `modules` defaults to the real, empty ADVISORY_MODULES. Accepting it as a PARAMETER - rather than
+ * `modules` defaults to the real, shipped ADVISORY_MODULES. Accepting it as a PARAMETER - rather than
  * reading a module-level constant unconditionally - is the injection point ADR 0063 asks for: the
  * partition test passes its own one-element array to prove the layer is really partitioned, without
  * touching this file and without an environment variable.
