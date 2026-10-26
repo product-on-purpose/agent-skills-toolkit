@@ -522,6 +522,47 @@ test("rule (a'): Opus precision is 11 of 11 and recall is 12 of 13 (ADR 0065, Im
   assert.equal(zeroRow.outcome, OUTCOME.TP);
 });
 
+test("ADR 0065 decision driver: Opus index 7 is credited to SD-05, the entry it did NOT report", () => {
+  // Index 7 textually reports only SD-06 (the semantic entry, which `isAutoCreditable` always
+  // refuses). Rule (a') credits SD-05 instead, because SD-05's OWN correct clause happens to verify
+  // against the same text (it names the Colorado Privacy Act in passing). This is the measured
+  // misattribution ADR 0065's decision drivers name, kept as a named test rather than an incidental
+  // byproduct of the recall assertion above.
+  const opus = opusScore();
+  const row7 = opus.findings.find((r) => r.index === 7);
+  assert.deepEqual(row7.engagedIds, ["SD-05", "SD-06"]);
+  assert.deepEqual(row7.creditedIds, ["SD-05"], "SD-06 is semantic-blocked; SD-05 verifies on its own text");
+  assert.equal(row7.outcome, OUTCOME.TP);
+  assert.ok(opus.worklist.some((w) => w.index === 7), "still mandatory adjudication whether or not it was credited");
+});
+
+test("ADR 0065 decision driver: Opus index 8 describes neither entry it engages, credited anyway, and collapses to a duplicate", () => {
+  // Index 8 engages SD-01 (credited because verification is not-required - naming the pair IS the
+  // finding) and SD-05 (credited because its correct clause verifies against index 8's text, though
+  // index 8 does not describe SD-05). Both were already satisfied earlier (SD-01 by index 4, SD-05 by
+  // index 7 above), so index 8 collapses to a DUPLICATE - order-dependent, and real only because the
+  // fixtures are byte-frozen and the order is therefore stable.
+  const opus = opusScore();
+  const row8 = opus.findings.find((r) => r.index === 8);
+  assert.deepEqual(row8.engagedIds, ["SD-01", "SD-05"]);
+  assert.deepEqual(row8.creditedIds, ["SD-01", "SD-05"]);
+  assert.equal(row8.outcome, OUTCOME.DUPLICATE, "both credited entries were already satisfied by earlier findings");
+  assert.ok(opus.worklist.some((w) => w.index === 8), "a duplicate multi-entry engagement is STILL mandatory adjudication");
+});
+
+test("ADR 0065 decision driver: Sonnet's order-dependence counterpart - index 6 is the one that collapses", () => {
+  // Sonnet lists its findings the other way round from Opus: a single-entry SD-05 true positive comes
+  // BEFORE its one multi-entry engagement, so index 6 (SD-05+SD-06, SD-05 credited) is the one that
+  // collapses to a duplicate here, not an earlier index. Same masking, opposite position - the ADR's
+  // point that the masking depends on finding order, not on which model wrote the advisory.
+  const sonnet = sonnetScore();
+  const row6 = sonnet.findings.find((r) => r.index === 6);
+  assert.deepEqual(row6.engagedIds, ["SD-05", "SD-06"]);
+  assert.deepEqual(row6.creditedIds, ["SD-05"]);
+  assert.equal(row6.outcome, OUTCOME.DUPLICATE, "SD-05 was already satisfied by an earlier single-entry finding");
+  assert.ok(sonnet.satisfied.includes("SD-05"));
+});
+
 test("rule (a'): the ceiling invariant - no reported recall exceeds recallAutoCeiling for its key", () => {
   for (const score of [haikuScore(), sonnetScore(), opusScore()]) {
     assert.ok(
@@ -538,12 +579,17 @@ test("rule (a'): the ceiling invariant - no reported recall exceeds recallAutoCe
 });
 
 test("rule (a') REVERT PROOF: zero-credit-on-multi-engagement reproduces the pre-ruling baseline, not the ruled numbers", () => {
-  // This is the regression test's own failure mode, demonstrated without touching the shipped module:
-  // it re-derives the OLD (pre-ADR-0065) multi-entry outcome locally and shows that scoring with it
-  // does NOT match what "rule (a'): recall on key 1.1.0..." above asserts. If a future edit reverts
-  // classifyText's multi-entry branch back to this shape, that test goes red; this test stays green
-  // either way, which is exactly why it is kept as a separate, explicit proof rather than relied on to
-  // fail by itself.
+  // This re-derives the OLD (pre-ADR-0065) multi-entry outcome locally - without touching the shipped
+  // module - and asserts that it reproduces the documented pre-ruling baseline (Haiku 0.38, Opus 0.62)
+  // while the LIVE module's recall does not. It is itself one of the tests that goes red on a revert:
+  // reverting classifyText's multi-entry branch back to this shape makes the live and zero-credit
+  // recalls equal, which trips the `assert.notEqual` calls below. This was verified directly during
+  // implementation (ADR 0065, RS-B1 criterion 2): temporarily reverting the multi-entry branch to
+  // unconditional review-required turned this test and seven others red (the ruled-number assertions
+  // above, the ceiling-at-exactly-Opus assertion, and the adjudication demonstrations, which all
+  // depend on a multi-entry engagement existing to adjudicate), and restoring the implementation
+  // turned the whole suite green again. (Re-verified after this section grew to its current size:
+  // the same mutation turns exactly 12 of these tests red.)
   const zeroCreditRecall = (file) => {
     const advisory = readJson(file);
     const findings = extractFindings(advisory);
@@ -647,6 +693,45 @@ test("E17: a malformed adjudication resolution is refused, not silently ignored"
       AdvisoryScoreError,
     );
   }
+});
+
+test("E17: an adjudication resolution for a single-entry finding is refused, not silently dropped", () => {
+  // Sonnet finding #1 is an ordinary single-entry engagement (not multi). A resolution naming it must
+  // be refused loudly rather than accepted and ignored - the exact failure indexAdjudication's own
+  // docstring warns against, and the one a silent-drop bug would hide from every caller.
+  const before = sonnetScore();
+  const row1 = before.findings.find((r) => r.index === 1);
+  assert.equal(row1.multi, false, "finding 1 is single-entry, the case this test needs");
+  assert.throws(
+    () => scoreAdvisory(readJson(SONNET_RUN), key, {
+      adjudication: { resolutions: [{ index: 1, entryId: row1.entryId ?? "SD-01", decision: "credit" }] },
+    }),
+    (e) => {
+      assert.ok(e instanceof AdvisoryScoreError);
+      assert.match(e.message, /not a multi-entry engagement/);
+      return true;
+    },
+  );
+});
+
+test("E17: an adjudication resolution for a finding index the advisory does not have is refused", () => {
+  assert.throws(
+    () => scoreAdvisory(readJson(SONNET_RUN), key, {
+      adjudication: { resolutions: [{ index: 9999, entryId: "SD-01", decision: "credit" }] },
+    }),
+    (e) => {
+      assert.ok(e instanceof AdvisoryScoreError);
+      assert.match(e.message, /no finding 9999/);
+      return true;
+    },
+  );
+});
+
+test("CLI: scoring the Opus recorded run prints recall as entries over planted defects (12 / 13), not findings", () => {
+  // formatScoreReport's recall line must read 12 (satisfied entries), never 11 (true-positive
+  // findings) - the two differ here because Opus index 0 alone credits two entries, SD-03 and SD-07.
+  const { stdout } = cli([OPUS_RUN, KEY_PATH]);
+  assert.match(stdout, /recall\s+0\.92\s+\(12 entries \/ 13 planted defects\)/);
 });
 
 test("rule (a'): a multi-entry engagement is NEVER classified CONFABULATION or PARTIAL for one entry", () => {

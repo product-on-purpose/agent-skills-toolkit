@@ -323,6 +323,13 @@ export function scoreAdvisory(advisory, key, opts = {}) {
   const findings = extractFindings(advisory);
   const review = (!Array.isArray(advisory) && advisory?.review) || {};
   const adjudicationByIndex = indexAdjudication(opts.adjudication);
+  // Every index named in the document must land on an actual multi-entry engagement, or the human's
+  // ruling never reaches the published partition and the cell silently stays as if it were never
+  // adjudicated at all - the exact failure "a silently-ignored adjudication would be worse than none"
+  // (indexAdjudication's own docstring) warns against. Single-entry and no-match adjudication are
+  // deliberately out of scope for this increment (E17's worklist here is the mandatory multi-entry
+  // one only), so a resolution naming either is refused rather than quietly dropped.
+  const consumedIndices = new Set();
 
   const satisfied = new Set();
   const rows = [];
@@ -343,6 +350,7 @@ export function scoreAdvisory(advisory, key, opts = {}) {
       const resolutions = adjudicationByIndex.get(index);
       if (resolutions) {
         adjudicated = true;
+        consumedIndices.add(index);
         const credited = new Set(creditedIds);
         for (const r of resolutions) {
           if (!classified.engagedIds.includes(r.entryId)) {
@@ -400,6 +408,17 @@ export function scoreAdvisory(advisory, key, opts = {}) {
       creditedIds: classified.creditedIds ?? null,
     });
   });
+
+  for (const index of adjudicationByIndex.keys()) {
+    if (!consumedIndices.has(index)) {
+      const row = rows.find((r) => r.index === index);
+      throw new AdvisoryScoreError(
+        row
+          ? `adjudication resolution for finding ${index} is refused: finding ${index} is not a multi-entry engagement (outcome ${row.outcome}); single-entry and no-match adjudication are outside this increment`
+          : `adjudication resolution for finding ${index} is refused: the advisory has no finding ${index}`,
+      );
+    }
+  }
 
   const tally = (outcome) => rows.filter((r) => r.outcome === outcome).length;
   const truePositives = tally(OUTCOME.TP);
@@ -501,8 +520,10 @@ export function scoreAdvisory(advisory, key, opts = {}) {
     precision,
     recall,
     recallByMisses,
-    // TP/(TP+misses) and TP/defects are the same number whenever the duplicate rule was applied
-    // correctly, so a disagreement is a harness defect and is surfaced rather than smoothed over.
+    // satisfied.size/(satisfied.size+misses) and satisfied.size/defects.length are the same number
+    // whenever misses was built from the same satisfied set, so a disagreement is a harness defect
+    // (for example a stray id in `satisfied` that is not one of the key's defect ids) and is surfaced
+    // rather than smoothed over.
     recallAgrees: sameNumber(recall, recallByMisses),
     // A semantic entry can never be auto-credited, so this is the highest recall an auto score can
     // report on this key. Reading a run's recall against it is the difference between "the model
@@ -546,12 +567,12 @@ export function formatScoreReport(score) {
   lines.push(`  ${pad("duplicate", 18)}${pad(c.duplicates, 8)}${pad("out of scope", 18)}${c.outOfScope}`);
   lines.push("");
   lines.push(`  precision       ${pair(score.precision)}   (${c.truePositives} tp / ${c.truePositives + c.falsePositives} scored claims)`);
-  lines.push(`  recall          ${pair(score.recall)}   (${c.truePositives} tp / ${c.plantedDefects} planted defects)`);
+  lines.push(`  recall          ${pair(score.recall)}   (${c.satisfiedEntries} entries / ${c.plantedDefects} planted defects)`);
   lines.push(`  auto ceiling    ${pair(score.recallAutoCeiling)}   (a semantic entry can never be auto-credited)`);
   lines.push(`  noise share     ${pair(score.noiseShare)}   (${c.outOfScope} of ${c.findings} findings excluded from both formulas)`);
   lines.push(`  false-verified  ${pair(score.falseVerifiedRate)}   (findings marked verified whose claim was wrong, of ${c.verified} marked verified)`);
   if (!score.recallAgrees) {
-    lines.push(`  WARNING: TP/(TP+misses) is ${pair(score.recallByMisses)}, which disagrees with TP/planted. The duplicate rule was applied wrongly.`);
+    lines.push(`  WARNING: entries/(entries+misses) is ${pair(score.recallByMisses)}, which disagrees with entries/planted. The duplicate rule was applied wrongly.`);
   }
   lines.push("");
   lines.push(`  misses          ${score.misses.length ? score.misses.join(", ") : "none"}`);
