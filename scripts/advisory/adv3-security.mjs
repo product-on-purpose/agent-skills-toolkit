@@ -1,20 +1,25 @@
 // what-it-is:   the ADV3 security screen (advisory layer, ADR 0063)
 // what-it-does: a deterministic, data-driven pattern screen over the content the runtime loads into an
-//               agent's context or executes - skills/** (SKILL.md and its bundled files), agents/*.md,
-//               commands/*.md, hooks/** - for three classes of catalogued pattern: pipe-to-shell
-//               installers, dangerous commands, and prompt-injection phrases. No scoring, no judgment,
-//               no model: every pattern is a plain RegExp compiled from scripts/advisory/security-
-//               patterns.json, which carries each pattern's id, class, matcher, cited source and known-
-//               limits note. It is a screen, not a safety review, and every finding message says so.
+//               agent's context or executes - every file under each loaded skill's directory
+//               (SKILL.md and its bundled files), ctx.agentDocs, ctx.commands, and every file under
+//               hooks/** - for three classes of catalogued pattern: pipe-to-shell installers, dangerous
+//               commands, and prompt-injection phrases. No scoring, no judgment, no model: every pattern
+//               is a plain RegExp compiled from scripts/advisory/security-patterns.json, which carries
+//               each pattern's id, class, matcher, cited source and known-limits note. It is a screen,
+//               not a safety review, and every finding message says so.
 // why:          RS-E4 (docs/internal/roadmap.md), formerly E6 (docs/internal/backlog/enhancements.md),
 //               ships as advisory finding ADV3 per ADR 0063 (docs/internal/decisions/0063-...). It is the
 //               "objective" row: a pattern whose only basis is this repository's own preference is house
 //               provenance and may not enter this catalogue (ADR 0063 sec 2). The scope rule is
-//               deliberately narrower than "everything in the repo": docs/ and README files are OUT of
-//               scope, because nothing in Claude Code or Codex loads them into an agent's context or
-//               executes them - see the ADV3 heading in scripts/advisory/README.md for the committed
-//               negative fixture that exercises exactly that exclusion, and the scope-widening mutant
-//               that shows the exclusion is load-bearing, not accidental.
+//               deliberately narrower than "everything in the repo": the root README.md and docs/ pages
+//               are OUT of scope, because nothing in Claude Code or Codex loads them into an agent's
+//               context or executes them - see the ADV3 heading in scripts/advisory/README.md for the
+//               committed negative fixture that exercises exactly that exclusion, the scope-widening
+//               mutant that shows the exclusion is load-bearing, and the known limits this scope rule
+//               leaves (a skills/_shared-style shared folder outside any loaded skill's own directory,
+//               and a hook script referenced from outside hooks/, are both out of scope by this rule; a
+//               README.md that happens to live inside a scanned root, such as a skill's own directory or
+//               agents/, IS scanned, same as any other bundled file there).
 // used-by:      registered as advisoryId "ADV3" in scripts/lib/advisory-registry.mjs's ADVISORY_MODULES
 //               (once the measured false-positive rate clears the ceiling pre-registered in
 //               scripts/advisory/README.md); tests/unit/adv3-security.test.mjs and the fixtures under
@@ -105,7 +110,16 @@ function readTextCandidate(abs, maxBytes) {
  *                       never ctx.subagents (the narrower REGISTERED list), because a file the runtime
  *                       loads and executes is in scope regardless of whether the plugin registers it
  *   - commands/*.md    ctx.commands
- *   - hooks/**         every file under hooks/ (hooks.json and any hook script it references)
+ *   - hooks/**         every file under hooks/ (hooks.json and any hook script that itself lives
+ *                       under hooks/)
+ *
+ * Known limits of this scope rule: a shared folder outside any loaded skill's own directory (for
+ * example a skills/_shared/ or skills/_template-fixture/ helper that several skills import but that is
+ * not itself a loaded skill) is out of scope, as is a hook script referenced from hooks.json but living
+ * outside hooks/. A README.md is scanned when it happens to live inside one of the four roots above (a
+ * skill's own directory, agents/, commands/, hooks/) because it is then a bundled file like any other;
+ * only the plugin's root README.md and docs/ are excluded, per the ADV3 heading in
+ * scripts/advisory/README.md.
  *
  * `opts.scopeRoots`: extra plugin-root-relative directories walked IN ADDITION to the four above, with
  * no filtering beyond the same text-candidate check. Never used by the shipped check() default; it
@@ -129,6 +143,9 @@ export function listScanTargets(ctx, opts = {}) {
   const addLoaded = (abs, raw) => {
     if (seen.has(abs) || raw == null) return;
     seen.add(abs);
+    const buf = Buffer.from(raw, "utf8");
+    if (buf.length > maxBytes) return;
+    if (buf.subarray(0, 8192).includes(0)) return;
     out.push({ abs, rel: relPath(root, abs), content: raw });
   };
 

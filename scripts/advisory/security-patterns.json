@@ -4,23 +4,23 @@
     {
       "id": "pipe-to-shell-curl",
       "class": "pipe-to-shell",
-      "matcher": { "source": "\\bcurl\\s+.*\\|\\s*(?:bash|sh|zsh)\\b", "flags": "" },
-      "source": "github.com/voodootikigod/skills-check, packages/cli/src/audit/checkers/commands.ts (PIPE_TO_SHELL_PATTERNS, curl entry), read 2026-10-25 via `gh api repos/voodootikigod/skills-check/contents/packages/cli/src/audit/checkers/commands.ts`. Corroborated by github.com/moutons/skills-validator, rules/shell-injection.yaml rule id curl-pipe-bash (pattern-regex \"curl\\\\s+.*\\\\|\\\\s*(bash|sh)\"), read 2026-10-25.",
-      "knownLimits": "Matches only when curl and the shell name appear on the same line; a backslash-continued command, a variable holding the shell name, or a heredoc split across lines is not seen. Fires on the construct wherever it appears in text, including inside a quoted example or a sentence explaining the attack - this is a presence screen, not an execution trace or an intent classifier."
+      "matcher": { "source": "\\bcurl\\s+[^\\n]{0,300}\\|\\s*(?:bash|sh|zsh)\\b", "flags": "" },
+      "source": "github.com/voodootikigod/skills-check, packages/cli/src/audit/checkers/commands.ts (PIPE_TO_SHELL_PATTERNS, curl entry), read 2026-10-25 via `gh api repos/voodootikigod/skills-check/contents/packages/cli/src/audit/checkers/commands.ts`. Corroborated by github.com/moutons/skills-validator, rules/shell-injection.yaml rule id curl-pipe-bash (pattern-regex \"curl\\\\s+.*\\\\|\\\\s*(bash|sh)\"), read 2026-10-25. Adapted: the vendor's own matcher is `/\\bcurl\\s+.*\\|\\s*(?:bash|sh|zsh)\\b/` (unbounded `.*`); measured quadratic directly (2936ms against a 100,000-character space run, against a 2000ms bound - see scripts/advisory/README.md's ADV3 heading, measurement 3), so the span is capped at 300 characters for the linear-time requirement RS-E4 states, following the same bounding already applied to the download-execute patterns below.",
+      "knownLimits": "Matches only when curl and the shell name appear on the same line, within 300 characters of each other; a backslash-continued command, a variable holding the shell name, a heredoc split across lines, or an intervening argument longer than 300 characters is not seen (no legitimate single command line is that long). Fires on the construct wherever it appears in text, including inside a quoted example or a sentence explaining the attack - this is a presence screen, not an execution trace or an intent classifier."
     },
     {
       "id": "pipe-to-shell-wget",
       "class": "pipe-to-shell",
-      "matcher": { "source": "\\bwget\\s+.*\\|\\s*(?:bash|sh|zsh)\\b", "flags": "" },
-      "source": "github.com/voodootikigod/skills-check, packages/cli/src/audit/checkers/commands.ts (PIPE_TO_SHELL_PATTERNS, wget entry), read 2026-10-25 via `gh api repos/voodootikigod/skills-check/contents/packages/cli/src/audit/checkers/commands.ts`. Corroborated by github.com/moutons/skills-validator, rules/shell-injection.yaml rule id wget-pipe-bash, read 2026-10-25.",
-      "knownLimits": "Same same-line and quoted-example limits as pipe-to-shell-curl."
+      "matcher": { "source": "\\bwget\\s+[^\\n]{0,300}\\|\\s*(?:bash|sh|zsh)\\b", "flags": "" },
+      "source": "github.com/voodootikigod/skills-check, packages/cli/src/audit/checkers/commands.ts (PIPE_TO_SHELL_PATTERNS, wget entry), read 2026-10-25 via `gh api repos/voodootikigod/skills-check/contents/packages/cli/src/audit/checkers/commands.ts`. Corroborated by github.com/moutons/skills-validator, rules/shell-injection.yaml rule id wget-pipe-bash, read 2026-10-25. Adapted: same bounding as pipe-to-shell-curl, for the same measured-quadratic reason (2920ms against a 100,000-character space run).",
+      "knownLimits": "Same same-line, 300-character-cap, and quoted-example limits as pipe-to-shell-curl."
     },
     {
       "id": "pipe-to-shell-curl-sudo",
       "class": "pipe-to-shell",
-      "matcher": { "source": "\\bcurl\\s+.*\\|\\s*sudo\\s+(?:bash|sh|zsh)\\b", "flags": "" },
-      "source": "github.com/voodootikigod/skills-check, packages/cli/src/audit/checkers/commands.ts (PIPE_TO_SHELL_PATTERNS, curl-sudo entry), read 2026-10-25 via `gh api repos/voodootikigod/skills-check/contents/packages/cli/src/audit/checkers/commands.ts`.",
-      "knownLimits": "Only the literal word \"sudo\" immediately before the shell name is recognised; an elevation performed a different way (a setuid wrapper, `doas`, a su -c form) is not covered by this pattern and would, if present, also match pipe-to-shell-curl above."
+      "matcher": { "source": "\\bcurl\\s+[^\\n]{0,300}\\|\\s*sudo\\s+(?:bash|sh|zsh)\\b", "flags": "" },
+      "source": "github.com/voodootikigod/skills-check, packages/cli/src/audit/checkers/commands.ts (PIPE_TO_SHELL_PATTERNS, curl-sudo entry), read 2026-10-25 via `gh api repos/voodootikigod/skills-check/contents/packages/cli/src/audit/checkers/commands.ts`. Adapted: the vendor's own matcher is `/\\bcurl\\s+.*\\|\\s*sudo\\s+(?:bash|sh|zsh)\\b/` (unbounded `.*`); measured quadratic directly (2933ms against a 100,000-character space run, against a 2000ms bound), so the span is capped at 300 characters, matching the bound already applied to pipe-to-shell-curl above.",
+      "knownLimits": "Only the literal word \"sudo\" immediately before the shell name is recognised; an elevation performed a different way (a setuid wrapper, `doas`, a su -c form) is not covered by this pattern and would, if present, also match pipe-to-shell-curl above. Same 300-character same-line cap as pipe-to-shell-curl."
     },
     {
       "id": "pipe-to-shell-bash-process-substitution",
@@ -74,9 +74,9 @@
     {
       "id": "dangerous-command-dd-to-device",
       "class": "dangerous-command",
-      "matcher": { "source": "\\bdd\\s+.*of=/dev/", "flags": "" },
-      "source": "github.com/voodootikigod/skills-check, packages/cli/src/audit/checkers/commands.ts (DESTRUCTIVE_PATTERNS), read 2026-10-25 via `gh api repos/voodootikigod/skills-check/contents/packages/cli/src/audit/checkers/commands.ts`.",
-      "knownLimits": "Requires the literal `of=/dev/` spelling on the same line as `dd`; `of=$DEV` where `$DEV` expands to a device path is not seen."
+      "matcher": { "source": "\\bdd\\s+[^\\n]{0,300}of=/dev/", "flags": "" },
+      "source": "github.com/voodootikigod/skills-check, packages/cli/src/audit/checkers/commands.ts (DESTRUCTIVE_PATTERNS), read 2026-10-25 via `gh api repos/voodootikigod/skills-check/contents/packages/cli/src/audit/checkers/commands.ts`. Adapted: the vendor's own matcher is `/\\bdd\\s+.*of=\\/dev\\//` (unbounded `.*`); measured quadratic directly (2790ms against a 100,000-character space run, against a 2000ms bound), so the span is capped at 300 characters for the linear-time requirement RS-E4 states, matching the bound already applied to the pipe-to-shell patterns above.",
+      "knownLimits": "Requires the literal `of=/dev/` spelling within 300 characters of `dd` on the same line; `of=$DEV` where `$DEV` expands to a device path, or an intervening argument longer than 300 characters, is not seen (no legitimate `dd` invocation has an argument list that long)."
     },
     {
       "id": "dangerous-command-curl-download-execute",
@@ -111,7 +111,7 @@
       "class": "prompt-injection",
       "matcher": { "source": "you\\s+are\\s+now\\s+(?:a|an)\\s+", "flags": "i" },
       "source": "github.com/voodootikigod/skills-check, packages/cli/src/audit/checkers/injection.ts (OVERRIDE_PATTERNS), read 2026-10-25 via `gh api repos/voodootikigod/skills-check/contents/packages/cli/src/audit/checkers/injection.ts`.",
-      "knownLimits": "This exact construction (\"you are now a/an ...\") is also a common, benign way for a skill author to assign the agent a persona (\"You are now a meticulous code reviewer\"). The vendor source documents this pattern as medium-severity precisely because it is a weak, textual signal, never a safety verdict; this screen's finding text says so. Measured for its false-positive rate over the family and audit corpora before shipping, per this catalogue's own gate (see scripts/advisory/README.md, ADV3)."
+      "knownLimits": "This exact construction (\"you are now a/an ...\") is also a common, benign way for a skill author to assign the agent a persona (\"You are now a meticulous code reviewer\"). The vendor reports every injection-class finding at medium severity, with no stated per-pattern rationale; this screen's finding text says it is a screen, not a safety verdict. Measured for its false-positive rate over the family and audit corpora before shipping, per this catalogue's own gate (see scripts/advisory/README.md, ADV3)."
     },
     {
       "id": "prompt-injection-forget-constraints",

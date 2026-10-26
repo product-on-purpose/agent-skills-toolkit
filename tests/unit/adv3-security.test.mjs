@@ -59,6 +59,38 @@ test("catalogue schema: every pattern has a unique id, an allowed class, a non-e
   }
 });
 
+// Pinned, so that deleting a pattern from the catalogue (rather than just removing it for a single
+// mutation-test run) fails this file directly instead of only shrinking a finding count that criterion
+// 1/2's own loops happily iterate over whatever is left. A review of P2's first round found that
+// deleting pipe-to-shell-curl-sudo and prompt-injection-role-hijack from the real catalogue made no
+// criterion-1/2 assertion fail - only an incidental stale-entry check in the timing section caught it.
+const EXPECTED_PATTERN_IDS = [
+  "pipe-to-shell-curl",
+  "pipe-to-shell-wget",
+  "pipe-to-shell-curl-sudo",
+  "pipe-to-shell-bash-process-substitution",
+  "pipe-to-shell-sh-process-substitution",
+  "dangerous-command-rm-recursive-force",
+  "dangerous-command-rm-rf-root-or-home",
+  "dangerous-command-chmod-777",
+  "dangerous-command-chmod-666",
+  "dangerous-command-mkfs",
+  "dangerous-command-dd-to-device",
+  "dangerous-command-curl-download-execute",
+  "dangerous-command-wget-download-execute",
+  "prompt-injection-ignore-prior-instructions",
+  "prompt-injection-disregard-prior-instructions",
+  "prompt-injection-role-hijack",
+  "prompt-injection-forget-constraints",
+  "prompt-injection-do-not-follow-prior",
+];
+
+test("catalogue pattern-id set is pinned: adding or removing a pattern must update this list deliberately", () => {
+  const cat = loadCatalogue();
+  const actual = cat.patterns.map((p) => p.id).sort();
+  assert.deepEqual(actual, [...EXPECTED_PATTERN_IDS].sort());
+});
+
 // --- criterion 1: one seeded-malicious fixture per pattern class, each fires ---
 
 for (const [cls, dirName] of Object.entries(CLASS_DIR)) {
@@ -164,38 +196,77 @@ test("listScanTargets: covers hooks/** on the dangerous-command fixture", () => 
 // quadratic - the test was measuring nothing. Caught by re-deriving each adversarial line from the
 // pattern's own unbounded sub-expression instead of a generic heuristic.
 //
-// SHOWN FAILING (captured once against the as-shipped-in-the-prior-commit catalogue, then the three
-// patterns were bounded and the catalogue re-measured - see scripts/advisory/README.md's ADV3 heading
-// for both recorded measurements):
+// SHOWN FAILING, round 1 (captured once against the as-shipped-in-the-prior-commit catalogue, then the
+// three patterns below were bounded and the catalogue re-measured - see scripts/advisory/README.md's
+// ADV3 heading, measurement 2):
 //   dangerous-command-rm-recursive-force   (unbounded `/\brm\s+(?:.*\s)?-\w*r\w*f/`):            2339ms
 //     against "rm -" + "r".repeat(100000)  ->  bounded: 0ms
 //   dangerous-command-curl-download-execute (unbounded `/\bcurl\b.*&&\s*(?:chmod\s.*\+x|...)/`): 1312ms
 //     against "curl " + " && chmod x".repeat(20000)  ->  bounded: 0ms
 //   dangerous-command-wget-download-execute (same shape as curl's): measured identically quadratic
 //     before bounding, by construction (the two matchers differ only in the leading command name).
-// Every other pattern in the table below measured under 5ms against its own adversarial line even
-// BEFORE any bounding, so only these three needed a matcher change.
+//
+// SHOWN FAILING, round 2 (a review of measurement 2 found that its own per-pattern lines above, built
+// from a letter run after the trigger word, never entered the backtracking region of four OTHER
+// patterns whose unbounded span is `\s+` followed by `.*` or `.*\|` - a run of plain SPACES, not
+// letters, is what lets that span be split many ways. Measured directly against the then-current
+// catalogue, 2026-10-25, before these four were bounded - see scripts/advisory/README.md's ADV3
+// heading, measurement 3):
+//   pipe-to-shell-curl       (unbounded `/\bcurl\s+.*\|\s*(?:bash|sh|zsh)\b/`):     2936ms @ 100,004 chars
+//   pipe-to-shell-wget       (unbounded `/\bwget\s+.*\|\s*(?:bash|sh|zsh)\b/`):     2920ms @ 100,004 chars
+//   pipe-to-shell-curl-sudo  (unbounded `/\bcurl\s+.*\|\s*sudo\s+(?:bash|sh|zsh)\b/`): 2933ms @ 100,004 chars
+//   dangerous-command-dd-to-device (unbounded `/\bdd\s+.*of=\/dev\//`):             2790ms @ 100,002 chars
+// all four against a "<trigger>" + " ".repeat(100_000) line, all well over the 2000ms bound. A second
+// repeated-token shape ("<trigger> ".repeat(20_000)) also measured quadratic on the same four (337-
+// 589ms at ~60-100K characters, scaling the same super-linear way). All four were bounded the same way
+// as the round-1 fixes (an unbounded `.*`/`\s+.*` span capped at 300 characters) and re-measured at
+// 7-37ms against the same lines - see measurement 3.
+//
+// Every pattern below is therefore checked against ALL THREE generic adversarial shapes (a trailing
+// space run, a trailing repeated-token run built from its own trigger word, and a trailing letter run),
+// plus a pattern-specific line where one pattern's own unbounded sub-expression needs a particular
+// shape to be entered at all (recorded per-id below). A generic shape alone is not enough, and neither
+// is a specific shape alone - round 1 and round 2 each slipped past the other's shape.
 
-const ADVERSARIAL_LINES = {
-  "pipe-to-shell-curl": "curl " + "a".repeat(100_000),
-  "pipe-to-shell-wget": "wget " + "a".repeat(100_000),
-  "pipe-to-shell-curl-sudo": "curl " + "a".repeat(100_000),
-  "pipe-to-shell-bash-process-substitution": "bash " + "a".repeat(100_000),
-  "pipe-to-shell-sh-process-substitution": "sh " + "a".repeat(100_000),
-  "dangerous-command-rm-recursive-force": "rm -" + "r".repeat(100_000),
-  "dangerous-command-rm-rf-root-or-home": "rm -rf " + "a".repeat(100_000),
-  "dangerous-command-chmod-777": "chmod " + "7".repeat(100_000),
-  "dangerous-command-chmod-666": "chmod " + "6".repeat(100_000),
-  "dangerous-command-mkfs": "mkfs" + "a".repeat(100_000),
-  "dangerous-command-dd-to-device": "dd " + "a".repeat(100_000),
-  "dangerous-command-curl-download-execute": "curl " + " && chmod x".repeat(20_000),
-  "dangerous-command-wget-download-execute": "wget " + " && chmod x".repeat(20_000),
-  "prompt-injection-ignore-prior-instructions": "ignore " + "all ".repeat(50_000),
-  "prompt-injection-disregard-prior-instructions": "disregard " + "all ".repeat(50_000),
-  "prompt-injection-role-hijack": "you are now " + "a ".repeat(50_000),
-  "prompt-injection-forget-constraints": "forget " + "your ".repeat(50_000),
-  "prompt-injection-do-not-follow-prior": "do not follow " + "any ".repeat(50_000),
+const GENERIC_SHAPES = (trigger) => [
+  `${trigger} ` + " ".repeat(100_000),
+  `${trigger} ` + `${trigger} `.repeat(20_000),
+  `${trigger} ` + "a".repeat(100_000),
+];
+
+// Pattern-specific lines, kept from measurement 2's own per-pattern derivation, for sub-expressions a
+// generic trigger-word shape does not reach (the `-rf`/flag-token shape, and the `&&`-chained shape).
+const SPECIFIC_LINES = {
+  "dangerous-command-rm-recursive-force": ["rm -" + "r".repeat(100_000)],
+  "dangerous-command-rm-rf-root-or-home": ["rm -rf " + "a".repeat(100_000)],
+  "dangerous-command-curl-download-execute": ["curl " + " && chmod x".repeat(20_000)],
+  "dangerous-command-wget-download-execute": ["wget " + " && chmod x".repeat(20_000)],
 };
+
+const TRIGGER_WORD = {
+  "pipe-to-shell-curl": "curl",
+  "pipe-to-shell-wget": "wget",
+  "pipe-to-shell-curl-sudo": "curl",
+  "pipe-to-shell-bash-process-substitution": "bash",
+  "pipe-to-shell-sh-process-substitution": "sh",
+  "dangerous-command-rm-recursive-force": "rm",
+  "dangerous-command-rm-rf-root-or-home": "rm",
+  "dangerous-command-chmod-777": "chmod",
+  "dangerous-command-chmod-666": "chmod",
+  "dangerous-command-mkfs": "mkfs",
+  "dangerous-command-dd-to-device": "dd",
+  "dangerous-command-curl-download-execute": "curl",
+  "dangerous-command-wget-download-execute": "wget",
+  "prompt-injection-ignore-prior-instructions": "ignore",
+  "prompt-injection-disregard-prior-instructions": "disregard",
+  "prompt-injection-role-hijack": "you are now",
+  "prompt-injection-forget-constraints": "forget",
+  "prompt-injection-do-not-follow-prior": "do not follow",
+};
+
+const ADVERSARIAL_LINES = Object.fromEntries(
+  Object.entries(TRIGGER_WORD).map(([id, trigger]) => [id, [...GENERIC_SHAPES(trigger), ...(SPECIFIC_LINES[id] ?? [])]])
+);
 
 test("timing: every catalogue pattern has an adversarial-line entry (schema coverage for the timing test itself)", () => {
   const cat = loadCatalogue();
@@ -207,17 +278,18 @@ test("timing: every catalogue pattern has an adversarial-line entry (schema cove
   }
 });
 
-test("timing: every ADV3 pattern stays well under one second against its own per-pattern adversarial line", () => {
+test("timing: every ADV3 pattern stays well under one second against every one of its adversarial lines", () => {
   const cat = loadCatalogue();
   for (const p of cat.patterns) {
     const re = new RegExp(p.matcher.source, p.matcher.flags ?? "");
-    const line = ADVERSARIAL_LINES[p.id];
+    for (const line of ADVERSARIAL_LINES[p.id]) {
     const started = Date.now();
     re.test(line);
     const elapsedMs = Date.now() - started;
     // 2000ms is deliberately large (mirrors resolve-bash.test.mjs's own stated reasoning): the point is
     // to catch catastrophic (here: quadratic-or-worse) backtracking, not to assert a tight budget.
-    assert.ok(elapsedMs < 2000, `pattern ${p.id} took ${elapsedMs}ms against its adversarial line (length ${line.length}) - possible catastrophic backtracking`);
+    assert.ok(elapsedMs < 2000, `pattern ${p.id} took ${elapsedMs}ms against an adversarial line (length ${line.length}) - possible catastrophic backtracking`);
+    }
   }
 });
 

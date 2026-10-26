@@ -1,9 +1,9 @@
 // what-it-is:   the advisory registry (ADR 0063)
 // what-it-does: declares the ADV1-ADV4 advisory metadata (advisoryId, title, category, provenance) and
 //               runs the registered advisory modules over a check context, returning advisory findings.
-//               ADV1 (portability) and ADV2 (preload cap) ship as real screens, under
-//               scripts/advisory/. ADV3 and ADV4 exist here only as metadata; their screens arrive in
-//               later changes.
+//               ADV1 (portability), ADV2 (preload cap) and ADV3 (security screen) ship as real
+//               screens, under scripts/advisory/. ADV4 exists here only as metadata; its screen arrives
+//               in a later change.
 // why:          ADR 0063 decision 1: advisory findings are computed by modules registered in a registry
 //               SEPARATE from scripts/lib/registry.mjs, so no verdict path can reach them by accident.
 //               Every advisory finding is stamped with reqId: null here, at the one place findings leave
