@@ -27,10 +27,39 @@
 //     every check except U12 mermaid-valid (see that check's docblock for why it was chosen); a result
 //     for any other finding gets a file-level physicalLocation with NO region key at all, which is
 //     valid SARIF, rather than a fabricated `startLine: 1`.
+//   - result.partialFingerprints (F-014) is how a SARIF consumer (GitHub code scanning chief among
+//     them) tracks ONE finding's identity across runs, instead of re-matching on array position or on
+//     message text that a wording pass can reshuffle. Every result carries `"askitFinding/v1"`: a
+//     sha256 hex digest of the tuple [reqId-or-check, the finding's repo-relative forward-slash file
+//     path (the same string this module already puts in physicalLocation.artifactLocation.uri), the
+//     line when the finding carries one, and a discriminator] - see fingerprintFinding() below. The
+//     discriminator is `finding.key` when a check supplies one via finding()'s opts (plumbed through in
+//     the F-014 fix round; no check sets it yet - it is the escape hatch for the day one check's own
+//     message text cannot tell two of its findings apart even after normalisation), otherwise the
+//     finding's message with volatile tokens normalised: whitespace collapsed, and every STANDALONE
+//     numeric token (a run of digits, optionally with one embedded decimal point, touching no word
+//     character, ".", "/" or "-" on either side) folded to "#". A count or a score recurring with a
+//     different number ("3 broken links" vs "47 broken links", "0.65" vs "0.70") is the SAME kind of
+//     problem recurring, so it folds; a digit that is part of an identifier, a path, or an id (step-1,
+//     v2.md, U5, scripts/a1.mjs) never stands alone this way and is left untouched, because folding it
+//     would merge two DIFFERENT findings (about step-1 and about step-2) into one identity. KNOWN
+//     LIMITS: (1) a check that rewords its own message changes every affected finding's fingerprint
+//     once, at the moment the wording changes - a consumer sees that one finding's alert thread close
+//     and a new one open, the same as if the check had changed id. This is a one-time cost per wording
+//     change, not an ongoing instability, and is the deliberate trade against hashing nothing stable at
+//     all. (2) the normalisation is textual, not semantic: a check whose message embeds a standalone
+//     number that IS part of the finding's own identity (not a count or a score) would be over-folded
+//     the same way a reworded message is - the fix for that check is `finding.key`, not a cleverer
+//     regex here.
 //
 // GOVERNING CONSTRAINT: every field here is a pure serialization of data runGate() and the check
 // registry already computed (provenance, effectiveSeverity, suppressed, line). Nothing here decides a
-// severity or a verdict; if a field needed new computation to fill, it does not appear here.
+// severity or a verdict; if a field needed new computation to fill, it does not appear here. The one
+// deliberate, narrow exception is partialFingerprints: fingerprintFinding() computes a HASH, never a
+// new severity or verdict decision - it is a pure function of fields runGate() already produced
+// (reqId-or-check, file, line, message-or-key), re-expressed as a stable identity string. No input to
+// the hash is decided in this module.
+import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -61,6 +90,35 @@ function toolVersion() {
 /** repo-relative paths are already forward-slash (scripts/lib/fs-utils.mjs relPath); pass through. */
 function toUri(file) {
   return String(file ?? "").split(path.sep).join("/");
+}
+
+/** Fold only a STANDALONE numeric token - a run of digits, optionally with one embedded decimal point,
+ *  touching no word character, ".", "/" or "-" on either side - to a single "#", and collapse
+ *  whitespace. A count or a score ("3 broken links" vs "4 broken links", "0.65" vs "0.70") still
+ *  normalises to the same discriminator - the two findings are the SAME kind of problem recurring, not
+ *  two identities. A digit that is part of an identifier, a path, or an id (step-1, v2.md, U5,
+ *  scripts/a1.mjs) is NOT standalone by this definition and is left untouched, because folding it would
+ *  merge two DIFFERENT findings (about step-1 and about step-2) into one identity. See the module
+ *  docblock's partialFingerprints section for what this feeds and its documented limits. */
+function normalizeMessage(message) {
+  return String(message ?? "")
+    .replace(/(?<![\w./-])\d+(?:\.\d+)?(?![\w./-])/g, "#")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+/** F-014: a stable identity for one finding, independent of its position in the findings array. See
+ *  the module docblock for the algorithm and its known limit. `finding.key`, when a check sets it, is
+ *  the discriminator; otherwise it is the finding's own message, normalised. The null-separated tuple
+ *  (rather than naive string concatenation) keeps field boundaries from shifting into each other - a
+ *  file named "12" and a line of 3 must not hash the same as a file named "1" and a line of 23. */
+function fingerprintFinding(f) {
+  const rule = f.reqId ?? f.check ?? "";
+  const file = toUri(f.file);
+  const line = f.line != null ? String(f.line) : "";
+  const discriminator = f.key != null ? String(f.key) : normalizeMessage(f.message);
+  const tuple = [rule, file, line, discriminator].join("\u0000");
+  return createHash("sha256").update(tuple, "utf8").digest("hex");
 }
 
 /** One reportingDescriptor per registered check, id = reqId (every registered check has one - see
@@ -101,6 +159,9 @@ function buildResults(findings, declaredTier) {
       ruleId: f.reqId ?? f.check,
       level,
       message: { text: f.message },
+      // F-014: a stable cross-run identity, independent of array position and of most rewordings - see
+      // the module docblock and fingerprintFinding() for the algorithm and its documented limit.
+      partialFingerprints: { "askitFinding/v1": fingerprintFinding(f) },
     };
     if (f.file) {
       const physicalLocation = { artifactLocation: { uri: toUri(f.file) } };

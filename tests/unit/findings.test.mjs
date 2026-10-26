@@ -12,6 +12,7 @@ test("finding() builds a normalized Finding with defaults", () => {
     reqId: null,
     migration: null,
     line: null,
+    key: null,
   });
 });
 
@@ -39,4 +40,14 @@ test("finding() accepts migration metadata (the round-2 ADR 0041 severity-cap ce
 
 test("finding() rejects an unknown severity", () => {
   assert.throws(() => finding("c", "fatal", "msg"), /severity/);
+});
+
+// F-014's escape hatch: a check that needs to tell two of its own findings apart when its message text
+// (even normalised) cannot sets `key`, and scripts/lib/sarif-render.mjs's fingerprintFinding() uses it
+// in place of the message as the SARIF partialFingerprints discriminator.
+test("finding() accepts an optional key (the SARIF fingerprint discriminator escape hatch), defaulting to null", () => {
+  const withKey = finding("c", SEVERITY.ERROR, "msg", { key: "variant-a" });
+  assert.equal(withKey.key, "variant-a");
+  const withoutKey = finding("c", SEVERITY.ERROR, "msg");
+  assert.equal(withoutKey.key, null);
 });
