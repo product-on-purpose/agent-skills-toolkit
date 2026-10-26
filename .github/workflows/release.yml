@@ -24,7 +24,7 @@ permissions:
 jobs:
   release:
     runs-on: ubuntu-latest
-    timeout-minutes: 55
+    timeout-minutes: 60
     steps:
       - name: Checkout
         uses: actions/checkout@v7

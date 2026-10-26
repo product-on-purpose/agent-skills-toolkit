@@ -112,6 +112,14 @@ export const GATES = Object.freeze([
     // make it refuse, and therefore nothing for an outage override to excuse. The remedy is also always
     // available, because writing the missing heading IS the fix.
   }),
+  Object.freeze({
+    id: "version-agreement",
+    argv: ["scripts/check-version-agreement.mjs", "."],
+    why: "every version-bearing manifest - library.json, both native plugin manifests, package.json, both halves of package-lock.json, and this repository's own marketplace entry when one exists - must name the SAME version before a tag makes that claim permanent",
+    // NOT overridable at any exit code, for the same reason release-notes-section is not: nothing this
+    // gate reads lives on somebody else's server, so there is no outage for an override to excuse, and
+    // the remedy - running the bump everywhere it belongs - is always available.
+  }),
 ]);
 
 /**
