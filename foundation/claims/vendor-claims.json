@@ -33,6 +33,12 @@
       "vendor": "codex",
       "url": "https://learn.chatgpt.com/docs/hooks.md",
       "note": "The Codex hook reference. RE-READ 2026-09-04 (RS-C1): the old URL https://developers.openai.com/codex/hooks.md now 308-redirects here, the same migration the plugins page made on 2026-08-18, so the whole developers.openai.com/codex/* namespace is moving to learn.chatgpt.com/docs/*. The event count is now TWELVE (Interrupt is new since 2026-08-22). The EVENT ENUMERATION still carries no claim and never should: it exists as table rows, and a table row pins rendering rather than prose - three such claims were landed and removed on 2026-08-22. What DID become pinnable on this read is the HANDLER-TYPE sentence, which is running prose in a bullet rather than a cell: see cx-hook-handler-support, the first claim ever pinned against a Codex source."
+    },
+    {
+      "id": "cc-plugin-eval-cli",
+      "vendor": "claude-code",
+      "url": "https://code.claude.com/docs/en/plugins/cli-reference.md",
+      "note": "The plugin CLI reference's `plugin eval` and `plugin eval init` sections. Added 2026-10-25 for RS-C5 (ADR 0064, the vendor plugin-eval stance): the only vendor page that states the single-plugin, isolated-session scope the ADR's positioning depends on, confirmed independently by `claude plugin eval --help` on Claude Code 2.1.310."
     }
   ],
   "claims": [
@@ -151,6 +157,19 @@
       "verifiedOn": "2026-10-23",
       "reproduction": "Fixtures and step-by-step: docs/internal/vendor-watch/probes/components-share-one-namespace/ (see EXPECTED.md for what each run observed, and probes/README.md for how to record the result). Install two plugins shipping the same skill name and observe which resolves.",
       "onChange": "SUPERSEDED IN PART BY ADR 0060, which is what happened when this actually changed. ADR 0051 said a namespacing runtime should RETIRE the two collision classes; the 2026-09-17 re-run found Claude Code namespacing LOUDLY - it refuses the bare name rather than resolving it silently - and the ruling was DOWNGRADE to warn, not retire. Two reasons that any future change must also clear: only CLAUDE CODE has been measured and Codex is the other emit target, and a refusal is a different harm rather than no harm. If Codex is measured and DOES share a namespace, the silent-winner harm is real there and the severity question reopens for Codex-targeting catalogues. If Claude Code reverts to silent resolution, both checks return to error. The instrument for either is the fixture pair at docs/internal/vendor-watch/probes/components-share-one-namespace/."
+    },
+    {
+      "id": "plugin-eval-single-plugin-scope",
+      "kind": "quote",
+      "source": "cc-plugin-eval-cli",
+      "claim": "Claude Code runs it several times in an isolated session with only the target plugin loaded, and by default also without the plugin so the report shows the difference.",
+      "antecedent": "'it' refers to 'each case' - a prompt plus graders - named in the sentence immediately before this one. That sentence is deliberately not pinned: the case-authoring shape (prompt.md plus graders) can change on its own schedule without touching the single-plugin, isolated-session scope this claim depends on.",
+      "dependsOn": [
+        "ADR 0064 (the vendor plugin-eval stance: BESIDE, not versus) - the single-plugin leg its positioning rests on",
+        "docs/explanation/comparison.md's eval paragraph, which states the scope contrast this sentence grounds"
+      ],
+      "verifiedOn": "2026-10-25",
+      "onChange": "RED-WARD if the vendor ever runs eval across more than one plugin in the same session, or drops the isolated-session framing: ADR 0064's positioning stakes itself on exactly this sentence, so a change here reopens the ADR rather than getting a silent re-read. A change that only rewords the no-plugin-baseline clause while keeping 'only the target plugin loaded' is green-ward - bump the read date."
     }
   ]
 }

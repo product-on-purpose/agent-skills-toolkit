@@ -286,6 +286,14 @@ const MEANING_REVERSALS = Object.freeze({
   // built on a claim that cannot tell the supported set from the skipped one.
   "cx-hook-handler-support":
     "`prompt` and `agent` handlers are supported. `command` and `mcp_tool` handlers are parsed but skipped.",
+  // ADR 0064 (the vendor plugin-eval stance: BESIDE, not versus) stakes its positioning on "single-plugin".
+  // Identical vocabulary, inverted scope: "only the target plugin loaded" in one isolated session becomes
+  // "every installed plugin loaded together" in one shared session, and the no-plugin-baseline clause flips
+  // from "also without the plugin" to "never ... without the plugins". A watch still reporting "holds" here
+  // would be matching the sentence's words rather than the single-plugin fact the ADR depends on.
+  "plugin-eval-single-plugin-scope":
+    "Claude Code runs it several times in a single shared session with every installed plugin loaded " +
+    "together, and never runs it without the plugins, so the report shows no difference.",
 });
 
 test("W2-H3: every quote claim has a reversal recorded, so no fragment can be added unnoticed", () => {
