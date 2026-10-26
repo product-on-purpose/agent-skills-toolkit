@@ -103,7 +103,19 @@ Deliberate boundaries, not gaps:
 - **It does not publish or re-pin anything.** Marketplace registry updates are staged as instructions and executed by a human.
 - **A grade is not an endorsement.** Bronze, Silver and Gold describe conformance to a written standard. They are not a safety review, a security audit, or a statement that the skills work.
 
-## 8. How to read a limit on this page
+## 8. The vendor CLI runs directory-readiness checks this gate does not
+
+**Added 2026-10-25.** `claude plugin validate` runs checks for the plugin directory - the catalog a plugin is submitted to - that this toolkit's gate never evaluates, because they are about submission to that catalog, not conformance to this Standard. Nothing on this page claims coverage of them, and nothing in the spine grades a plugin against them.
+
+Three surfaces, found reading `marketplace-reference.md` and `manifest-reference.md` on 2026-10-23. None of nine previously fetched vendor pages, and no page in this repository's `docs/`, had stated any of them before:
+
+- **A name-impersonation rule set for plugins and marketplaces**, checking reserved and official names. The vendor's own error reads: `Plugin name "x" is reserved: it passes as one of Anthropic's own`.
+- **README, LICENSE, and ICON directory checks**, including an `ICON_MISSING` warning. Running `claude plugin validate templates/seed-plugin` (Claude Code 2.1.310) reproduces it verbatim: *"Plugin directory checks for \<path\>. The plugin directory is the catalog that plugins are submitted to; this is a subset of what it runs."*, followed by *".claude-plugin/plugin.json icon: No icon (ICON_MISSING). No icon found in the plugin. The validator looked for `icon` in plugin.json and for a file at .claude-plugin/icon.png or .svg, assets/icon.png or .svg, or a similar path."*
+- **Five `plugin.json` fields that are listing-only**: `icon`, `documentationUrl`, `supportUrl`, `privacyPolicyUrl`, and `termsOfServiceUrl`. Placed in a marketplace entry instead of `plugin.json`, the vendor reports each as an unknown field.
+
+**This toolkit does not grade any of the three.** `templates/seed-plugin` stays deliberately author-less and icon-less under [ADR 0043](../internal/decisions/0043-bronze-scaffold-defaults-a-minimal-native-manifest.md) (a placeholder icon is the same kind of value that ADR already rejected for a placeholder author), so it reproduces the `ICON_MISSING` warning on every run rather than suppressing it. Tracked as [E89, plugin directory readiness checks no page here documents](https://github.com/product-on-purpose/agent-skills-toolkit/blob/main/docs/internal/backlog/enhancements.md).
+
+## 9. How to read a limit on this page
 
 | Kind | Meaning | Example |
 |---|---|---|

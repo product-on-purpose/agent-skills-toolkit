@@ -1,0 +1,5 @@
+{
+  "name": "root-skill-plugin",
+  "version": "0.1.0",
+  "description": "A single-skill plugin whose SKILL.md lives at the plugin root (E88 fixture: no skills/ directory, no skills key)."
+}
