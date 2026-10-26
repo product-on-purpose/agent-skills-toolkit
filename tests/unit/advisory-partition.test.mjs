@@ -502,18 +502,46 @@ const EVALUATE_SCRIPT = path.join(ROOT, "scripts/evaluate.mjs");
 
 function runEvaluateJson(args) {
   try {
-    return execFileSync(process.execPath, [EVALUATE_SCRIPT, ...args], { encoding: "utf8" });
+    return { status: 0, report: JSON.parse(execFileSync(process.execPath, [EVALUATE_SCRIPT, ...args], { encoding: "utf8" })) };
   } catch (e) {
-    return String(e.stdout ?? "");
+    return { status: e.status, report: JSON.parse(String(e.stdout ?? "")) };
   }
 }
 
 test("runCli: spawned scripts/evaluate.mjs --json agrees with --no-advisory on tier and exit code", () => {
-  const on = JSON.parse(runEvaluateJson([FIXTURE, "--json"]));
-  const off = JSON.parse(runEvaluateJson([FIXTURE, "--no-advisory", "--json"]));
-  assert.equal(on.advisoryLayer, "on");
-  assert.equal(off.advisoryLayer, "off");
-  assert.deepEqual(off.advisoryFindings, null);
-  assert.equal(on.tier, off.tier, "tier must be identical");
-  assert.deepEqual(on.summary, off.summary, "summary must be identical");
+  const on = runEvaluateJson([FIXTURE, "--json"]);
+  const off = runEvaluateJson([FIXTURE, "--no-advisory", "--json"]);
+  assert.equal(on.report.advisoryLayer, "on");
+  assert.equal(off.report.advisoryLayer, "off");
+  assert.deepEqual(off.report.advisoryFindings, null);
+  assert.equal(on.report.tier, off.report.tier, "tier must be identical");
+  assert.deepEqual(on.report.summary, off.report.summary, "summary must be identical");
+  assert.equal(on.status, off.status, "the process exit code must be identical");
+});
+
+// --- Isolation: a module that throws. ADR 0063 says the layer "can never fail anything", so a screen
+// that throws must become one advisory finding inside advisoryFindings[], never a crash (a non-zero exit
+// that reads like a failing grade) and never a moved verdict. The stub that fires runs AFTER the one
+// that throws, which proves one broken screen does not take the rest of the layer down with it. ---
+
+const THROWING_STUB = {
+  meta: { advisoryId: "ADV-THROWS" },
+  check: () => { throw new Error("stub screen failure (test-only)"); },
+};
+
+test("isolation: a throwing advisory module becomes one advisory-module-error warning and moves no verdict path", () => {
+  const without = runWith(false);
+  const ctx = loadPlugin(FIXTURE);
+  const r = runGate(FIXTURE, ctx, { advisoryModules: [THROWING_STUB, STUB_ADVISORY_MODULE] });
+  for (const [name, derive] of VERDICT_PATHS) {
+    assert.deepEqual(derive(ctx, r), derive(without.ctx, without.r), `${name} must be unchanged when an advisory module throws`);
+  }
+  const thrown = r.advisoryFindings.filter((f) => f.check === "advisory-module-error");
+  assert.equal(thrown.length, 1, "exactly one finding reports the thrown module");
+  assert.equal(thrown[0].severity, "warn");
+  assert.equal(thrown[0].reqId, null);
+  assert.equal(thrown[0].advisoryId, "ADV-THROWS");
+  assert.match(thrown[0].message, /stub screen failure/);
+  assert.ok(r.advisoryFindings.some((f) => f.check === "stub-advisory"), "the module after the throwing one still ran");
+  for (const f of r.findings) assert.equal(f.advisoryId, undefined, "findings[] stays free of advisory output");
 });

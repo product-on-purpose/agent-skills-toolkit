@@ -111,3 +111,10 @@ npx agent-skills-toolkit evaluate <path> --format=html --profile plain-plugin --
 ```
 
 An unknown `--profile` or `--mode` is rejected with exit code 2, and so is an `askit.config.json` that does not load (see [Schema](#schema)).
+
+## The advisory layer
+
+Both scripts also run a deterministic advisory layer (`ADV1` to `ADV4`, ADR 0063, an advisory layer beside the tier). Its findings are reported in their own `advisoryFindings` list beside the verdict. They never change the tier, the error and warning counts, or the exit code.
+
+- **`--no-advisory`** switches the layer off for one run. The report then carries `advisoryLayer: "off"` and `advisoryFindings: null`, so a reader can tell "switched off" apart from "ran and found nothing".
+- **Each profile carries an advisory off-set.** `plain-plugin` turns off the house-provenance advisory IDs, the same way it turns off the house checks. The vendor-cited and objective advisory IDs still run under it, because portability and security matter most when grading someone else's plugin.
