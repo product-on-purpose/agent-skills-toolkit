@@ -38,7 +38,9 @@ import { cases as advancedCases } from "./advanced.map.mjs";
  *   using `fixture`, and must return something shaped like `fixture` (a tests/fixtures-relative path,
  *   or a zero-arg ctx-returning function). Use this only when a check genuinely needs a temp tree built
  *   fresh per run (e.g. a check that mutates or walks a filesystem path outside tests/fixtures/); the
- *   case owns creating and, if needed, cleaning up that tree inside `setup`.
+ *   case creates that tree inside `setup` and removes it in `teardown`.
+ * @property {(ctx: object) => void} [teardown] - optional. Called with the built ctx after the case's
+ *   assertion, pass or fail, so a `setup` that made a temp tree can remove it.
  * @property {Object} expect - what the fired finding must look like.
  * @property {"error"|"warn"} expect.severity - the finding's required severity.
  * @property {RegExp} [expect.message] - when present, the finding's message must match this pattern,
@@ -100,16 +102,20 @@ for (const band of BANDS) {
         const mod = checkFor(c.reqId);
         assert.ok(mod, `${c.reqId} is not a registered check in scripts/lib/registry.mjs`);
         const ctx = buildCtx(c.setup ?? c.fixture);
-        const findings = mod.check(ctx);
-        const hit = findings.find(
-          (f) => f.reqId === c.reqId && f.severity === c.expect.severity && (!c.expect.message || c.expect.message.test(f.message))
-        );
-        assert.ok(
-          hit,
-          `${c.reqId} (${mod.meta.id}) did not fire a ${c.expect.severity} finding` +
-            (c.expect.message ? ` matching ${c.expect.message}` : "") +
-            ` for fixture ${typeof c.fixture === "string" ? c.fixture : "<inline>"}. Got: ${JSON.stringify(findings.map((f) => ({ reqId: f.reqId, severity: f.severity, message: f.message })))}`
-        );
+        try {
+          const findings = mod.check(ctx);
+          const hit = findings.find(
+            (f) => f.reqId === c.reqId && f.severity === c.expect.severity && (!c.expect.message || c.expect.message.test(f.message))
+          );
+          assert.ok(
+            hit,
+            `${c.reqId} (${mod.meta.id}) did not fire a ${c.expect.severity} finding` +
+              (c.expect.message ? ` matching ${c.expect.message}` : "") +
+              ` for fixture ${typeof c.fixture === "string" ? c.fixture : "<inline>"}. Got: ${JSON.stringify(findings.map((f) => ({ reqId: f.reqId, severity: f.severity, message: f.message })))}`
+          );
+        } finally {
+          c.teardown?.(ctx);
+        }
       });
     }
   });

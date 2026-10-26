@@ -11,7 +11,7 @@ export const cases = [
   {
     reqId: "S1",
     fixture: "anti/no-agent-targets",
-    expect: { severity: "error", message: /agent-targets/ },
+    expect: { severity: "error", message: /library\.json is missing "agent-targets"/ },
   },
   {
     reqId: "S2",
@@ -19,10 +19,8 @@ export const cases = [
     expect: { severity: "error", message: /prefix/ },
   },
   {
-    // S3 (components-index) - audit note: the RS-B2 task text names S3 as thin-by-one-test; the
-    // scout's own inventory JSON for this check scores it `thin: false` ("many firing cases across
-    // four component types"). Kept flagged thin here per the task text's authority, but the
-    // disagreement is real and unresolved - see this folder's README.md, S3 row.
+    // S3 (components-index) - the plan named it thin, but the measured inventory found many firing
+    // cases across four component types, so it is not thin. See this folder's README.md, S3 row.
     reqId: "S3",
     fixture: "anti/components-drift",
     expect: { severity: "error", message: /cd-missing-skill/ },
@@ -52,6 +50,6 @@ export const cases = [
   {
     reqId: "S8",
     fixture: "anti/status-disagree",
-    expect: { severity: "error", message: /mirror/ },
+    expect: { severity: "error", message: /declares status "active" but the component's frontmatter declares metadata\.status "deprecated"/ },
   },
 ];

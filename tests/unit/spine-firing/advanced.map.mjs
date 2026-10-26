@@ -60,7 +60,9 @@ export const cases = [
   {
     reqId: "G9",
     fixture: "anti/source-doc-missing-why",
-    expect: { severity: "error", message: /why/ },
+    // Pins the reported field list itself: the message's boilerplate also names "why", so a bare /why/
+    // would match a finding for any missing field.
+    expect: { severity: "error", message: /missing the header docblock field\(s\): why\./ },
   },
   // G10 (docs-presence): a Diataxis quadrant directory present but with no *.md page inside it.
   {

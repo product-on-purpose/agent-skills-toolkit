@@ -6,7 +6,7 @@
 //               the runner (docs/internal/roadmap.md "## RS-B2")
 // used-by:      tests/unit/spine-firing/spine-firing.test.mjs
 
-import { mkdtempSync, mkdirSync, writeFileSync } from "node:fs";
+import { mkdtempSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 
@@ -136,6 +136,7 @@ export const cases = [
       writeFileSync(path.join(dir, "a.md"), "```mermaid\nnotadiagram LR\n  A --> B\n```\n");
       return () => ({ root: dir });
     },
+    teardown: (ctx) => rmSync(ctx.root, { recursive: true, force: true }),
     expect: { severity: "error", message: /recognized diagram keyword/ },
   },
 
@@ -197,6 +198,7 @@ export const cases = [
       writeFileSync(path.join(dir, ".claude-plugin", "marketplace.json"), JSON.stringify({ name: "c" }));
       return () => ({ root: dir });
     },
+    teardown: (ctx) => rmSync(ctx.root, { recursive: true, force: true }),
     expect: { severity: "error", message: /has no "plugins" array/ },
   },
 

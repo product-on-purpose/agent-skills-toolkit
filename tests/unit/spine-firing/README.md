@@ -38,16 +38,12 @@ Two separate counts, because they answer different questions:
   self-contained case). `node --test tests/unit/spine-firing/spine-firing.test.mjs` is 36 tests
   (the coverage test plus one per reqId), 0 failures.
 
-**Thin-count reconciliation (three different counts of the same gap, intentionally left unresolved
-here).** This table's own column flags **7** single-test reqIds (U7, S3, S5, S6, G5, G6, G7). The RS-B2
-task text that commissioned this folder names **3** (U7, S3, S6). The 2026-09-04 audit finding recorded
-in `docs/internal/audit-intake.md` (the unlabeled row directly below the `U5` calibration row, "Moving
-`U5`'s threshold from 0.7 to 0.1 fails no test; six checks hang on one test each") says **6**. A separate
-scout pass that filled `convergent.map.mjs` scored `S3` `thin: false` ("many firing cases across four
-component types"), disagreeing with this table's own `S3` row - see that file's S3 case comment and the
-row below. None of these three counts is corrected against another here; reconciling them is left to
-whoever next touches this table, and is carried as a record note on this increment rather than resolved
-by edit.
+**Thin-count reconciliation.** The measured inventory flags **6** single-test reqIds: U7, S5, S6, G5,
+G6 and G7. That agrees with the 2026-09-04 audit finding recorded in `docs/internal/audit-intake.md`
+("Moving `U5`'s threshold from 0.7 to 0.1 fails no test; six checks hang on one test each"). The plan
+that commissioned this folder also named `S3` as thin, but that name came from the plan's own brief,
+not from a measurement. The inventory found many firing cases for `S3` across four component types, so
+its row reads **no**. Every one of the six now has a second firing case in this folder.
 
 35 is the reqId count read from `REQ_IDS` in `scripts/lib/registry.mjs` as of 2026-10-25; this table
 does not pin that number as a constant anywhere else, so a check added or removed later changes what the
@@ -74,7 +70,7 @@ coverage test in `spine-firing.test.mjs` requires without this README going stal
 | U18 | `scripts/checks/command-size-cap.mjs` | `tests/unit/command-size-cap.test.mjs` | inline ctx: codex agent-target, a `commands/*.md` file over the 4000-byte cap | no |
 | S1 | `scripts/checks/agent-targets.mjs` | `tests/unit/agent-targets.test.mjs` | `tests/fixtures/anti/no-agent-targets` | no |
 | S2 | `scripts/checks/prefix.mjs` | `tests/unit/prefix.test.mjs` | `tests/fixtures/anti/no-prefix` | no |
-| S3 | `scripts/checks/components-index.mjs` | `tests/unit/components-index.test.mjs` | `tests/fixtures/anti/components-drift` | **yes** (flagged thin by the RS-B2 task text, which names it alongside U7 and S6; a separate scout pass scored it `thin: false`, having found many firing cases across the four component types - the task text's naming is treated as authoritative here, so it keeps its case; see the reconciliation note above) |
+| S3 | `scripts/checks/components-index.mjs` | `tests/unit/components-index.test.mjs` | `tests/fixtures/anti/components-drift` | no (the plan named it thin, but the measured inventory found many firing cases across the four component types; see the reconciliation note above) |
 | S4 | `scripts/checks/chain-contract.mjs` | `tests/unit/chain-contract.test.mjs`, `tests/unit/chain-contract-migration-cap.test.mjs` | `tests/fixtures/anti/chain-phantom` | no |
 | S5 | `scripts/checks/workflow-skills.mjs` | `tests/unit/workflow-skills.test.mjs` | `tests/fixtures/anti/workflow-missing-skill` | yes - one firing test |
 | S6 | `scripts/checks/per-target-presence.mjs` | `tests/unit/per-target-presence.test.mjs` | `tests/fixtures/anti/missing-codex-manifest` | **yes** - hangs on one test per the audit |
@@ -91,6 +87,6 @@ coverage test in `spine-firing.test.mjs` requires without this README going stal
 | G9 | `scripts/checks/source-doc.mjs` | `tests/unit/source-doc.test.mjs` | `tests/fixtures/anti/source-doc-missing-why` | no |
 | G10 | `scripts/checks/docs-presence.mjs` | `tests/unit/docs-presence.test.mjs` | `tests/fixtures/anti/docs-presence-empty-tutorials` | no |
 
-35 reqIds total as read from `REQ_IDS`: pre-existing firing coverage gap 0 of 35 (7 thin by this
-table's own count; 3 named in the RS-B2 task text; 6 named in the 2026-09-04 audit finding - see the
-reconciliation note above), cases added in this folder 35 of 35, all firing green.
+35 reqIds total as read from `REQ_IDS`: pre-existing firing coverage gap 0 of 35, with 6 thin
+(single-test) reqIds, matching the 2026-09-04 audit's count. Cases added in this folder: 35 of 35, all
+firing green.
