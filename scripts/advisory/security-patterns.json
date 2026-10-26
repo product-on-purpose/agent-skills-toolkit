@@ -1,0 +1,131 @@
+{
+  "classes": ["pipe-to-shell", "dangerous-command", "prompt-injection"],
+  "patterns": [
+    {
+      "id": "pipe-to-shell-curl",
+      "class": "pipe-to-shell",
+      "matcher": { "source": "\\bcurl\\s+.*\\|\\s*(?:bash|sh|zsh)\\b", "flags": "" },
+      "source": "github.com/voodootikigod/skills-check, packages/cli/src/audit/checkers/commands.ts (PIPE_TO_SHELL_PATTERNS, curl entry), read 2026-10-25 via `gh api repos/voodootikigod/skills-check/contents/packages/cli/src/audit/checkers/commands.ts`. Corroborated by github.com/moutons/skills-validator, rules/shell-injection.yaml rule id curl-pipe-bash (pattern-regex \"curl\\\\s+.*\\\\|\\\\s*(bash|sh)\"), read 2026-10-25.",
+      "knownLimits": "Matches only when curl and the shell name appear on the same line; a backslash-continued command, a variable holding the shell name, or a heredoc split across lines is not seen. Fires on the construct wherever it appears in text, including inside a quoted example or a sentence explaining the attack - this is a presence screen, not an execution trace or an intent classifier."
+    },
+    {
+      "id": "pipe-to-shell-wget",
+      "class": "pipe-to-shell",
+      "matcher": { "source": "\\bwget\\s+.*\\|\\s*(?:bash|sh|zsh)\\b", "flags": "" },
+      "source": "github.com/voodootikigod/skills-check, packages/cli/src/audit/checkers/commands.ts (PIPE_TO_SHELL_PATTERNS, wget entry), read 2026-10-25 via `gh api repos/voodootikigod/skills-check/contents/packages/cli/src/audit/checkers/commands.ts`. Corroborated by github.com/moutons/skills-validator, rules/shell-injection.yaml rule id wget-pipe-bash, read 2026-10-25.",
+      "knownLimits": "Same same-line and quoted-example limits as pipe-to-shell-curl."
+    },
+    {
+      "id": "pipe-to-shell-curl-sudo",
+      "class": "pipe-to-shell",
+      "matcher": { "source": "\\bcurl\\s+.*\\|\\s*sudo\\s+(?:bash|sh|zsh)\\b", "flags": "" },
+      "source": "github.com/voodootikigod/skills-check, packages/cli/src/audit/checkers/commands.ts (PIPE_TO_SHELL_PATTERNS, curl-sudo entry), read 2026-10-25 via `gh api repos/voodootikigod/skills-check/contents/packages/cli/src/audit/checkers/commands.ts`.",
+      "knownLimits": "Only the literal word \"sudo\" immediately before the shell name is recognised; an elevation performed a different way (a setuid wrapper, `doas`, a su -c form) is not covered by this pattern and would, if present, also match pipe-to-shell-curl above."
+    },
+    {
+      "id": "pipe-to-shell-bash-process-substitution",
+      "class": "pipe-to-shell",
+      "matcher": { "source": "bash\\s+<\\(\\s*curl", "flags": "i" },
+      "source": "github.com/moutons/skills-validator, src/passes/security.rs, REMOTE_EXEC_PATTERNS constant, pattern r\"bash\\\\s+<\\\\(\\\\s*curl\", read 2026-10-25 via WebFetch of https://raw.githubusercontent.com/moutons/skills-validator/main/src/passes/security.rs.",
+      "knownLimits": "Only the `bash <(curl ...)` process-substitution spelling is covered; `wget` inside the same construct, or the construct split across a variable assignment, is not seen."
+    },
+    {
+      "id": "pipe-to-shell-sh-process-substitution",
+      "class": "pipe-to-shell",
+      "matcher": { "source": "sh\\s+<\\(\\s*curl", "flags": "i" },
+      "source": "github.com/moutons/skills-validator, src/passes/security.rs, REMOTE_EXEC_PATTERNS constant, pattern r\"sh\\\\s+<\\\\(\\\\s*curl\", read 2026-10-25 via WebFetch of https://raw.githubusercontent.com/moutons/skills-validator/main/src/passes/security.rs.",
+      "knownLimits": "Same construct-spelling limit as pipe-to-shell-bash-process-substitution. `sh` also matches as a substring of `bash`, `zsh`, `dash`, `ksh`; this pattern reports on any of those spelled before `<(curl`, which is broader coverage in the same direction the screen already errs (a presence screen, not an exact-shell classifier)."
+    },
+    {
+      "id": "dangerous-command-rm-recursive-force",
+      "class": "dangerous-command",
+      "matcher": { "source": "\\brm\\s+(?:.*\\s)?-\\w*r\\w*f", "flags": "" },
+      "source": "github.com/voodootikigod/skills-check, packages/cli/src/audit/checkers/commands.ts (DESTRUCTIVE_PATTERNS), read 2026-10-25 via `gh api repos/voodootikigod/skills-check/contents/packages/cli/src/audit/checkers/commands.ts`.",
+      "knownLimits": "Recognises `-rf`/`-fr` and interleaved-flag spellings such as `-r -f` only when both land in one combined flag token or `(?:.*\\s)?` carries them onto the same line as `rm`; `rm --recursive --force` (long-option spelling) is not matched."
+    },
+    {
+      "id": "dangerous-command-rm-rf-root-or-home",
+      "class": "dangerous-command",
+      "matcher": { "source": "\\brm\\s+-rf\\s+[/~]", "flags": "" },
+      "source": "github.com/voodootikigod/skills-check, packages/cli/src/audit/checkers/commands.ts (DESTRUCTIVE_PATTERNS), read 2026-10-25 via `gh api repos/voodootikigod/skills-check/contents/packages/cli/src/audit/checkers/commands.ts`.",
+      "knownLimits": "Only the exact flag spelling `-rf` (that order) is matched; `-fr` or a target reached through a variable (`rm -rf \"$TARGET\"` where TARGET expands to `/`) is not seen. Overlaps dangerous-command-rm-recursive-force by design: this narrower id exists so a `rm -rf /` or `rm -rf ~` line reports a second, more specific finding naming the root/home target."
+    },
+    {
+      "id": "dangerous-command-chmod-777",
+      "class": "dangerous-command",
+      "matcher": { "source": "\\bchmod\\s+777\\b", "flags": "" },
+      "source": "github.com/voodootikigod/skills-check, packages/cli/src/audit/checkers/commands.ts (DESTRUCTIVE_PATTERNS), read 2026-10-25 via `gh api repos/voodootikigod/skills-check/contents/packages/cli/src/audit/checkers/commands.ts`.",
+      "knownLimits": "Only the literal numeric mode `777`; symbolic spellings (`chmod a+rwx`) and `chmod -R 777` with flags between `chmod` and the mode (`chmod -R 777` still matches; `chmod --recursive 777` with a long flag still matches) are not all exercised the same way - an uncommon flag spelling between the command and the mode can push the mode past what `\\s+` admits."
+    },
+    {
+      "id": "dangerous-command-chmod-666",
+      "class": "dangerous-command",
+      "matcher": { "source": "\\bchmod\\s+666\\b", "flags": "" },
+      "source": "github.com/voodootikigod/skills-check, packages/cli/src/audit/checkers/commands.ts (DESTRUCTIVE_PATTERNS), read 2026-10-25 via `gh api repos/voodootikigod/skills-check/contents/packages/cli/src/audit/checkers/commands.ts`.",
+      "knownLimits": "Same limits as dangerous-command-chmod-777."
+    },
+    {
+      "id": "dangerous-command-mkfs",
+      "class": "dangerous-command",
+      "matcher": { "source": "\\bmkfs\\b", "flags": "" },
+      "source": "github.com/voodootikigod/skills-check, packages/cli/src/audit/checkers/commands.ts (DESTRUCTIVE_PATTERNS), read 2026-10-25 via `gh api repos/voodootikigod/skills-check/contents/packages/cli/src/audit/checkers/commands.ts`.",
+      "knownLimits": "Matches the bare word `mkfs` wherever it appears (including `mkfs.ext4`, `mkfs.vfat`, and a man-page reference that merely names the command); it does not require a target device argument."
+    },
+    {
+      "id": "dangerous-command-dd-to-device",
+      "class": "dangerous-command",
+      "matcher": { "source": "\\bdd\\s+.*of=/dev/", "flags": "" },
+      "source": "github.com/voodootikigod/skills-check, packages/cli/src/audit/checkers/commands.ts (DESTRUCTIVE_PATTERNS), read 2026-10-25 via `gh api repos/voodootikigod/skills-check/contents/packages/cli/src/audit/checkers/commands.ts`.",
+      "knownLimits": "Requires the literal `of=/dev/` spelling on the same line as `dd`; `of=$DEV` where `$DEV` expands to a device path is not seen."
+    },
+    {
+      "id": "dangerous-command-curl-download-execute",
+      "class": "dangerous-command",
+      "matcher": { "source": "\\bcurl\\b.*&&\\s*(?:chmod\\s.*\\+x|bash|sh|\\./)", "flags": "" },
+      "source": "github.com/voodootikigod/skills-check, packages/cli/src/audit/checkers/commands.ts (DOWNLOAD_EXECUTE_PATTERNS), read 2026-10-25 via `gh api repos/voodootikigod/skills-check/contents/packages/cli/src/audit/checkers/commands.ts`.",
+      "knownLimits": "Only the `&&`-chained, same-line spelling is matched; a download and a separate execution step on two different lines (or in two different commands of a hook's `hooks` array) is not seen."
+    },
+    {
+      "id": "dangerous-command-wget-download-execute",
+      "class": "dangerous-command",
+      "matcher": { "source": "\\bwget\\b.*&&\\s*(?:chmod\\s.*\\+x|bash|sh|\\./)", "flags": "" },
+      "source": "github.com/voodootikigod/skills-check, packages/cli/src/audit/checkers/commands.ts (DOWNLOAD_EXECUTE_PATTERNS), read 2026-10-25 via `gh api repos/voodootikigod/skills-check/contents/packages/cli/src/audit/checkers/commands.ts`.",
+      "knownLimits": "Same same-line limit as dangerous-command-curl-download-execute."
+    },
+    {
+      "id": "prompt-injection-ignore-prior-instructions",
+      "class": "prompt-injection",
+      "matcher": { "source": "ignore\\s+(?:all\\s+)?(?:previous|prior|above)\\s+instructions", "flags": "i" },
+      "source": "github.com/voodootikigod/skills-check, packages/cli/src/audit/checkers/injection.ts (OVERRIDE_PATTERNS), read 2026-10-25 via `gh api repos/voodootikigod/skills-check/contents/packages/cli/src/audit/checkers/injection.ts`.",
+      "knownLimits": "Only the English phrasing \"ignore ... instructions\" with the listed qualifiers is matched; a paraphrase (\"pay no attention to anything said before this\"), a non-English phrasing, or the words split across two lines is not seen."
+    },
+    {
+      "id": "prompt-injection-disregard-prior-instructions",
+      "class": "prompt-injection",
+      "matcher": { "source": "disregard\\s+(?:all\\s+)?(?:previous|prior|above)\\s+instructions", "flags": "i" },
+      "source": "github.com/voodootikigod/skills-check, packages/cli/src/audit/checkers/injection.ts (OVERRIDE_PATTERNS), read 2026-10-25 via `gh api repos/voodootikigod/skills-check/contents/packages/cli/src/audit/checkers/injection.ts`.",
+      "knownLimits": "Same English-phrasing limit as prompt-injection-ignore-prior-instructions."
+    },
+    {
+      "id": "prompt-injection-role-hijack",
+      "class": "prompt-injection",
+      "matcher": { "source": "you\\s+are\\s+now\\s+(?:a|an)\\s+", "flags": "i" },
+      "source": "github.com/voodootikigod/skills-check, packages/cli/src/audit/checkers/injection.ts (OVERRIDE_PATTERNS), read 2026-10-25 via `gh api repos/voodootikigod/skills-check/contents/packages/cli/src/audit/checkers/injection.ts`.",
+      "knownLimits": "This exact construction (\"you are now a/an ...\") is also a common, benign way for a skill author to assign the agent a persona (\"You are now a meticulous code reviewer\"). The vendor source documents this pattern as medium-severity precisely because it is a weak, textual signal, never a safety verdict; this screen's finding text says so. Measured for its false-positive rate over the family and audit corpora before shipping, per this catalogue's own gate (see scripts/advisory/README.md, ADV3)."
+    },
+    {
+      "id": "prompt-injection-forget-constraints",
+      "class": "prompt-injection",
+      "matcher": { "source": "forget\\s+(?:all\\s+)?(?:your\\s+)?(?:previous\\s+|prior\\s+)?(?:instructions|rules|constraints)", "flags": "i" },
+      "source": "github.com/voodootikigod/skills-check, packages/cli/src/audit/checkers/injection.ts (OVERRIDE_PATTERNS), read 2026-10-25 via `gh api repos/voodootikigod/skills-check/contents/packages/cli/src/audit/checkers/injection.ts`.",
+      "knownLimits": "Same English-phrasing limit as prompt-injection-ignore-prior-instructions; \"constraints\" and \"rules\" used in an unrelated, legitimate sense (describing a business rule engine, for instance) can satisfy the object noun while the verb/subject \"forget\" is true positive for text that uses that specific verb about its own instructions."
+    },
+    {
+      "id": "prompt-injection-do-not-follow-prior",
+      "class": "prompt-injection",
+      "matcher": { "source": "do\\s+not\\s+follow\\s+(?:any|your)\\s+(?:previous|prior|original)\\s+", "flags": "i" },
+      "source": "github.com/voodootikigod/skills-check, packages/cli/src/audit/checkers/injection.ts (OVERRIDE_PATTERNS), read 2026-10-25 via `gh api repos/voodootikigod/skills-check/contents/packages/cli/src/audit/checkers/injection.ts`.",
+      "knownLimits": "Same English-phrasing limit as prompt-injection-ignore-prior-instructions."
+    }
+  ]
+}

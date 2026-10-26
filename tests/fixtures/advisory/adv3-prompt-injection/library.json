@@ -1,0 +1,7 @@
+{
+  "name": "adv3-prompt-injection-fixture",
+  "version": "0.1.0",
+  "description": "ADV3 seeded-malicious fixture (prompt-injection class). Use only as a regression fixture for the security screen.",
+  "standard": "0.17",
+  "tier": "universal"
+}

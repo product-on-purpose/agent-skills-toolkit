@@ -99,3 +99,13 @@ the measured rate and the shipped/not-shipped decision land in the commit after 
   half only; see the reserved-words note above.
 - `adv2-preload-cap.mjs` - ADV2: a subagent `skills:` frontmatter list naming more than 32 distinct
   skills, the count Claude Code preloads into the subagent's startup context.
+- `security-patterns.json` - the ADV3 pattern catalogue: pipe-to-shell, dangerous-command and
+  prompt-injection patterns, each with an id, class, matcher, cited source and known-limits note. See
+  the ADV3 heading above for the scope rule and the pre-registered false-positive ceiling.
+- `adv3-security.mjs` - the ADV3 screen module: `listScanTargets()` (the scan-scope implementation and
+  the false-positive-rate denominator) and `check(ctx, opts)` (compiles the catalogue and runs it line
+  by line over every in-scope target). `opts.catalogue` and `opts.scopeRoots` are test-only injection
+  points (the mutation tests and the scope-widening mutant); `scripts/lib/advisory-registry.mjs` never
+  sets either. **Not yet registered in `ADVISORY_MODULES` as of this commit** - the measured
+  false-positive rate and the shipped/not-shipped decision land in the next commit, per the ADV3
+  heading's pre-registered ordering.
