@@ -27,6 +27,94 @@ All three scored against **key 1.1.0**, and all three remain **PROVISIONAL** (1,
 
 Also added: `OS-04` and `OS-05` (out of scope: legal-completeness judgments, and skills that instruct manual steps), and `NB-04`, a new bait entry for the version spread between `plugin.json` and the per-skill metadata, which is **correct** under Standard sec 7.4 and which run 12 reported as an inconsistency.
 
+### Rule (a') re-score of runs 12-14, 2026-10-25: PROVISIONAL, not final
+
+The table at the top of this batch is the zero-credit baseline as it was recorded on 2026-08-04. It is kept as the historical record. This re-score applies [ADR 0065 (a multi-entry finding earns credit only where its own correct clause verifies)](../decisions/0065-a-multi-entry-finding-earns-credit-only-where-its-own-correct-clause-verifies.md), rule (a'), as implemented on branch `feat/cut3-evidence` in `scripts/lib/advisory-score.mjs`. It scores the same three frozen advisories against the same key 1.1.0.
+
+**None of these cells is final.** Rule (a') makes adjudication mandatory on every multi-entry engagement. The adjudications exist only as an agent-drafted document, [`adjudication-2026-08-04.md`](adjudication-2026-08-04.md), whose status is DRAFT - PENDING MAINTAINER SIGNATURE. Column (1) is what the scorer reports with no adjudication. Columns (2) and (3) say what the cells become if the maintainer signs those drafts exactly as written.
+
+| Run | Cell | (1) Automatic, rule (a') | Worklist under (1) | (2) Drafts signed as written, applied by the scorer through E17 | Worklist left under (2) | (3) As (2), plus the single-entry drafts applied by hand |
+| --- | --- | --- | --- | --- | --- | --- |
+| 12 | Haiku 4.5 / high | precision 0.86 (6 of 7), recall 0.46 (6 of 13) | 1 item: index 2 | precision 0.86 (6 of 7), recall 0.46 (6 of 13) | none | same as (2) |
+| 13 | Sonnet 5 / high | precision 1.00 (7 of 7), recall 0.54 (7 of 13) | 3 items: indices 0, 6, 9 | precision 1.00 (9 of 9), recall 0.69 (9 of 13) | index 9 (single-entry) | same as (2), because index 9 becomes a duplicate |
+| 14 | Opus 5 / high | precision 1.00 (11 of 11), recall 0.92 (12 of 13) | 7 items: indices 0, 1, 3, 4, 7, 8, 19 | precision 1.00 (12 of 12), recall 0.92 (12 of 13) | indices 1 and 19 (single-entry) | precision 1.00 (13 of 13), recall 1.00 (13 of 13) |
+
+Column (1) reproduces the ruled targets of RS-B1 (the multi-entry credit gap): recall Haiku 0.46, Sonnet 0.54, Opus 0.92, and Opus precision 11 of 11 with recall 12 of 13. Recall counts satisfied entries, not true-positive findings. Opus index 0 credits two entries automatically (`SD-03` and `SD-07`), which is why Opus has 11 true positives but 12 satisfied entries under (1).
+
+Column (2) was measured by passing each JSON block of the draft document to `scoreAdvisory` as `opts.adjudication`. These outcomes change between (1) and (2):
+
+- **Sonnet index 0** moves from review-required to a true positive for `SD-07`. The finding states the checklist contradiction in full, but the `SD-07` `correct` clause missed its wording.
+- **Sonnet index 6** moves from a duplicate of `SD-05` to a true positive for `SD-06`, the semantic entry.
+- **Opus index 0** keeps its true positive, but credits `SD-07` only. Its automatic `SD-03` credit came from the words "output contract" and "contradict", not from a report of the stale `--write` section. `SD-03` becomes a miss under (2).
+- **Opus index 7** moves its credit from `SD-05` to `SD-06`. This is the misattribution ADR 0065 names.
+- **Opus index 8** moves from a duplicate to review-required, adjudicated, because it describes neither entry it engages.
+- **Opus index 10** moves from a duplicate to the true positive for `SD-05`. It is the finding that reports the fabricated statute name.
+
+Column (3) is computed by hand, not by the scorer. The scorer refuses a resolution on a single-entry finding, so Sonnet index 9 and Opus indices 1 and 19 stay on its worklist under (2). Signing Opus index 1 as drafted credits `SD-03`, which brings Opus to 13 of 13 satisfied entries.
+
+**The ceiling invariant bounds the automatic figure only.** `recallAutoCeiling` is 0.92 on key 1.1.0, because `SD-06` is `mode: semantic` and is never auto-credited. No column (1) recall exceeds it. Column (3) puts Opus recall at 1.00, above that ceiling, because a human-credited semantic entry is the designed route to `SD-06`. That figure is an adjudicated quantity, not an automatic one, and it is flagged here so it is not read as a ceiling breach.
+
+**Two further rulings are outside the scorer.** Opus index 8 reports the response clock starting at verification rather than at receipt. No key entry covers it, so adjudication steps 3 and 4 need a ruling: promote it under key 1.2.0, or record it out of scope. Opus index 19 is a checklist-coverage claim that the draft recommends recording out of scope. Neither ruling changes any figure above on key 1.1.0.
+
+Reproduce column (1) with `node scripts/lib/advisory-score.mjs tests/fixtures/anti/seeded-defects/recorded-runs/2026-08-04/<model>-high-advisory.json`, where `<model>` is `haiku`, `sonnet` or `opus`.
+
+### RS-B1 criterion 5 publication-gate grep, 2026-10-25: NON-EMPTY
+
+RS-B1 criterion 5 asks for a recorded grep whose empty result is the evidence. **The grep is not empty.** It was run at commit `b975a80`, before the re-score block above was added, over this surface list:
+
+```text
+git ls-files README.md RELEASE-NOTES.md CHANGELOG.md 'docs/**' 'site/src/content/docs/**'
+```
+
+Two passes were run over those files. Pass A keeps lines that carry a metric word and a figure. Pass B keeps lines that carry a model name and a figure or a comparative.
+
+```text
+A: grep -n -i -E '(precision|recall|detection[- ]rate|false[- ]verified|recallAutoCeiling|auto ceiling)' FILES \
+     | grep -E '(\b[01]\.[0-9]{2}\b|\b[0-9]{1,3}(\.[0-9]+)? ?%|\b[0-9]+ of [0-9]+\b|\b[0-9]+/[0-9]+\b)'
+B: grep -n -E '\b(Haiku|Sonnet|Opus|Fable)\b' FILES \
+     | grep -i -E '(\b[01]\.[0-9]{2}\b|matched|outperform|beats?|ranks?|ranking|parity|better than|worse than|ahead of|tier spread)'
+```
+
+The two passes returned 82 unique file-and-line hits. `README.md`, `RELEASE-NOTES.md` and the hand-authored site pages under `site/src/content/docs/` returned none.
+
+**What the deployed site publishes decides the classification.** `site/astro.config.mjs` calls `generate()` from `site/scripts/gen-docs-site.mjs` at config load. That generator mirrors every subdirectory of `docs/` into the site except `docs/internal/`, which `EXCLUDE_TOP` excludes, and it skips folder `README.md` files. The site build also publishes the hand-authored pages in `site/src/content/docs/` and the generated tier and registry reports. A grep of the three report generators for the metric words returns nothing. `docs/internal/` is not on the site, but it is tracked, so it is public on GitHub, and criterion 5 names `docs/**` with no internal exemption.
+
+Hits on a published surface:
+
+| File | Lines | Surface | What the hit is |
+| --- | --- | --- | --- |
+| `docs/explanation/limitations.md` | 44, 45, 46, 48 | deployed site | The E13 precision and recall table, and a recall statement. These are the **zero-credit** figures, which rule (a') supersedes. |
+| `docs/reference/token-usage-estimates.md` | 102, 110, 112, 158 | deployed site | Model-ranking statements: the Sonnet-matched-Opus parity claim, the quality gradient, and a general Opus, Sonnet, Haiku ordering. |
+| `CHANGELOG.md` | 1226, 1355 | repo root, GitHub | 1226 quotes the E13 recall range. 1355 restates the quality gradient and the same-target model triple. |
+| `CHANGELOG.md` | 115 | repo root, GitHub | Grep false positive: the `U5` description-check precision, not an advisory figure. |
+
+Hits on internal records (`docs/internal/`, not on the site):
+
+| File | Lines | What the hits are |
+| --- | --- | --- |
+| `decisions/0065-...-correct-clause-verifies.md` | 22, 23, 26, 28, 32, 59, 67, 68, 83, 84, 88, 89, 94, 129, 173, 188, 229, 251, 253 | The ruling's measured and ruled figures. |
+| `eval-runs/eval-runs.md` | 13, 14, 15, 17, 19, 32, 34, 103, 106 | Recorded E13 figures and earlier parity readings. Lines 149 and 151 are grep false positives (`U5 0.65`). |
+| `eval-runs/seeded-defects.md` | 161, 212, 234, 235, 265, 272, 273, 274 | Line 212 restates the parity claim. The others are the simulated runs, the auto ceiling, and scoring-rule statements, not model measurements. |
+| `eval-runs/METHODOLOGY.md` | 33 | The parity claim from the earlier R9/R10/R11 triple. |
+| `roadmap.md` | 80, 81, 89 | RS-B1's criteria quote the ruled figures. |
+| `STATUS.md` | 684 | The 0.42 and 1.00 precision swing. |
+| `backlog/enhancements.md` | 125, 154 | E13's measured pairs and the 0.42 and 1.00 swing. |
+| `release-plans/plan_v1.15.0/RELEASE-PLAN.md` | 160 | The 0.42 and 1.00 swing. |
+| `execution/10-agent-operations.md` | 143 | A two-model panel claim. |
+| `release-plans/plan_v1.6.0/F3-advisory-quality/SPEC.md` | 10, 14, 32 | Line 14 restates the parity claim. Lines 10 and 32 describe the planned measurement. |
+| `release-plans/plan_v1.6.0/F3-advisory-quality/IMPL-PLAN.md` | 7, 30, 46 | Planned measurement; no figure. |
+| `release-plans/plan_v1.6.0/PROGRAM-PLAN.md` | 11, 54, 119 | Planned measurement; no figure. |
+| `release-plans/plan_v1.6.0/README.md` | 26 | Planned measurement; no figure. |
+| `execution/04-releases/R2-v1.8.0-deep-builders-measured-advisory.md` | 18, 92, 93 | Planned measurement and a reading label; no figure. |
+| `execution/EXEC-SUMMARY.md` | 80 | A target to record precision and recall; no figure. |
+| `execution/01-audit-2026-07-06.md` | 56 | A reading label that names the parity reading; no figure. |
+| `audit-intake.md` | 89 | Grep false positive: `U5` precision. |
+| `decisions/0020`, `0032`, `0033`, `0036` | 49; 4, 5; 6; 4 | Grep false positives: check calibration and description-score precision. |
+| `decisions/0042` | 9 | Grep false positive: a model name in the Deciders line. |
+| `release-plans/plan_v1.5.1/RELEASE-PLAN.md`, `plan_v1.5.2/RELEASE-PLAN.md` | 5; 5 | Grep false positives: "precision fixes" to checks. |
+
+The re-score block above adds figure-bearing lines to this file. The draft adjudication document carries no figure. No figure anywhere was edited or removed to change this result.
+
 ### Sensor readings 26-29
 
 - **Reading 26 - the auto-scorer was measuring conformance to the key's granularity, not correctness.** Opus scored 0.42 precision under key 1.0.0 and 1.00 under 1.1.0, on an unchanged advisory. Every one of its "false positives" was either a real unplanted defect or legitimately out of scope; it had none. The mechanism is that a single rich finding which engages two planted entries is classed `review-required` and credited to neither, so the more granular a review, the worse it scores. Seven of Opus's twenty-three findings are still uncredited for exactly this reason, which means its true recall is materially above the 0.62 published here. **Disposition: harness defect, confirmed. Publishing the 1.0.0 numbers would have produced a "Sonnet beats Opus" conclusion that is false.** Needs a scoring rule for multi-entry engagement before any cell can be published as final.

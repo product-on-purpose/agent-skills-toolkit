@@ -4,7 +4,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { execFileSync } from "node:child_process";
 import { readFileSync, existsSync, readdirSync, statSync } from "node:fs";
-import { classifyText, testRule } from "../../scripts/lib/advisory-score.mjs";
+import { classifyText, testRule, scoreAdvisory } from "../../scripts/lib/advisory-score.mjs";
 
 // The seeded-defect fixture and its scoring key (F3 R-AQ-1). Two properties have to hold for any
 // advisory precision/recall number measured against this fixture to mean anything:
@@ -200,5 +200,45 @@ test("E20: no file inside the seeded-defect fixture tree parses as a scoring key
       "planted inside the fixture tree. The key must live outside tests/fixtures/anti/seeded-defects/ " +
       "(see tests/fixtures/seeded-defect-keys/README.md)."
     );
+  }
+});
+
+// ---------------------------------------------------------------------------
+// The E13 adjudication document: consumable by E17 and covering the whole mandatory worklist
+// ---------------------------------------------------------------------------
+
+// ADR 0065 makes adjudication mandatory on every multi-entry engagement. The tracked adjudication
+// document is only useful if the scorer can actually consume it, so this loads each fenced json block
+// and feeds it to scoreAdvisory as opts.adjudication. It asserts no figure: the resolutions are a
+// human's to sign or amend, and a test that pinned the draft's numbers would fight that signature.
+const ADJUDICATION_DOC = path.join(ROOT, "docs/internal/eval-runs/adjudication-2026-08-04.md");
+const RECORDED_RUNS = path.join(ROOT, "tests/fixtures/anti/seeded-defects/recorded-runs/2026-08-04");
+
+test("the E13 adjudication document is consumable by E17 and resolves every engaged entry of every multi-entry engagement", () => {
+  const doc = readFileSync(ADJUDICATION_DOC, "utf8");
+  assert.match(
+    doc, /\*\*Status: (?:DRAFT - PENDING MAINTAINER SIGNATURE|SIGNED)/,
+    "the adjudication document must state whether a human has signed it",
+  );
+  const blocks = [...doc.matchAll(/```json\r?\n([\s\S]*?)```/g)].map((m) => JSON.parse(m[1]));
+  for (const model of ["haiku", "sonnet", "opus"]) {
+    const block = blocks.find((b) => b.advisory === model);
+    assert.ok(block, `the adjudication document has no json block for the ${model} advisory`);
+    assert.equal(block.keyVersion, key.keyVersion, `the ${model} block names a different key version`);
+    const advisory = JSON.parse(readFileSync(path.join(RECORDED_RUNS, `${model}-high-advisory.json`), "utf8"));
+    const auto = scoreAdvisory(advisory, key);
+    // Every engaged entry of every multi-entry engagement carries exactly one explicit resolution,
+    // including entries the scorer already credited, so a signature confirms each automatic credit.
+    for (const row of auto.findings.filter((r) => r.multi)) {
+      for (const entryId of row.engagedIds) {
+        const hits = block.resolutions.filter((r) => r.index === row.index && r.entryId === entryId);
+        assert.equal(hits.length, 1, `${model} finding ${row.index}: expected one resolution for ${entryId}, found ${hits.length}`);
+      }
+    }
+    // scoreAdvisory refuses a malformed, misdirected, or single-entry resolution, so this call is the
+    // consumability check; afterwards no multi-entry engagement may remain on the worklist.
+    const adjudicated = scoreAdvisory(advisory, key, { adjudication: block });
+    const leftMulti = adjudicated.worklist.filter((w) => w.engagedIds);
+    assert.deepEqual(leftMulti.map((w) => w.index), [], `${model}: a multi-entry engagement is still unadjudicated`);
   }
 });

@@ -42,6 +42,7 @@ Measurement conventions:
 - `eval-runs.md` - the run log and per-batch toolkit findings.
 - `METHODOLOGY.md` - how runs are judged for quality and how sensor readings become verified, shipped engine calibrations (the observe -> verify -> calibrate path).
 - `seeded-defects.md` - the seeded-defect fixture and its scoring key (F3 R-AQ-1): what is planted, how a finding is scored true positive, false positive or miss, and why a confabulated correction counts as both a false positive and a miss.
+- `adjudication-2026-08-04.md` - the agent-drafted adjudication of the E13 batch's mandatory worklist (ADR 0065), in the shape `scoreAdvisory` consumes as `opts.adjudication`; DRAFT until the maintainer signs it.
 - `corpus.json` - the pinned-sha corpus manifest (repo URL, sha, scope, local clone) that makes a batch reproducible.
 - `dispatch-reviewer.md` - the review-mode advisory dispatch template (role prompt, effort wording, sampling protocol, output contract).
 - `dispatch-grader.md` - the behavioral-mode advisory dispatch template.
