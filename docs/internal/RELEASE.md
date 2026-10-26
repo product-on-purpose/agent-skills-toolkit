@@ -21,8 +21,9 @@ A public `0.x` tag ships at every wave boundary (RELEASE-PLAN v0.2 Section 5); `
 - [ ] **Docs site** builds cleanly (Astro Starlight) and the Diataxis quadrants are non-empty.
 - [ ] **All tier-applicable conformance checks green** (`node scripts/check.mjs`).
 - [ ] **No em-dashes / en-dashes** in committed text (author-time hook; house style, retired as a gate check in Standard v0.11).
-- [ ] **`npm run release-ready` exits 0.** One command, five release-blocking gates: the conformance gate, the
-  README drift guard, the release-count guard, `vendor-watch`, and `action-pin-watch`. **It runs automatically in `release.yml` on
+- [ ] **`npm run release-ready` exits 0.** One command, seven release-blocking gates: the conformance gate, the
+  README drift guard, the release-count guard, `vendor-watch`, `action-pin-watch`, the RELEASE-NOTES section
+  gate, and the version-agreement preflight (E85). **It runs automatically in `release.yml` on
   the pushed tag and in `publish-npm.yml` on the candidate tree**, so ticking this box locally is a convenience,
   not the enforcement - which is the point.
 
