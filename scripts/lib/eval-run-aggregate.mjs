@@ -186,8 +186,22 @@ export function aggregate({ repoRoot, date, runsDir, recordPath, dossierPath, la
   for (const s of all) assertShaped(s);
 
   const already = all.filter((s) => s.data.runId);
-  const pending = all.filter((s) => !s.data.runId);
+  const unaggregated = all.filter((s) => !s.data.runId);
+  // R-PIPE-4 / E15 (RS-B1 reading 22): this record's own charter (README.md) forbids a deterministic-only
+  // row - "a deterministic-only run belongs in _local/ until a model has actually judged the target." A
+  // skeleton whose advisory.model is still null has not been dispatched, so it is skipped, never appended,
+  // and the skip is counted out loud rather than silently folded into "would append N rows".
+  const pending = unaggregated.filter((s) => s.data.advisory?.model);
+  const notDispatched = unaggregated.filter((s) => !s.data.advisory?.model);
   if (pending.length === 0) {
+    if (notDispatched.length > 0) {
+      refuse(
+        `every not-yet-aggregated skeleton under ${toPosix(runs)} has no advisory.model (${notDispatched.length} not dispatched: ` +
+        `${notDispatched.map((s) => s.data.runKey).join(", ")}); a deterministic-only run belongs in _local/ until a model has ` +
+        `actually judged the target (docs/internal/eval-runs/README.md), so there is nothing this aggregator may append.`,
+        "not-dispatched"
+      );
+    }
     refuse(
       `every skeleton under ${toPosix(runs)} is already aggregated (${already.map((s) => s.data.runId).join(", ")}); ` +
       `nothing to append. Delete or move the aggregated skeletons to re-record a batch deliberately.`,
@@ -232,6 +246,7 @@ export function aggregate({ repoRoot, date, runsDir, recordPath, dossierPath, la
     dossierPath: toPosix(dossier),
     runs: assigned.map((r) => ({ runId: r.runId, runKey: r.runKey, row: r.row })),
     skipped: already.map((s) => ({ runId: s.data.runId, runKey: s.data.runKey })),
+    notDispatched: notDispatched.map((s) => ({ runKey: s.data.runKey, file: toPosix(s.file) })),
     bounds,
     section,
     dossier: { changed: rangeResult.changed, from: rangeResult.from, to: rangeResult.to, reason: rangeResult.reason },
@@ -245,6 +260,7 @@ export function formatAggregateSummary(s, { dryRun = false } = {}) {
     `${dryRun ? "[dry run] would append" : "Appended"} ${s.runs.length} row(s) to ${s.recordPath} (batch ${s.date}: ${s.label})`,
     ...s.runs.map((r) => `  ${r.runId}  ${r.runKey}`),
     ...(s.skipped.length ? [`  skipped (already aggregated): ${s.skipped.map((r) => `${r.runId} ${r.runKey}`).join(", ")}`] : []),
+    ...(s.notDispatched?.length ? [`  ${s.notDispatched.length} skeleton(s) not dispatched (skipped, not appended): ${s.notDispatched.map((r) => r.runKey).join(", ")}`] : []),
   ];
   lines.push(
     s.dossier.changed

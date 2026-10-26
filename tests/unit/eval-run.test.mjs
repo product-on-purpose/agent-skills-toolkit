@@ -206,6 +206,50 @@ test("runOne hands the gate a forward-slash target even when the manifest path u
   }
 });
 
+// --- E15 (RS-B1 reading 20): a component-scope verdict must never be taken from a plugin-scope grading ---
+
+test("runOne refuses when the gate seam and the render seam disagree on errors/warns", () => {
+  const clone = makePinnedClone(SILVER);
+  const out = tmpOutDir();
+  // The gate seam (stubbed stdout) reports 0E/1W; the render seam (stubbed JSON) reports 0E/0W for the
+  // SAME run. This is the exact shape of the recorded defect: check.mjs has no component scope and counts
+  // a missing skills/ as a warning, while evaluate.mjs grades the same bytes correctly as a component.
+  const { seam } = stubSeam({
+    gateStdout: "\n0 error(s), 1 warning(s).\n",
+    json: { scope: "component", tier: null, profile: "plain-plugin", summary: { errors: 0, warns: 0 } },
+  });
+  try {
+    assert.throws(
+      () => runOne(entryFor(clone, { scope: "component" }), { repoRoot: ROOT, outDir: out }, { seam, now: () => FIXED_NOW }),
+      (err) => {
+        assert.ok(err instanceof EvalRunError, "a seam disagreement is a refusal, not a stored-but-unflagged mismatch");
+        assert.match(err.message, /REFUSED/);
+        assert.match(err.message, /disagree/i);
+        assert.match(err.message, /0E \/ 1W/, "names the gate seam's own numbers");
+        assert.match(err.message, /0E \/ 0W/, "names the render seam's own numbers");
+        return true;
+      }
+    );
+  } finally {
+    rmSync(clone.dir, { recursive: true, force: true });
+    rmSync(out, { recursive: true, force: true });
+  }
+});
+
+test("runOne does NOT refuse when the gate seam and render seam agree", () => {
+  const clone = makePinnedClone(SILVER);
+  const out = tmpOutDir();
+  const { seam } = stubSeam(); // default stub: both seams report 0E/0W
+  try {
+    const r = runOne(entryFor(clone), { repoRoot: ROOT, outDir: out }, { seam, now: () => FIXED_NOW });
+    assert.equal(r.gate.errors, 0);
+    assert.equal(r.gate.warns, 0);
+  } finally {
+    rmSync(clone.dir, { recursive: true, force: true });
+    rmSync(out, { recursive: true, force: true });
+  }
+});
+
 test("runOne refuses when the gate output carries no parseable verdict (a silent no-op)", () => {
   const clone = makePinnedClone(SILVER);
   const out = tmpOutDir();
@@ -310,6 +354,49 @@ test("no eval-run pipeline source hardcodes the checker script path", () => {
 });
 
 // --- the CLI surface: a refusal is loud (exit 2 + stderr), not a quiet zero ---
+
+// --- E15 (RS-B1 reading 23): one target's refusal must not abort the rest of a multi-target batch ---
+
+test("CLI eval-run.mjs continues a multi-target batch after one target refuses, and still exits 2", () => {
+  const good1 = makePinnedClone(SILVER);
+  const good2 = makePinnedClone(SILVER);
+  const manifestDir = mkdtempSync(path.join(os.tmpdir(), "askit-evalrun-manifest-"));
+  const manifest = path.join(manifestDir, "corpus.json");
+  const outDir = tmpOutDir();
+  writeFileSync(manifest, JSON.stringify({
+    schema: "askit-eval-corpus/1",
+    targets: [
+      entryFor(good1, { id: "good-1" }),
+      entryFor(good2, { id: "bad-middle", sha: "0".repeat(40) }), // refuses: not at the pinned sha
+      entryFor(good2, { id: "good-2" }),
+    ],
+  }), "utf8");
+  try {
+    let stdout = "", stderr = "", status = null;
+    try {
+      stdout = execFileSync(process.execPath, [
+        path.join(ROOT, "scripts/eval-run.mjs"), "good-1", "bad-middle", "good-2",
+        "--manifest", manifest, "--profile", "plain-plugin", "--out-dir", outDir,
+      ], { encoding: "utf8", stdio: "pipe" });
+      status = 0;
+    } catch (e) {
+      stdout = e.stdout ?? "";
+      stderr = e.stderr ?? "";
+      status = e.status;
+    }
+    assert.equal(status, 2, `a batch with one refused target still exits 2 (stderr: ${stderr})`);
+    assert.match(stderr, /REFUSED[\s\S]*pinned sha/, "the middle target's refusal is printed");
+    assert.match(stdout, /good-1.*0E \/ 0W|good-1[\s\S]*verdict|0E \/ 0W/i, "the first target still ran");
+    // The strongest evidence the batch continued: the THIRD target (good-2), listed AFTER the refusing
+    // one, still produced output. Before the fix, runOne's exception escaped runBatch and this never ran.
+    assert.match(stdout, /\[batch\] 1 of 3 target\(s\) refused/, "the refusal is rolled into a batch summary, not silent");
+  } finally {
+    rmSync(good1.dir, { recursive: true, force: true });
+    rmSync(good2.dir, { recursive: true, force: true });
+    rmSync(manifestDir, { recursive: true, force: true });
+    rmSync(outDir, { recursive: true, force: true });
+  }
+});
 
 test("CLI eval-run.mjs exits 2 and prints the refusal when the clone is not at the pin", () => {
   const clone = makePinnedClone(SILVER);

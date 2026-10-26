@@ -5,7 +5,7 @@ import os from "node:os";
 import { fileURLToPath } from "node:url";
 import { mkdtempSync, mkdirSync, writeFileSync, readFileSync, rmSync } from "node:fs";
 import {
-  aggregate, collectSkeletons, nextRunId, rowFor, ROW_HEADER, RANGE_BEGIN, RANGE_END, RECORD_REL, DOSSIER_REL,
+  aggregate, collectSkeletons, nextRunId, rowFor, formatAggregateSummary, ROW_HEADER, RANGE_BEGIN, RANGE_END, RECORD_REL, DOSSIER_REL,
 } from "../../scripts/lib/eval-run-aggregate.mjs";
 import { EvalRunError } from "../../scripts/lib/eval-run.mjs";
 
@@ -62,7 +62,11 @@ function skeleton(over = {}) {
       skillsOnDisk: 49,
     },
     gate: { errors: 11, warns: 12, exitCode: 1, tier: "none", verdict: "11E / 12W, Tier none (plain-plugin)" },
-    advisory: { model: null, effort: null, tokens: null, wallClockSeconds: null, toolUses: null, result: null },
+    // A dispatched-but-not-fully-filled advisory: model and effort are known (so the skeleton is eligible
+    // to aggregate - E15/RS-B1 reading 22 forbids appending a skeleton with no advisory.model at all), but
+    // tokens/wall-clock/tool-uses/result are still pending, which is what the "pending" cell assertion below
+    // actually exercises.
+    advisory: { model: "Sonnet 4.6", effort: "high", tokens: null, wallClockSeconds: null, toolUses: null, result: null },
     outputs: { pointer: "_local/audit/eval-runs/2026-07-26/deanpeters-pm-142530-*" },
     bounds: [{ kind: "target-limit", stated: "coverage bound: graded 2 of 4 requested targets (--limit 2). Dropped: lenny-skills, phuryn-pm." }],
     toolkit: { version: "1.6.1", standard: "0.12", commit: "7015a9b" },
@@ -208,6 +212,63 @@ test("aggregate --dry-run reports the rows without writing either file", () => {
     assert.equal(readFileSync(ws.recordPath, "utf8"), FIXTURE_RECORD);
     assert.equal(readFileSync(ws.dossierPath, "utf8"), FIXTURE_DOSSIER);
     assert.equal(JSON.parse(readFileSync(path.join(ws.runsDir, "deanpeters-pm-142530-record.json"), "utf8")).runId, null);
+  } finally {
+    rmSync(ws.dir, { recursive: true, force: true });
+  }
+});
+
+// --- E15 (RS-B1 reading 22): a deterministic-only (not-yet-dispatched) skeleton must never be appended ---
+
+test("aggregate refuses a batch where every skeleton is not yet dispatched, and names the count", () => {
+  const ws = makeWorkspace([
+    skeleton({ advisory: { model: null, effort: null, tokens: null, wallClockSeconds: null, toolUses: null, result: null } }),
+    skeleton({
+      runKey: "phuryn-pm-pm-toolkit-143000",
+      advisory: { model: null, effort: null, tokens: null, wallClockSeconds: null, toolUses: null, result: null },
+    }),
+  ]);
+  try {
+    assert.throws(
+      () => aggregate({ repoRoot: ROOT, date: "2026-07-26", runsDir: ws.runsDir, recordPath: ws.recordPath, dossierPath: ws.dossierPath }),
+      (e) => {
+        assert.ok(e instanceof EvalRunError);
+        assert.match(e.message, /REFUSED/);
+        assert.match(e.message, /not dispatched/i);
+        assert.match(e.message, /2 not dispatched/i, "the skip is counted, not silent");
+        return true;
+      }
+    );
+    // README.md's charter: "a deterministic-only run belongs in _local/ until a model has actually judged
+    // the target." Nothing was written to either tracked file.
+    assert.equal(readFileSync(ws.recordPath, "utf8"), FIXTURE_RECORD);
+    assert.equal(readFileSync(ws.dossierPath, "utf8"), FIXTURE_DOSSIER);
+  } finally {
+    rmSync(ws.dir, { recursive: true, force: true });
+  }
+});
+
+test("aggregate appends only the dispatched skeletons in a mixed batch, and reports the undispatched count", () => {
+  const ws = makeWorkspace([
+    skeleton(), // dispatched (model: "Sonnet 4.6" by default - see skeleton())
+    skeleton({
+      runKey: "not-dispatched-yet-150000",
+      advisory: { model: null, effort: null, tokens: null, wallClockSeconds: null, toolUses: null, result: null },
+    }),
+  ]);
+  try {
+    const summary = aggregate({ repoRoot: ROOT, date: "2026-07-26", runsDir: ws.runsDir, recordPath: ws.recordPath, dossierPath: ws.dossierPath });
+    assert.equal(summary.runs.length, 1, "only the dispatched skeleton was appended");
+    assert.equal(summary.notDispatched.length, 1);
+    assert.equal(summary.notDispatched[0].runKey, "not-dispatched-yet-150000");
+
+    const text = readFileSync(ws.recordPath, "utf8");
+    assert.ok(!text.includes("not-dispatched-yet-150000"), "the undispatched skeleton's row was never written");
+
+    const stillPending = JSON.parse(readFileSync(path.join(ws.runsDir, "not-dispatched-yet-150000-record.json"), "utf8"));
+    assert.equal(stillPending.runId, null, "the undispatched skeleton is left unaggregated, free to aggregate once dispatched");
+
+    const out = formatAggregateSummary(summary);
+    assert.match(out, /1 skeleton\(s\) not dispatched/i, "the human summary states the skip count out loud");
   } finally {
     rmSync(ws.dir, { recursive: true, force: true });
   }

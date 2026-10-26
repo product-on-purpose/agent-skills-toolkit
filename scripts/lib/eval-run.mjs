@@ -293,6 +293,21 @@ export function runOne(entry, opts = {}, deps = {}) {
   }
   const report = readJsonSafe(outputs.json).data ?? {};
 
+  // The gate seam (`check`) has no component scope, while the render seam (`evaluate`) does (E15 / RS-B1
+  // reading 20): a --subpath run can hand the gate seam a subject it grades as an empty plugin root while
+  // the render seam grades the same bytes correctly as a component, so the two seams silently disagree on
+  // the same run's verdict. A reportable disagreement is a refusal, never a stored-but-unflagged mismatch.
+  if (report.summary && (report.summary.errors !== summary.errors || report.summary.warns !== summary.warns)) {
+    refuse(
+      `the gate seam and the render seam disagree on this run's verdict for ${target}: ` +
+      `gate (via "npm run check") says ${summary.errors}E / ${summary.warns}W, render (via "npm run evaluate") says ` +
+      `${report.summary.errors}E / ${report.summary.warns}W. Storing a disagreeing verdict without flagging it records ` +
+      `the wrong subject's grade (the known gate-seam component-scope gap); check whether this target needs a different ` +
+      `scope or --subpath, or whether the gate seam's own scope handling needs widening.`,
+      "seam-scope-mismatch"
+    );
+  }
+
   // 3. the run log and the coverage bounds (R-PIPE-5), then the record skeleton.
   const skillCount = listSkillDirs(target).length;
   const bounds = [
