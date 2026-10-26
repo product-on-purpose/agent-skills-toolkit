@@ -86,11 +86,21 @@ RS-E4's required ceiling, criterion 1).**
   change to a pattern requires a full re-measurement, and both measurements are recorded here, never
   only the second.
 
-**Measurement.** Not yet recorded as of this commit - this heading is committed first, pre-registering
-the ceiling and its denominator/numerator definitions BEFORE any measurement, per RS-E4 criterion 1 and
-ADR 0063 sec 4's "cut points are pre-registered, and fixed before either test runs" (the same ordering
-rule applied to ADV3's own ceiling). The module, catalogue, fixtures and tests land in the next commit;
-the measured rate and the shipped/not-shipped decision land in the commit after that.
+**Measured 2026-10-25 (RS-E4 criterion 1), after the ceiling above and the implementation were both
+already committed.** Family corpus (this repository's main checkout, plus the five `askit-own-plugins`
+clones; six trees, all read-only to this measurement): 1,186 files scanned, 0 findings, 0 false fires -
+rate 0/1186 = 0, within the 0.005 ceiling. Audit corpus (the seven trees above; `h05`-`h09` are not
+materialized on disk under the corpus's current layout - `build.mjs`'s own path resolution predates the
+corpus being moved under a dated folder, so this measurement reconstructed them from `build.mjs`'s own
+generator source, unexecuted and read-only, into a scratch directory outside the corpus tree): 20 files
+scanned, 0 findings, 0 false fires. **Combined: 1,206 files scanned, 0 findings, 0 false fires -
+measured rate 0, well within the 0.005 ceiling.** No genuine fire occurred either (role-hijack, the one
+pattern whose known-limits note flagged a real false-positive risk against ordinary persona-assignment
+prose, did not fire on any of the 1,206 files), so there is nothing to record as a record note for this
+measurement. **Shipped: true. ADV3 is registered in `ADVISORY_MODULES`** (`scripts/lib/advisory-
+registry.mjs`) as of this commit, because the measured rate clears the pre-registered ceiling.
+
+This repository's own count: 148 files scanned under this toolkit's own tree, 0 ADV3 findings.
 
 ## Inventory
 
@@ -106,6 +116,5 @@ the measured rate and the shipped/not-shipped decision land in the commit after 
   the false-positive-rate denominator) and `check(ctx, opts)` (compiles the catalogue and runs it line
   by line over every in-scope target). `opts.catalogue` and `opts.scopeRoots` are test-only injection
   points (the mutation tests and the scope-widening mutant); `scripts/lib/advisory-registry.mjs` never
-  sets either. **Not yet registered in `ADVISORY_MODULES` as of this commit** - the measured
-  false-positive rate and the shipped/not-shipped decision land in the next commit, per the ADV3
-  heading's pre-registered ordering.
+  sets either. **Registered in `ADVISORY_MODULES`** as of this commit - see the ADV3 heading above for
+  the measured false-positive rate that cleared the pre-registered ceiling.
