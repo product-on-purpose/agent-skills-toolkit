@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { execFileSync } from "node:child_process";
-import { readFileSync, existsSync } from "node:fs";
+import { readFileSync, existsSync, readdirSync, statSync } from "node:fs";
 import { classifyText, testRule } from "../../scripts/lib/advisory-score.mjs";
 
 // The seeded-defect fixture and its scoring key (F3 R-AQ-1). Two properties have to hold for any
@@ -21,7 +21,7 @@ import { classifyText, testRule } from "../../scripts/lib/advisory-score.mjs";
 // harness itself (scripts/lib/advisory-score.mjs) and the local copy is deleted, so the key's declared
 // examples guard the SHIPPED classifier rather than a test-only twin of it.
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
-const KEY_PATH = path.join(ROOT, "tests/fixtures/anti/seeded-defects/privacy-notice-toolkit.key.json");
+const KEY_PATH = path.join(ROOT, "tests/fixtures/seeded-defect-keys/privacy-notice-toolkit.key.1.1.0.json");
 const key = JSON.parse(readFileSync(KEY_PATH, "utf8"));
 const FIXTURE = path.join(ROOT, key.fixture.path);
 
@@ -162,5 +162,43 @@ test("locate patterns are disjoint: no declared example engages two defect entri
       if (ex.expect === "review-required" && engaged.length > 1) continue; // declared ambiguity
       assert.ok(engaged.length <= 1, `${entry.id}: example engages ${engaged.join(", ")}; locate patterns must be disjoint`);
     }
+  }
+});
+
+// ---------------------------------------------------------------------------
+// 4. E20: the scoring key is not readable from inside the fixture tree
+// ---------------------------------------------------------------------------
+
+/** Every .json file under `dir`, recursive, skipping the usual noise. A file that fails to parse as
+ *  JSON is not a key and is skipped rather than failing this walk. */
+function allJsonFiles(dir) {
+  const out = [];
+  for (const name of readdirSync(dir)) {
+    if (name === "node_modules" || name === ".git") continue;
+    const abs = path.join(dir, name);
+    const st = statSync(abs);
+    if (st.isDirectory()) out.push(...allJsonFiles(abs));
+    else if (name.endsWith(".json")) out.push(abs);
+  }
+  return out;
+}
+
+test("E20: no file inside the seeded-defect fixture tree parses as a scoring key", () => {
+  // This is a CONTENT check, not a filename check: a key copied in under any other name is still a
+  // key. A run dispatched at FIXTURE must not be able to read the answers by listing its own tree.
+  const FIXTURE_TREE = path.join(ROOT, "tests/fixtures/anti/seeded-defects");
+  for (const file of allJsonFiles(FIXTURE_TREE)) {
+    let parsed;
+    try {
+      parsed = JSON.parse(readFileSync(file, "utf8"));
+    } catch {
+      continue; // not JSON, or not parseable; not a key either way
+    }
+    assert.notEqual(
+      parsed?.schema, "askit-seeded-defect-key/1",
+      `${path.relative(ROOT, file)} is a seeded-defect scoring key (schema askit-seeded-defect-key/1) ` +
+      "planted inside the fixture tree. The key must live outside tests/fixtures/anti/seeded-defects/ " +
+      "(see tests/fixtures/seeded-defect-keys/README.md)."
+    );
   }
 });

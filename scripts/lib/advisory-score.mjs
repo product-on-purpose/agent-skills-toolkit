@@ -47,7 +47,10 @@ const PROVISIONAL_OUTCOMES = new Set([OUTCOME.REVIEW_REQUIRED, OUTCOME.NO_MATCH]
 const KEY_SCHEMA = "askit-seeded-defect-key/1";
 const DEFAULT_MATCH_FIELDS = ["area", "file", "message", "recommendation", "evidence", "title"];
 const REPO_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
-export const DEFAULT_KEY_REL = "tests/fixtures/anti/seeded-defects/privacy-notice-toolkit.key.json";
+// E20: the key lives outside tests/fixtures/anti/seeded-defects/ so nothing pointed at that fixture
+// tree can read it, and its filename carries the keyVersion so a bump ships as a new file rather than
+// an in-place mutation (tests/fixtures/seeded-defect-keys/README.md).
+export const DEFAULT_KEY_REL = "tests/fixtures/seeded-defect-keys/privacy-notice-toolkit.key.1.1.0.json";
 
 // ---------------------------------------------------------------------------
 // Loading

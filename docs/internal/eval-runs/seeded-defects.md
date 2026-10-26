@@ -6,12 +6,16 @@ caught it. With those two artifacts a run stops being an anecdote and becomes a 
 per model and effort cell.
 
 - **Fixture:** [`tests/fixtures/anti/seeded-defects/privacy-notice-toolkit`](../../../tests/fixtures/anti/seeded-defects/privacy-notice-toolkit)
-- **Key:** [`tests/fixtures/anti/seeded-defects/privacy-notice-toolkit.key.json`](../../../tests/fixtures/anti/seeded-defects/privacy-notice-toolkit.key.json)
+- **Key:** [`tests/fixtures/seeded-defect-keys/privacy-notice-toolkit.key.1.1.0.json`](../../../tests/fixtures/seeded-defect-keys/privacy-notice-toolkit.key.1.1.0.json)
 - **Invariant test:** [`tests/integration/seeded-defect-fixture.test.mjs`](../../../tests/integration/seeded-defect-fixture.test.mjs)
 - **Harness:** [`scripts/lib/advisory-score.mjs`](../../../scripts/lib/advisory-score.mjs), with [`tests/unit/advisory-score.test.mjs`](../../../tests/unit/advisory-score.test.mjs). Nothing here dispatches a model.
 
-The key lives one directory ABOVE the plugin root on purpose. An advisory run dispatched at the
-fixture path reads the fixture and never the answers.
+The key lives outside `tests/fixtures/anti/seeded-defects/` entirely (E20, backlog entry E20), in the
+sibling tree [`tests/fixtures/seeded-defect-keys/`](../../../tests/fixtures/seeded-defect-keys/README.md),
+with its `keyVersion` carried in the filename. An advisory run dispatched at the fixture path reads the
+fixture and never the answers, and nothing inside the fixture tree can read the key either. A test
+(`tests/integration/seeded-defect-fixture.test.mjs`) asserts no file under the fixture tree parses as a
+scoring key.
 
 ## The two invariants
 
@@ -214,6 +218,24 @@ transcribed into [eval-runs.md](eval-runs.md) as measured cells:
 | --- | --- | --- |
 | [`simulated-runs/strong-frontier.advisory.json`](../../../tests/fixtures/anti/seeded-defects/simulated-runs/strong-frontier.advisory.json) | catches all eight auto-scorable defects, states the semantic one correctly, makes no false claim, adds one house-scaffolding recommendation | precision **1.00**, recall **0.89** PROVISIONAL, noise 0.10, false-verified 0.00 |
 | [`simulated-runs/reading-17-cheap.advisory.json`](../../../tests/fixtures/anti/seeded-defects/simulated-runs/reading-17-cheap.advisory.json) | four confabulations plus one bait claim, every one marked `verified` | precision **0.00**, recall **0.00**, nine misses, false-verified **1.00** |
+
+Three REAL runs are also tracked, under `recorded-runs/2026-08-04/`: the E13 model-triple batch
+(sensor reading 26), moved here from the gitignored `_local/` tree so the regression that
+[ADR 0065](../decisions/0065-a-multi-entry-finding-earns-credit-only-where-its-own-correct-clause-verifies.md)'s
+implementation needs does not depend on a path a clean checkout does not have. Scored against key
+1.1.0 under the zero-credit baseline still shipped at this writing (`engaged.length > 1` ->
+`review-required`, credited to no entry), these reproduce the batch 2026-08-04 figures exactly:
+
+| Recorded run | Precision | Recall |
+| --- | --- | --- |
+| [`recorded-runs/2026-08-04/haiku-high-advisory.json`](../../../tests/fixtures/anti/seeded-defects/recorded-runs/2026-08-04/haiku-high-advisory.json) | 0.83 | 0.38 |
+| [`recorded-runs/2026-08-04/sonnet-high-advisory.json`](../../../tests/fixtures/anti/seeded-defects/recorded-runs/2026-08-04/sonnet-high-advisory.json) | 1.00 | 0.54 |
+| [`recorded-runs/2026-08-04/opus-high-advisory.json`](../../../tests/fixtures/anti/seeded-defects/recorded-runs/2026-08-04/opus-high-advisory.json) | 1.00 | 0.62 |
+
+These are unchanged bytes from the archived advisories; no PII or machine path was found in any of the
+three, so none needed redaction. Once rule (a') ships (E16), re-scoring these three against the same
+key is how its recall numbers (Haiku 0.46 / Sonnet 0.54 / Opus 0.92) get checked without redispatching
+a model.
 
 0.89 is the **auto ceiling**, not a shortfall: SD-06 is `semantic`, so eight of nine is the highest an
 auto score can report against this key. The harness prints the ceiling next to the recall so the two

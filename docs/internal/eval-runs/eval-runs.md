@@ -4,7 +4,7 @@
 
 ## Batch 2026-08-04 (runs 12-14): the defect-rich model triple, and the key that was scoring thoroughness as noise
 
-**Context:** backlog E13, deferred from v1.8.0 and the last open P1 after the 2026-07-28 roadmap reconciliation. Three real dispatches at three model tiers against the seeded-defect fixture, effort held at `high` so the model tier is the only variable. Toolkit at v1.9.0 (`main` `f5f20d0`), spine 30 / Standard 0.12. Raw advisories under the gitignored `_local/audit/eval-runs/2026-08-04/`.
+**Context:** backlog E13, deferred from v1.8.0 and the last open P1 after the 2026-07-28 roadmap reconciliation. Three real dispatches at three model tiers against the seeded-defect fixture, effort held at `high` so the model tier is the only variable. Toolkit at v1.9.0 (`main` `f5f20d0`), spine 30 / Standard 0.12. Raw advisories now tracked at [`tests/fixtures/anti/seeded-defects/recorded-runs/2026-08-04/`](../../../tests/fixtures/anti/seeded-defects/recorded-runs/2026-08-04/) (moved off the gitignored `_local/` tree so the ADR 0065 regression tests do not depend on a path a clean checkout does not have; see `docs/internal/eval-runs/seeded-defects.md`).
 
 **Target:** `tests/fixtures/anti/seeded-defects/privacy-notice-toolkit`, graded `--profile plain-plugin` because it is third-party-shaped (a `.claude-plugin/plugin.json`, no `library.json`). Deterministic baseline **0E / 0W, objective checks pass, no askit tier declared** - by design, so every number below measures the judgment layer alone. Graded under the default `askit-library` profile it reports 12E; that is the wrong profile for this shape and is recorded here only so the next reader does not repeat the mistake.
 

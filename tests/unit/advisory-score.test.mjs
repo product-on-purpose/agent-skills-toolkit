@@ -25,7 +25,7 @@ import {
 //   4. Reproducibility. The same result against the same key yields the identical partition and the
 //      identical pair, every time.
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
-const KEY_PATH = path.join(ROOT, "tests/fixtures/anti/seeded-defects/privacy-notice-toolkit.key.json");
+const KEY_PATH = path.join(ROOT, "tests/fixtures/seeded-defect-keys/privacy-notice-toolkit.key.1.1.0.json");
 const RUNS = path.join(ROOT, "tests/fixtures/anti/seeded-defects/simulated-runs");
 const STRONG = path.join(RUNS, "strong-frontier.advisory.json");
 const CHEAP = path.join(RUNS, "reading-17-cheap.advisory.json");
