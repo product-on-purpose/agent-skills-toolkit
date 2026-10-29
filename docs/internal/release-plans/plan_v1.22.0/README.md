@@ -126,7 +126,8 @@ have changed how third-party plugins earn Gold.
 and this machine still has only Node 22.11.0 and 22.12.0, both below that floor; the same constraint
 stopped the v1.21.0 build. `ci.yml`'s `build-site` job runs the build on every pull request with the
 Node version `.nvmrc` pins, so this PR's CI is the measurement. `node scripts/check-generated-untracked.mjs`,
-the site-tree assertion that needs no Astro build, was run directly and passed.
+the site-tree assertion that needs no Astro build, was run directly from `site/` (where CI runs it) and
+passed.
 
 ## Not in this release
 
