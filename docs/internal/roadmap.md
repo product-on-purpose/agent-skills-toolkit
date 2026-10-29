@@ -107,7 +107,7 @@ require a minimum Standard edition of its members), so the next free ADR number 
 ## RS-B2 (mutation-proof the check spine)
 
 - **Status: DONE 2026-10-25, all four criteria met** by
-  [PR #381](https://github.com/product-on-purpose/agent-skills-toolkit/pull/381), unreleased.
+  [PR #381](https://github.com/product-on-purpose/agent-skills-toolkit/pull/381), shipped in v1.22.0.
   (1) The inventory table is `tests/unit/spine-firing/README.md`. Its gap count is 0 of 35: every check
   already had a firing test somewhere. Six were thin, with exactly one: `U7`, `S5`, `S6`, `G5`, `G6`
   and `G7`. Each now has a second case. (2) The meta-test in
@@ -271,7 +271,7 @@ objects is dropped without argument.
 
 ## RS-E4 (the prompt-injection and pipe-to-shell content scan), formerly E6
 
-- **Status: SHIPPED 2026-10-25, unreleased, in
+- **Status: SHIPPED in v1.22.0 (merged 2026-10-25), in
   [PR #386](https://github.com/product-on-purpose/agent-skills-toolkit/pull/386). All three criteria
   are met.** (1) One seeded fixture per class fires. The false-positive ceiling, at most 1 false fire per
   200 scanned files, was committed before the first measurement. The family corpus measured 0 false
@@ -350,7 +350,7 @@ with what it blocks.
 | **D-02** (the pin floor's deprecation window) | how long may a pin reach back, and what happens to pins older than the floor | [E62 (the pin has no floor)](backlog/enhancements.md) | OPEN. D-01 is ruled in part, and the health number's currency category will report how far behind a pin is while enforcing nothing, so D-02 is still unanswered |
 | **D-03** (U5's warning text) | does `U5` keep its current warning text, or change | [E63 (U5 rewards a template)](backlog/enhancements.md) | OPEN. Its cheap unblocked first step is DONE: the twenty labelled descriptions are now a tracked fixture |
 | **D-08** (the behavioural rung's shape) | a fourth tier name, or a modifier on Gold | the behavioural rung, deferred below | OPEN, and not urgent while the rung is deferred |
-| **E16's implementation** (the multi-entry credit rule) | none - it is RULED; the scorer change is unwritten | every behavioural claim this project publishes | RULED 2026-08-31; ADR 0065 (a multi-entry finding earns credit only where its own correct clause verifies) records it, meeting criterion 1 of RS-B1. **IMPLEMENTED 2026-10-25** in [PR #383](https://github.com/product-on-purpose/agent-skills-toolkit/pull/383), unreleased. Publishing a final cell now waits on the maintainer's adjudication signature and the criterion 5 ruling, both in section 7 |
+| **E16's implementation** (the multi-entry credit rule) | none - it is RULED; the scorer change is unwritten | every behavioural claim this project publishes | RULED 2026-08-31; ADR 0065 (a multi-entry finding earns credit only where its own correct clause verifies) records it, meeting criterion 1 of RS-B1. **IMPLEMENTED 2026-10-25** in [PR #383](https://github.com/product-on-purpose/agent-skills-toolkit/pull/383), shipped in v1.22.0. Publishing a final cell now waits on the maintainer's adjudication signature and the criterion 5 ruling, both in section 7 |
 | **RS-C6's spike** (the Agent Plugins root manifest) | does the root manifest carry components on the measured Codex version | the emit-or-dated-no ADR | evidence not gathered |
 
 **Already ruled, recorded here so they are not reopened:** D-04 became
@@ -395,6 +395,13 @@ manifest fields)](backlog/enhancements.md) was the named toolkit-side blocker in
 `pm-skills` row, and [E81 (the vendor's colon rule now names the frontmatter `name`, not the
 filename)](backlog/enhancements.md) was the separate `release-ready` blocker the probes table above
 names. Packet at [`release-plans/plan_v1.21.0/`](release-plans/plan_v1.21.0/README.md).
+
+**v1.22.0, "the advisory layer and the on-ramp", cut 2026-10-29, is not one of the numbered cuts in
+this table either.** It is cut A of the 2026-10-25 opportunities plan: `askit-onboard`, the ADR 0063
+advisory layer with ADV1 to ADV3, the version-agreement gate, the Action job summary, SARIF
+fingerprints, E90, RS-B2, and RS-B1's scorer change with the E13 cells still provisional. It carries
+E90, which product-lifecycle-templates' migration to Standard 0.17 waits for. Packet at
+[`release-plans/plan_v1.22.0/`](release-plans/plan_v1.22.0/README.md).
 
 **What cut 6 actually closed, measured rather than asserted.** At `ab0dc20` four checks carried
 `until: "0.17"`: `U18` (the Codex command size cap), `G1` (hook documentation), `G2` (self-hosting)
@@ -466,7 +473,7 @@ deferral and decline below, which is what stops them from being zero-trace drops
 |---|---|---|---|
 | 1 | Schema-first report object with fingerprints, outcomes and inventory | **REOPENED 2026-10-25** | **Reopened by D-01 (a health number beside the tier), ruled in part 2026-10-25.** [ADR 0063 (an advisory layer beside the tier, and a health number that never enters it)](decisions/0063-an-advisory-layer-beside-the-tier-and-a-health-number-that-never-enters-it.md) section 5 specifies it: `schemaVersion`, a `run` block, `checks[]` with an outcome enum, `components[]`, `blockedFindings[]`, the advisory fields, `health{}`, and `schemas/report.v1.json`. It is additive, so no existing field is removed. The fingerprint half already shipped for SARIF as F-014 ([PR #375](https://github.com/product-on-purpose/agent-skills-toolkit/pull/375)). The original deferral, kept as history: reopen when D-01 (a health number beside the tier) is ruled ADOPT - the score needs this object's inventory pass - **or** when the first consumer outside this organisation reports a problem with the current `--json` or `--sarif` shape. A versioned report is a compatibility promise, and the audit's own version plan (1.19 / 1.20 / 2.0) is void under ADR 0057 |
 | 2 | Health score beside the tier | **ADOPT-RENAMED** | [E61 (the tier certifies file shape, so a plugin of placeholder files earns Gold)](backlog/enhancements.md). **REOPENED 2026-10-25:** D-01 is ruled in part, and ADR 0063 specifies five categories (substance, budget, portability, security, Standard currency), reported beside the tier and never on the badge in this pass |
-| 3 | Security posture axis, reported as its own non-tier axis | **ADOPT-RENAMED** | RS-E4 (the prompt-injection and pipe-to-shell scan) above, and [E6](backlog/enhancements.md). **Ruled 2026-10-25:** it ships as advisory finding ADV3 (security screen) outside the tier, needing no Standard edition, per ADR 0063. **Shipped 2026-10-25, unreleased,** in [PR #386](https://github.com/product-on-purpose/agent-skills-toolkit/pull/386) |
+| 3 | Security posture axis, reported as its own non-tier axis | **ADOPT-RENAMED** | RS-E4 (the prompt-injection and pipe-to-shell scan) above, and [E6](backlog/enhancements.md). **Ruled 2026-10-25:** it ships as advisory finding ADV3 (security screen) outside the tier, needing no Standard edition, per ADR 0063. **Shipped in v1.22.0** (merged 2026-10-25) in [PR #386](https://github.com/product-on-purpose/agent-skills-toolkit/pull/386) |
 | 4 | Behavioural rung - executable eval sets above Gold | **DEFER** | Reopen when RS-B1 (the multi-entry credit gap) completes. A rung that certifies behaviour publishes a behavioural claim, and no behavioural claim may publish until the scoring key is trustworthy. D-08 (a fourth tier name, or a modifier on Gold) is the design question waiting behind it |
 | 5 | Autofix / codemod `--fix` for the mechanical set | **DEFER** | Reopen when [E47 (`askit-onboard`, the adoption funnel)](backlog/enhancements.md) ships and the mechanical-fix friction is still measured on a real adopter. The audit's own example - a scaffolded `G8` README that then fails `G7` - is a specific defect and reopens this on its own if anyone hits it. **E47 shipped 2026-10-25** ([PR #374](https://github.com/product-on-purpose/agent-skills-toolkit/pull/374)); the measurement half of the trigger is not yet met |
 | 6 | Context and token budget profiler | **DEFER** | Reopen with item 1. It is inside that object, not beside it; the audit itself files it as "inside 1". Item 1 reopened 2026-10-25 (ADR 0063), and its specified `components[]` will carry budget use per component; building a profiler beyond that still needs its own decision |

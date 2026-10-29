@@ -172,10 +172,10 @@ rendering at warn until 0.14 so nobody is gated on our defect.
 baseline, except two that gain one capped warning each from the `G4` migration. Zero verdicts moved.
 
 ## Where we are now
-- Version **1.21.0, cut 2026-10-23**, release PR open (merge, tag, GitHub release, and npm publish
-  follow). Standard **0.17**, **35-check spine**, **3 scopes** (plugin, component, marketplace), **26
-  skills**, suite **1721 tests, 1717 pass, 0 failures, 4 skipped**, gate **Advanced 0/0**,
-  `release-ready` all six gates green with a GitHub token. Full detail in [`STATUS.md`](STATUS.md),
+- Version **1.22.0, cut 2026-10-29**, release PR open (merge, tag, GitHub release, and npm publish
+  follow). Standard **0.17**, **35-check spine**, **3 scopes** (plugin, component, marketplace), **27
+  skills**, suite **1935 tests, 1931 pass, 0 failures, 4 skipped**, gate **Advanced 0/0**,
+  `release-ready` all seven gates green with a GitHub token. Full detail in [`STATUS.md`](STATUS.md),
   which is the live state this file's own convention points readers to. **This line read `1.17.0` from
   2026-08-28 until 2026-10-23**, unrefreshed through v1.17.1, v1.18.0, v1.19.0, and v1.20.0 - the same
   five-release gap the paragraph above this heading now records rather than hides. Keeping this line
@@ -378,3 +378,26 @@ plugin-agent supported-fields list gains `autoCompactWindow`, and the validator-
 to skip a newer "Plugin directory checks" block the same way it already skips the Advice section - and
 the v1.20.0 publish's own verify step is widened from a 25-second window to about four minutes
 typically, because that publish landed cleanly and still reported red.
+
+### v1.22.0 - the advisory layer and the on-ramp (2026-10-29)
+
+**What:** a minor that ships cut A of the 2026-10-25 opportunities plan. It adds a deterministic
+advisory layer beside the tier with three screens, a new skill that onboards an adopter, a seventh
+release gate, a GitHub Actions job summary, and stable SARIF identities.
+
+**Value, plainly:** a grade now comes with a second, separate list of things worth a look - a skill
+field that claude.ai would reject, a subagent that asks for more skills than Claude Code preloads, an
+installer that pipes a download into a shell - and that list can never change the grade. A newcomer
+also gets a guided start: `askit-onboard` surveys their plugin, writes a roadmap they approve, and names
+one next step at a time.
+
+**Value, for engineers:** advisory findings live in their own `advisoryFindings` array, never in
+`findings[]`, and a partition test runs every verdict path with an error-severity stub module to prove
+that no tier, count or exit code can move. The claim was also measured: the six family plugins and every
+fixture tree were graded with v1.21.0 and with this release, and every tier, error count, warning count
+and exit code is identical. The only difference in `--json` output is an additive `key` field on each
+finding, which the SARIF fingerprint uses. ADV1 and ADV2 derive their constants from pinned vendor
+quotes, so a vendor change fails a test rather than leaving a stale number, and ADV3's patterns were
+held to a false-positive ceiling committed before the family measured 0 false fires in 1,186 files. The
+eval scorer gained the multi-entry credit rule, but no eval figure ships: the cells stay provisional
+until a human signs the adjudication.

@@ -4,6 +4,56 @@ Curated, user-facing highlights. For the full technical history see [`CHANGELOG.
 
 Every tier named below carries the same scope. *This tier reports structural conformance to a written Standard - deterministic and reproducible; it is not a content review, a safety audit, or a statement that the skills work.* See [what a tier does not certify](docs/explanation/limitations.md). This note is deliberately in the STANDING header rather than a footer: a footer would sit inside the oldest release's section and be extracted into that release's body by `check-release-notes-section.mjs`.
 
+## 1.22.0 - 2026-10-29
+
+[![npm](https://img.shields.io/npm/v/agent-skills-toolkit?label=npm&color=cb3837)](https://www.npmjs.com/package/agent-skills-toolkit)
+[![tier](https://img.shields.io/endpoint?url=https://product-on-purpose.github.io/agent-skills-toolkit/badges/tier.json)](https://product-on-purpose.github.io/agent-skills-toolkit/reports/report.html)
+[![checks](https://img.shields.io/badge/checks-35-6b4fa8)](https://product-on-purpose.github.io/agent-skills-toolkit/reference/gold-checks/)
+[![standard](https://img.shields.io/badge/Standard-0.17-6b4fa8)](https://product-on-purpose.github.io/agent-skills-toolkit/explanation/conformance-and-tiers/)
+
+**The advisory layer, and the on-ramp.** This is a minor: a new skill, a new advisory layer with three screens, a seventh release gate, and additive fields in the JSON, SARIF and GitHub Actions outputs. No check was added or removed, the spine stays 35, and the Standard stays 0.17.
+
+### Your grade does not move
+
+The new advisory layer reports beside the tier, never inside it. An advisory finding cannot change a tier, an error or warning count, or an exit code, and a partition test runs every verdict path with an error-severity stub to prove it. This was also measured. Every plugin in this project's own marketplace and every fixture tree in this repository was graded before and after the layer landed, and none of their tiers, counts, exit codes or findings moved.
+
+### New: advisory findings beside the tier
+
+`check.mjs` and `evaluate.mjs` now report a separate `advisoryFindings` list, with an `advisoryLayer` marker of `on` or `off`. Three screens ship:
+
+- **ADV1 (portability)** notes every top-level `SKILL.md` key outside the six fields that claude.ai and the Skills API accept. Claude Code itself accepts those keys, so the note says where the skill would fail, not that it is wrong.
+- **ADV2 (preload cap)** notes a subagent whose `skills:` list names more than the 32 distinct skills Claude Code preloads, and names the ones past the cap.
+- **ADV3 (security screen)** looks for pipe-to-shell installers, dangerous commands and prompt-injection phrases in the content a runtime loads or executes. Each pattern cites the open-source scanner it came from. Documentation that quotes an attack to explain it is out of scope. Each finding says plainly that it is a screen, not a safety review.
+
+ADV1 and ADV2 each derive their constant from a pinned quote of the vendor's documentation, so a vendor change fails a test instead of leaving a stale number. Every output shows the layer: a text section, `::notice` lines under `--gha`, SARIF results at level `note`, and sections in the Markdown and HTML reports. `--no-advisory` switches it off, and the `plain-plugin` profile turns off the house-provenance screens.
+
+**If you see new notices on a plugin that graded clean before, nothing regressed.** Two plugins in this project's own marketplace will show ADV1 notes when they next run this release: seven in critique-skills and three in writing-style-catalog. They are notes about portability to claude.ai, not failures.
+
+### New: `askit-onboard`, a guided start for a new adopter
+
+A new skill, `askit-onboard`, onboards a person into this toolkit over weeks. `assess` surveys your plugin read-only. `plan` interviews you briefly and writes a roadmap only after you confirm it. `next` reads the roadmap back and names one step. It routes to the existing skills and to real how-to and tutorial pages, and it never scaffolds or fixes anything itself. The catalogue is now 27 skills.
+
+### If you run the GitHub Action
+
+- **A job summary.** A new `summary` input, on by default, writes the tier, its counts, what blocks the next tier, and the top findings to the run's summary page, even when the gate fails.
+- **Advisory controls.** A new `advisory` input switches the layer, and a new `advisory-count` output reports how many advisory findings the run produced.
+- **Stable SARIF identities.** Every SARIF result now carries a `partialFingerprints` identity, so GitHub code scanning tracks one finding across runs instead of re-matching on position or message text. Rewording a check's message changes its fingerprint once, which is a documented limit.
+
+### If you grade a plugin other than this toolkit
+
+`check-readme-version` no longer compares your plugin's own description of a check count against this toolkit's 35-check spine. It reported a false disagreement on a family plugin that describes a gate of its own. For any repository other than this toolkit, the spine-size comparison is now skipped, and the OK line says so.
+
+### Also in this release
+
+- **A seventh release gate, version agreement.** `release-ready` now refuses a release whose version disagrees across `library.json`, both native manifests, `package.json` and both halves of `package-lock.json`.
+- **Every spine check has a firing test that is proven able to fail.** A check added without one now fails CI.
+- **The eval scorer applies the multi-entry credit rule from [ADR 0065](docs/internal/decisions/0065-a-multi-entry-finding-earns-credit-only-where-its-own-correct-clause-verifies.md)**, the scoring key moved outside the tree an evaluating agent reads, and three runner defects are fixed. No eval figure is published in this release, because the cells stay provisional until a human signs the adjudication.
+- `docs/explanation/limitations.md` now names the plugin-directory readiness checks this gate does not grade.
+
+### Looking ahead
+
+[ADR 0063](docs/internal/decisions/0063-an-advisory-layer-beside-the-tier-and-a-health-number-that-never-enters-it.md) also rules that reports will gain a health number beside the tier, with substance signals as a fourth screen. That work is not in this release. The tier and the badge will stay unchanged when it lands.
+
 ## 1.21.0 - 2026-10-23
 
 [![npm](https://img.shields.io/npm/v/agent-skills-toolkit?label=npm&color=cb3837)](https://www.npmjs.com/package/agent-skills-toolkit)
