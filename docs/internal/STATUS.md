@@ -433,6 +433,9 @@ blocked its own first real run** - on 7 failing tests and a stale count that had
   [E75 (a marketplace minimum edition)](backlog/enhancements.md) gets ADR 0062, as ruled on 2026-10-04.
   **What is next in the 2026-10-25 plan:** W6 (the versioned report object, the health number beside the
   tier, and ADV4, the substance screen). The two Dependabot PRs #371 and #372 are still parked.
+  **Proposed the same day, awaiting a ruling:** [ADR 0066 (the goal is the builder whose libraries are
+  proven to work, and "best" is measured, not claimed)](decisions/0066-the-goal-is-the-builder-whose-libraries-are-proven-and-best-is-measured.md),
+  carried as D-09 in [`roadmap.md`](roadmap.md) section 2 with its behaviour-loop cut in section 3.
 - **As of the v1.21.0 cut (2026-10-23).** The 2026-10-23 first-party provider survey filed six new
   backlog entries, all OPEN: [E84](backlog/enhancements.md) (Claude Code "mods" unnamed), [E85](backlog/enhancements.md)
   (`claude plugin tag`'s version-agreement preflight, worth adopting), [E86](backlog/enhancements.md)
