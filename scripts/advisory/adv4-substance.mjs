@@ -71,6 +71,20 @@ const PLACEHOLDER_PHRASE_SET = new Set(PLACEHOLDER_PHRASES);
  * non-English fixture test now pins. Falls back to the whitespace split only in an environment with no
  * `Intl.Segmenter` (none this toolkit's supported Node baseline ships, but a module-load-time throw
  * over a word count would be a disproportionate failure mode for an advisory signal).
+ *
+ * MEASURED COST (2026-10-30, W6 fix pass): `Intl.Segmenter` is roughly 25x slower per call than the
+ * `/\s+/` split it replaced, over a synthetic 400-skill plugin with long (~3.4 KB) bodies - 163 ms vs
+ * 6 ms for all 400 bodies combined. On that same synthetic plugin this outweighs finding 8's single-
+ * pass fix (eliminating the duplicate description-similarity scan), so `evaluate()` on that plugin
+ * measured SLOWER after this fix pass overall (about 1.9 s/run vs 1.5 s/run before), even though this
+ * repository's OWN grade got FASTER (about 330 ms/run vs 720 ms/run before - this repository's skill
+ * bodies are ordinary length, so the duplicate-pass and ADV3 scan-cache savings dominate instead).
+ * Accepted as the cost of correctness here: a CJK skill body reading as a placeholder-length "word"
+ * is the false positive this fix exists to remove, and no conditional ASCII-only fallback was added,
+ * because that would reintroduce exactly the hyphen-splitting behavior change already measured and
+ * accepted in `tests/fixtures/golden/report-render/*.expected.{md,html}` - fixing it twice in opposite
+ * directions would move a result findings 1/4 are supposed to leave fixed. If this cost needs fixing,
+ * it is a NEW, separately-measured change, not a silent amendment to this one.
  */
 const WORD_SEGMENTER =
   typeof Intl !== "undefined" && typeof Intl.Segmenter === "function"
