@@ -1,0 +1,62 @@
+{
+  "name": "entry-lie",
+  "version": "1.0.0",
+  "description": "Creates output for things. Use when the user asks for things.",
+  "standard": "0.15",
+  "tier": "convergent",
+  "agent-targets": [
+    "claude",
+    "codex"
+  ],
+  "prefix": "el-",
+  "author": {
+    "name": "audit"
+  },
+  "license": "Apache-2.0",
+  "keywords": [
+    "audit"
+  ],
+  "components": {
+    "skills": [
+      {
+        "name": "el-skill-one",
+        "path": "skills/el-skill-one/SKILL.md",
+        "version": "0.1.0",
+        "tier": "universal",
+        "status": "active"
+      },
+      {
+        "name": "el-skill-two",
+        "path": "skills/el-skill-two/SKILL.md",
+        "version": "7.7.7",
+        "tier": "universal",
+        "status": "active"
+      },
+      {
+        "name": "el-skill-three",
+        "path": "skills/el-skill-three/SKILL.md",
+        "version": "0.1.0",
+        "tier": "universal",
+        "status": "active"
+      }
+    ],
+    "subagents": [
+      {
+        "name": "el-agent-one",
+        "path": "agents/wrong.md",
+        "version": "9.9.9",
+        "tier": "convergent",
+        "status": "active"
+      }
+    ],
+    "commands": [
+      {
+        "name": "el-run",
+        "path": "commands/nope.md",
+        "version": "8.8.8",
+        "tier": "convergent",
+        "status": "active"
+      }
+    ]
+  }
+}

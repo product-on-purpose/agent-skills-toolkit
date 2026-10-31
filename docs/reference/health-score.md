@@ -1,6 +1,6 @@
 ---
 title: "Health score reference"
-description: "The health number beside the tier (ADR 0063) - the five categories, pre-registered cut points, calibration method and confusion counts, and the ADV3 false-positive ceiling record."
+description: "The health number beside the tier (ADR 0063) - the five categories, pre-registered cut points, calibration method, label counts and measured confusion counts, and the ADV3 false-positive ceiling record."
 audience: engineer
 level: intermediate
 tags: [health, advisory, calibration, substance, currency, adv3, adv4]
@@ -11,10 +11,20 @@ tags: [health, advisory, calibration, substance, currency, adv3, adv4]
 This page is the pre-registered home for the health number (ADR 0063 sec 3), the W6 implementing
 change. It holds three things, in the order ADR 0063 sec 4 requires them to exist: the cut points,
 fixed BEFORE any measurement; the category label assignments the calibration corpus needs, also fixed
-before measurement; and, after both, the confusion counts and this repository's own result, reported as
-observations. It also carries the ADV3 (the security screen) false-positive ceiling record, moved here
-from `scripts/advisory/README.md` because both records answer the same question - "what was
-pre-registered, and what did measuring it show" - for the same advisory layer.
+before measurement; and, after both, the label counts, the real measured confusion counts the
+materialized trees now make possible, and this repository's own result, reported as observations. It
+also carries the ADV3 (the security screen) false-positive ceiling record, moved here from
+`scripts/advisory/README.md` because both records answer the same question - "what was pre-registered,
+and what did measuring it show" - for the same advisory layer.
+
+**A note on naming, corrected 2026-10-30 (W6 finding 6 of a pre-merge adversarial review).** This page
+used to call the table below "confusion counts". A confusion count is a measured agreement between a
+tool's verdict and a ground-truth label (true/false positive, true/false negative) - the table was
+actually a tally of how many LABELLED examples exist per category, which says nothing about whether
+any measurement agrees with any label. The two are now named separately: "label counts" for the tally
+`health-calibration.mjs`'s `CATEGORY_LABEL_COUNTS` holds (used only to decide whether a category has
+enough labelled examples to calibrate at all), and "measured confusion counts" for the real thing,
+computed in `tests/unit/audit-corpus-labelled.test.mjs` over the trees W6 finding 7 made reproducible.
 
 ## The five health categories
 
@@ -98,19 +108,29 @@ Both numbers are derived, never literals, in `tests/unit/health-score.test.mjs`.
 
 ADR 0063 sec 4 says the labelled 2026-09-04 audit corpus "must become a tracked fixture" under
 `tests/fixtures/audit-corpus/`, with the categories field and justifications committed to that tracked
-copy. **The task that commissioned this change overrides that instruction**: the corpus stays
-read-only and gitignored under `_local/audit/2026-09-04_fable-5-1-max/`, and this change does not copy
-any of its 46 plugin trees into the repository. What follows is the reconciliation: the category label
-ASSIGNMENTS and their one-line justifications - which are data ABOUT the corpus, not the corpus itself
-- are committed here, in this tracked page, exactly as sec 4 requires them to be fixed before any
-confusion count is computed. The two trees the falsifiable tests grade (`01-potemkin-gold`,
-`09-pin-abuse`) are ALREADY tracked, byte-for-byte, under `tests/fixtures/audit-corpus/`. The other 44
-trees are read directly from their `_local/` location by the one-time measurement that produced the
-confusion counts below; none of them is committed. **This is a decision for the maintainer to confirm**:
-the ADR's own words are "a threshold calibrated against an untracked set is an assertion nobody can
-re-run" - that cost is accepted here, for the 44 non-fixture trees, because the task's instruction is
-more specific and more recent than the ADR's general preference, but it is a real cost and the ADR's
-"must become a tracked fixture" sentence is not satisfied for those 44 trees by this change.
+copy.
+
+**Updated 2026-10-30 (W6 finding 7 of a pre-merge adversarial review): 26 of the 46 trees are now
+tracked.** `tests/fixtures/audit-corpus/` already held the two falsifiable-test fixtures
+(`01-potemkin-gold`, `09-pin-abuse`). `tests/fixtures/audit-corpus-labelled/` now holds 23 more,
+copied byte-for-byte, plus a tmpdir builder for a 24th (`17-secret-in-skill-and-hook`, whose body
+carries an AWS-example-shaped access key that risks tripping a secret scanner as a static file - see
+that directory's README for why a builder, not a copy). `tests/fixtures/audit-corpus-labelled
+/inventory.json` carries every one of the 46 trees' `deserves` / `categories` / `justification` -
+transcribed verbatim from the table below, never reassigned - plus whether each is actually
+materialized on disk and where.
+
+**The remaining 20 trees are still not committed, and still cannot be**: their manifest `root` points
+under `corpus/_local/` or `corpus/plugins/h*`, and neither path exists anywhere in this repository,
+including inside the gitignored `_local/audit/2026-09-04_fable-5-1-max/` the earlier version of this
+page described reading them from directly. `04-budget-gaming`, the three `09b`/`09c`/`09d` pin-state
+variants, and all sixteen `h01`-`h16` hardening cases were never available to copy - this was true
+before this change and remains true after it; the earlier text here overstated what the one-time
+2026-10-25 measurement below could re-run. The ADR's own words are "a threshold calibrated against an
+untracked set is an assertion nobody can re-run" - that cost is now paid down for most of the corpus
+(26 of 46 trees, and all but one of the trees that carry a category label at all), and remains unpaid
+for the other 20, which is a fact about what survived from that audit run, not a choice this change
+makes.
 
 **How labels map to categories.** A tree is a positive for a category only if its undeserving reason
 (the manifest's free-text `note`) falls in that category. The seven `deserves: true` trees are
@@ -168,7 +188,13 @@ calibrating the cut points to the test that grades them.
 | `h15-broken-mermaid-and-empty-fence` | null | (none) | Hardening case (malformed mermaid); not used for calibration. |
 | `h16-huge-description-and-name` | null | (none) | Hardening case (oversized description/name); not used for calibration. |
 
-## Confusion counts (measured 2026-10-30, after the assignments above were fixed)
+## Label counts (measured 2026-10-30, after the assignments above were fixed)
+
+**Renamed 2026-10-30 (W6 finding 6): this is a tally of labelled examples, never a confusion matrix.**
+This section used to be titled "Confusion counts", which claims more than a label tally can support -
+see the naming note near the top of this page. What follows is exactly `health-calibration.mjs`'s
+`CATEGORY_LABEL_COUNTS`, and `tests/unit/audit-corpus-labelled.test.mjs` asserts the two never drift
+apart.
 
 Excluding the two hold-outs (`01-potemkin-gold`, `09-pin-abuse`) and its pin-state variants
 (`09b`/`09c`/`09d`, excluded per the table above), and excluding every `deserves: null` tree:
@@ -185,6 +211,30 @@ Every category reports `uncalibrated` on this ship, exactly as ADR 0063 sec 4's 
 predicted ("on the first ship, every banded category will report uncalibrated and show no band"). The
 measurements and component counts still show on every report; only the band is withheld. Growing the
 labelled set past 5-and-5 per category is not decided here.
+
+## Measured confusion counts (added 2026-10-30, W6 finding 7 - the real thing the table above is not)
+
+Now that 26 of the 46 trees are materialized (see the divergence note above), the trees that carry a
+category label can actually be MEASURED against that label, rather than merely counted. This is every
+positive/negative pair currently materialized; `tests/unit/audit-corpus-labelled.test.mjs` is the
+executable form and goes red if any of these agreements stop holding.
+
+| Category | Positive measured | Negatives measured | Result |
+| --- | --- | --- | --- |
+| substance | `03-description-gaming`: flagged (true positive) | `02-excellent-orphan`: unflagged (true negative). `11-malformed-grader-config`: **flagged - a measured false positive** | 1 TP, 1 TN, **1 FP**, 0 FN |
+| budget | none materialized (`04-budget-gaming` is not on disk anywhere) | `02-excellent-orphan`, `11-malformed-grader-config`: both unflagged (true negatives) | 2 TN, nothing else measurable |
+| portability | none materialized (no tree in the whole 46-tree corpus carries this label) | `02-excellent-orphan`, `11-malformed-grader-config`: both unflagged (true negatives) | 2 TN, nothing else measurable |
+| security | `17-secret-in-skill-and-hook` (builder-reproduced): both carrier files flagged (true positive) | `02-excellent-orphan`, `11-malformed-grader-config`: both unflagged (true negatives) | 1 TP, 2 TN, 0 FP, 0 FN |
+| currency | `09-pin-abuse` (hold-out, already tracked): shows debt (true positive) | `02-excellent-orphan`: not-applicable (no pin at all - not a clean negative; see the test for why this is reported rather than silently counted as a TN) | 1 TP, 0 clean TN measurable, 0 FP, 0 FN |
+
+**`11-malformed-grader-config` is a measured false positive for substance**, reported rather than
+substituted with a cleaner-looking negative. Its `deserves: true` label describes an unrelated
+operator defect (an unparseable `askit.config.json`); its three skill bodies happen to be the audit's
+own shared `"Do nothing."` placeholder content, the same text `01-potemkin-gold` uses. ADV4 reads the
+body it is given and flags it correctly on its own terms - this is evidence the LABEL's "negative for
+every category" convention does not hold for this one tree, not evidence of a defect in the fixes this
+page's falsifiable tests already pin. No cut point, ship-bar number, or calibration minimum changes
+because of this result; `tests/fixtures/audit-corpus-labelled/README.md` carries the same disclosure.
 
 ## This repository's own health (reported as an observation, never an acceptance criterion)
 
@@ -238,8 +288,13 @@ RS-E4's required ceiling, criterion 1).**
   `thinking-framework-skills`, `writing-style-catalog`) - six trees, all the maintainer's own work. The
   audit corpus is the seven trees the 2026-09-04 audit (`_local/audit/2026-09-04_fable-5-1-max/`)
   labelled as deserving their declared tier: `02-excellent-orphan`, `11-malformed-grader-config`,
-  `h05-crlf`, `h06-bom`, `h07-latin1`, `h08-non-english`, `h09-yaml-anchors`. These seven trees (and the
-  rest of the labelled corpus) are not tracked under `tests/fixtures/` - see the divergence note above.
+  `h05-crlf`, `h06-bom`, `h07-latin1`, `h08-non-english`, `h09-yaml-anchors`. At measurement time
+  (2026-10-25), none of these seven trees were tracked under `tests/fixtures/` - see the divergence
+  note above. **Update, 2026-10-30 (W6 finding 7): two of the seven - `02-excellent-orphan` and
+  `11-malformed-grader-config` - are now tracked under `tests/fixtures/audit-corpus-labelled/`.** This
+  does not change the measurement recorded below, which predates that tracking; it is noted here so a
+  reader does not have to cross-reference dates to see that the 14-verified/6-reconstructed split below
+  could, as of today, verify those same 14 files from a committed source instead of a read-only one.
 - **A pattern may be fixed BEFORE the measurement commit** if it is plainly wrong (for example, one that
   matches a single common word alone, with no surrounding construct). After the measurement commit, any
   change to a pattern requires a full re-measurement, and both measurements are recorded here, never

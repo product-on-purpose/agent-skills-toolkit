@@ -1,0 +1,62 @@
+{
+  "name": "potemkin-swallow",
+  "version": "1.0.0",
+  "description": "Creates output for things. Use when the user asks for things.",
+  "standard": "0.15",
+  "tier": "advanced",
+  "agent-targets": [
+    "claude",
+    "codex"
+  ],
+  "prefix": "pg-",
+  "author": {
+    "name": "audit"
+  },
+  "license": "Apache-2.0",
+  "keywords": [
+    "audit"
+  ],
+  "components": {
+    "skills": [
+      {
+        "name": "pg-skill-one",
+        "path": "skills/pg-skill-one/SKILL.md",
+        "version": "0.1.0",
+        "tier": "universal",
+        "status": "active"
+      },
+      {
+        "name": "pg-skill-two",
+        "path": "skills/pg-skill-two/SKILL.md",
+        "version": "0.1.0",
+        "tier": "universal",
+        "status": "active"
+      },
+      {
+        "name": "pg-skill-three",
+        "path": "skills/pg-skill-three/SKILL.md",
+        "version": "0.1.0",
+        "tier": "universal",
+        "status": "active"
+      }
+    ],
+    "subagents": [
+      {
+        "name": "pg-agent-one",
+        "path": "agents/pg-agent-one.md",
+        "version": "0.1.0",
+        "tier": "convergent",
+        "status": "active"
+      }
+    ],
+    "commands": [
+      {
+        "name": "pg-run",
+        "path": "commands/pg-run.md",
+        "version": "0.1.0",
+        "tier": "convergent",
+        "status": "active"
+      }
+    ]
+  }
+}

@@ -1,0 +1,58 @@
+# audit-corpus-labelled - the 2026-09-04 audit corpus's labels, made reproducible
+
+W6 finding 7 (pre-merge adversarial review of ADR 0063): the health number's calibration method reads
+label counts from `scripts/lib/health-calibration.mjs`'s `CATEGORY_LABEL_COUNTS`, and until this
+directory existed those counts were hand-asserted against a gitignored, untracked corpus nobody but
+the original audit could re-run. This directory is the reconciliation - not a re-audit, and not a
+re-labelling: every `deserves` / `categories` / justification value here is transcribed verbatim from
+`docs/reference/health-score.md`'s own table, which is itself fixed before any measurement, per ADR
+0063 sec 4's ordering requirement.
+
+**Do not improve these trees.** Their defects are the evidence `inventory.json`'s labels describe. A
+test that goes red here means either a real behaviour change worth reading, or that someone tidied a
+fixture; check which before touching anything - the same rule `tests/fixtures/audit-corpus/README.md`
+states for its own two trees.
+
+## What is here, and what is not
+
+The 2026-09-04 audit's manifest (`_local/audit/2026-09-04_fable-5-1-max/corpus/manifest.json`,
+gitignored, read-only) lists 46 trees. Of those:
+
+- **2 are already tracked** under `tests/fixtures/audit-corpus/` (`potemkin-gold`, `pin-abuse`) -
+  the two falsifiable-test hold-outs ADR 0063 sec 4 names, held out of every count below for the same
+  reason sec 4 gives: "to avoid calibrating the cut points to the test that grades them."
+- **22 are copied byte-for-byte into this directory**, one subdirectory per tree, named after the
+  manifest's own `id`. These are every other tree whose manifest `root` actually exists on disk under
+  `_local/audit/2026-09-04_fable-5-1-max/corpus/plugins/`.
+- **1 (`17-secret-in-skill-and-hook`) is reproduced by a tmpdir builder**
+  (`17-secret-in-skill-and-hook.builder.mjs`), never committed as static files. Its skill body carries
+  an AWS-style access key - AWS's own published documentation placeholder, not a real credential - but
+  its AKIA-prefixed, 20-character shape matches what GitHub's secret scanning and push protection look
+  for structurally. The builder's own header explains how it avoids ever writing that shape as one
+  contiguous literal into a committed file.
+- **The remaining 21 trees are not present anywhere in this repository**, including inside
+  `_local/audit/2026-09-04_fable-5-1-max/`. Their manifest `root` points under `corpus/_local/` or
+  `corpus/plugins/h*`, and neither of those paths exists on disk - `04-budget-gaming`, the three
+  `09b`/`09c`/`09d` pin-state variants, and all sixteen `h01`-`h16` hardening cases. They were never
+  available to copy; this is a fact about what survived from that audit run, not a choice this change
+  made. `inventory.json` lists them with `materialized: false` and `path: null` rather than omitting
+  them, so a reader sees the full 46-tree set and exactly which quarter of it is actually here.
+
+See `inventory.json` for the machine-readable form (`id`, `deserves`, `categories`, `justification`,
+`materialized`, `path` per tree) and `tests/unit/audit-corpus-labelled.test.mjs` for what is actually
+checked against these trees: that every declared path is real, that the label tally this inventory
+produces matches `health-calibration.mjs`'s pre-committed constant, and a real, measured confusion
+count (does the category's own measurement agree with the label) over every tree now materialized -
+not just a count of how many labelled examples exist.
+
+## One surprising, honestly-reported result
+
+`11-malformed-grader-config` is labelled `deserves: true` (its undeserving reason is an unparseable
+`askit.config.json`, an operator defect never charged to the plugin). Its three skill bodies, however,
+are the audit's own shared placeholder content - the same `"Do nothing."` text `01-potemkin-gold` uses
+- because the fixture's point was never skill-body quality. Measured against ADV4, every one of its
+skills reads as placeholder content: a real false positive against this one tree's `deserves: true`
+label, for the substance category specifically. `tests/unit/audit-corpus-labelled.test.mjs` asserts
+this plainly, rather than picking a different negative example to avoid reporting it, per finding 6's
+own instruction: "if a category penalises this repository, report it and fix the tree, never the
+threshold" generalizes to any tree, not only this repository's own.

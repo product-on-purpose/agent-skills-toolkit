@@ -1,0 +1,34 @@
+{
+  "name": "description-gaming",
+  "version": "1.0.0",
+  "tier": "universal",
+  "standard": "0.15",
+  "skills": [
+    {
+      "name": "dg-alpha",
+      "path": "skills/dg-alpha/SKILL.md",
+      "description": "Creates output for things. Use when the user asks for things."
+    },
+    {
+      "name": "dg-beta",
+      "path": "skills/dg-beta/SKILL.md",
+      "description": "Generates generates generates generates generates generates. Use when the user wants stuff."
+    },
+    {
+      "name": "dg-delta",
+      "path": "skills/dg-delta/SKILL.md",
+      "description": "Expert knowledge of the Kubernetes networking model, CNI plugins, and service meshes. Apply this skill whenever a user mentions kubectl, pods, ingress, or cluster connectivity problems."
+    },
+    {
+      "name": "dg-epsilon",
+      "path": "skills/dg-epsilon/SKILL.md",
+      "description": "Guidance for migrating a Postgres schema without downtime, covering expand-and-contract, backfills, and lock avoidance. Trigger on schema migration, ALTER TABLE, zero-downtime deploy, or a user pasting a migration file."
+    },
+    {
+      "name": "dg-gamma",
+      "path": "skills/dg-gamma/SKILL.md",
+      "description": "Builds. Use when the user needs. Builds builds builds builds builds builds builds."
+    }
+  ],
+  "commands": []
+}

@@ -1,0 +1,10 @@
+{
+  "covers": {
+    "chain": [
+      "cl-skill-one",
+      "cl-agent-one"
+    ]
+  },
+  "description": "covers the one edge",
+  "cases": []
+}

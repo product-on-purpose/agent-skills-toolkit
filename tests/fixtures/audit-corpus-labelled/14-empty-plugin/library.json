@@ -1,0 +1,14 @@
+{
+  "name": "empty",
+  "version": "1.0.0",
+  "description": "Creates output for things. Use when the user asks for things.",
+  "standard": "0.15",
+  "tier": "universal",
+  "author": {
+    "name": "audit"
+  },
+  "license": "Apache-2.0",
+  "keywords": [
+    "audit"
+  ]
+}

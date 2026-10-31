@@ -1,0 +1,9 @@
+name: gate
+on:
+  workflow_dispatch:
+jobs:
+  grade:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - run: npx agent-skills-toolkit .

@@ -1,0 +1,55 @@
+{
+  "name": "description-gaming",
+  "version": "1.0.0",
+  "description": "Creates output for things. Use when the user asks for things.",
+  "standard": "0.15",
+  "tier": "universal",
+  "author": {
+    "name": "audit"
+  },
+  "license": "Apache-2.0",
+  "keywords": [
+    "audit"
+  ],
+  "components": {
+    "skills": [
+      {
+        "name": "dg-alpha",
+        "path": "skills/dg-alpha/SKILL.md",
+        "version": "0.1.0",
+        "tier": "universal",
+        "status": "active"
+      },
+      {
+        "name": "dg-beta",
+        "path": "skills/dg-beta/SKILL.md",
+        "version": "0.1.0",
+        "tier": "universal",
+        "status": "active"
+      },
+      {
+        "name": "dg-gamma",
+        "path": "skills/dg-gamma/SKILL.md",
+        "version": "0.1.0",
+        "tier": "universal",
+        "status": "active"
+      },
+      {
+        "name": "dg-delta",
+        "path": "skills/dg-delta/SKILL.md",
+        "version": "0.1.0",
+        "tier": "universal",
+        "status": "active"
+      },
+      {
+        "name": "dg-epsilon",
+        "path": "skills/dg-epsilon/SKILL.md",
+        "version": "0.1.0",
+        "tier": "universal",
+        "status": "active"
+      }
+    ],
+    "subagents": [],
+    "commands": []
+  }
+}

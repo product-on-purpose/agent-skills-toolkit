@@ -1,0 +1,6 @@
+cl-skill-one:
+  - cl-agent-one
+cl-skill-two:
+  - cl-agent-one
+cl-skill-three:
+  - cl-agent-one

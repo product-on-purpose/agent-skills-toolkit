@@ -1,0 +1,62 @@
+{
+  "name": "chain-lie",
+  "version": "1.0.0",
+  "description": "Creates output for things. Use when the user asks for things.",
+  "standard": "0.15",
+  "tier": "advanced",
+  "agent-targets": [
+    "claude",
+    "codex"
+  ],
+  "prefix": "cl-",
+  "author": {
+    "name": "audit"
+  },
+  "license": "Apache-2.0",
+  "keywords": [
+    "audit"
+  ],
+  "components": {
+    "skills": [
+      {
+        "name": "cl-skill-one",
+        "path": "skills/cl-skill-one/SKILL.md",
+        "version": "0.1.0",
+        "tier": "universal",
+        "status": "active"
+      },
+      {
+        "name": "cl-skill-two",
+        "path": "skills/cl-skill-two/SKILL.md",
+        "version": "0.1.0",
+        "tier": "universal",
+        "status": "active"
+      },
+      {
+        "name": "cl-skill-three",
+        "path": "skills/cl-skill-three/SKILL.md",
+        "version": "0.1.0",
+        "tier": "universal",
+        "status": "active"
+      }
+    ],
+    "subagents": [
+      {
+        "name": "cl-agent-one",
+        "path": "agents/cl-agent-one.md",
+        "version": "0.1.0",
+        "tier": "convergent",
+        "status": "active"
+      }
+    ],
+    "commands": [
+      {
+        "name": "cl-run",
+        "path": "commands/cl-run.md",
+        "version": "0.1.0",
+        "tier": "convergent",
+        "status": "active"
+      }
+    ]
+  }
+}

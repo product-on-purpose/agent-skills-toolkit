@@ -1,0 +1,31 @@
+{
+  "name": "phantom",
+  "version": "1.0.0",
+  "tier": "convergent",
+  "standard": "0.15",
+  "skills": [
+    {
+      "name": "ph-skill-one",
+      "path": "skills/ph-skill-one/SKILL.md",
+      "description": "Creates output for things. Use when the user asks for things."
+    },
+    {
+      "name": "ph-skill-three",
+      "path": "skills/ph-skill-three/SKILL.md",
+      "description": "Creates output for things. Use when the user asks for things."
+    },
+    {
+      "name": "ph-skill-two",
+      "path": "skills/ph-skill-two/SKILL.md",
+      "description": "Creates output for things. Use when the user asks for things."
+    }
+  ],
+  "commands": [
+    {
+      "name": "ph-run",
+      "path": "commands/ph-run.md",
+      "description": "Run the skill.",
+      "mapsTo": "ph-skill-one"
+    }
+  ]
+}
