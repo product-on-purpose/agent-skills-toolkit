@@ -122,14 +122,16 @@ export function runGate(root, ctx = loadPlugin(root), { strict = false, mode, pr
   // scripts/evaluate.mjs (which does not go through runGate) can share the exact same profile-off-set
   // filtering and module-run logic rather than re-implementing it a second time - the "every consumer
   // must remember" cost ADR 0063 itself warns against (sec 1, "What was considered and refused").
-  const { advisoryLayer, advisoryFindings } = computeAdvisoryLayer(ctx, {
+  // W6 finding 8/5: adv4Measurement travels alongside advisoryFindings so a caller that also wants
+  // the health number (gradeMember(), via computeHealth()) never reruns ADV4's own scan.
+  const { advisoryLayer, advisoryFindings, adv4Measurement } = computeAdvisoryLayer(ctx, {
     noAdvisory, advisoryModules, profile: effectiveConfig.profile.value,
   });
   // `config` is published origin-free: provenance is a resolution input, not a new external contract.
   return {
     findings: resolved, errorCount, warnCount, operatorErrorCount, exitCode,
     config: publicConfig(effectiveConfig), hints: hintsFor(ctx, effectiveConfig),
-    advisoryLayer, advisoryFindings,
+    advisoryLayer, advisoryFindings, adv4Measurement,
   };
 }
 
@@ -199,13 +201,21 @@ export function formatOperatorBlock(findings) {
  * Pure serialization; exported for unit testing.
  */
 export function buildJsonReport(root, ctx, r) {
+  // W6 finding 8/5: `adv4Measurement` travels on runGate()'s return so a caller computing health
+  // (gradeMember()) never reruns ADV4's own scan - it is NOT a public report field (it is not in
+  // schemas/report.v1.json, and it carries full skill objects in details.duplicatePairs, O(n^2) in
+  // plugin size). Spreading `r` wholesale here would leak that raw internal object into --json's
+  // public contract and, on a large enough plugin, balloon the document by orders of magnitude - the
+  // exact failure `tests/unit/cli-stdout-drain.test.mjs` caught (400 identically-described skills
+  // produce ~79800 duplicate pairs, each carrying two full skill objects, past a 64MB piped stdout).
+  const { adv4Measurement, ...publicGateFields } = r;
   // `descriptionsNotScored` is PRESENTATION, computed here rather than in runGate() and therefore
   // provably outside the verdict path - the same layering as sectionFindings() below. U5 declines to
   // score a description whose language its lexicons cannot read (ADR 0049), which withdraws a finding
   // rather than adding one, so a consumer counting U5 findings to track description quality would see
   // the number fall with no quality change. Emitting the decline count is what makes that legible.
   return {
-    ...r,
+    ...publicGateFields,
     descriptionsNotScored: notScoredCount(ctx),
     tierReport: computeTierReport(root, ctx, r.findings),
     // E77: "" (no notice) serializes as null rather than an empty string, so a consumer can branch on
