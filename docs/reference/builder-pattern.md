@@ -19,7 +19,7 @@ So the shared thing is the builder skill pattern, and it is captured here once.
 
 ## The shape (create mode)
 1. Interview the component's inputs (or read them from context).
-2. Copy the type's template from `templates/` to the canonical file (`commands/<name>.md`, `agents/<name>.md`, `skills/<name>/SKILL.md`, ...).
+2. Copy the type's template from `templates/` to the canonical file (`commands/<name>.md`, `agents/<name>.md`, `skills/<name>/SKILL.md`, ...). If the repository keeps its own template for that type, copy that one instead: a house template governs over the toolkit's, because the repository's own gate enforces it.
 3. Author the Claude-native canonical file: frontmatter (per Standard sec 3.8 for the type) + body.
 4. Register the component in `library.json` `components.<type>` as `{ name, path, version, tier, status }`.
 5. Wire any per-target manifest pointer by running `npx agent-skills-toolkit gen-manifest . --write --target=all` (skills/MCP are referenced by the native manifests; Claude auto-discovers `commands/` and `agents/`).

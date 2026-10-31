@@ -25,6 +25,6 @@ The delegated authoring role behind `askit-build-skill`. Scaffolds `skills/<name
 
 ## Steps
 1. Read the provided inputs (name, purpose, when-to-use, trigger keywords) from the invoking skill; the interview happens in the caller, not here.
-2. Scaffold `skills/<name>/` from `templates/SKILL.md`; fill frontmatter and body.
+2. Scaffold `skills/<name>/` from `templates/SKILL.md`; fill frontmatter and body. If the repository keeps its own skill template, scaffold from that instead, because it governs over the toolkit's.
 3. Emit native manifests for the declared targets (`gen-manifest --write --target=all`).
 4. Delegate assessment to `askit-evaluator`; apply its findings; iterate to 0 errors.
