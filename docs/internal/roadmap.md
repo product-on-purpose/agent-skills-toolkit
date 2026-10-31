@@ -352,6 +352,7 @@ with what it blocks.
 | **D-08** (the behavioural rung's shape) | a fourth tier name, or a modifier on Gold | the behavioural rung, deferred below | OPEN, and not urgent while the rung is deferred |
 | **E16's implementation** (the multi-entry credit rule) | none - it is RULED; the scorer change is unwritten | every behavioural claim this project publishes | RULED 2026-08-31; ADR 0065 (a multi-entry finding earns credit only where its own correct clause verifies) records it, meeting criterion 1 of RS-B1. **IMPLEMENTED 2026-10-25** in [PR #383](https://github.com/product-on-purpose/agent-skills-toolkit/pull/383), shipped in v1.22.0. Publishing a final cell now waits on the maintainer's adjudication signature and the criterion 5 ruling, both in section 7 |
 | **RS-C6's spike** (the Agent Plugins root manifest) | does the root manifest carry components on the measured Codex version | the emit-or-dated-no ADR | evidence not gathered |
+| **D-09** (the goal, and how "best" is measured) | does the toolkit adopt a narrowed goal - the builder that produces a whole cross-agent library and proves it works - with four measured criteria and a behaviour loop that composes with `claude plugin eval` | the behaviour-loop cut below, and the re-ordered sequence after W6 | **PROPOSED 2026-10-30** as [ADR 0066 (the goal is the builder whose libraries are proven to work, and "best" is measured, not claimed)](decisions/0066-the-goal-is-the-builder-whose-libraries-are-proven-and-best-is-measured.md). Awaiting the maintainer's ruling. Nothing already ruled changes until it is accepted |
 
 **Already ruled, recorded here so they are not reopened:** D-04 became
 [ADR 0059 (every MUST maps to a check, a SHOULD or a stated gap)](decisions/0059-every-must-maps-to-a-check-a-should-or-a-stated-gap.md);
@@ -378,6 +379,22 @@ v1.19.0, cut 2026-09-17. Cut 6, "Standard 0.17, the graduations", is v1.20.0, cu
 |---|---|---|---|
 | **3. "Evidence"** | the eval instrument becomes trustworthy enough to publish a number from | RS-B1 complete - the E16 ruling implemented, E17's adjudication, E20's key relocation, E15's runner fixes - then the E13 model-triple readings publish | **Two maintainer rulings, no code.** The implementation merged 2026-10-25 in [PR #383](https://github.com/product-on-purpose/agent-skills-toolkit/pull/383): RS-B1's criteria 2 to 4 are met. (a) The E13 adjudication draft needs a human signature before any cell is FINAL. (b) RS-B1's criterion 5 grep is non-empty, and its scope needs a ruling. Both are in section 7. Until 2026-10-25 this cell read "the implementation itself" |
 | **5. "The graded cohort"** | the toolkit grades trees that are not ours, in public | RS-E2 (the cohort page) plus RS-E1's one-paragraph public summary, plus the sixth and last placement of the tier-scope routing sentence, which ships with the page | **Four things, none of them code.** (a) RS-E1's internal corroboration run has not happened. (b) The member list is unpicked - issue #300 closed NOT_PLANNED, deferred to this cut's planning. (c) Every member must be notified and given a reply window before publication. (d) The 2026-09-04 dry run found four of five candidates pass every portable check, so the page's framing has to be settled before it is built |
+| **W6 (the report object and the health number)** | a versioned report object, a health number beside the tier, and ADV4, the substance screen | [ADR 0063 (an advisory layer beside the tier, and a health number that never enters it)](decisions/0063-an-advisory-layer-beside-the-tier-and-a-health-number-that-never-enters-it.md) sections 3 to 5: `schemaVersion`, the `run` block, `checks[]` with an outcome enum, `components[]`, `blockedFindings[]`, `health{}` with five categories, and `schemas/report.v1.json`. Its falsifiable tests are ADR 0063's own: the potemkin-gold fixture falls in the lowest substance band, and the pin-abuse fixture shows currency debt | **Nothing.** Ruled 2026-10-25 and unimplemented. It is the next workflow of the 2026-10-25 opportunities plan. Until 2026-10-30 it had no row here, and lived only in that gitignored plan and in `STATUS.md` |
+| **The behaviour loop** (named per ADR 0057) | every builder writes and runs an eval suite in `claude plugin eval`'s format, and the report carries an evidence section beside the tier and the health number | [ADR 0066 (the goal is the builder whose libraries are proven to work, and "best" is measured, not claimed)](decisions/0066-the-goal-is-the-builder-whose-libraries-are-proven-and-best-is-measured.md) section 3, and its criteria C1 to C4, quoted below | **Two things.** (a) D-09: ADR 0066 is Proposed, not accepted. (b) W6, because the evidence section extends W6's report object |
+
+**The behaviour loop's acceptance criteria, quoted from ADR 0066 section 2 (Proposed 2026-10-30).** Each
+has a baseline measured 2026-10-30 in that ADR. A criterion that is measured and fails is recorded as failed.
+
+> **C1.** A built skill beats no skill more often than one built with skill-creator alone.
+>
+> **C2.** The placeholder fixture's report shows it is hollow.
+>
+> **C3.** A newcomer reaches a first green gate quickly.
+>
+> **C4.** Someone outside the organisation uses it.
+
+**If ADR 0066 is accepted, the sequence after own plugins first is:** W6, then the behaviour loop, then cut
+3 (evidence), then cut 5 (the graded cohort), then Standard 0.18. Until it is ruled, W6 is next either way.
 
 **Cut 6, closed.** It shipped as v1.20.0, tagged 2026-10-05, on npm 2026-10-14. The content MERGED on
 2026-09-21 ([PR #339](https://github.com/product-on-purpose/agent-skills-toolkit/pull/339)), and the

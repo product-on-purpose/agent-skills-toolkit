@@ -1051,7 +1051,7 @@ critique-skills built its seventh skill, `critique-forms` (its N2), through `ask
 - **What happened.** Step 2 starts a new skill from this toolkit's `templates/SKILL.md`. critique-skills keeps its own skill template, `docs/internal/skill-template.md`, which its self-test enforces: a seven-column criterion table, a delegation stanza, golden examples whose envelopes its contract validates, and more. The generic template satisfies none of that, so the build set it aside and followed the repository's template instead.
 - **Why it matters.** A plugin mature enough to have a house template is the plugin most likely to use the builder, and following step 2 literally produces a skill its own gate rejects.
 - **Options.** First, step 2 asks whether the plugin declares a skill template, for example a path in `library.json` or a conventional location, and uses it when present. Second, a one-line note that a repository template, when one exists, governs over the toolkit's.
-- **Status:** **OPEN.** The second option needs no ruling.
+- **Status:** **The second option SHIPPED 2026-10-30, unreleased** ([#390](https://github.com/product-on-purpose/agent-skills-toolkit/pull/390)). Create mode step 2 now says a repository's own skill template governs over this toolkit's, and names where to look. `agents/askit-skill-author.md` and [the builder pattern](../../reference/builder-pattern.md) say the same, so every builder inherits it. The first option, a declared template path in `library.json`, changes the manifest schema and stays unbuilt until someone needs a template the conventional search misses.
 
 ### E79 - phase 2 delegates to `askit-reviewer`, which a fallback-mode session does not have  [docs, effort S, OPEN]
 
@@ -1059,7 +1059,7 @@ critique-skills built its seventh skill, `critique-forms` (its N2), through `ask
 - **What happened.** Step 3 says to delegate the craft review to the `askit-reviewer` subagent. In fallback mode the toolkit is a sibling checkout, not an installed plugin, so no `askit-reviewer` agent type exists in the session. The build briefed a general-purpose agent with `agents/askit-reviewer.md` and the rubric, and that worked: five findings, all JUDGMENT, which `partitionCraftFindings()` confirmed.
 - **Why it matters.** Fallback mode is the documented route for a repository that wraps the toolkit rather than installing it, and phase 2 gives that route no instruction.
 - **Options.** A fallback sentence in step 3: brief any capable agent with the reviewer definition and the rubric, and run its output through `toReviewAdvisory()` as usual.
-- **Status:** **OPEN.** No ruling needed.
+- **Status:** **SHIPPED 2026-10-30, unreleased** ([#390](https://github.com/product-on-purpose/agent-skills-toolkit/pull/390)). Phase 2 step 3 now carries the fallback sentence: with no `askit-reviewer` agent type in the session, brief any capable general-purpose agent with `agents/askit-reviewer.md` and the rubric, then run its output through `toReviewAdvisory()` as usual.
 
 ### E80 - the phase-2 render step names one skill, but `evaluate.mjs` renders the whole library  [docs or feature, effort S, ruling needed, OPEN]
 
