@@ -152,6 +152,10 @@ function deriveModel(report, opts = {}) {
     prefix: lib?.prefix ?? null,
     standard: lib?.standard ?? null,
     components: lib?.components ?? null,
+    // ADR 0063 sec 5: the report object's own `components[]` (one entry per skill/subagent/command on
+    // disk, with size, instruction-budget use and emission targets), kept separate from `components`
+    // above (library.json's declared inventory) and merged only inside componentInventory().
+    componentDetails: Array.isArray(report.components) ? report.components : [],
     tierEarned: isPlugin ? report.tier : null,
     tierEarnedName: isPlugin ? (TIER_NAME[report.tier] ?? report.tier) : null,
     satisfies: report.satisfies ?? [],
@@ -178,6 +182,11 @@ function deriveModel(report, opts = {}) {
     // review/behavioral fixture in an older test.
     advisoryLayer: report.advisoryLayer ?? "off",
     advisoryFindings: Array.isArray(report.advisoryFindings) ? report.advisoryFindings : null,
+    // ADR 0063 sec 3: the health number, carried straight from the report object - never derived from
+    // `rows`/`findings`, for the same reason advisoryFindings above is not. `null` when the advisory
+    // layer is off, or for a report object built before this field existed (the same back-compat
+    // default advisoryFindings uses).
+    health: report.health ?? null,
   };
 }
 
@@ -311,9 +320,12 @@ function renderMarkdown(report, opts = {}) {
   if (m.profile) idRows.push(["Grading profile", m.profile]);
   out.push(mdTable(["Property", "Value"], idRows));
   out.push("");
-  const inv = componentInventory(m.components);
+  const inv = componentInventory(m.components, m.componentDetails);
   if (inv.length) {
-    out.push(mdTable(["Component", "Type", "Version"], inv.map((c) => [c.name, c.type, c.version ?? ""])));
+    out.push(mdTable(
+      ["Component", "Type", "Version", "Size", "Budget (lines/max)", "Emission targets"],
+      inv.map((c) => [c.name, c.type, c.version ?? "", c.sizeBytes != null ? `${c.sizeBytes} B` : "", c.budget, c.emissionTargets]),
+    ));
     out.push("");
   }
 
@@ -546,16 +558,79 @@ function renderMarkdown(report, opts = {}) {
     out.push("");
   }
 
+  // 13 Health (ADR 0063 sec 3): a number beside the tier, computed only from measured, deterministic
+  // signals, that a placeholder plugin cannot score well on (E61). Rendered only when the layer
+  // computed one at all (health is null when advisoryLayer is "off" - the same guard section 12 uses).
+  // No cross-category average (ADR 0063 sec 3): each row is its own category, never summed.
+  if (m.health) {
+    out.push("## 13 Health (informational)");
+    out.push("");
+    out.push(
+      "**Summary: five categories computed from measured signals only, never from a model. " +
+      "Orthogonal to the tier above: a Bronze plugin can outscore a Gold one, by design (ADR 0063). " +
+      `Calibration: ${m.health.calibration} - every category shows its raw measurement; a band is shown only once a category is calibrated.**`
+    );
+    out.push("");
+    out.push(mdTable(
+      ["Category", "State", "Components", "Measurement", "Band"],
+      Object.entries(m.health.categories).map(([name, c]) => [
+        name, c.state,
+        c.componentCount != null ? String(c.componentCount) : "",
+        healthMeasurementText(c),
+        healthBandText(name, c),
+      ]),
+    ));
+    out.push("");
+  }
+
   return out.join("\n");
 }
 
-function componentInventory(components) {
+// ADR 0063 sec 3: "Currency has no band in this pass" - structurally, not just while uncalibrated. The
+// other four categories show "uncalibrated" in place of a band until a future calibration pass earns
+// one; currency never shows anything here, in any calibration state.
+const BANDED_CATEGORIES = new Set(["substance", "budget", "portability", "security"]);
+function healthBandText(name, c) {
+  if (!BANDED_CATEGORIES.has(name)) return "";
+  return c.band ?? ((c.state === "scored" || c.state === "ahead") ? "uncalibrated" : "");
+}
+
+// One plain-text summary of a health category's measurement, shared by MD and HTML so the two never
+// disagree about what a category's numbers mean. `not-applicable`/`off-by-profile` carry only a reason.
+function healthMeasurementText(c) {
+  if (c.state === "not-applicable") return `not applicable (${c.reason})`;
+  if (c.state === "off-by-profile") return `off under this profile (${c.reason})`;
+  if (!c.measurement) return "";
+  if (c.state === "ahead" || "minorsBehind" in c.measurement) {
+    const mm = c.measurement;
+    return c.state === "ahead"
+      ? `pin is ahead of the shipped Standard; ${mm.waivedCount} finding(s) waived`
+      : `${mm.minorsBehind ?? "?"} minor(s) behind; ${mm.waivedCount} finding(s) waived by the pin`;
+  }
+  return `score ${c.measurement.score ?? "?"}/100 (${c.measurement.flaggedCount ?? 0} of ${c.componentCount} flagged)`;
+}
+
+// ADR 0063 sec 5: library.json's OWN components object (name/version/declared tier) is the inventory's
+// identity half; the report object's new `components[]` array (ADR 0063 sec 5: "each component's
+// description text, size, instruction-budget use and emission targets") is the measured half. Merged
+// here, by `type:name`, so both renderers show one inventory rather than two that could disagree.
+// `details` defaults to [] so a report built before `components[]` existed renders exactly as before.
+function componentInventory(components, details = []) {
   if (!components || typeof components !== "object") return [];
+  const byKey = new Map(details.map((d) => [`${d.type}:${d.name}`, d]));
   const out = [];
   for (const [kind, list] of Object.entries(components)) {
     if (!Array.isArray(list)) continue;
     const type = kind.replace(/s$/, "");
-    for (const c of list) out.push({ name: c.name ?? "(unnamed)", type, version: c.version ?? null });
+    for (const c of list) {
+      const d = byKey.get(`${type}:${c.name}`);
+      out.push({
+        name: c.name ?? "(unnamed)", type, version: c.version ?? null,
+        sizeBytes: d?.sizeBytes ?? null,
+        budget: d?.instructionBudget ? `${d.instructionBudget.lines}/${d.instructionBudget.max}${d.instructionBudget.overBudget ? " (over)" : ""}` : "",
+        emissionTargets: Array.isArray(d?.emissionTargets) ? d.emissionTargets.join(", ") : "",
+      });
+    }
   }
   return out;
 }
@@ -851,6 +926,19 @@ function htmlAdvisorySection(m) {
   return htmlSection("s12", "12", "Advisory (informational)", `${m.advisoryFindings.length} deterministic advisory finding(s) (the ADV1-ADV4 layer), reported beside the grade above. They never affect the tier, the error count, or the gate exit code.`, body);
 }
 
+// Section 13 body (ADR 0063 sec 3): the five health categories, orthogonal to the tier above and
+// computed from measured signals only - never a model, never a cross-category average. Returns ""
+// when health is null (the layer is off), mirroring htmlAdvisorySection so a report built before this
+// field existed, or rendered with --no-advisory, stays byte-identical to one rendered without section 13.
+function htmlHealthSection(m) {
+  if (!m.health) return "";
+  const rows = Object.entries(m.health.categories).map(([name, c]) => {
+    return `<tr><td><span class="cn">${escapeHtml(name)}</span></td><td>${escapeHtml(c.state)}</td><td>${c.componentCount ?? ""}</td><td>${escapeHtml(healthMeasurementText(c))}</td><td>${escapeHtml(healthBandText(name, c))}</td></tr>`;
+  }).join("");
+  const body = `<div class="tablecard"><table><thead><tr><th>Category</th><th style="width:120px">State</th><th style="width:100px">Components</th><th>Measurement</th><th style="width:110px">Band</th></tr></thead><tbody>${rows}</tbody></table></div>`;
+  return htmlSection("s13", "13", "Health (informational)", `Five categories computed from measured signals only (ADR 0063). Orthogonal to the tier above - a Bronze plugin can outscore a Gold one, by design. Calibration: ${m.health.calibration}.`, body);
+}
+
 // Release readiness band (release reports): a prominent go / no-go right after the masthead.
 function htmlReleaseReadiness(m) {
   const rel = m.release;
@@ -960,9 +1048,9 @@ function renderHtml(report, opts = {}) {
   if (m.prefix) idCells.push(["Prefix", m.prefix]);
   if (m.profile) idCells.push(["Grading profile", m.profile]);
   const idstrip = `<div class="idstrip">${idCells.map(([k, v]) => `<div class="ic"><div class="ick">${escapeHtml(k)}</div><div class="icv">${escapeHtml(v)}</div></div>`).join("")}</div>`;
-  const inv = componentInventory(m.components);
+  const inv = componentInventory(m.components, m.componentDetails);
   const invTable = inv.length
-    ? `<div class="tablecard"><table><thead><tr><th>Component</th><th style="width:120px">Type</th><th style="width:120px">Version</th></tr></thead><tbody>${inv.map((c) => `<tr><td><span class="cn">${escapeHtml(c.name)}</span></td><td>${escapeHtml(c.type)}</td><td>${escapeHtml(c.version ?? "")}</td></tr>`).join("")}</tbody></table></div>`
+    ? `<div class="tablecard"><table><thead><tr><th>Component</th><th style="width:100px">Type</th><th style="width:90px">Version</th><th style="width:90px">Size</th><th style="width:120px">Budget</th><th>Emission targets</th></tr></thead><tbody>${inv.map((c) => `<tr><td><span class="cn">${escapeHtml(c.name)}</span></td><td>${escapeHtml(c.type)}</td><td>${escapeHtml(c.version ?? "")}</td><td>${c.sizeBytes != null ? escapeHtml(`${c.sizeBytes} B`) : ""}</td><td>${escapeHtml(c.budget)}</td><td>${escapeHtml(c.emissionTargets)}</td></tr>`).join("")}</tbody></table></div>`
     : `<p>No component inventory was provided on the report object.</p>`;
 
   // 04 methodology
@@ -1044,7 +1132,7 @@ function renderHtml(report, opts = {}) {
     <a href="#s08"><span class="ix">08</span><span>Insights</span></a>
     <a href="#s09"><span class="ix">09</span><span>Evidence and sources</span></a>
     <a href="#s10"><span class="ix">10</span><span>Report metadata</span></a>
-    <a href="#s11"><span class="ix">11</span><span>Per-check glossary</span></a>${(m.advisoryFindings && m.advisoryFindings.length) ? `\n    <a href="#s12"><span class="ix">12</span><span>Advisory</span></a>` : ""}
+    <a href="#s11"><span class="ix">11</span><span>Per-check glossary</span></a>${(m.advisoryFindings && m.advisoryFindings.length) ? `\n    <a href="#s12"><span class="ix">12</span><span>Advisory</span></a>` : ""}${m.health ? `\n    <a href="#s13"><span class="ix">13</span><span>Health</span></a>` : ""}
   </nav>`;
 
   return `<!DOCTYPE html>
@@ -1077,7 +1165,7 @@ function renderHtml(report, opts = {}) {
       ${htmlSection("s08", "08", "Insights", insLead, insBody)}
       ${htmlSection("s09", "09", "Evidence and sources", "Citations grounding the findings: the check module, Standard clause, or subject file.", `<ul class="refs">${refItems.join("")}</ul>`)}
       ${htmlSection("s10", "10", "Report metadata", "Provenance for this evaluation, plus the legend.", metaBody)}
-      ${htmlSection("s11", "11", "Per-check glossary", `Why each of the ${m.counts.total} checks matters, in one line - a plain-language reference for every row above. For what each check actually verifies, see the Standard and the checks reference.`, htmlGlossary(m))}${htmlAdvisorySection(m) ? `\n      ${htmlAdvisorySection(m)}` : ""}
+      ${htmlSection("s11", "11", "Per-check glossary", `Why each of the ${m.counts.total} checks matters, in one line - a plain-language reference for every row above. For what each check actually verifies, see the Standard and the checks reference.`, htmlGlossary(m))}${htmlAdvisorySection(m) ? `\n      ${htmlAdvisorySection(m)}` : ""}${htmlHealthSection(m) ? `\n      ${htmlHealthSection(m)}` : ""}
     </div>
   </main>
 </div>

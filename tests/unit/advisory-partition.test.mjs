@@ -186,10 +186,15 @@ test("parseArgs recognizes --no-advisory, defaulting to false", () => {
   assert.equal(parseArgs(["some/root", "--no-advisory"]).noAdvisory, true);
 });
 
-test("runGate: advisoryLayer is 'on' by default and advisoryFindings is an array (empty - no real modules ship yet)", () => {
+// ADV1-ADV4 all ship as of W6. FIXTURE's one skill body ("Steps the agent follows.") is genuinely under
+// ADV4's pre-registered 20-word substance floor, so the real layer now finds exactly that one finding -
+// this is W6's substance signal doing its job on a deliberately minimal test fixture, not a regression.
+test("runGate: advisoryLayer is 'on' by default and advisoryFindings carries ADV4's real finding on this minimal fixture", () => {
   const r = runGate(FIXTURE);
   assert.equal(r.advisoryLayer, "on");
-  assert.deepEqual(r.advisoryFindings, []);
+  assert.equal(r.advisoryFindings.length, 1);
+  assert.equal(r.advisoryFindings[0].advisoryId, "ADV4");
+  assert.equal(r.advisoryFindings[0].provenance, "house");
 });
 
 test("runGate: --no-advisory sets advisoryLayer to 'off' and advisoryFindings to null, changing no other field", () => {

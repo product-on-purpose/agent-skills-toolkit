@@ -2,6 +2,11 @@
 // what-it-does: reports the highest tier a plugin satisfies plus the burndown (blocked requirements) to the next, keyed by reqId
 // why:          the burndown turns the climb into a worklist instead of a guess
 // used-by:      run by contributors, askit-capability-advisor, and the docs that show the tier ladder
+// ADR 0063 sec 3/Implementation sites: this module is UNCHANGED in behaviour by the health number. The
+// health categories (scripts/lib/health-score.mjs) and the report object's `blockedFindings[]`
+// (scripts/evaluate.mjs's buildBlockedFindings()) are both recomputed independently from the same
+// resolved findings this module already took as an argument - they read computeTierReport()'s output
+// (the `blocked` tier name) but never widen or alter what this function returns.
 import { loadPlugin } from "./lib/load-plugin.mjs";
 import { runAllChecks, provenanceByReq } from "./lib/registry.mjs";
 import { SINCE_BY_REQ } from "./lib/standard-gate.mjs";

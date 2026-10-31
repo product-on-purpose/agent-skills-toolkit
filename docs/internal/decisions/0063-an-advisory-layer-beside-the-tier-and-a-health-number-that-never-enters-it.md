@@ -319,3 +319,28 @@ None of these is changed by this ADR. The implementing change carries them. Name
 - **`docs/reference/evaluation-reports.md`** - its "deterministic / advisory boundary" section names all three layers.
 - **`docs/internal/roadmap.md`** - the D-01 row records the partial ruling and the open badge half; items 1, 2 and 3 of section 4 are updated; and RS-E4 leaves section 7.
 - **`docs/internal/backlog/enhancements.md`** - the status lines of E61, E86 and E87 point at this ADR.
+
+## Implementation notes (2026-10-30, W6)
+
+This section is appended by the implementing change (W6); it does not revise anything ruled above. Full detail, the pre-registered cut points, the per-tree category-label table, and the ADV3 false-positive ceiling record (moved here from `scripts/advisory/README.md`) all live in [the health-score reference](../../reference/health-score.md), which this note only summarizes.
+
+**Confusion counts, measured 2026-10-30 against the labelled 2026-09-04 audit corpus**, excluding the two falsifiable-test hold-outs (`01-potemkin-gold`, `09-pin-abuse`), their pin-state variants, and every `deserves: null` hardening tree:
+
+| Category | Positives | Negatives | Calibrated? |
+| --- | --- | --- | --- |
+| substance | 1 | 7 | uncalibrated (below the 5-positive minimum) |
+| budget | 1 | 7 | uncalibrated (below the 5-positive minimum) |
+| portability | 0 | 7 | uncalibrated (below the 5-positive minimum) |
+| security | 1 | 7 | uncalibrated (below the 5-positive minimum) |
+| currency | 0 | 7 | uncalibrated (below the 5-positive minimum) |
+
+Every category reports `uncalibrated` on this ship, matching sec 4's own provisional reading. No category penalised this repository's own tree; its measurement is reported in the health-score reference as an observation, not an acceptance criterion.
+
+**Divergence from sec 4, recorded for the maintainer to confirm.** The Implementation sites section (above) says the labelled corpus "must become a tracked fixture" under `tests/fixtures/audit-corpus/`. The task that commissioned this change overrode that instruction: the corpus stays read-only and gitignored under `_local/audit/2026-09-04_fable-5-1-max/`, and only the two trees the falsifiable tests grade (`01-potemkin-gold`, `09-pin-abuse`) are tracked fixtures. The category-label assignments and their justifications - data about the corpus, not the corpus itself - are committed to the health-score reference instead, fixed before any confusion count was computed, per sec 4's ordering requirement. The other 44 trees are not committed anywhere in this repository. This leaves sec 4's "a threshold calibrated against an untracked set is an assertion nobody can re-run" cost unpaid for those 44 trees; the task's instruction is more specific and more recent than the ADR's general preference, but the gap is real and is not closed by this change.
+
+**Decisions made where this ADR is silent, chosen fail-closed and listed here for the maintainer:**
+
+- **Marketplace scope carries no health field, for the catalogue report or for any member entry.** The Implementation sites list says `gradeMember()` "also carries each member's advisoryFindings and health into its `members[]` entry", but marketplace grading runs through `runGate()` in `scripts/check.mjs`, which this change does not teach to compute health; only `scripts/evaluate.mjs`'s plugin and component branches do. Adding health to `runGate()` and to marketplace member grading was out of this change's stated scope (`scripts/evaluate.mjs`, `scripts/lib/report-render.mjs`, `scripts/tier-report.mjs`). The field is simply absent there, not `null`, so a reader cannot mistake "not computed for this scope" for "computed and empty".
+- **Unknown scope (not a plugin or a skill) reports `advisoryLayer: "off"` and `health: null`.** This is `baseReport()`'s default when no advisory object is passed, and matches the `--no-advisory` shape exactly, so a caller cannot distinguish "advisory off by request" from "advisory off because the target isn't gradable" - both read as off, fail-closed.
+- **Component scope computes health, but currency always reports `not-applicable` with reason `"unpinned"`.** A single skill has no `library.json` and therefore no pin; `pinned` is passed as `undefined`, the same fail-closed reading a pin-less plugin gets.
+- **`--profile plain-plugin` reports `off-by-profile` for substance and currency specifically**, because `HOUSE_ADVISORY_IDS` (which `plain-plugin` already turns off, per ADR 0029) includes `ADV4`, and currency's own house-provenance check mirrors that set. The other three categories (budget, portability, security) are unaffected by this profile, because none of their underlying signals carries house provenance.

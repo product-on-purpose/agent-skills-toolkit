@@ -84,7 +84,8 @@ test("RS-E3: the scope sentence is ONE canonical wording, not a paraphrase per s
   assert.equal(
     TIER_SCOPE_SENTENCE,
     "This tier reports structural conformance to a written Standard - deterministic and reproducible; " +
-      "it is not a content review, a safety audit, or a statement that the skills work.",
+      "it is not a content review, a safety audit, or a statement that the skills work. A report also " +
+      "carries a health number beside the tier (ADR 0063); it is informational and never changes this tier.",
   );
 });
 

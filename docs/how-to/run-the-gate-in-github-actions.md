@@ -12,7 +12,8 @@ This toolkit publishes a **GitHub Action**. Add it to a workflow and every push 
 library, reports the tier it earns, and puts each finding on the line that caused it.
 
 *This tier reports structural conformance to a written Standard - deterministic and reproducible; it is
-not a content review, a safety audit, or a statement that the skills work.* See
+not a content review, a safety audit, or a statement that the skills work. A report also carries a
+health number beside the tier (ADR 0063); it is informational and never changes this tier.* See
 [what a tier does not certify](../explanation/limitations.md).
 
 ## The shortest version that works

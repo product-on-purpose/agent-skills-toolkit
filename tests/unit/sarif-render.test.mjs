@@ -171,9 +171,15 @@ test("an above-tier finding is level note and carries the rung, whatever its own
       assert.match(res.properties["askit/aboveDeclaredTier"], /^(universal|convergent|advanced)$/);
     }
     // And the converse, which is what stops this becoming "everything is a note": no result may be a
-    // note WITHOUT the property saying why.
+    // note WITHOUT a property saying why. Two kinds share level "note" (ADR 0063 sec 1): the
+    // above-declared-tier kind asserted above, and - as of W6 - a real ADV1-ADV4 advisory result
+    // (this fixture's own short skill body trips ADV4), which carries askit/advisory instead. A
+    // finding never carries both properties, so every note must carry EXACTLY one.
     for (const res of results.filter((x) => x.level === "note")) {
-      assert.ok(res.properties?.["askit/aboveDeclaredTier"], `${res.ruleId} is a note and must say why`);
+      const isAboveTier = Boolean(res.properties?.["askit/aboveDeclaredTier"]);
+      const isAdvisory = Boolean(res.properties?.["askit/advisory"]);
+      assert.ok(isAboveTier || isAdvisory, `${res.ruleId} is a note and must say why`);
+      assert.ok(!(isAboveTier && isAdvisory), `${res.ruleId} must not carry both note properties at once`);
     }
   });
 });

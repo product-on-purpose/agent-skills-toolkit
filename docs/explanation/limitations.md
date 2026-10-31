@@ -33,6 +33,15 @@ The gate sees a well-formed `library.json`, a present `AGENTS.md`, resolvable li
 
 **What to do instead:** the advisory layer (`--report=review`) is the judgment pass, and it is explicitly *beside* the verdict, never inside it. See section 2 for what it can and cannot promise.
 
+**The thing that sits beside the tier in a report is the health number (ADR 0063), not a fourth tier
+rung.** A report's `health` field scores five measured, deterministic signals - substance, instruction
+budget, portability, security, and Standard currency - and never gates, never averages across
+categories, and never changes the tier above it. It exists because a tier alone cannot distinguish a
+real plugin from a structurally perfect one with nothing inside it (`tests/fixtures/audit-corpus/potemkin-gold/`
+earns Advanced, 0 errors, 0 warnings, and scores 0/100 on substance). See
+[`docs/reference/health-score.md`](../reference/health-score.md) for the categories, the pre-registered
+cut points, and why every category still reports `uncalibrated` on this ship.
+
 ## 2. The model-judgment advisory layer is measured, not guaranteed
 
 **Heading qualified 2026-10-25 (ADR 0063, an advisory layer beside the tier).** This section is about the MODEL-judgment advisory layer (`--report=review` / `--report=behavioral`) specifically. A second, deterministic advisory layer (`ADV1`-`ADV4`) also exists beside the gate's verdict; it runs no model and is reproducible, so nothing on this page about measurement, confabulation, or unverified claims applies to it. See [evaluation-reports.md](../reference/evaluation-reports.md#the-deterministic--advisory-boundary) for all three layers side by side.

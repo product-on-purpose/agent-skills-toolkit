@@ -4,6 +4,7 @@
 // used-by:      run by the askit-evaluate skill and askit-build-docs improve mode
 import path from "node:path";
 import { existsSync, statSync, writeFileSync, readFileSync, readdirSync } from "node:fs";
+import { fileURLToPath } from "node:url";
 import { loadPlugin, loadSkill, looksLikePlugin } from "./lib/load-plugin.mjs";
 import { detectMarketplaceScope, evaluateMarketplace, formatMarketplaceReport, marketplaceExitCode } from "./lib/marketplace/evaluate-marketplace.mjs";
 import { runAllChecks, provenanceByReq, CHECKS } from "./lib/registry.mjs";
@@ -12,11 +13,116 @@ import { loadConfig, withGraderOptions } from "./lib/config.mjs";
 import { PROFILES } from "./lib/profiles.mjs";
 import { resolveFindings } from "./lib/resolve-config.mjs";
 import { computeTierReport } from "./tier-report.mjs";
+import { tierForReq } from "./lib/tier.mjs";
 import { checkAgentskills } from "./checks/agentskills.mjs";
+import { MAX_LINES as INSTRUCTION_BUDGET_MAX_LINES } from "./checks/instruction-budget.mjs";
 import { finding, SEVERITY, isOperatorFinding } from "./lib/findings.mjs";
 import { readJsonSafe, SKIP_DIRS, normalizeArgPath } from "./lib/fs-utils.mjs";
 import { gateExitFromFindings, newerStandardNotice, computeAdvisoryLayer, formatAdvisorySection } from "./check.mjs";
 import { shippedStandardEdition } from "./lib/shipped-standard.mjs";
+import { computeHealth } from "./lib/health-score.mjs";
+
+// ADR 0063 sec 5: "run" carries every VOLATILE field (time, toolkit version, Node version, duration,
+// invocation) so two runs over an unchanged tree differ only inside this one key. toolkitVersion() is
+// resolved the same defensive way scripts/lib/sarif-render.mjs's own toolVersion() reads this
+// repository's package.json: relative to import.meta.url, degrading to "0.0.0" rather than throwing,
+// because a version string is informational and must never be the reason a run crashes.
+function toolkitVersion() {
+  try {
+    const pkgPath = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../package.json");
+    const pkg = JSON.parse(readFileSync(pkgPath, "utf8"));
+    return typeof pkg.version === "string" && pkg.version ? pkg.version : "0.0.0";
+  } catch {
+    return "0.0.0";
+  }
+}
+
+function buildRunMeta(startedAtMs, target, opts) {
+  return {
+    startedAt: new Date(startedAtMs).toISOString(),
+    durationMs: Date.now() - startedAtMs,
+    toolkitVersion: toolkitVersion(),
+    nodeVersion: process.version,
+    invocation: { target, profile: opts.profile ?? null, mode: opts.mode ?? null, noAdvisory: !!opts.noAdvisory },
+  };
+}
+
+// ADR 0063 sec 5: "checks[]... one entry per spine check, with an outcome from the enum pass, fail,
+// warn, not-applicable, not-run, waived-by-pin". `ranReqIds` is the set of reqIds THIS SCOPE actually
+// executed - plugin scope runs the whole spine (CHECKS), component scope runs only checkAgentskills'
+// five (U3, U4, U5, U6, U7) - so a reqId outside that set reports "not-run" rather than a misleading
+// "pass" for a check that never looked at this subject at all.
+function buildChecksArray(resolved, conditional, ranReqIds) {
+  const byReq = {};
+  for (const f of resolved) {
+    if (isOperatorFinding(f) || f.reqId == null) continue;
+    (byReq[f.reqId] ??= []).push(f);
+  }
+  return CHECKS.map((m) => {
+    const reqId = m.meta.reqId;
+    if (!ranReqIds.has(reqId)) return { reqId, id: m.meta.id, tier: m.meta.tier, outcome: "not-run" };
+    const live = (byReq[reqId] ?? []).filter((f) => !f.suppressed);
+    let outcome;
+    if (live.length === 0) {
+      outcome = conditional.has(reqId) ? "not-applicable" : "pass";
+    } else {
+      const sevs = live.map((f) => f.effectiveSeverity ?? f.severity);
+      const anyWaived = live.some((f) => f.ceiling != null);
+      if (anyWaived && sevs.every((s) => s !== "error")) outcome = "waived-by-pin";
+      else if (sevs.some((s) => s === "error")) outcome = "fail";
+      else if (sevs.some((s) => s === "warn")) outcome = "warn";
+      else outcome = "pass";
+    }
+    return { reqId, id: m.meta.id, tier: m.meta.tier, outcome };
+  });
+}
+
+// Component scope runs only checkAgentskills (scripts/checks/agentskills.mjs), which composes exactly
+// U3 (frontmatter-valid), U4 (name-matches-dir), U5 (description-score), U6 (reference-links) and U7
+// (instruction-budget). Every other reqId is "not-run" for a component-scope checks[] entry.
+const COMPONENT_SCOPE_REQ_IDS = new Set(["U3", "U4", "U5", "U6", "U7"]);
+const PLUGIN_SCOPE_REQ_IDS = new Set(CHECKS.map((m) => m.meta.reqId));
+
+// ADR 0063 sec 5: "components[]... each component's description text, size, instruction-budget use
+// and emission targets". One entry per skill, subagent and command the plugin declares on disk.
+function buildComponentsArray(ctx) {
+  const targets = ctx.library?.data?.["agent-targets"] ?? null;
+  const out = [];
+  for (const s of ctx.skills ?? []) {
+    const lines = (s.body || "").replace(/\r?\n$/, "").split(/\r?\n/).length;
+    out.push({
+      name: s.name, type: "skill", description: s.frontmatter?.description ?? null,
+      sizeBytes: Buffer.byteLength(s.raw ?? "", "utf8"),
+      instructionBudget: { lines, max: INSTRUCTION_BUDGET_MAX_LINES, overBudget: lines > INSTRUCTION_BUDGET_MAX_LINES },
+      emissionTargets: targets,
+    });
+  }
+  for (const a of ctx.agentDocs ?? ctx.subagents ?? []) {
+    out.push({
+      name: a.name, type: "subagent", description: a.frontmatter?.description ?? null,
+      sizeBytes: Buffer.byteLength(a.raw ?? "", "utf8"), instructionBudget: null, emissionTargets: targets,
+    });
+  }
+  for (const c of ctx.commands ?? []) {
+    out.push({
+      name: c.name, type: "command", description: c.frontmatter?.description ?? null,
+      sizeBytes: Buffer.byteLength(c.raw ?? "", "utf8"), instructionBudget: null, emissionTargets: targets,
+    });
+  }
+  return out;
+}
+
+// ADR 0063 sec 5: "blockedFindings[]... the burndown as finding objects, alongside the existing
+// `blocked` strings". computeTierReport() stays unchanged in behaviour (ADR 0063's own Implementation
+// sites say so); this recomputes the SAME next-tier-blockers set independently, straight from the
+// already-resolved findings, rather than widening that module's return shape.
+function buildBlockedFindings(resolved, blocked) {
+  const nextTier = Object.keys(blocked ?? {})[0];
+  if (!nextTier) return [];
+  return resolved.filter(
+    (f) => !isOperatorFinding(f) && !f.suppressed && (f.effectiveSeverity ?? f.severity) === "error" && tierForReq(f.reqId) === nextTier
+  );
+}
 
 function groupByRule(findings) {
   const byRule = {};
@@ -34,8 +140,9 @@ const effSev = (f) => f.effectiveSeverity ?? f.severity; // resolved findings ca
 // skill), where there is no ctx to run a module against at all - "ran and found nothing" would be a
 // claim this function never made true. evaluate() and evaluateComponent() below compute the REAL
 // advisory result via computeAdvisoryLayer() and pass it in explicitly for plugin and component scope.
-function baseReport(scope, target, findings, advisory = { advisoryLayer: "off", advisoryFindings: null }) {
+function baseReport(scope, target, findings, advisory = { advisoryLayer: "off", advisoryFindings: null, health: null }, meta = {}) {
   return {
+    schemaVersion: 1,
     scope,
     target,
     findings,
@@ -49,6 +156,16 @@ function baseReport(scope, target, findings, advisory = { advisoryLayer: "off", 
     // protect a verdict path on its own; only the separate array does).
     advisoryLayer: advisory.advisoryLayer,
     advisoryFindings: advisory.advisoryFindings,
+    // ADR 0063 sec 3: `null` exactly when advisoryLayer is "off" (computeHealth already returns null
+    // in that case; `?? null` here only covers the "unknown" scope, which calls baseReport with no
+    // advisory argument at all).
+    health: advisory.health ?? null,
+    // ADR 0063 sec 5. Absent fields default to empty rather than undefined, so a report built before
+    // this change (a hand-built test fixture) still matches the schema's required shape.
+    run: meta.run ?? null,
+    checks: meta.checks ?? [],
+    components: meta.components ?? [],
+    blockedFindings: meta.blockedFindings ?? [],
   };
 }
 
@@ -98,6 +215,7 @@ export function dispositions(resolved) {
 }
 
 function evaluateComponent(target, opts = {}) {
+  const startedAt = Date.now();
   const skill = loadSkill(target);
   // The skill directory is the one root for BOTH the finding paths and the config, mirroring plugin
   // scope (root = the thing you graded). Rooting findings at the parent while loading config from the
@@ -115,7 +233,18 @@ function evaluateComponent(target, opts = {}) {
   // profile's off-set exactly as plugin scope does (computeAdvisoryLayer is the one shared
   // implementation - see its docblock in scripts/check.mjs).
   const advisory = computeAdvisoryLayer(ctx, { noAdvisory: opts.noAdvisory, profile: cfg.profile.value, advisoryModules: opts.advisoryModules });
-  return { ...baseReport("component", target, resolved, advisory), profile: cfg.profile.value, mode: cfg.mode.value };
+  // ADR 0063 sec 3: component scope has no library.json and therefore no pin, so `pinned` is left
+  // undefined - currencyCategory() reads that as the documented "unpinned" not-applicable case, the
+  // same fail-closed reading evaluate()'s plugin branch gives a plugin with no `standard` field.
+  const health = computeHealth(ctx, { advisoryLayer: advisory.advisoryLayer, profile: cfg.profile.value, pinned: undefined, shipped: shippedStandardEdition(), resolved });
+  const conditional = buildConditional(target);
+  const meta = {
+    run: buildRunMeta(startedAt, target, { profile: cfg.profile.value, mode: cfg.mode.value, noAdvisory: opts.noAdvisory }),
+    checks: buildChecksArray(resolved, conditional, COMPONENT_SCOPE_REQ_IDS),
+    components: buildComponentsArray(ctx),
+    blockedFindings: [], // component scope has no tier ladder, so there is no "next tier" burndown to carry
+  };
+  return { ...baseReport("component", target, resolved, { ...advisory, health }, meta), profile: cfg.profile.value, mode: cfg.mode.value };
 }
 
 export function evaluate(target, opts = {}) {
@@ -135,6 +264,7 @@ export function evaluate(target, opts = {}) {
     return evaluateMarketplace(target, opts);
   }
   if (looksLikePlugin(target)) {
+    const startedAt = Date.now();
     const ctx = loadPlugin(target);
     // F1 (ADR 0027), now ADR 0044: the pin is honoured by a ceiling applied last inside resolveFindings,
     // so a consumer's own `rules` override can no longer beat it (E26).
@@ -151,8 +281,20 @@ export function evaluate(target, opts = {}) {
     // --no-advisory and a profile's house-provenance off-set behave IDENTICALLY whether a plugin is
     // graded through check.mjs or through evaluate.mjs.
     const advisory = computeAdvisoryLayer(ctx, { noAdvisory: opts.noAdvisory, profile: cfg.profile.value, advisoryModules: opts.advisoryModules });
+    // ADR 0063 sec 3: the health number, computed beside (never through) the advisory layer above. The
+    // DECLARED pin (library.json's own standard field), not the ceiling-only `pinned` resolveFindings
+    // was given - currencyCategory reads the declared value itself and classifies it (unpinned,
+    // unparseable, baseline sentinel, ahead, or behind) exactly as ADR 0063 sec 3's table specifies.
+    const health = computeHealth(ctx, { advisoryLayer: advisory.advisoryLayer, profile: cfg.profile.value, pinned: ctx.library?.data?.standard, shipped: shippedStandardEdition(), resolved });
+    const conditional = buildConditional(target);
+    const meta = {
+      run: buildRunMeta(startedAt, target, { profile: cfg.profile.value, mode: cfg.mode.value, noAdvisory: opts.noAdvisory }),
+      checks: buildChecksArray(resolved, conditional, PLUGIN_SCOPE_REQ_IDS),
+      components: buildComponentsArray(ctx),
+      blockedFindings: buildBlockedFindings(resolved, t.blocked),
+    };
     return {
-      ...baseReport("plugin", target, resolved, advisory),
+      ...baseReport("plugin", target, resolved, { ...advisory, health }, meta),
       tier: t.tier, satisfies: t.satisfies, blocked: t.blocked,
       profile: cfg.profile.value, mode: cfg.mode.value,
       dispositions: dispositions(resolved),

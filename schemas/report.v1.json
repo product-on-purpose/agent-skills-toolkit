@@ -1,0 +1,137 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://product-on-purpose.github.io/agent-skills-toolkit/schemas/report.v1.json",
+  "title": "agent-skills-toolkit evaluation report, schema version 1",
+  "description": "The report object scripts/evaluate.mjs builds for plugin and component scope (ADR 0063 sec 5, 'the report object becomes versioned and additive'). No existing field is ever removed or renamed within schemaVersion 1; a future schemaVersion gets its own file. additionalProperties is true throughout on purpose: a scope-specific field (tier, dispositions, standardEditionNotice on plugin scope) is real and valid even though this schema does not enumerate every one of them - the contract this file guards is the SHARED shape every schemaVersion-1 report carries, not an exhaustive enumeration of every scope's extra fields.",
+  "type": "object",
+  "additionalProperties": true,
+  "required": [
+    "schemaVersion", "scope", "target", "findings", "byRule", "summary",
+    "advisoryLayer", "advisoryFindings", "health", "run", "checks", "components", "blockedFindings"
+  ],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "scope": { "type": "string", "enum": ["plugin", "component", "marketplace", "unknown"] },
+    "target": { "type": "string" },
+    "findings": { "type": "array", "items": { "$ref": "#/definitions/finding" } },
+    "byRule": { "type": "object" },
+    "summary": {
+      "type": "object",
+      "required": ["errors", "warns"],
+      "properties": { "errors": { "type": "integer", "minimum": 0 }, "warns": { "type": "integer", "minimum": 0 } }
+    },
+    "advisoryLayer": { "type": "string", "enum": ["on", "off"] },
+    "advisoryFindings": {
+      "description": "ADR 0063 sec 1: an array when advisoryLayer is 'on' (possibly empty), null when it is 'off'.",
+      "type": ["array", "null"],
+      "items": { "$ref": "#/definitions/advisoryFinding" }
+    },
+    "health": {
+      "description": "ADR 0063 sec 3: null exactly when advisoryLayer is 'off'.",
+      "oneOf": [
+        { "type": "null" },
+        { "$ref": "#/definitions/health" }
+      ]
+    },
+    "run": {
+      "description": "ADR 0063 sec 5: every volatile field - time, toolkit version, Node version, duration, invocation.",
+      "type": ["object", "null"],
+      "properties": {
+        "startedAt": { "type": "string", "format": "date-time" },
+        "durationMs": { "type": "integer", "minimum": 0 },
+        "toolkitVersion": { "type": "string" },
+        "nodeVersion": { "type": "string" },
+        "invocation": { "type": "object" }
+      }
+    },
+    "checks": { "type": "array", "items": { "$ref": "#/definitions/checkEntry" } },
+    "components": { "type": "array", "items": { "$ref": "#/definitions/componentEntry" } },
+    "blockedFindings": { "type": "array", "items": { "$ref": "#/definitions/finding" } }
+  },
+  "definitions": {
+    "finding": {
+      "type": "object",
+      "required": ["check", "severity", "message"],
+      "properties": {
+        "check": { "type": "string" },
+        "severity": { "type": "string", "enum": ["error", "warn"] },
+        "effectiveSeverity": { "type": "string", "enum": ["error", "warn", "off"] },
+        "message": { "type": "string" },
+        "file": { "type": ["string", "null"] },
+        "reqId": { "type": ["string", "null"] },
+        "suppressed": { "type": "boolean" },
+        "ceiling": { "type": ["object", "null"] }
+      }
+    },
+    "advisoryFinding": {
+      "type": "object",
+      "required": ["advisoryId", "provenance", "reqId"],
+      "properties": {
+        "advisoryId": { "type": ["string", "null"] },
+        "provenance": { "type": "string", "enum": ["objective", "vendor-cited", "house"] },
+        "reqId": { "type": "null" },
+        "severity": { "type": "string" },
+        "message": { "type": "string" },
+        "file": { "type": ["string", "null"] }
+      }
+    },
+    "checkEntry": {
+      "type": "object",
+      "required": ["reqId", "id", "tier", "outcome"],
+      "properties": {
+        "reqId": { "type": ["string", "null"] },
+        "id": { "type": "string" },
+        "tier": { "type": "string", "enum": ["universal", "convergent", "advanced"] },
+        "outcome": { "type": "string", "enum": ["pass", "fail", "warn", "not-applicable", "not-run", "waived-by-pin"] }
+      }
+    },
+    "componentEntry": {
+      "type": "object",
+      "required": ["name", "type"],
+      "properties": {
+        "name": { "type": "string" },
+        "type": { "type": "string", "enum": ["skill", "subagent", "command"] },
+        "description": { "type": ["string", "null"] },
+        "sizeBytes": { "type": ["integer", "null"], "minimum": 0 },
+        "instructionBudget": {
+          "type": ["object", "null"],
+          "properties": {
+            "lines": { "type": "integer", "minimum": 0 },
+            "max": { "type": "integer", "minimum": 0 },
+            "overBudget": { "type": "boolean" }
+          }
+        },
+        "emissionTargets": { "type": ["array", "null"], "items": { "type": "string" } }
+      }
+    },
+    "health": {
+      "type": "object",
+      "required": ["calibration", "categories"],
+      "properties": {
+        "calibration": { "type": "string", "enum": ["calibrated", "uncalibrated"] },
+        "categories": {
+          "type": "object",
+          "required": ["substance", "budget", "portability", "security", "currency"],
+          "properties": {
+            "substance": { "$ref": "#/definitions/healthCategory" },
+            "budget": { "$ref": "#/definitions/healthCategory" },
+            "portability": { "$ref": "#/definitions/healthCategory" },
+            "security": { "$ref": "#/definitions/healthCategory" },
+            "currency": { "$ref": "#/definitions/healthCategory" }
+          }
+        }
+      }
+    },
+    "healthCategory": {
+      "type": "object",
+      "required": ["state"],
+      "properties": {
+        "state": { "type": "string", "enum": ["scored", "ahead", "not-applicable", "off-by-profile"] },
+        "reason": { "type": "string" },
+        "componentCount": { "type": "integer", "minimum": 0 },
+        "measurement": { "type": ["object", "null"] },
+        "band": { "type": "string", "enum": ["healthy", "fair", "weak", "lowest"] }
+      }
+    }
+  }
+}

@@ -23,7 +23,8 @@
  */
 export const TIER_SCOPE_SENTENCE =
   "This tier reports structural conformance to a written Standard - deterministic and reproducible; " +
-  "it is not a content review, a safety audit, or a statement that the skills work.";
+  "it is not a content review, a safety audit, or a statement that the skills work. A report also " +
+  "carries a health number beside the tier (ADR 0063); it is informational and never changes this tier.";
 
 /** Where a reader goes for the long version. Absolute, because SARIF is read outside this repository. */
 export const LIMITATIONS_URL = "https://product-on-purpose.github.io/agent-skills-toolkit/explanation/limitations/";
