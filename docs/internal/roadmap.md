@@ -394,7 +394,11 @@ has a baseline measured 2026-10-30 in that ADR. A criterion that is measured and
 > **C4.** Someone outside the organisation uses it.
 
 **If ADR 0066 is accepted, the sequence after own plugins first is:** W6, then the behaviour loop, then cut
-3 (evidence), then cut 5 (the graded cohort), then Standard 0.18. Until it is ruled, W6 is next either way.
+3 (evidence), then cut 5 (the graded cohort), then Standard 0.18. Until it is ruled, W6 is next either way. Two named plans, both Proposed 2026-10-30, carry the work around
+that ruling: [`plan_validate-best-in-class/`](release-plans/plan_validate-best-in-class/RELEASE-PLAN.md)
+runs the pre-registered experiments whose results feed D-09, and
+[`plan_lead-with-the-gate/`](release-plans/plan_lead-with-the-gate/RELEASE-PLAN.md) retires the medal names
+and leads every public surface with the library gate.
 
 **Cut 6, closed.** It shipped as v1.20.0, tagged 2026-10-05, on npm 2026-10-14. The content MERGED on
 2026-09-21 ([PR #339](https://github.com/product-on-purpose/agent-skills-toolkit/pull/339)), and the

@@ -8,7 +8,7 @@ One folder per release, `plan_vX.Y.Z/`. This file exists because the shape was *
 across sixteen folders** with nothing stating what a packet must contain - and a convention nobody wrote
 down is one nobody can be held to.
 
-**A packet takes its `plan_vX.Y.Z/` name only once cutting begins** ([ADR 0057](../decisions/0057-unshipped-work-carries-a-name-never-a-version-number.md)). A packet for work that is planned but not being cut is named for the work: [`plan_onboarding-funnel/`](plan_onboarding-funnel/) is the worked precedent, renamed on 2026-08-28 after the number it had been given went to a different release. Naming a folder for a version is itself a forward assignment, and folder names are the hardest kind to correct because every link to them breaks.
+**A packet takes its `plan_vX.Y.Z/` name only once cutting begins** ([ADR 0057](../decisions/0057-unshipped-work-carries-a-name-never-a-version-number.md)). A packet for work that is planned but not being cut is named for the work: [`plan_onboarding-funnel/`](plan_onboarding-funnel/) is the worked precedent, renamed on 2026-08-28 after the number it had been given went to a different release. Two more named packets were proposed on 2026-10-30: [`plan_lead-with-the-gate/`](plan_lead-with-the-gate/RELEASE-PLAN.md) (retire the medal names, and lead with the library gate) and [`plan_validate-best-in-class/`](plan_validate-best-in-class/RELEASE-PLAN.md) (the pre-registered experiments behind ADR 0066). Naming a folder for a version is itself a forward assignment, and folder names are the hardest kind to correct because every link to them breaks.
 
 ## The shape
 
