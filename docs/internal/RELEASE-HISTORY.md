@@ -172,8 +172,8 @@ rendering at warn until 0.14 so nobody is gated on our defect.
 baseline, except two that gain one capped warning each from the `G4` migration. Zero verdicts moved.
 
 ## Where we are now
-- Version **1.22.0, cut 2026-10-29**, release PR open (merge, tag, GitHub release, and npm publish
-  follow). Standard **0.17**, **35-check spine**, **3 scopes** (plugin, component, marketplace), **27
+- Version **1.22.0, shipped 2026-10-29** (tagged at `49a03e0`, on npm, and pinned by the
+  `product-on-purpose` marketplace). Standard **0.17**, **35-check spine**, **3 scopes** (plugin, component, marketplace), **27
   skills**, suite **1935 tests, 1931 pass, 0 failures, 4 skipped**, gate **Advanced 0/0**,
   `release-ready` all seven gates green with a GitHub token. Full detail in [`STATUS.md`](STATUS.md),
   which is the live state this file's own convention points readers to. **This line read `1.17.0` from
@@ -183,14 +183,19 @@ baseline, except two that gain one capped warning each from the `G4` migration. 
   `check-readme-version.mjs` already compares the README's own Status section against `library.json`.
 
 ## What's next, and why (the roadmap, in priority order)
-The v1.6.0 headline (the manifest-vs-disk drift check) and the report glossary + Bronze reference page both shipped above. The remaining v1.6.0-program work lands as continuous supporting effort:
-1. **A dependable eval-run pipeline (F2).** Make the grade-record-improve loop reproducible end to end (pinned targets, a deterministic runner, a recorded dispatch contract). *Why:* the loop has proven its value but every run is still hand-orchestrated; this multiplies everything after it. Build it right before the next corpus batch so it is exercised immediately.
-2. **Measure advisory quality, not just cost (F3).** Build fixture plugins with known planted issues and a scoring key, so the AI review layer gets a real precision/recall number per model and effort, and replicate the model triple on a defect-rich target. *Why:* today we measure what a review costs but only narrate how good it is.
-3. **Authoring token measurements (F5).** Fill the token dossier's last unmeasured range by measuring real `askit-build-*` runs. *Why:* a builder should be able to budget an authoring run.
-4. **Carried:** corpus batch 3, a Gemini emitter, and the remainder of the competitive gap-analysis backlog. (The marketplace-scope evaluation mode carried here since v1.6.0 **shipped in v1.12.0**; E4, E9 and E23 shipped in v1.11.0.)
-5. **Next, and it is a Standard cut:** v1.13.0 "the contract you adopted" carries the Standard 0.13 bump. It replaces the pin-downgrade pre-pass and ADR 0041's unconditional cap with **one post-resolution Standard ceiling** over `since` and `until` (ADR 0044), which also closes **E26** (the pin downgrade is overridable by a consumer's own config) and **E38** (a subject's own config can lower an objective finding and still publish green), the latter by introducing grader-owned versus subject-owned config provenance. Riding that ceiling: `U13`'s warn-to-error graduation, ADR 0041's chain-migration cap graduation, and **E33** as the new `U14` check with its own ADR 0045 (spine 30 to 31). It also lands **E35** (the `gen-index` self-validation line, with a migration) and **E37** (the shell-probe timing budget, pulled in because it blocks the release-time counts gate).
-6. **Then v1.14.0 "current with the vendors":** the ADR pack (commands-as-skills, frontmatter vocabulary strictness, `U5` scope per **E14**), the code batch, and standing up vendor-watch, plus the two items that need an undrafted ADR - **E34** (which cross-member findings belong on the spine at all) and **E36** (malformed and mixed marketplace manifests). *Why it moved:* bundling three undrafted ADRs with a Standard bump made v1.13.0 a release-of-releases. "Evidence" shifts to v1.15.0 and "graded cohort" to v1.16.0.
+**The plan lives in [`roadmap.md`](roadmap.md); this section only says where it points.** Until
+2026-10-30 this section still described the v1.6.0 program and the v1.13.0 and v1.14.0 cuts, all long
+shipped. As of 2026-10-30:
 
+1. **Own plugins first is done.** Every plugin in the `product-on-purpose` marketplace pins Standard
+   0.17 at its latest release, and each earns its declared tier. *Why it came first:* a toolkit that
+   grades other people's plugins should first hold its own family to the same edition.
+2. **Next: W6, the report object and the health number.** A versioned report, a health number beside
+   the tier, and ADV4, a substance screen. *Why:* a plugin of placeholder files can still earn Gold
+   today, so the grade needs a substance reading beside it before it is shown to anyone else.
+3. **Then cut 3 (evidence) and cut 5 (the graded cohort).** Cut 3 needs two maintainer rulings and no
+   code. Cut 5 grades plugins outside this organisation in public, and it waits for W6.
+4. **Standard 0.18** collects the rule changes ruled so far. It is named, not scheduled.
 
 ### v1.14.0 - four things the gate was telling you were not true (2026-08-16)
 **What:** seven decisions written and MEASURED before any code, three new checks for files the runtime

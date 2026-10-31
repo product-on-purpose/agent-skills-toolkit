@@ -2,7 +2,7 @@
 title: "Roadmap - what is open, what it depends on, and what done means"
 description: "The tracked PLAN counterpart to STATUS.md's STATE: every open item with its acceptance criteria verbatim, every deferral with a reopening condition, every decline with a reason"
 status: live
-last-updated: "2026-10-25"
+last-updated: "2026-10-30"
 ---
 
 # Roadmap
@@ -431,6 +431,26 @@ governed. The toolkit changes the 2026-09-30 measurement found are
 [E75 (a marketplace minimum edition)](backlog/enhancements.md). The maintainer first chose an external
 cohort on 2026-09-28, then chose this after stating the project's goal as common standards across the
 plugins of a marketplace.
+
+**Own plugins first: COMPLETE 2026-10-30, measured.** Every member pins Standard 0.17 at its latest
+GitHub release, from `agent-plugins` registry 1.116.0
+([agent-plugins #144](https://github.com/product-on-purpose/agent-plugins/pull/144)). Each pinned commit
+was graded with toolkit v1.22.0 (`node scripts/evaluate.mjs <clone at the pinned commit> --json`). The
+S and G findings that a Bronze member still carries are the burndown to its next rung; they are not
+errors at its declared tier.
+
+| Plugin | Pinned release | Pinned commit | `standard` | Declared tier | Grade at the pin (toolkit v1.22.0) |
+|---|---|---|---|---|---|
+| agent-skills-toolkit | v1.22.0 | `49a03e0` | 0.17 | advanced (Gold) | Gold, 0 errors, 0 warnings |
+| critique-skills | v0.2.0 | `53eac2b` | 0.17 | convergent (Silver) | Silver, 0 errors, 0 warnings |
+| product-lifecycle-templates | v0.23.0 | `7fcea68` | 0.17 | advanced (Gold) | Gold, 0 errors, 0 warnings |
+| writing-style-catalog | v0.15.0 | `5ac3922` | 0.17 | universal (Bronze) | Bronze, 0 errors at its tier, 3 `U5` warnings |
+| pm-skills | v2.35.0 | `9236f26` | 0.17 | universal (Bronze) | Bronze, 0 errors at its tier, 40 `U5` warnings |
+| thinking-framework-skills | v0.19.0 | `244f99e` | 0.17 | advanced (Gold) | Gold, 0 errors, 7 `U5` warnings |
+
+Row 7's completion condition now holds, so [E75 (a marketplace minimum edition)](backlog/enhancements.md)
+is unblocked for ADR 0062. **The migration table below is kept as the 2026-10-23 and 2026-10-25 record;
+its "PR open" cells are history, not state.**
 
 **The migration order, per plugin, committed here because this page's own test - a reader who has
 never opened `_local/` must be able to pick up any open item - does not allow the tactical order to
