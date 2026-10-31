@@ -1019,7 +1019,7 @@ page carries has to resolve to something.
 - **Why it matters.** The maintainer's stated goal (2026-09-28) is common standards across the plugins in a marketplace. Today no catalogue can express that.
 - **Relation to E62 (the Standard pin has no floor), above.** E62 is parked on D-02 (the pin floor's deprecation window) because a GLOBAL floor changes what every badge already in the wild means. A floor that a catalogue owner sets would apply only to that catalogue's collection verdict. It may therefore not need D-01 (a health number beside the tier) or D-02, but that claim is itself for the ADR to test.
 - **Questions for the ADR.** Where the minimum lives (catalogue metadata or toolkit configuration). Whether a member below it reds the collection or warns. How the registry page shows it. ADR 0062 is reserved for this entry; ADRs 0063 to 0065 were taken on 2026-10-25, so it is no longer the next free number but stays this entry's.
-- **Status:** **RULED 2026-10-04: write ADR 0062 after the "own plugins first" migration finishes.** The migration moves every member to 0.17 by hand, and the minimum's job is to keep them there. Designing it after a real migration lets that migration inform the design. ADR 0062 stays reserved for it.
+- **Status:** **DRAFTED 2026-10-30.** [ADR 0062 (a marketplace's Standard floor lives in its own sidecar, and a member below it reds the collection)](../decisions/0062-a-marketplaces-standard-floor-lives-in-its-own-sidecar-and-reds-below-it.md) is written, status Proposed, awaiting the maintainer's acceptance or amendment.
 
 ## Dogfooding intake: critique-skills Standard 0.17 adoption (2026-09-30)
 
