@@ -21,10 +21,19 @@
  * The sentence. Pinned verbatim by a test: revising it should be a deliberate act in one commit, not a
  * drift that leaves five surfaces saying four things.
  */
+// W6 finding 9 (pre-merge adversarial review): the clause used to say "A report also carries a
+// health number beside the tier", printed on surfaces whose OWN report never does - scripts/gha-
+// step-summary.mjs's job summary is built from buildJsonReport() (scripts/check.mjs's --json), which
+// carries no health field at all, and the generated family-registry page shows tier only. Naming
+// the ARTIFACT that actually carries it ("the full evaluation report", scripts/evaluate.mjs's own
+// output - gen-site-reports.mjs's index literally labels its link to it that way) keeps the
+// sentence true on every surface that imports this constant, including the two above, because it
+// is a true statement about a DIFFERENT, nameable artifact rather than a claim about itself.
 export const TIER_SCOPE_SENTENCE =
   "This tier reports structural conformance to a written Standard - deterministic and reproducible; " +
-  "it is not a content review, a safety audit, or a statement that the skills work. A report also " +
-  "carries a health number beside the tier (ADR 0063); it is informational and never changes this tier.";
+  "it is not a content review, a safety audit, or a statement that the skills work. The full " +
+  "evaluation report also carries a health number beside the tier (ADR 0063); it is informational " +
+  "and never changes this tier.";
 
 /** Where a reader goes for the long version. Absolute, because SARIF is read outside this repository. */
 export const LIMITATIONS_URL = "https://product-on-purpose.github.io/agent-skills-toolkit/explanation/limitations/";

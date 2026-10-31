@@ -236,7 +236,7 @@ function evaluateComponent(target, opts = {}) {
   // ADR 0063 sec 3: component scope has no library.json and therefore no pin, so `pinned` is left
   // undefined - currencyCategory() reads that as the documented "unpinned" not-applicable case, the
   // same fail-closed reading evaluate()'s plugin branch gives a plugin with no `standard` field.
-  const health = computeHealth(ctx, { advisoryLayer: advisory.advisoryLayer, profile: cfg.profile.value, pinned: undefined, shipped: shippedStandardEdition(), resolved });
+  const health = computeHealth(ctx, { advisoryLayer: advisory.advisoryLayer, profile: cfg.profile.value, pinned: undefined, shipped: shippedStandardEdition(), resolved, advisoryFindings: advisory.advisoryFindings, adv4Measurement: advisory.adv4Measurement });
   const conditional = buildConditional(target);
   const meta = {
     run: buildRunMeta(startedAt, target, { profile: cfg.profile.value, mode: cfg.mode.value, noAdvisory: opts.noAdvisory }),
@@ -285,7 +285,7 @@ export function evaluate(target, opts = {}) {
     // DECLARED pin (library.json's own standard field), not the ceiling-only `pinned` resolveFindings
     // was given - currencyCategory reads the declared value itself and classifies it (unpinned,
     // unparseable, baseline sentinel, ahead, or behind) exactly as ADR 0063 sec 3's table specifies.
-    const health = computeHealth(ctx, { advisoryLayer: advisory.advisoryLayer, profile: cfg.profile.value, pinned: ctx.library?.data?.standard, shipped: shippedStandardEdition(), resolved });
+    const health = computeHealth(ctx, { advisoryLayer: advisory.advisoryLayer, profile: cfg.profile.value, pinned: ctx.library?.data?.standard, shipped: shippedStandardEdition(), resolved, advisoryFindings: advisory.advisoryFindings, adv4Measurement: advisory.adv4Measurement });
     const conditional = buildConditional(target);
     const meta = {
       run: buildRunMeta(startedAt, target, { profile: cfg.profile.value, mode: cfg.mode.value, noAdvisory: opts.noAdvisory }),
@@ -305,7 +305,14 @@ export function evaluate(target, opts = {}) {
     };
   }
   const f = finding("scope-detection", SEVERITY.ERROR, "not a plugin or skill: expected a library.json (plugin) or a SKILL.md (component) at " + target);
-  return baseReport("unknown", target, [f]);
+  // W6 finding 12: `health` stays null (this scope is never gradable, so there is nothing to
+  // compute advisory findings or health FROM), but `run.invocation` is filled in anyway, because an
+  // unknown-scope report with `run: null` gives a reader no way to tell "advisory off by request"
+  // (--no-advisory) from "advisory off because the target could not be graded at all" - both read
+  // as off either way (baseReport()'s own fail-closed default), but only one of them was CHOSEN.
+  return baseReport("unknown", target, [f], undefined, {
+    run: { invocation: { target, profile: opts.profile ?? null, mode: opts.mode ?? null, noAdvisory: !!opts.noAdvisory } },
+  });
 }
 
 export function formatReport(r) {

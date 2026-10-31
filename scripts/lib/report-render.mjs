@@ -568,7 +568,9 @@ function renderMarkdown(report, opts = {}) {
     out.push(
       "**Summary: five categories computed from measured signals only, never from a model. " +
       "Orthogonal to the tier above: a Bronze plugin can outscore a Gold one, by design (ADR 0063). " +
-      `Calibration: ${m.health.calibration} - every category shows its raw measurement; a band is shown only once a category is calibrated.**`
+      // W6 finding 6: calibration is a PER-CATEGORY state (see each row's own Band column), never one
+      // value for all five - so this summary no longer names a single calibration word.
+      "Each category calibrates on its own; a band is shown only once that category is calibrated.**"
     );
     out.push("");
     out.push(mdTable(
@@ -936,7 +938,7 @@ function htmlHealthSection(m) {
     return `<tr><td><span class="cn">${escapeHtml(name)}</span></td><td>${escapeHtml(c.state)}</td><td>${c.componentCount ?? ""}</td><td>${escapeHtml(healthMeasurementText(c))}</td><td>${escapeHtml(healthBandText(name, c))}</td></tr>`;
   }).join("");
   const body = `<div class="tablecard"><table><thead><tr><th>Category</th><th style="width:120px">State</th><th style="width:100px">Components</th><th>Measurement</th><th style="width:110px">Band</th></tr></thead><tbody>${rows}</tbody></table></div>`;
-  return htmlSection("s13", "13", "Health (informational)", `Five categories computed from measured signals only (ADR 0063). Orthogonal to the tier above - a Bronze plugin can outscore a Gold one, by design. Calibration: ${m.health.calibration}.`, body);
+  return htmlSection("s13", "13", "Health (informational)", `Five categories computed from measured signals only (ADR 0063). Orthogonal to the tier above - a Bronze plugin can outscore a Gold one, by design. Each category calibrates on its own; see the Band column.`, body);
 }
 
 // Release readiness band (release reports): a prominent go / no-go right after the masthead.

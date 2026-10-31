@@ -19,7 +19,8 @@ const SCHEMA = JSON.parse(readFileSync(path.join(REPO, "schemas/report.v1.json")
  * A small, deliberately partial JSON Schema (draft-07) validator - only the keywords
  * schemas/report.v1.json actually uses: type (string or array of strings, including "null"), const,
  * enum, required, properties, additionalProperties (ignored: true throughout this schema, so nothing
- * to enforce), items, oneOf, and local $ref (resolved only against "#/definitions/<name>" in THIS
+ * to enforce), items, oneOf, if/then/else (W6 finding 11: "advisoryLayer off implies advisoryFindings
+ * and health are null"), and local $ref (resolved only against "#/definitions/<name>" in THIS
  * document). It is not a general-purpose validator and must never be imported outside this test file.
  * Returns an array of error strings; empty means valid.
  */
@@ -44,6 +45,11 @@ function validate(schema, data, path_ = "$") {
     return errors;
   }
 
+  if (schema.if) {
+    const ifErrors = validate(schema.if, data, path_);
+    if (ifErrors.length === 0 && schema.then) errors.push(...validate(schema.then, data, path_));
+    else if (ifErrors.length > 0 && schema.else) errors.push(...validate(schema.else, data, path_));
+  }
   if (schema.const !== undefined && data !== schema.const) {
     errors.push(`${path_}: expected const ${JSON.stringify(schema.const)}, got ${JSON.stringify(data)}`);
   }
@@ -110,6 +116,18 @@ test("validation CAN fail: a report missing a required top-level field is reject
   delete broken.health;
   const errors = validate(SCHEMA, broken);
   assert.ok(errors.length > 0, "a report missing `health` must fail validation - a guard that cannot fail is not a guard");
+});
+
+// W6 finding 11: the schema's if/then enforces "advisoryLayer off implies advisoryFindings and health
+// are null". The positive case is already covered by "a REAL plugin report with --no-advisory" above
+// (health/advisoryFindings really ARE both null there, and that report must still validate). This is
+// the negative case a guard needs to be shown failing: a report that says the layer is off but still
+// carries health data must be rejected.
+test("validation CAN fail: advisoryLayer 'off' beside a non-null health is rejected", () => {
+  const r = evaluate(path.join(REPO, "tests/fixtures/golden/lone-skill"));
+  const broken = { ...r, advisoryLayer: "off", advisoryFindings: null }; // health stays whatever the real report had - non-null
+  const errors = validate(SCHEMA, broken);
+  assert.ok(errors.some((e) => e.includes("health")), `expected a health error, got:\n${errors.join("\n")}`);
 });
 
 test("validation CAN fail: an invalid checks[] outcome is rejected", () => {

@@ -9,9 +9,20 @@
     "schemaVersion", "scope", "target", "findings", "byRule", "summary",
     "advisoryLayer", "advisoryFindings", "health", "run", "checks", "components", "blockedFindings"
   ],
+  "if": {
+    "properties": { "advisoryLayer": { "const": "off" } },
+    "required": ["advisoryLayer"]
+  },
+  "then": {
+    "description": "W6 finding 11: advisoryLayer 'off' implies BOTH advisoryFindings and health are null - the same fail-closed reading ADR 0063 sec 1 already requires of validateReport() in scripts/gha-action-outputs.mjs, now also a machine-checkable property of this schema.",
+    "properties": {
+      "advisoryFindings": { "type": "null" },
+      "health": { "type": "null" }
+    }
+  },
   "properties": {
     "schemaVersion": { "const": 1 },
-    "scope": { "type": "string", "enum": ["plugin", "component", "marketplace", "unknown"] },
+    "scope": { "type": "string", "enum": ["plugin", "component", "unknown"] },
     "target": { "type": "string" },
     "findings": { "type": "array", "items": { "$ref": "#/definitions/finding" } },
     "byRule": { "type": "object" },
@@ -105,10 +116,10 @@
       }
     },
     "health": {
+      "description": "ADR 0063 sec 4 / W6 finding 6: calibration is a PER-CATEGORY state, not one value for all five - see each healthCategory's own `calibration` field. currency is never banded (sec 3) and carries no `calibration` field at all.",
       "type": "object",
-      "required": ["calibration", "categories"],
+      "required": ["categories"],
       "properties": {
-        "calibration": { "type": "string", "enum": ["calibrated", "uncalibrated"] },
         "categories": {
           "type": "object",
           "required": ["substance", "budget", "portability", "security", "currency"],
@@ -123,13 +134,15 @@
       }
     },
     "healthCategory": {
+      "description": "componentCount is REQUIRED in every state (W6 finding 11): even not-applicable and off-by-profile report how many components were in scope (zero, or the live count the profile turned signal off for), never silently omitting it.",
       "type": "object",
-      "required": ["state"],
+      "required": ["state", "componentCount"],
       "properties": {
         "state": { "type": "string", "enum": ["scored", "ahead", "not-applicable", "off-by-profile"] },
         "reason": { "type": "string" },
         "componentCount": { "type": "integer", "minimum": 0 },
         "measurement": { "type": ["object", "null"] },
+        "calibration": { "type": "string", "enum": ["calibrated", "uncalibrated"] },
         "band": { "type": "string", "enum": ["healthy", "fair", "weak", "lowest"] }
       }
     }

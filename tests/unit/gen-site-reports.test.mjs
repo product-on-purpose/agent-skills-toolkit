@@ -81,11 +81,17 @@ test("RS-E3: the scope sentence is ONE canonical wording, not a paraphrase per s
   // The item's whole point: the sentence lives in one place that every surface inherits, so the count of
   // placements stops being load-bearing. Pinned verbatim here - if the wording is ever revised it should
   // be revised deliberately, in one commit, with this assertion updated alongside it.
+  //
+  // W6 finding 9 (pre-merge adversarial review): "A report also carries a health number" was false on
+  // two of the surfaces that print this constant - scripts/gha-step-summary.mjs's job summary and the
+  // generated family-registry page carry no health field at all. Naming the artifact that DOES ("The
+  // full evaluation report") keeps the sentence true everywhere it is printed.
   assert.equal(
     TIER_SCOPE_SENTENCE,
     "This tier reports structural conformance to a written Standard - deterministic and reproducible; " +
-      "it is not a content review, a safety audit, or a statement that the skills work. A report also " +
-      "carries a health number beside the tier (ADR 0063); it is informational and never changes this tier.",
+      "it is not a content review, a safety audit, or a statement that the skills work. The full " +
+      "evaluation report also carries a health number beside the tier (ADR 0063); it is informational " +
+      "and never changes this tier.",
   );
 });
 

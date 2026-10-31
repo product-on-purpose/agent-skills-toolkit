@@ -14,6 +14,7 @@ import { statSync } from "node:fs";
 import { loadPlugin } from "./lib/load-plugin.mjs";
 import { runAllChecks, provenanceByReq } from "./lib/registry.mjs";
 import { runAdvisoryModules, ADVISORY_MODULES } from "./lib/advisory-registry.mjs";
+import { measure as adv4Measure, meta as adv4Meta } from "./advisory/adv4-substance.mjs";
 import { SINCE_BY_REQ } from "./lib/standard-gate.mjs";
 import { loadConfig, publicConfig, withGraderOptions, ORIGIN } from "./lib/config.mjs";
 import { isOperatorFinding } from "./lib/findings.mjs";
@@ -57,7 +58,7 @@ export function gateExitFromFindings(findings, declaredTier) {
  */
 export function computeAdvisoryLayer(ctx, { noAdvisory = false, profile, advisoryModules = ADVISORY_MODULES } = {}) {
   const advisoryLayer = noAdvisory ? "off" : "on";
-  if (noAdvisory) return { advisoryLayer, advisoryFindings: null };
+  if (noAdvisory) return { advisoryLayer, advisoryFindings: null, adv4Measurement: null };
   // ADR 0063 sec 1 / ADR 0029: under a profile whose advisoryOff names an ADV id (plain-plugin turns
   // off the house-provenance ones), that signal does not run for this grade AT ALL - filtered out of
   // the MODULE LIST before a single one of them executes, not run and then discarded, so a turned-off
@@ -67,7 +68,17 @@ export function computeAdvisoryLayer(ctx, { noAdvisory = false, profile, advisor
   const activeProfile = PROFILES[profile] ?? PROFILES["askit-library"];
   const advisoryOff = new Set(activeProfile.advisoryOff ?? []);
   const modulesToRun = advisoryModules.filter((m) => !advisoryOff.has(m?.meta?.advisoryId));
-  return { advisoryLayer, advisoryFindings: runAdvisoryModules(ctx, modulesToRun) };
+  // W6 finding 8 (health recomputes the advisory scans): ADV4's measure() does the SAME O(n^2)
+  // pairwise description-similarity work check() just paid for above (ADV4's own check() now calls
+  // measure() once internally - see adv4-substance.mjs). Computing it a SECOND time from inside
+  // scripts/lib/health-score.mjs would pay for that pass twice per run. Computed here, exactly once,
+  // and handed to every caller (runGate(), evaluate.mjs's two scopes, gradeMember()) that wants the
+  // substance health category - never recomputed downstream. Only when ADV4 actually ran: under a
+  // profile that turns ADV4 off (plain-plugin), the health category's own off-by-profile branch
+  // never looks at this field, so there is nothing to compute.
+  const adv4Active = modulesToRun.some((m) => m?.meta?.advisoryId === adv4Meta.advisoryId);
+  const adv4Measurement = adv4Active ? adv4Measure(ctx) : null;
+  return { advisoryLayer, advisoryFindings: runAdvisoryModules(ctx, modulesToRun), adv4Measurement };
 }
 
 export function runGate(root, ctx = loadPlugin(root), { strict = false, mode, profile, noAdvisory = false, advisoryModules = ADVISORY_MODULES } = {}) {

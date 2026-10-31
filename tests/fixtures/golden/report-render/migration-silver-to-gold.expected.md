@@ -248,11 +248,11 @@ The conformance layer is deterministic and reproducible: re-run `node scripts/ch
 
 | ADV ID | Provenance | Finding | File |
 | --- | --- | --- | --- |
-| ADV4 | house | SKILL.md body for "sf-do-thing" is 3 word(s), at or under the 20-word substance floor. A body this short is unlikely to tell an agent how to do the thing the skill claims to do. | skills/sf-do-thing/SKILL.md |
+| ADV4 | house | SKILL.md body for "sf-do-thing" is 4 word(s), at or under the 20-word substance floor. A body this short is unlikely to tell an agent how to do the thing the skill claims to do. | skills/sf-do-thing/SKILL.md |
 
 ## 13 Health (informational)
 
-**Summary: five categories computed from measured signals only, never from a model. Orthogonal to the tier above: a Bronze plugin can outscore a Gold one, by design (ADR 0063). Calibration: uncalibrated - every category shows its raw measurement; a band is shown only once a category is calibrated.**
+**Summary: five categories computed from measured signals only, never from a model. Orthogonal to the tier above: a Bronze plugin can outscore a Gold one, by design (ADR 0063). Each category calibrates on its own; a band is shown only once that category is calibrated.**
 
 | Category | State | Components | Measurement | Band |
 | --- | --- | --- | --- | --- |

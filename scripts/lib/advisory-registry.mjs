@@ -79,35 +79,19 @@ export const ADVISORY_MODULES = Object.freeze([adv1Portability, adv2PreloadCap, 
 // ---------------------------------------------------------------------------
 //
 // PRE-REGISTERED 2026-10-30, in the commit that precedes BOTH the corpus measurement and the commit
-// that adds the two falsifiable tests (ADR 0063 sec 4: "Git order is the evidence"). Every number here
-// is imported by scripts/lib/health-score.mjs and by the falsifiable tests; neither restates a cut
-// point as a literal, so a cut point can only ever move by editing this one place.
-
-/** The four band names, worst to best is the reverse of this order ("lowest" first on purpose: it is
- * the band the two falsifiable tests name). Applies to the four SCORED categories (substance, budget,
- * portability, security); currency has no band this pass (ADR 0063 sec 3: "Currency has no band in
- * this pass. A band would say how far behind is too far, and that is D-02's question."). */
-export const HEALTH_BANDS = Object.freeze(["lowest", "weak", "fair", "healthy"]);
-
-/** A 0-100 score's band cut points: score >= healthyMin -> "healthy"; >= fairMin -> "fair"; >= weakMin
- * -> "weak"; below weakMin -> "lowest". `weakMin` is the floor the potemkin-gold falsifiable test
- * checks a score against directly (ADR 0063 sec 4: "the test asks whether the fixture falls below a
- * fixed floor, not whether the floor was validated") - it applies regardless of whether the category's
- * calibration state is "calibrated" or "uncalibrated", because an uncalibrated category still shows no
- * band but still reports its raw measurement and score. */
-export const HEALTH_BAND_CUT_POINTS = Object.freeze({ healthyMin: 80, fairMin: 50, weakMin: 20 });
-
-/** The ship bar (ADR 0063 sec 4): for each banded category, the most deserving (labelled `deserves:
- * true`) trees allowed in the lowest band, and the smallest share of labelled undeserving trees that
- * must land below the top ("healthy") band. Pre-registered so a FUTURE calibration pass is checked
- * against a bar fixed before that pass ran, never chosen after the fact to flatter its own result.
- * Unused this ship: docs/reference/health-score.md records that every category is below
- * HEALTH_CALIBRATION_MINIMUM, so there is nothing calibrated yet to hold to this bar. */
-export const HEALTH_SHIP_BAR = Object.freeze({ falsePositiveCeiling: 0, separationFloor: 0.8 });
-
-/** ADR 0063 sec 4: "a category needs at least 5 positive and 5 negative labelled trees before it shows
- * a band." Below this minimum on EITHER side, the category reports `uncalibrated` and shows no band. */
-export const HEALTH_CALIBRATION_MINIMUM = 5;
+// that adds the two falsifiable tests (ADR 0063 sec 4: "Git order is the evidence"). Moved W6
+// (post-merge-review finding 10) into the leaf data module scripts/lib/health-constants.mjs and
+// re-exported here VERBATIM - not re-measured by the move - so this file's own import of
+// scripts/advisory/adv4-substance.mjs (for ADVISORY_MODULES) cannot create a cycle with that file
+// importing its own BODY_WORD_FLOOR/DESCRIPTION_DUPLICATE_THRESHOLD back. Every existing import of
+// HEALTH_BANDS/HEALTH_BAND_CUT_POINTS/HEALTH_SHIP_BAR/HEALTH_CALIBRATION_MINIMUM from THIS module
+// keeps working.
+export {
+  HEALTH_BANDS,
+  HEALTH_BAND_CUT_POINTS,
+  HEALTH_SHIP_BAR,
+  HEALTH_CALIBRATION_MINIMUM,
+} from "./health-constants.mjs";
 
 /**
  * Run every registered advisory module over ctx and return its findings, flattened and stamped.

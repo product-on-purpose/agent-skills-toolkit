@@ -77,12 +77,57 @@ test("description-duplicate fires at or above DESCRIPTION_DUPLICATE_THRESHOLD, s
   });
 });
 
-test("placeholder-phrase catalogue fires on a generic placeholder phrase", () => {
+// W6 finding 4: a placeholder phrase fires only when it is the WHOLE content of a paragraph, never a
+// substring inside a longer sentence - so the fixture body below puts the phrase on its own paragraph,
+// with unrelated filler in a second paragraph to keep the body comfortably over BODY_WORD_FLOOR too.
+test("placeholder-phrase catalogue fires on a generic placeholder phrase occupying its own paragraph", () => {
   withPlugin({
-    ph: { description: "Converts a list of tasks into a prioritized plan for the team to follow.", body: "Lorem ipsum dolor sit amet, this skill body is placeholder content that says nothing real at all about what it does." },
+    ph: {
+      description: "Converts a list of tasks into a prioritized plan for the team to follow.",
+      body: "Placeholder content.\n\nThis body exists only to exercise the placeholder-phrase signal in isolation from the body-length and duplicate-description signals, so this second paragraph is nothing but filler padding to keep the overall word count comfortably clear of the substance floor on its own.",
+    },
   }, (ctx) => {
     const findings = check(ctx).filter((f) => f.check === "adv4-substance-placeholder-body");
     assert.equal(findings.length, 1);
+  });
+});
+
+// W6 finding 4: the false positive the pre-merge review found. "not implemented" sits at a word
+// boundary inside this sentence, so a plain substring/word-boundary match still fires on it; only
+// POSITION (the phrase is never the WHOLE paragraph here, just a clause inside a much longer one) tells
+// genuine instructional prose apart from an actual placeholder stub. Committed as a negative fixture,
+// the same role tests/fixtures/advisory/ already gives ADV3's "discusses the attack" case.
+test("a legitimate skill discussing 'not implemented' in prose is not flagged as a placeholder body", () => {
+  withPlugin({
+    honest: {
+      description: "Walks a user through a troubleshooting checklist one step at a time.",
+      body: "This skill walks through a troubleshooting checklist step by step, asking the user clarifying questions whenever a step's outcome is ambiguous. If a feature is not implemented yet, say so plainly instead of guessing, and point the user at the relevant backlog item so they can track it. Continue to the next step only once the current one's result is confirmed, and summarize the outcome in a short report at the end.",
+    },
+  }, (ctx) => {
+    const findings = check(ctx).filter((f) => f.check === "adv4-substance-placeholder-body");
+    assert.equal(findings.length, 0, "prose that DISCUSSES non-implementation must not score as a placeholder body");
+  });
+});
+
+// W6 finding 1: CJK text has no whitespace to split on, so a naive `/\s+/` word count reads an entire
+// substantive paragraph as ONE "word" and puts any real CJK skill body at or under BODY_WORD_FLOOR.
+// Shown failing first: stash this fix (git checkout -- scripts/advisory/adv4-substance.mjs) and this
+// test goes red, because the pre-fix wordCount() returns 1 for the whole Japanese paragraph below.
+test("a substantive Chinese/Japanese body is not flagged as under the word-count floor", () => {
+  withPlugin({
+    ja: {
+      description: "日々のタスクを整理し、優先順位をつけて計画を作成します。",
+      body:
+        "このスキルは、ユーザーから受け取った複数の作業項目を読み取り、締め切りと重要度に基づいて並べ替え、" +
+        "一日の計画として提示します。各項目については、想定される所要時間と依存関係も併せて記録し、" +
+        "ユーザーが途中で優先順位を変更した場合には、残りの項目を自動的に再計算して順序を更新します。" +
+        "最後に、完了した項目と残っている項目を分けて要約し、次に取り組むべき作業を一つ提案します。",
+    },
+  }, (ctx) => {
+    const m = measure(ctx);
+    assert.equal(m.underFloorCount, 0, "a real CJK body must clear the word-count floor, not read as one giant 'word'");
+    const findings = check(ctx).filter((f) => f.check === "adv4-substance-body-length");
+    assert.equal(findings.length, 0);
   });
 });
 
@@ -119,6 +164,26 @@ test("measure() is RAW: identical regardless of profile, since it reads ctx dire
     assert.ok(underLibrary.advisoryFindings.some((f) => f.advisoryId === "ADV4"), "ADV4 runs under the full ladder");
     assert.ok(!underPlain.advisoryFindings.some((f) => f.advisoryId === "ADV4"), "ADV4 is house-provenance-exempt under plain-plugin");
   });
+});
+
+// W6 finding 13: measure() used to group by the skill's declared `name` (a Set of names), so two
+// distinct skills sharing one name - two different roots, as a marketplace grade can produce - silently
+// collapsed into a single flagged entry. Grouping by file path (relPath(ctx.root, skillMdPath)) keeps
+// them apart. Built by hand, with no SKILL.md on disk: only the fields measure()/wordCount() touch.
+test("measure() counts two same-named skills at different paths as two components, not one", () => {
+  const shortBody = "one two three four five six seven eight nine ten eleven twelve thirteen fourteen fifteen sixteen seventeen eighteen nineteen twenty";
+  const ctx = {
+    root: "/plugin",
+    skills: [
+      { name: "dup", skillMdPath: "/plugin/skills/dup/SKILL.md", body: shortBody, frontmatter: { description: "Converts a list of tasks into a prioritized plan to follow each day." } },
+      { name: "dup", skillMdPath: "/plugin/vendor/other/skills/dup/SKILL.md", body: shortBody, frontmatter: { description: "Schedules a recurring reminder for a weekly team meeting on Fridays." } },
+    ],
+  };
+  const m = measure(ctx);
+  assert.equal(m.componentCount, 2, "two skills on disk, regardless of shared name");
+  assert.equal(m.underFloorCount, 2, "both short bodies must be counted - a name-keyed Set would collapse these into 1");
+  const files = m.details.underFloor.map((d) => d.skill.skillMdPath).sort();
+  assert.deepEqual(files, ["/plugin/skills/dup/SKILL.md", "/plugin/vendor/other/skills/dup/SKILL.md"]);
 });
 
 test("every finding carries reqId: null and no advisoryId (the registry stamps advisoryId, not the module)", () => {
