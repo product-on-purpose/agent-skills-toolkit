@@ -11,8 +11,8 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 
-- **`askit-build-skill` now starts from a repository's own skill template when one exists ([E78 (step 2 copies the generic template where the consuming repository has its own)](docs/internal/backlog/enhancements.md)).** Step 2 used to copy this toolkit's `templates/SKILL.md` unconditionally. A plugin with a house template enforced by its own gate then got a skill that gate rejects. The builder, the `askit-skill-author` subagent and the builder pattern now all say the house template governs.
-- **The phase-2 craft review now works in fallback mode ([E79 (phase 2 delegates to a subagent a fallback-mode session does not have)](docs/internal/backlog/enhancements.md)).** When the toolkit is a sibling checkout rather than an installed plugin, no `askit-reviewer` agent type exists. Step 3 now says to brief a general-purpose agent with the reviewer definition and the rubric instead.
+- **`askit-build-skill` now starts from a repository's own skill template when one exists ([#390](https://github.com/product-on-purpose/agent-skills-toolkit/pull/390), [E78 (step 2 copies the generic template where the consuming repository has its own)](docs/internal/backlog/enhancements.md)).** Step 2 used to copy this toolkit's `templates/SKILL.md` unconditionally. A plugin with a house template enforced by its own gate then got a skill that gate rejects. The builder, the `askit-skill-author` subagent and the builder pattern now all say the house template governs.
+- **The phase-2 craft review now works in fallback mode ([#390](https://github.com/product-on-purpose/agent-skills-toolkit/pull/390), [E79 (phase 2 delegates to a subagent a fallback-mode session does not have)](docs/internal/backlog/enhancements.md)).** When the toolkit is a sibling checkout rather than an installed plugin, no `askit-reviewer` agent type exists. Step 3 now says to brief a general-purpose agent with the reviewer definition and the rubric instead.
 
 ## [1.22.0] - 2026-10-29
 
