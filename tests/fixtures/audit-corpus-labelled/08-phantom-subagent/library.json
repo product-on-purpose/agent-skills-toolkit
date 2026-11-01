@@ -1,0 +1,62 @@
+{
+  "name": "phantom",
+  "version": "1.0.0",
+  "description": "Creates output for things. Use when the user asks for things.",
+  "standard": "0.15",
+  "tier": "convergent",
+  "agent-targets": [
+    "claude",
+    "codex"
+  ],
+  "prefix": "ph-",
+  "author": {
+    "name": "audit"
+  },
+  "license": "Apache-2.0",
+  "keywords": [
+    "audit"
+  ],
+  "components": {
+    "skills": [
+      {
+        "name": "ph-skill-one",
+        "path": "skills/ph-skill-one/SKILL.md",
+        "version": "0.1.0",
+        "tier": "universal",
+        "status": "active"
+      },
+      {
+        "name": "ph-skill-two",
+        "path": "skills/ph-skill-two/SKILL.md",
+        "version": "0.1.0",
+        "tier": "universal",
+        "status": "active"
+      },
+      {
+        "name": "ph-skill-three",
+        "path": "skills/ph-skill-three/SKILL.md",
+        "version": "0.1.0",
+        "tier": "universal",
+        "status": "active"
+      }
+    ],
+    "subagents": [
+      {
+        "name": "ph-agent-one",
+        "path": "agents/ph-agent-one.md",
+        "version": "0.1.0",
+        "tier": "convergent",
+        "status": "active"
+      }
+    ],
+    "commands": [
+      {
+        "name": "ph-run",
+        "path": "commands/ph-run.md",
+        "version": "0.1.0",
+        "tier": "convergent",
+        "status": "active"
+      }
+    ]
+  }
+}

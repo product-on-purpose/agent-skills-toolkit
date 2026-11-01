@@ -155,7 +155,9 @@ test("CLI gha-action-outputs.mjs reads a check.mjs --json file and prints tier/e
     assert.match(lines[1], /^errors=\d+$/);
     assert.match(lines[2], /^warnings=\d+$/);
     assert.match(lines[3], /^operator-errors=0$/, "this fixture carries no askit.config.json, so nothing is wrong with the RUN");
-    assert.match(lines[4], /^advisory-count=0$/, "no ADV screen ships yet, so the layer runs and finds nothing");
+    // ADV4 (W6) fires once on this fixture's own deliberately short skill body - a real substance
+    // signal, not a defect in this test or the fixture (advisory findings never gate anything).
+    assert.match(lines[4], /^advisory-count=1$/, "ADV4's substance floor fires on this fixture's short skill body");
   } finally {
     rmSync(dir, { recursive: true, force: true });
   }

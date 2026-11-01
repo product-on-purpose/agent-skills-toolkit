@@ -127,7 +127,21 @@ function readTextCandidate(abs, maxBytes) {
  * `docs` to prove the negative-docs fixture's zero findings come from the scope rule and not from a
  * pattern that happens not to match.
  */
+// W6 finding 8 (health recomputes the advisory scans): the REAL default scope (no scopeRoots/
+// maxBytes override) is cached per ctx object. check() calls this once to build ADV3's findings and
+// scripts/lib/health-score.mjs's security category calls it again for its componentCount
+// denominator - both reads from DISK (readTextCandidate) over every in-scope file, which is the
+// expensive half of ADV3's rerun, more than the ADV1 rerun. Caching collapses the two calls that
+// happen to share one ctx object (the same ctx evaluate()/runGate() passes to both) into one file-
+// read pass, with no change to what either caller sees. NEVER caches the scope-widening mutant path
+// (an explicit opts.scopeRoots/opts.maxBytes) - that path exists only so a test can prove the default
+// scope rule is load-bearing, and caching it would let a first call's wider scope leak into a later
+// default-scope call for the same ctx.
+const scanTargetsCache = new WeakMap();
+
 export function listScanTargets(ctx, opts = {}) {
+  const isDefaultScope = opts.scopeRoots === undefined && opts.maxBytes === undefined;
+  if (isDefaultScope && scanTargetsCache.has(ctx)) return scanTargetsCache.get(ctx);
   const root = ctx.root;
   const maxBytes = opts.maxBytes ?? DEFAULT_MAX_BYTES;
   const out = [];
@@ -163,6 +177,7 @@ export function listScanTargets(ctx, opts = {}) {
     if (existsSync(dir)) for (const abs of walkFiles(dir)) addFromDisk(abs);
   }
 
+  if (isDefaultScope) scanTargetsCache.set(ctx, out);
   return out;
 }
 

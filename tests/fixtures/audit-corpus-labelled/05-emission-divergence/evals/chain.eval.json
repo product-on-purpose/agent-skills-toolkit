@@ -1,0 +1,10 @@
+{
+  "covers": {
+    "chain": [
+      "ed-skill-one",
+      "ed-agent-one"
+    ]
+  },
+  "description": "covers the one edge",
+  "cases": []
+}

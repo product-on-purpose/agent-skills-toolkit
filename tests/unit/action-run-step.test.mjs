@@ -177,14 +177,15 @@ for (const failOnError of ["true", "false"]) {
 // --- symmetry sanity check: the fix must not regress the PASSING path ---
 
 // ADR 0063: the advisory input is the ONE way the Action's own surface can reach --no-advisory (the
-// CLI flag itself has no YAML presence otherwise). advisory-count must read "0" (ran, found nothing -
-// no real ADV module ships yet) when the input is left at its "true" default, and EMPTY (not "0", the
-// distinction validateReport's fail-closed rule exists to preserve) when it is turned off.
-test("gate step: advisory input true (default) emits advisory-count=0; advisory input false emits advisory-count empty, via --no-advisory", () => {
+// CLI flag itself has no YAML presence otherwise). advisory-count must read a real count (ADV1-ADV4 all
+// ship as of W6; PASSING_FIXTURE's own deliberately short skill body trips ADV4's substance floor -
+// this is the real layer doing its job, not a regression) when the input is left at its "true" default,
+// and EMPTY (not "0", the distinction validateReport's fail-closed rule exists to preserve) when off.
+test("gate step: advisory input true (default) emits advisory-count=1; advisory input false emits advisory-count empty, via --no-advisory", () => {
   const on = runGateStep({ failOnError: "true", sarif: "false", advisory: "true", fixture: PASSING_FIXTURE });
   const off = runGateStep({ failOnError: "true", sarif: "false", advisory: "false", fixture: PASSING_FIXTURE });
   try {
-    assert.equal(on.outputs["advisory-count"], "0", "the layer ran and found nothing - no real ADV module ships yet");
+    assert.equal(on.outputs["advisory-count"], "1", "ADV4's substance floor fires on this fixture's short skill body");
     assert.equal(off.outputs["advisory-count"], "", "the layer did not run, so the output is EMPTY, not the string '0'");
   } finally {
     cleanup(on);
@@ -232,11 +233,17 @@ test("gate step on a fixture with above-ceiling findings: succeeds, emits a vali
     assert.equal(sarifErrorResults.length, 0, "no SARIF error may outrank a gate that counted zero");
     // The findings did not vanish - that would be the opposite defect, a Security tab quietly missing
     // real findings. They are present, at level note, each naming the rung it belongs to.
+    //
+    // Two DIFFERENT kinds of note share level "note" (ADR 0063 sec 1): an above-ceiling conformance
+    // finding carries askit/aboveDeclaredTier, and - as of W6 - an ADV layer finding (this fixture's
+    // own short skill body trips ADV4) carries askit/advisory instead. A finding never carries both
+    // properties, so every note must carry EXACTLY one of the two, never neither.
     const notes = results.filter((r) => r.level === "note");
     assert.ok(notes.length > 0, "the above-ceiling findings must still be REPORTED, just not as errors");
-    for (const n of notes) {
-      assert.ok(n.properties?.["askit/aboveDeclaredTier"], `${n.ruleId} is a note and must say why`);
-    }
+    const aboveTierNotes = notes.filter((n) => n.properties?.["askit/aboveDeclaredTier"]);
+    const advisoryNotes = notes.filter((n) => n.properties?.["askit/advisory"]);
+    assert.ok(aboveTierNotes.length > 0, "at least one note must be the above-ceiling conformance kind");
+    assert.equal(aboveTierNotes.length + advisoryNotes.length, notes.length, "every note is one of the two known kinds, never both, never neither");
   } finally {
     cleanup(result);
   }

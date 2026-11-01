@@ -55,6 +55,16 @@ test("buildJsonReport serializes runGate's own return value plus the tier report
   // evaluate-specific analysis the gate does not compute (already-settled reasoning, see the effort brief).
   assert.equal(j.byRule, undefined);
   assert.equal(j.dispositions, undefined);
+  // W6 finding 8/5 regression: runGate() now also returns `adv4Measurement` (ADR 0063 sec 3) so a
+  // caller computing health never reruns ADV4's own scan. It is raw internal measurement data, never a
+  // public report field (absent from schemas/report.v1.json), and `details.duplicatePairs` carries
+  // full skill objects - O(n^2) in plugin size. Spreading `r` into this function's return value without
+  // excluding it would leak that object into --json's public contract; on a large enough plugin
+  // (tests/unit/cli-stdout-drain.test.mjs's 400-skill fixture) it balloons the document past 64MB and
+  // truncates the piped output. SHOWN FAILING: before this exclusion was added, `buildJsonReport`
+  // returned `{ ...r, ... }` with no `adv4Measurement` destructure, so this assertion read `undefined
+  // !== null` (adv4Measure() DOES run for this fixture, since ADV4 is active by default) and failed.
+  assert.equal(j.adv4Measurement, undefined, "adv4Measurement is an internal field, never part of the public --json report");
 });
 
 test("every finding in buildJsonReport's output carries provenance and effectiveSeverity", () => {

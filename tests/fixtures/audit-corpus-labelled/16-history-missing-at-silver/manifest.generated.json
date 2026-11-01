@@ -1,0 +1,31 @@
+{
+  "name": "no-history",
+  "version": "1.0.0",
+  "tier": "convergent",
+  "standard": "0.15",
+  "skills": [
+    {
+      "name": "nh-skill-one",
+      "path": "skills/nh-skill-one/SKILL.md",
+      "description": "Creates output for things. Use when the user asks for things."
+    },
+    {
+      "name": "nh-skill-three",
+      "path": "skills/nh-skill-three/SKILL.md",
+      "description": "Creates output for things. Use when the user asks for things."
+    },
+    {
+      "name": "nh-skill-two",
+      "path": "skills/nh-skill-two/SKILL.md",
+      "description": "Creates output for things. Use when the user asks for things."
+    }
+  ],
+  "commands": [
+    {
+      "name": "nh-run",
+      "path": "commands/nh-run.md",
+      "description": "Run the skill.",
+      "mapsTo": "nh-skill-one"
+    }
+  ]
+}

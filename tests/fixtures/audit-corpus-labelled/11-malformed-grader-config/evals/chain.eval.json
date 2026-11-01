@@ -1,0 +1,10 @@
+{
+  "covers": {
+    "chain": [
+      "bc-skill-one",
+      "bc-agent-one"
+    ]
+  },
+  "description": "covers the one edge",
+  "cases": []
+}

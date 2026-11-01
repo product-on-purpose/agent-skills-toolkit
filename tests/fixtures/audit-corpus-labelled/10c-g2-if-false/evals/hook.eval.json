@@ -1,0 +1,7 @@
+{
+  "covers": {
+    "hook": "PreToolUse"
+  },
+  "description": "covers the hook",
+  "cases": []
+}

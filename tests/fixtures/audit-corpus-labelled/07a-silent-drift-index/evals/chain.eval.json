@@ -1,0 +1,10 @@
+{
+  "covers": {
+    "chain": [
+      "pg-skill-one",
+      "pg-agent-one"
+    ]
+  },
+  "description": "covers the one edge",
+  "cases": []
+}

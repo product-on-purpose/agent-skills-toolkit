@@ -14,6 +14,7 @@ import { statSync } from "node:fs";
 import { loadPlugin } from "./lib/load-plugin.mjs";
 import { runAllChecks, provenanceByReq } from "./lib/registry.mjs";
 import { runAdvisoryModules, ADVISORY_MODULES } from "./lib/advisory-registry.mjs";
+import { measure as adv4Measure, meta as adv4Meta } from "./advisory/adv4-substance.mjs";
 import { SINCE_BY_REQ } from "./lib/standard-gate.mjs";
 import { loadConfig, publicConfig, withGraderOptions, ORIGIN } from "./lib/config.mjs";
 import { isOperatorFinding } from "./lib/findings.mjs";
@@ -57,7 +58,7 @@ export function gateExitFromFindings(findings, declaredTier) {
  */
 export function computeAdvisoryLayer(ctx, { noAdvisory = false, profile, advisoryModules = ADVISORY_MODULES } = {}) {
   const advisoryLayer = noAdvisory ? "off" : "on";
-  if (noAdvisory) return { advisoryLayer, advisoryFindings: null };
+  if (noAdvisory) return { advisoryLayer, advisoryFindings: null, adv4Measurement: null };
   // ADR 0063 sec 1 / ADR 0029: under a profile whose advisoryOff names an ADV id (plain-plugin turns
   // off the house-provenance ones), that signal does not run for this grade AT ALL - filtered out of
   // the MODULE LIST before a single one of them executes, not run and then discarded, so a turned-off
@@ -67,7 +68,17 @@ export function computeAdvisoryLayer(ctx, { noAdvisory = false, profile, advisor
   const activeProfile = PROFILES[profile] ?? PROFILES["askit-library"];
   const advisoryOff = new Set(activeProfile.advisoryOff ?? []);
   const modulesToRun = advisoryModules.filter((m) => !advisoryOff.has(m?.meta?.advisoryId));
-  return { advisoryLayer, advisoryFindings: runAdvisoryModules(ctx, modulesToRun) };
+  // W6 finding 8 (health recomputes the advisory scans): ADV4's measure() does the SAME O(n^2)
+  // pairwise description-similarity work check() just paid for above (ADV4's own check() now calls
+  // measure() once internally - see adv4-substance.mjs). Computing it a SECOND time from inside
+  // scripts/lib/health-score.mjs would pay for that pass twice per run. Computed here, exactly once,
+  // and handed to every caller (runGate(), evaluate.mjs's two scopes, gradeMember()) that wants the
+  // substance health category - never recomputed downstream. Only when ADV4 actually ran: under a
+  // profile that turns ADV4 off (plain-plugin), the health category's own off-by-profile branch
+  // never looks at this field, so there is nothing to compute.
+  const adv4Active = modulesToRun.some((m) => m?.meta?.advisoryId === adv4Meta.advisoryId);
+  const adv4Measurement = adv4Active ? adv4Measure(ctx) : null;
+  return { advisoryLayer, advisoryFindings: runAdvisoryModules(ctx, modulesToRun), adv4Measurement };
 }
 
 export function runGate(root, ctx = loadPlugin(root), { strict = false, mode, profile, noAdvisory = false, advisoryModules = ADVISORY_MODULES } = {}) {
@@ -111,14 +122,16 @@ export function runGate(root, ctx = loadPlugin(root), { strict = false, mode, pr
   // scripts/evaluate.mjs (which does not go through runGate) can share the exact same profile-off-set
   // filtering and module-run logic rather than re-implementing it a second time - the "every consumer
   // must remember" cost ADR 0063 itself warns against (sec 1, "What was considered and refused").
-  const { advisoryLayer, advisoryFindings } = computeAdvisoryLayer(ctx, {
+  // W6 finding 8/5: adv4Measurement travels alongside advisoryFindings so a caller that also wants
+  // the health number (gradeMember(), via computeHealth()) never reruns ADV4's own scan.
+  const { advisoryLayer, advisoryFindings, adv4Measurement } = computeAdvisoryLayer(ctx, {
     noAdvisory, advisoryModules, profile: effectiveConfig.profile.value,
   });
   // `config` is published origin-free: provenance is a resolution input, not a new external contract.
   return {
     findings: resolved, errorCount, warnCount, operatorErrorCount, exitCode,
     config: publicConfig(effectiveConfig), hints: hintsFor(ctx, effectiveConfig),
-    advisoryLayer, advisoryFindings,
+    advisoryLayer, advisoryFindings, adv4Measurement,
   };
 }
 
@@ -188,13 +201,21 @@ export function formatOperatorBlock(findings) {
  * Pure serialization; exported for unit testing.
  */
 export function buildJsonReport(root, ctx, r) {
+  // W6 finding 8/5: `adv4Measurement` travels on runGate()'s return so a caller computing health
+  // (gradeMember()) never reruns ADV4's own scan - it is NOT a public report field (it is not in
+  // schemas/report.v1.json, and it carries full skill objects in details.duplicatePairs, O(n^2) in
+  // plugin size). Spreading `r` wholesale here would leak that raw internal object into --json's
+  // public contract and, on a large enough plugin, balloon the document by orders of magnitude - the
+  // exact failure `tests/unit/cli-stdout-drain.test.mjs` caught (400 identically-described skills
+  // produce ~79800 duplicate pairs, each carrying two full skill objects, past a 64MB piped stdout).
+  const { adv4Measurement, ...publicGateFields } = r;
   // `descriptionsNotScored` is PRESENTATION, computed here rather than in runGate() and therefore
   // provably outside the verdict path - the same layering as sectionFindings() below. U5 declines to
   // score a description whose language its lexicons cannot read (ADR 0049), which withdraws a finding
   // rather than adding one, so a consumer counting U5 findings to track description quality would see
   // the number fall with no quality change. Emitting the decline count is what makes that legible.
   return {
-    ...r,
+    ...publicGateFields,
     descriptionsNotScored: notScoredCount(ctx),
     tierReport: computeTierReport(root, ctx, r.findings),
     // E77: "" (no notice) serializes as null rather than an empty string, so a consumer can branch on

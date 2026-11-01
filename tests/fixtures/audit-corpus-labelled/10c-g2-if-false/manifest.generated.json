@@ -1,0 +1,31 @@
+{
+  "name": "g2-iffalse",
+  "version": "1.0.0",
+  "tier": "advanced",
+  "standard": "0.15",
+  "skills": [
+    {
+      "name": "pg-skill-one",
+      "path": "skills/pg-skill-one/SKILL.md",
+      "description": "Creates output for things. Use when the user asks for things."
+    },
+    {
+      "name": "pg-skill-three",
+      "path": "skills/pg-skill-three/SKILL.md",
+      "description": "Creates output for things. Use when the user asks for things."
+    },
+    {
+      "name": "pg-skill-two",
+      "path": "skills/pg-skill-two/SKILL.md",
+      "description": "Creates output for things. Use when the user asks for things."
+    }
+  ],
+  "commands": [
+    {
+      "name": "pg-run",
+      "path": "commands/pg-run.md",
+      "description": "Run the skill.",
+      "mapsTo": "pg-skill-one"
+    }
+  ]
+}

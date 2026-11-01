@@ -1,0 +1,62 @@
+{
+  "name": "no-history",
+  "version": "1.0.0",
+  "description": "Creates output for things. Use when the user asks for things.",
+  "standard": "0.15",
+  "tier": "convergent",
+  "agent-targets": [
+    "claude",
+    "codex"
+  ],
+  "prefix": "nh-",
+  "author": {
+    "name": "audit"
+  },
+  "license": "Apache-2.0",
+  "keywords": [
+    "audit"
+  ],
+  "components": {
+    "skills": [
+      {
+        "name": "nh-skill-one",
+        "path": "skills/nh-skill-one/SKILL.md",
+        "version": "0.1.0",
+        "tier": "universal",
+        "status": "active"
+      },
+      {
+        "name": "nh-skill-two",
+        "path": "skills/nh-skill-two/SKILL.md",
+        "version": "0.1.0",
+        "tier": "universal",
+        "status": "active"
+      },
+      {
+        "name": "nh-skill-three",
+        "path": "skills/nh-skill-three/SKILL.md",
+        "version": "0.1.0",
+        "tier": "universal",
+        "status": "active"
+      }
+    ],
+    "subagents": [
+      {
+        "name": "nh-agent-one",
+        "path": "agents/nh-agent-one.md",
+        "version": "0.1.0",
+        "tier": "convergent",
+        "status": "active"
+      }
+    ],
+    "commands": [
+      {
+        "name": "nh-run",
+        "path": "commands/nh-run.md",
+        "version": "0.1.0",
+        "tier": "convergent",
+        "status": "active"
+      }
+    ]
+  }
+}

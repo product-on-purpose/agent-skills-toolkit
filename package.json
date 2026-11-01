@@ -62,6 +62,7 @@
     "!scripts/lib/action-pin-watch.mjs",
     "!scripts/lib/audit-report.mjs",
     "!scripts/lib/prose-metrics.mjs",
+    "schemas/",
     "STANDARD.md"
   ],
   "scripts": {

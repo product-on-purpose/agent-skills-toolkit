@@ -1,0 +1,62 @@
+{
+  "name": "emission-divergence",
+  "version": "1.0.0",
+  "description": "Creates output for things. Use when the user asks for things.",
+  "standard": "0.15",
+  "tier": "convergent",
+  "agent-targets": [
+    "claude",
+    "codex"
+  ],
+  "prefix": "ed-",
+  "author": {
+    "name": "audit"
+  },
+  "license": "Apache-2.0",
+  "keywords": [
+    "audit"
+  ],
+  "components": {
+    "skills": [
+      {
+        "name": "ed-skill-one",
+        "path": "skills/ed-skill-one/SKILL.md",
+        "version": "0.1.0",
+        "tier": "universal",
+        "status": "active"
+      },
+      {
+        "name": "ed-skill-two",
+        "path": "skills/ed-skill-two/SKILL.md",
+        "version": "0.1.0",
+        "tier": "universal",
+        "status": "active"
+      },
+      {
+        "name": "ed-skill-three",
+        "path": "skills/ed-skill-three/SKILL.md",
+        "version": "0.1.0",
+        "tier": "universal",
+        "status": "active"
+      }
+    ],
+    "subagents": [
+      {
+        "name": "ed-agent-one",
+        "path": "agents/ed-agent-one.md",
+        "version": "0.1.0",
+        "tier": "convergent",
+        "status": "active"
+      }
+    ],
+    "commands": [
+      {
+        "name": "ed-run",
+        "path": "commands/ed-run.md",
+        "version": "0.1.0",
+        "tier": "convergent",
+        "status": "active"
+      }
+    ]
+  }
+}

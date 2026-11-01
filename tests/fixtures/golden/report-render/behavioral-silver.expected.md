@@ -55,9 +55,9 @@ silver-fixture declares the Silver (Convergent) tier and earns Silver. Of the 35
 | Prefix | sf- |
 | Grading profile | askit-library |
 
-| Component | Type | Version |
-| --- | --- | --- |
-| sf-do-thing | skill | 0.1.0 |
+| Component | Type | Version | Size | Budget (lines/max) | Emission targets |
+| --- | --- | --- | --- | --- | --- |
+| sf-do-thing | skill | 0.1.0 | 198 B | 2/500 | claude, codex |
 
 ## 04 Methodology and scope
 
@@ -273,3 +273,23 @@ Run `askit-evaluate` in review mode to populate this section; a conformance repo
 | G10 docs-presence | Gold | A library without the Diataxis quadrants (tutorials, how-to, reference, explanation) leaves whole classes of reader unserved; their presence is what makes the documentation complete rather than incidental. |
 
 The conformance layer is deterministic and reproducible: re-run `node scripts/check.mjs .` to reproduce every row above. This report adds no judgment and does not change the verdict.
+
+## 12 Advisory (informational)
+
+**Summary: 1 deterministic advisory finding(s) (the ADV1-ADV4 layer). These are reported beside the conformance grade above and NEVER affect the tier, the error count, or the gate exit code.**
+
+| ADV ID | Provenance | Finding | File |
+| --- | --- | --- | --- |
+| ADV4 | house | SKILL.md body for "sf-do-thing" is 4 word(s), at or under the 20-word substance floor. A body this short is unlikely to tell an agent how to do the thing the skill claims to do. | skills/sf-do-thing/SKILL.md |
+
+## 13 Health (informational)
+
+**Summary: five categories computed from measured signals only, never from a model. Orthogonal to the tier above: a Bronze plugin can outscore a Gold one, by design (ADR 0063). Each category calibrates on its own; a band is shown only once that category is calibrated.**
+
+| Category | State | Components | Measurement | Band |
+| --- | --- | --- | --- | --- |
+| substance | scored | 1 | score 0/100 (1 of 1 flagged) | uncalibrated |
+| budget | scored | 1 | score 100/100 (0 of 1 flagged) | uncalibrated |
+| portability | scored | 1 | score 100/100 (0 of 1 flagged) | uncalibrated |
+| security | scored | 1 | score 100/100 (0 of 1 flagged) | uncalibrated |
+| currency | scored | 1 | 9 minor(s) behind; 1 finding(s) waived by the pin |  |

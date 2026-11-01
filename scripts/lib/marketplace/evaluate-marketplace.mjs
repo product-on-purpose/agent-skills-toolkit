@@ -13,6 +13,12 @@ import { loadPlugin } from "../load-plugin.mjs";
 import { listCommandFiles } from "../fs-utils.mjs";
 import { runGate, formatAdvisorySection } from "../../check.mjs";
 import { computeTierReport } from "../../tier-report.mjs";
+// W6 finding 5 (pre-merge adversarial review): ADR 0063 sec 1 says each catalogue member's
+// "advisory findings and health sit in that member's entry" - gradeMember() carried advisoryFindings
+// already but never health. Reuses the SAME computeHealth() every other scope calls, fed from this
+// member's own runGate() result (gate.advisoryFindings / gate.adv4Measurement), never recomputed.
+import { computeHealth } from "../health-score.mjs";
+import { shippedStandardEdition } from "../shipped-standard.mjs";
 import { finding, SEVERITY } from "../findings.mjs";
 import { readMarketplaceManifest, looksLikeMarketplaceOfSkills, MANIFEST_REL } from "./manifest.mjs";
 import { resolveMembers, loadMemberMap, MEMBER_MAP_FILENAME } from "./resolve.mjs";
@@ -126,13 +132,23 @@ function gradeMember(resolution, opts) {
     const gate = runGate(resolution.dir, ctx, { mode: opts.mode, profile: opts.profile, noAdvisory: opts.noAdvisory, advisoryModules: opts.advisoryModules });
     const tierReport = computeTierReport(resolution.dir, ctx, gate.findings);
     const live = gate.findings.filter((f) => !f.suppressed);
+    // W6 finding 5: the DECLARED pin (library.json's own standard field), exactly as evaluate.mjs's
+    // plugin branch reads it for the same category - never the ceiling-only `pinned` resolveFindings
+    // was given, which currencyCategory() does not take as an input at all.
+    const health = computeHealth(ctx, {
+      advisoryLayer: gate.advisoryLayer, profile: opts.profile, pinned: ctx.library?.data?.standard,
+      shipped: shippedStandardEdition(), resolved: gate.findings,
+      advisoryFindings: gate.advisoryFindings, adv4Measurement: gate.adv4Measurement,
+    });
     return {
       library: ctx.library?.data ?? null,
-      // ADR 0063 sec 1: "each member's advisory findings... sit in that member's entry in the
-      // collection report's members[]". Namespaced exactly as every other scope's report carries them -
-      // never merged into `errors`/`warns`/`failsOwnClaim` above, which all read gate.findings only.
+      // ADR 0063 sec 1: "each member's advisory findings [and health]... sit in that member's entry
+      // in the collection report's members[]". Namespaced exactly as every other scope's report
+      // carries them - never merged into `errors`/`warns`/`failsOwnClaim` above, which all read
+      // gate.findings only.
       advisoryLayer: gate.advisoryLayer,
       advisoryFindings: gate.advisoryFindings,
+      health,
       declaredTier: ctx.library?.data?.tier ?? null,
       earnedTier: tierReport.tier,
       standardPin: ctx.library?.data?.standard ?? null,
@@ -172,9 +188,9 @@ function gradeMember(resolution, opts) {
       errors: 0, warns: 0, standardDebt: 0, exitCode: 0, failsOwnClaim: false,
       skills: [], subagents: [], agentDocs: [], skillNames: [], commandNames: [],
       gradingError: e?.message ?? String(e),
-      // Nothing graded here, so nothing ran: null/null matches the "member never resolved" shape
-      // below, never "on" with an empty array (which would read as "ran and found nothing").
-      advisoryLayer: null, advisoryFindings: null,
+      // Nothing graded here, so nothing ran: null/null/null matches the "member never resolved"
+      // shape below, never "on" with an empty array (which would read as "ran and found nothing").
+      advisoryLayer: null, advisoryFindings: null, health: null,
     };
   }
 }
@@ -222,7 +238,9 @@ export function evaluateMarketplace(target, opts = {}) {
       entry: r.entry,
     };
     if (r.status !== "resolved") {
-      return { ...base, library: null, declaredTier: null, earnedTier: null, standardPin: null, errors: 0, warns: 0, standardDebt: 0, exitCode: 0, failsOwnClaim: false, skills: [], subagents: [], agentDocs: [], skillNames: [], commandNames: [], gradingError: null, diverged: false, advisoryLayer: null, advisoryFindings: null };
+      // W6 finding 5: health follows advisoryLayer/advisoryFindings here too - nothing graded, so
+      // nothing to compute health FROM, same as gradeMember()'s own catch branch below.
+      return { ...base, library: null, declaredTier: null, earnedTier: null, standardPin: null, errors: 0, warns: 0, standardDebt: 0, exitCode: 0, failsOwnClaim: false, skills: [], subagents: [], agentDocs: [], skillNames: [], commandNames: [], gradingError: null, diverged: false, advisoryLayer: null, advisoryFindings: null, health: null };
     }
     const graded = { ...base, ...gradeMember(r, opts) };
     return { ...graded, diverged: Boolean(graded.pinSha && graded.gradedSha && graded.pinSha !== graded.gradedSha) };

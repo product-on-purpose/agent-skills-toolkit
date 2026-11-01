@@ -1,0 +1,31 @@
+{
+  "name": "chain-lie",
+  "version": "1.0.0",
+  "tier": "advanced",
+  "standard": "0.15",
+  "skills": [
+    {
+      "name": "cl-skill-one",
+      "path": "skills/cl-skill-one/SKILL.md",
+      "description": "Creates output for things. Use when the user asks for things."
+    },
+    {
+      "name": "cl-skill-three",
+      "path": "skills/cl-skill-three/SKILL.md",
+      "description": "Creates output for things. Use when the user asks for things."
+    },
+    {
+      "name": "cl-skill-two",
+      "path": "skills/cl-skill-two/SKILL.md",
+      "description": "Creates output for things. Use when the user asks for things."
+    }
+  ],
+  "commands": [
+    {
+      "name": "cl-run",
+      "path": "commands/cl-run.md",
+      "description": "Run the skill.",
+      "mapsTo": "cl-skill-one"
+    }
+  ]
+}

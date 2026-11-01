@@ -1015,6 +1015,39 @@ test("a member's own verdict is IDENTICAL whether it is graded alone or as part 
   }
 });
 
+// W6 finding 5 (pre-merge adversarial review): ADR 0063 sec 1 says each catalogue member's "advisory
+// findings and health sit in that member's entry" in the collection report. gradeMember() already
+// carried advisoryFindings but never health - this is the member-scope counterpart of the verdict-
+// parity test immediately above, for the one field that test does not touch.
+test("a member's health is IDENTICAL whether it is graded alone or as part of a collection, and null when advisoryLayer is off", () => {
+  const root = tmp();
+  const siblings = tmp();
+  try {
+    const member = writeMember(path.join(siblings, "alpha"), { name: "alpha", version: "0.1.0" });
+    writeCatalogue(root, [{ name: "alpha", version: "0.1.0", source: { source: "url", url: "https://x/alpha.git", sha: "p" } }]);
+
+    const alone = evaluate(member);
+    const asMember = evaluateMarketplace(root, { searchRoots: [siblings] }).members[0];
+
+    assert.ok(alone.health, "the member graded alone must produce a health number (advisoryLayer defaults to on)");
+    assert.deepEqual(
+      asMember.health,
+      alone.health,
+      "a member's health must not depend on whether it was graded on its own or as a catalogue member",
+    );
+
+    // And the off-switch propagates the same way advisoryLayer/advisoryFindings already do: nothing
+    // ran, so there is nothing to compute health FROM.
+    const offAlone = evaluate(member, { noAdvisory: true });
+    const offAsMember = evaluateMarketplace(root, { searchRoots: [siblings], noAdvisory: true }).members[0];
+    assert.equal(offAlone.health, null);
+    assert.equal(offAsMember.health, null);
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+    rmSync(siblings, { recursive: true, force: true });
+  }
+});
+
 test("a member's RESTRICTED-FIELD findings are identical whether it is graded alone or as a member (ADR 0045 parity)", () => {
   // ADR 0045 shared the vendor field list between U14 and the marketplace A6 reading so that "a
   // plugin's verdict must not depend on whether it was graded on its own or as a catalogue member".

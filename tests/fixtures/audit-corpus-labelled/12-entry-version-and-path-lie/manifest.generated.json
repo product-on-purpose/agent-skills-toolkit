@@ -1,0 +1,31 @@
+{
+  "name": "entry-lie",
+  "version": "1.0.0",
+  "tier": "convergent",
+  "standard": "0.15",
+  "skills": [
+    {
+      "name": "el-skill-one",
+      "path": "skills/el-skill-one/SKILL.md",
+      "description": "Creates output for things. Use when the user asks for things."
+    },
+    {
+      "name": "el-skill-three",
+      "path": "skills/el-skill-three/SKILL.md",
+      "description": "Creates output for things. Use when the user asks for things."
+    },
+    {
+      "name": "el-skill-two",
+      "path": "skills/el-skill-two/SKILL.md",
+      "description": "Creates output for things. Use when the user asks for things."
+    }
+  ],
+  "commands": [
+    {
+      "name": "el-run",
+      "path": "commands/el-run.md",
+      "description": "Run the skill.",
+      "mapsTo": "el-skill-one"
+    }
+  ]
+}

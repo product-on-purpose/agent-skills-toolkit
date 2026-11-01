@@ -1,0 +1,19 @@
+{
+  "name": "g2-iffalse",
+  "version": "1.0.0",
+  "description": "Creates output for things. Use when the user asks for things.",
+  "license": "Apache-2.0",
+  "author": {
+    "name": "audit"
+  },
+  "homepage": null,
+  "repository": null,
+  "keywords": [
+    "audit"
+  ],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "G2 Iffalse",
+    "category": "Engineering"
+  }
+}

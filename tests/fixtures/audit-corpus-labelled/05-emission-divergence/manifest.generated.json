@@ -1,0 +1,21 @@
+{
+  "name": "emission-divergence",
+  "version": "1.0.0",
+  "tier": "convergent",
+  "standard": "0.15",
+  "skills": [
+    {
+      "name": "fabricated",
+      "path": "skills/fabricated/SKILL.md",
+      "description": "not on disk"
+    }
+  ],
+  "commands": [
+    {
+      "name": "ed-run",
+      "path": "commands/ed-run.md",
+      "description": "Run the skill.",
+      "mapsTo": "ed-skill-one"
+    }
+  ]
+}

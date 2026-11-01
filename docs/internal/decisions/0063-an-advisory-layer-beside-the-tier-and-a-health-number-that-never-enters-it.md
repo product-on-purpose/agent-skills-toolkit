@@ -319,3 +319,46 @@ None of these is changed by this ADR. The implementing change carries them. Name
 - **`docs/reference/evaluation-reports.md`** - its "deterministic / advisory boundary" section names all three layers.
 - **`docs/internal/roadmap.md`** - the D-01 row records the partial ruling and the open badge half; items 1, 2 and 3 of section 4 are updated; and RS-E4 leaves section 7.
 - **`docs/internal/backlog/enhancements.md`** - the status lines of E61, E86 and E87 point at this ADR.
+
+## Implementation notes (2026-10-30, W6)
+
+This section is appended by the implementing change (W6); it does not revise anything ruled above. Full detail, the pre-registered cut points, the per-tree category-label table, and the ADV3 false-positive ceiling record (moved here from `scripts/advisory/README.md`) all live in [the health-score reference](../../reference/health-score.md), which this note only summarizes.
+
+**Confusion counts, measured 2026-10-30 against the labelled 2026-09-04 audit corpus**, excluding the two falsifiable-test hold-outs (`01-potemkin-gold`, `09-pin-abuse`), their pin-state variants, and every `deserves: null` hardening tree:
+
+| Category | Positives | Negatives | Calibrated? |
+| --- | --- | --- | --- |
+| substance | 1 | 7 | uncalibrated (below the 5-positive minimum) |
+| budget | 1 | 7 | uncalibrated (below the 5-positive minimum) |
+| portability | 0 | 7 | uncalibrated (below the 5-positive minimum) |
+| security | 1 | 7 | uncalibrated (below the 5-positive minimum) |
+| currency | 0 | 7 | uncalibrated (below the 5-positive minimum) |
+
+Every category reports `uncalibrated` on this ship, matching sec 4's own provisional reading. No category penalised this repository's own tree; its measurement is reported in the health-score reference as an observation, not an acceptance criterion.
+
+**Divergence from sec 4, updated 2026-10-30 (W6 finding 7 of a pre-merge adversarial review).** The Implementation sites section (above) says the labelled corpus "must become a tracked fixture" under `tests/fixtures/audit-corpus/`. At first ship, the task that commissioned this change overrode that instruction and only the two falsifiable-test trees (`01-potemkin-gold`, `09-pin-abuse`) were tracked. **26 of the 46 trees are now tracked**: those two hold-outs, 23 more copied byte-for-byte under `tests/fixtures/audit-corpus-labelled/`, and one (`17-secret-in-skill-and-hook`) reproduced by a tmpdir builder rather than a static copy (its body carries an AWS-example-shaped access key whose shape risks tripping a secret scanner as a committed file). `tests/fixtures/audit-corpus-labelled/inventory.json` carries every one of the 46 trees' category-label assignment and justification - transcribed verbatim from the health-score reference, fixed before any confusion count was computed, per sec 4's ordering requirement, never reassigned by this later change. **The remaining 20 trees are still not committed, but they are regenerable** (corrected 2026-10-31; this sentence first said they could never be copied). The audit's builder generates them under `corpus/_local/` and never stores them, because they are large or hostile by design, so none is on disk today. A scratch run of that builder reproduces stored trees identically apart from line endings, and the [health-score reference](../../reference/health-score.md) records what W6 measured on the six of the 20 that carry a calibration label. Sec 4's "a threshold calibrated against an untracked set is an assertion nobody can re-run" cost is now paid down for the 26 tracked trees, which include every labelled calibration tree except `04-budget-gaming`. For the other 20 the cost is reduced, not paid: they can be rebuilt from a gitignored builder, but no tracked fixture pins them yet.
+
+**Decisions made where this ADR is silent, chosen fail-closed and listed here for the maintainer:**
+
+- **Marketplace scope carries a health field on every member entry (closed 2026-10-30, W6 finding 5).** `gradeMember()` now computes it with the same `computeHealth()` every other scope calls, fed from that member's own `runGate()` result (`gate.advisoryFindings` / `gate.adv4Measurement`, never recomputed). `null` exactly when `advisoryLayer` is `"off"` or the member never resolved - the same fail-closed rule the catalogue report and `--no-advisory` already followed for `advisoryFindings`. A member's health is asserted identical whether it is graded alone (`evaluate()`) or inside a collection (`tests/unit/marketplace-scope.test.mjs`, "a member's health is IDENTICAL whether it is graded alone or as part of a collection").
+- **Unknown scope (not a plugin or a skill) reports `advisoryLayer: "off"` and `health: null`.** This is `baseReport()`'s default when no advisory object is passed, and matches the `--no-advisory` shape exactly, so a caller cannot distinguish "advisory off by request" from "advisory off because the target isn't gradable" - both read as off, fail-closed.
+- **Component scope computes health, but currency always reports `not-applicable` with reason `"unpinned"`.** A single skill has no `library.json` and therefore no pin; `pinned` is passed as `undefined`, the same fail-closed reading a pin-less plugin gets.
+- **`--profile plain-plugin` reports `off-by-profile` for substance and currency specifically**, because `HOUSE_ADVISORY_IDS` (which `plain-plugin` already turns off, per ADR 0029) includes `ADV4`, and currency's own house-provenance check mirrors that set. The other three categories (budget, portability, security) are unaffected by this profile, because none of their underlying signals carries house provenance.
+
+## Post-registration measurement corrections (2026-10-30, W6 fix pass)
+
+A pre-merge adversarial review of this change found that `adv4-substance.mjs`'s word count and placeholder-phrase matching had two defects (findings 1 and 4). Both are corrections to HOW ADV4 measures a skill body, never to WHICH result a pre-registered fixture gets - the cut points, ship bar, and calibration minimum registered in `16a5323` are unchanged by this entry.
+
+- **Finding 1 (word count miscounts CJK text).** `wordCount()` split on whitespace, so a Chinese or Japanese paragraph - which carries no whitespace between words - counted as one giant "word" and read as under `BODY_WORD_FLOOR` regardless of its real length. Fixed with `Intl.Segmenter` (`granularity: "word"`, counting only `isWordLike` segments), falling back to the old whitespace split only in a runtime with no `Intl.Segmenter`.
+- **Finding 4 (placeholder phrases matched as substrings, inside prose that discusses them).** `hasPlaceholderPhrase()` now splits a skill body into paragraphs, normalizes each one (strips heading/list/bold/italic/code markers and trailing punctuation, collapses whitespace, lowercases), and checks for exact membership in the placeholder-phrase set - never a substring match. A paragraph that discusses the phrase in prose ("If a feature is not implemented yet, say so") no longer matches, following the same discusses-the-signal precedent ADV3 already set for its own negative fixture.
+
+Measured before and after, on the two fixtures the ship bar and this repository's own tree already touch:
+
+| Fixture | Before | After |
+| --- | --- | --- |
+| `tests/fixtures/audit-corpus/potemkin-gold` (3 skills) | substance score 0, 3/3 flagged (underFloor 3, duplicateDescription 3, placeholder 0) | unchanged: substance score 0, 3/3 flagged (underFloor 3, duplicateDescription 3, placeholder 0) - still below the pre-registered `weakMin` floor |
+| A one-skill synthetic fixture whose body is a substantive Japanese paragraph (the same paragraph `tests/unit/advisory-adv4-substance.test.mjs`'s CJK test uses) | flagged 1/1 (`underFloorCount` 1: the whole paragraph read as one "word", under the 20-word floor) | flagged 0/1 (`underFloorCount` 0): clears the floor |
+| `h08-non-english`, regenerated 2026-10-31 from the audit's builder and measured with `773724d` (before) and `21618e5` (after) | substance score 0, 2/2 flagged (`underFloorCount` 2, `placeholderCount` 0) | unchanged. Its descriptions are French and Japanese, but both skill bodies are the English placeholder `"Do nothing."`, so the CJK fix does not reach it |
+| This repository's own tree (`node scripts/evaluate.mjs .`) | substance `uncalibrated`, no category penalised (unchanged by either finding - this toolkit's skill bodies are English prose well over the word floor and contain none of the catalogued placeholder phrases) | unchanged |
+
+**Corrected 2026-10-31 by the re-review of this fix pass.** The first version of this table labelled the synthetic fixture as `h08-non-english` and called its result "the exact false positive the review named". That was wrong. The real tree was not on disk at review time, and the stand-in assumed a CJK-heavy body. Regenerated, the tree carries its non-English text only in the descriptions, which the word floor never counts. The CJK fix stands on the synthetic fixture and its committed test alone; no labelled corpus tree exercises it.

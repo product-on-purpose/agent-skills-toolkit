@@ -19,6 +19,9 @@ The shared library the checks, generators, and gate import: findings, frontmatte
 - `findings.mjs` - finding() and the SEVERITY and PROVENANCE enums.
 - `frontmatter.mjs` - parseFrontmatter() over YAML frontmatter.
 - `fs-utils.mjs` - filesystem helpers (relPath and friends).
+- `health-constants.mjs` - the health number's pre-registered DATA (ADR 0063 sec 3/4): the band cut points, the ship bar, the calibration minimum, and ADV4's own BODY_WORD_FLOOR/DESCRIPTION_DUPLICATE_THRESHOLD, as a leaf module with no imports of its own so `advisory-registry.mjs` and `scripts/advisory/adv4-substance.mjs` can both re-export from it with no import cycle (W6 post-merge-review finding 10).
+- `health-calibration.mjs` - calibrationStateFor() and calibrationState() (W6 post-merge-review finding 6): each health category's labelled positive/negative count from the audit corpus inventory, compared against HEALTH_CALIBRATION_MINIMUM to decide that category's own calibrated/uncalibrated state - never one constant shared by all five.
+- `health-score.mjs` - computeHealth() (ADR 0063 sec 3): the five health categories (substance, budget, portability, security, Standard currency) beside the tier. Every category reads a RAW measurement recomputed from ctx or from resolveFindings' own `ceiling` field, never a post-profile/post-suppression severity, so a profile or a suppression can never buy a better health score. Computes no cross-category average.
 - `load-plugin.mjs` - loadPlugin() that builds the check context from a plugin root, plus looksLikePlugin(), the shared plugin shape test.
 - `marketplace/` - the marketplace evaluation scope (ADR 0039): catalogue reading, member resolution, the cross-member analyses, and the collection orchestrator. Kept as a delimited subfolder so it travels as a unit if the Standard and runner relocate.
 - `md-escape.mjs` - escapeMdCell(): the one Markdown table-cell escape, backslashes before pipes.

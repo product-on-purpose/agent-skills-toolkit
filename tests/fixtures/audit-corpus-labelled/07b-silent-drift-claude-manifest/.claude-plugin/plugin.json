@@ -1,0 +1,15 @@
+{
+  "name": "drift-claude",
+  "version": "1.0.0",
+  "description": "hand-edited description",
+  "license": "Apache-2.0",
+  "author": {
+    "name": "audit"
+  },
+  "homepage": null,
+  "repository": null,
+  "keywords": [
+    "hand",
+    "edited"
+  ]
+}
