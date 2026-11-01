@@ -120,17 +120,18 @@ that directory's README for why a builder, not a copy). `tests/fixtures/audit-co
 transcribed verbatim from the table below, never reassigned - plus whether each is actually
 materialized on disk and where.
 
-**The remaining 20 trees are still not committed, and still cannot be**: their manifest `root` points
-under `corpus/_local/` or `corpus/plugins/h*`, and neither path exists anywhere in this repository,
-including inside the gitignored `_local/audit/2026-09-04_fable-5-1-max/` the earlier version of this
-page described reading them from directly. `04-budget-gaming`, the three `09b`/`09c`/`09d` pin-state
-variants, and all sixteen `h01`-`h16` hardening cases were never available to copy - this was true
-before this change and remains true after it; the earlier text here overstated what the one-time
-2026-10-25 measurement below could re-run. The ADR's own words are "a threshold calibrated against an
-untracked set is an assertion nobody can re-run" - that cost is now paid down for most of the corpus
-(26 of 46 trees, and all but one of the trees that carry a category label at all), and remains unpaid
-for the other 20, which is a fact about what survived from that audit run, not a choice this change
-makes.
+**The remaining 20 trees are still not committed, but they are regenerable** (corrected 2026-10-31;
+this paragraph first said they could never be copied). The audit's builder registers
+`04-budget-gaming`, the three `09b`/`09c`/`09d` pin-state variants, and all sixteen `h01`-`h16`
+hardening cases as `local: true` items. It generates them under `corpus/_local/` and never stores them,
+because they are large or hostile by design, so none is on disk today. The builder's path resolution
+predates the corpus being moved under a dated folder; the ADV3 ceiling record below had already
+reconstructed five of them from that source on 2026-10-25. A 2026-10-31 scratch run of the builder
+reproduced two stored trees identically apart from line endings, and the observation below grades the
+six that carry a calibration label. The ADR's own words are "a threshold calibrated against an
+untracked set is an assertion nobody can re-run". That cost is now paid down for 26 of 46 trees, which
+include every labelled calibration tree except `04-budget-gaming`. For the other 20 it is reduced, not
+paid: they can be rebuilt from a gitignored builder, but no tracked fixture pins them yet.
 
 **How labels map to categories.** A tree is a positive for a category only if its undeserving reason
 (the manifest's free-text `note`) falls in that category. The seven `deserves: true` trees are
@@ -222,7 +223,7 @@ executable form and goes red if any of these agreements stop holding.
 | Category | Positive measured | Negatives measured | Result |
 | --- | --- | --- | --- |
 | substance | `03-description-gaming`: flagged (true positive) | `02-excellent-orphan`: unflagged (true negative). `11-malformed-grader-config`: **flagged - a measured false positive** | 1 TP, 1 TN, **1 FP**, 0 FN |
-| budget | none materialized (`04-budget-gaming` is not on disk anywhere) | `02-excellent-orphan`, `11-malformed-grader-config`: both unflagged (true negatives) | 2 TN, nothing else measurable |
+| budget | none materialized (`04-budget-gaming` is regenerable but not tracked; see the 2026-10-31 observation below) | `02-excellent-orphan`, `11-malformed-grader-config`: both unflagged (true negatives) | 2 TN, nothing else measurable |
 | portability | none materialized (no tree in the whole 46-tree corpus carries this label) | `02-excellent-orphan`, `11-malformed-grader-config`: both unflagged (true negatives) | 2 TN, nothing else measurable |
 | security | `17-secret-in-skill-and-hook` (builder-reproduced): both carrier files flagged (true positive) | `02-excellent-orphan`, `11-malformed-grader-config`: both unflagged (true negatives) | 1 TP, 2 TN, 0 FP, 0 FN |
 | currency | `09-pin-abuse` (hold-out, already tracked): shows debt (true positive) | `02-excellent-orphan`: not-applicable (no pin at all - not a clean negative; see the test for why this is reported rather than silently counted as a TN) | 1 TP, 0 clean TN measurable, 0 FP, 0 FN |
@@ -235,6 +236,29 @@ body it is given and flags it correctly on its own terms - this is evidence the 
 every category" convention does not hold for this one tree, not evidence of a defect in the fixes this
 page's falsifiable tests already pin. No cut point, ship-bar number, or calibration minimum changes
 because of this result; `tests/fixtures/audit-corpus-labelled/README.md` carries the same disclosure.
+
+### Observation, 2026-10-31: six regenerated trees that are not yet tracked
+
+The six unmaterialized trees that carry a calibration label were regenerated from the audit's builder
+in a scratch copy and graded with this change's `evaluate.mjs --json`. These are post-registration
+observations. No label, cut point, ship-bar number, or calibration minimum changes because of them, per
+ADR 0063 sec 4, and the table above stays limited to tracked trees.
+
+| Tree | Label | Measured |
+| --- | --- | --- |
+| `04-budget-gaming` | `deserves: false`, budget | budget 67: flags `bg-checklist` (603 lines) only. `bg-wide` (490 very long lines) and `bg-refs` (a short body that mandates 2 MB of references) are not flagged, because the budget category counts SKILL.md lines. Substance also flags the three identical descriptions. |
+| `h05-crlf`, `h06-bom`, `h07-latin1` | `deserves: true` | substance 0; every other scored category 100. Each grades without error. |
+| `h08-non-english` | `deserves: true` | substance 0 from the body word floor (`underFloorCount` 2, `placeholderCount` 0), the same result before and after the CJK fix. The French and Japanese descriptions raise no duplicate finding. |
+| `h09-yaml-anchors` | `deserves: true` | substance 0, and portability 0 from ADV1 on the frontmatter's top-level `_base` anchor key. |
+
+Two readings follow. First, the substance false positive on tree 11 is systematic across the audit's
+negative controls, not isolated: the builder's helpers give every one of these skills a placeholder
+body (`"Do nothing."`, or the single word `body` in `h09`), and `"Do nothing."` is the same text
+`01-potemkin-gold` is labelled undeserving for. The labels describe each tree's intended defect, not
+its body, so these trees cannot serve as substance negative controls. Second, the budget category
+catches one of the three budget-gaming shapes the audit built, the same 603-line skill that U7 (the
+instruction-budget check) already warns on. Tracking these six trees as fixtures is a follow-up, with
+its own review and a line-ending decision for `h05-crlf`.
 
 ## This repository's own health (reported as an observation, never an acceptance criterion)
 

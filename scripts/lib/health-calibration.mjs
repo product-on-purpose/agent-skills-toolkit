@@ -2,7 +2,7 @@
 //               review finding 6)
 // what-it-does: holds each health category's labelled positive/negative count from the 2026-09-04
 //               audit corpus, measured against the committed, machine-readable inventory at
-//               tests/fixtures/audit-corpus/inventory.json, and compares each count to
+//               tests/fixtures/audit-corpus-labelled/inventory.json, and compares each count to
 //               HEALTH_CALIBRATION_MINIMUM to decide whether THAT CATEGORY (never all five at once)
 //               reports `calibrated` or `uncalibrated`.
 // why:          Before this file, scripts/lib/health-score.mjs exported one CALIBRATION_STATE constant
@@ -10,11 +10,11 @@
 //               nothing ever compared anything against - a constant that is never read is not a
 //               calibration rule, it is a note. The counts below are a deliberate SUMMARY of the
 //               committed inventory, not a second source of truth for it:
-//               tests/unit/health-calibration.test.mjs recomputes the same two numbers per category
-//               straight from tests/fixtures/audit-corpus/inventory.json and asserts they match, so
-//               this file cannot drift from the inventory it summarizes.
+//               tests/unit/audit-corpus-labelled.test.mjs recomputes the same two numbers per category
+//               straight from tests/fixtures/audit-corpus-labelled/inventory.json and asserts they
+//               match, so this file cannot drift from the inventory it summarizes.
 // used-by:      scripts/lib/health-score.mjs (calibrationStateFor(), per category); covered by
-//               tests/unit/health-calibration.test.mjs and tests/unit/health-score.test.mjs
+//               tests/unit/audit-corpus-labelled.test.mjs and tests/unit/health-score.test.mjs
 //
 // THIS FILE SHIPS IN THE NPM TARBALL; tests/fixtures/ DOES NOT (package.json's `files` list). The
 // counts are therefore DATA here, not a runtime read of the inventory - the same reason the pre-
@@ -24,7 +24,7 @@ import { HEALTH_CALIBRATION_MINIMUM } from "./health-constants.mjs";
 
 /**
  * Measured 2026-10-30 against the labelled 2026-09-04 audit corpus inventory
- * (tests/fixtures/audit-corpus/inventory.json), EXCLUDING the two falsifiable-test hold-outs
+ * (tests/fixtures/audit-corpus-labelled/inventory.json), EXCLUDING the two falsifiable-test hold-outs
  * (`01-potemkin-gold`, `09-pin-abuse`), their pin-state variants (`09b`/`09c`/`09d`), and every
  * `deserves: null` hardening tree (ADR 0063 sec 4). A tree is a POSITIVE for a category iff the
  * inventory's `categories` field for that tree names it; every `deserves: true` tree is a NEGATIVE for

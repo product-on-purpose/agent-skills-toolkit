@@ -21,7 +21,7 @@ gitignored, read-only) lists 46 trees. Of those:
 - **2 are already tracked** under `tests/fixtures/audit-corpus/` (`potemkin-gold`, `pin-abuse`) -
   the two falsifiable-test hold-outs ADR 0063 sec 4 names, held out of every count below for the same
   reason sec 4 gives: "to avoid calibrating the cut points to the test that grades them."
-- **22 are copied byte-for-byte into this directory**, one subdirectory per tree, named after the
+- **23 are copied byte-for-byte into this directory**, one subdirectory per tree, named after the
   manifest's own `id`. These are every other tree whose manifest `root` actually exists on disk under
   `_local/audit/2026-09-04_fable-5-1-max/corpus/plugins/`.
 - **1 (`17-secret-in-skill-and-hook`) is reproduced by a tmpdir builder**
@@ -30,13 +30,18 @@ gitignored, read-only) lists 46 trees. Of those:
   its AKIA-prefixed, 20-character shape matches what GitHub's secret scanning and push protection look
   for structurally. The builder's own header explains how it avoids ever writing that shape as one
   contiguous literal into a committed file.
-- **The remaining 21 trees are not present anywhere in this repository**, including inside
-  `_local/audit/2026-09-04_fable-5-1-max/`. Their manifest `root` points under `corpus/_local/` or
-  `corpus/plugins/h*`, and neither of those paths exists on disk - `04-budget-gaming`, the three
-  `09b`/`09c`/`09d` pin-state variants, and all sixteen `h01`-`h16` hardening cases. They were never
-  available to copy; this is a fact about what survived from that audit run, not a choice this change
-  made. `inventory.json` lists them with `materialized: false` and `path: null` rather than omitting
-  them, so a reader sees the full 46-tree set and exactly which quarter of it is actually here.
+- **The remaining 20 trees are not materialized here, but they are not lost** (corrected 2026-10-31;
+  this bullet first said 21 trees that were never available to copy). The audit's builder
+  (`_local/audit/2026-09-04_fable-5-1-max/corpus/build.mjs`, gitignored, read-only) registers them as
+  `local: true` items. It generates them under `corpus/_local/` on every run and never stores them,
+  because they are large or hostile by design. They are `04-budget-gaming`, the three
+  `09b`/`09c`/`09d` pin-state variants, and all sixteen `h01`-`h16` hardening cases. None is on disk
+  today because the builder's path resolution predates the audit's move under a dated folder. A
+  2026-10-31 run of the builder in a scratch copy reproduced two stored trees (`03-description-gaming`,
+  `11-malformed-grader-config`) identically apart from line endings, so the other 20 are regenerable.
+  `docs/reference/health-score.md` records what W6 measured on the six that carry a calibration label.
+  `inventory.json` lists all 20 with `materialized: false` and `path: null` rather than omitting them,
+  so a reader sees the full 46-tree set and exactly which part of it is tracked here.
 
 See `inventory.json` for the machine-readable form (`id`, `deserves`, `categories`, `justification`,
 `materialized`, `path` per tree) and `tests/unit/audit-corpus-labelled.test.mjs` for what is actually
@@ -56,3 +61,9 @@ label, for the substance category specifically. `tests/unit/audit-corpus-labelle
 this plainly, rather than picking a different negative example to avoid reporting it, per finding 6's
 own instruction: "if a category penalises this repository, report it and fix the tree, never the
 threshold" generalizes to any tree, not only this repository's own.
+
+Tree 11 is not a one-off. The five `h05`-`h09` hardening controls are also labelled `deserves: true`,
+and the builder gives each of them a placeholder body: its default `"Do nothing."` for `h05` to `h08`,
+and the single word `body` for `h09`. Regenerated and graded on 2026-10-31, all five score substance 0
+for that reason (see `docs/reference/health-score.md`). The labels stand, because ADR 0063 sec 4 fixes
+them before any measurement.
