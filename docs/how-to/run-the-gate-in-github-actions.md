@@ -32,7 +32,7 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
-      - uses: product-on-purpose/agent-skills-toolkit@v1.22.0
+      - uses: product-on-purpose/agent-skills-toolkit@v1.23.0
         with:
           path: .
 ```
@@ -46,7 +46,7 @@ not clone anything for you.
 ## Pin a released tag, not a branch
 
 ```yaml
-uses: product-on-purpose/agent-skills-toolkit@v1.22.0   # a tag, or a full commit sha
+uses: product-on-purpose/agent-skills-toolkit@v1.23.0   # a tag, or a full commit sha
 ```
 
 A tag or a sha means your build grades against a version you chose. `@main` means an upstream change
@@ -68,7 +68,7 @@ jobs:
       - uses: actions/checkout@v7
 
       - id: gate
-        uses: product-on-purpose/agent-skills-toolkit@v1.22.0
+        uses: product-on-purpose/agent-skills-toolkit@v1.23.0
         with:
           path: .
           sarif: true

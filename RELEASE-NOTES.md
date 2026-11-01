@@ -4,6 +4,56 @@ Curated, user-facing highlights. For the full technical history see [`CHANGELOG.
 
 Every tier named below carries the same scope. *This tier reports structural conformance to a written Standard - deterministic and reproducible; it is not a content review, a safety audit, or a statement that the skills work. The full evaluation report also carries a health number beside the tier (ADR 0063); it is informational and never changes this tier.* See [what a tier does not certify](docs/explanation/limitations.md). This note is deliberately in the STANDING header rather than a footer: a footer would sit inside the oldest release's section and be extracted into that release's body by `check-release-notes-section.mjs`.
 
+## 1.23.0 - 2026-11-01
+
+[![npm](https://img.shields.io/npm/v/agent-skills-toolkit?label=npm&color=cb3837)](https://www.npmjs.com/package/agent-skills-toolkit)
+[![tier](https://img.shields.io/endpoint?url=https://product-on-purpose.github.io/agent-skills-toolkit/badges/tier.json)](https://product-on-purpose.github.io/agent-skills-toolkit/reports/report.html)
+[![checks](https://img.shields.io/badge/checks-35-6b4fa8)](https://product-on-purpose.github.io/agent-skills-toolkit/reference/gold-checks/)
+[![standard](https://img.shields.io/badge/Standard-0.17-6b4fa8)](https://product-on-purpose.github.io/agent-skills-toolkit/explanation/conformance-and-tiers/)
+
+**The health number beside the tier.** This is a minor. The evaluation report gains a health number beside the tier, a fourth advisory screen that looks for substance, and a versioned report object with a JSON Schema. Two builder instructions are also fixed. No check was added or removed, the spine stays 35, and the Standard stays 0.17.
+
+### Your grade does not move
+
+The health number is reported beside the tier and never enters it. It cannot change a tier, an error or warning count, an exit code, or the badge. This was measured, not only argued. Every plugin in this project's own marketplace, both at its pinned release and at its latest `main`, and every fixture tree in this repository was graded with v1.22.0 and with this release: 92 trees, and none of their tiers, counts, exit codes or findings moved.
+
+### New: a health number beside the tier
+
+A tier says a plugin has the right files in the right places. It does not say whether those files hold anything. A plugin of placeholder files can earn Gold today, and this repository keeps one as a test fixture to prove it. The health number is the reading beside the tier that such a plugin cannot score well on.
+
+It has five categories: **substance**, **budget**, **portability**, **security** and **Standard currency**. Each category reports its own state, its raw measurement and how many components it looked at. There is deliberately no overall average, so a strong category cannot hide a weak one.
+
+**Every category reports `uncalibrated` in this release, so no band (such as "healthy" or "weak") is shown yet.** A category shows a band only after it has been checked against at least five labelled example plugins that have its defect and five that do not, and has passed two further bars set in advance. No category has five labelled examples of its defect yet. The cut points were written down before anything was measured and have not moved since. They, the labelled examples and the measured counts are in [`docs/reference/health-score.md`](docs/reference/health-score.md).
+
+You see the health number in the `health` field of `evaluate.mjs`'s report object and in a new Health section of the Markdown and HTML reports. `check.mjs --json` does not change. Under `--profile plain-plugin`, substance and currency report `off-by-profile`, because both measure this project's own conventions.
+
+### New: ADV4, a screen for substance
+
+The fourth advisory screen flags three things in a plugin's skills:
+
+- a skill body of 20 words or fewer,
+- two sibling skills whose descriptions are at least 70 percent similar, so an agent choosing by description cannot tell them apart, and
+- a skill body that is a known placeholder phrase.
+
+Like the first three screens, ADV4 reports beside the tier and never changes it. It is turned off under `--profile plain-plugin`.
+
+**If you see a new notice on a plugin that graded clean before, nothing regressed.** One plugin in this project's own marketplace will see one: pm-skills, where two sprint-readiness skills have descriptions that are 75 percent similar. It is a note about routing, not a failure.
+
+### If you read the report as JSON
+
+`evaluate.mjs`'s report object is now versioned and additive. It gains `schemaVersion: 1`, a `run` block (toolkit version, Node version, duration and invocation), `checks[]` (one entry per spine check with its outcome), `components[]` (each component's size, instruction-budget use and emission targets) and `blockedFindings[]` (what blocks the next tier, as finding objects). No existing field was removed or renamed. A JSON Schema at `schemas/report.v1.json` describes the shape.
+
+A component's size counts every CRLF line ending as LF, so the same file reports the same size on a Windows checkout and a Linux one.
+
+### If you build skills with `askit-build-skill`
+
+- **Your repository's own skill template now governs.** If your plugin keeps a house skill template, `askit-build-skill` starts a new skill from it instead of from this toolkit's generic template. The `askit-skill-author` subagent and the builder pattern say the same.
+- **The craft review works when the toolkit is not installed.** When the toolkit is a sibling checkout rather than an installed plugin, there is no `askit-reviewer` agent to delegate to. The review step now says to brief a general-purpose agent with the reviewer definition and the rubric instead.
+
+### Looking ahead
+
+Bands will appear one category at a time, as each category gains enough labelled examples and passes the bars set in advance. Six more labelled example plugins from the 2026-09-04 external audit have been measured but are not yet stored in this repository; tracking them is [E91 (six labelled audit-corpus trees are measured but not tracked)](docs/internal/backlog/enhancements.md). Five of the six are labelled as not defective, yet the substance screen flags them, because the audit gave their skills placeholder bodies. That result is recorded rather than tuned away, because the cut points were fixed before anything was measured.
+
 ## 1.22.0 - 2026-10-29
 
 [![npm](https://img.shields.io/npm/v/agent-skills-toolkit?label=npm&color=cb3837)](https://www.npmjs.com/package/agent-skills-toolkit)

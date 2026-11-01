@@ -172,9 +172,9 @@ rendering at warn until 0.14 so nobody is gated on our defect.
 baseline, except two that gain one capped warning each from the `G4` migration. Zero verdicts moved.
 
 ## Where we are now
-- Version **1.22.0, shipped 2026-10-29** (tagged at `49a03e0`, on npm, and pinned by the
-  `product-on-purpose` marketplace). Standard **0.17**, **35-check spine**, **3 scopes** (plugin, component, marketplace), **27
-  skills**, suite **1935 tests, 1931 pass, 0 failures, 4 skipped**, gate **Advanced 0/0**,
+- Version **1.23.0, cut 2026-11-01**, release PR open (merge, tag, GitHub release, and npm publish
+  follow). Standard **0.17**, **35-check spine**, **3 scopes** (plugin, component, marketplace), **27
+  skills**, suite **1984 tests, 1980 pass, 0 failures, 4 skipped**, gate **Advanced 0/0**,
   `release-ready` all seven gates green with a GitHub token. Full detail in [`STATUS.md`](STATUS.md),
   which is the live state this file's own convention points readers to. **This line read `1.17.0` from
   2026-08-28 until 2026-10-23**, unrefreshed through v1.17.1, v1.18.0, v1.19.0, and v1.20.0 - the same
@@ -185,16 +185,21 @@ baseline, except two that gain one capped warning each from the `G4` migration. 
 ## What's next, and why (the roadmap, in priority order)
 **The plan lives in [`roadmap.md`](roadmap.md); this section only says where it points.** Until
 2026-10-30 this section still described the v1.6.0 program and the v1.13.0 and v1.14.0 cuts, all long
-shipped. As of 2026-10-30:
+shipped. As of 2026-11-01:
 
 1. **Own plugins first is done.** Every plugin in the `product-on-purpose` marketplace pins Standard
    0.17 at its latest release, and each earns its declared tier. *Why it came first:* a toolkit that
    grades other people's plugins should first hold its own family to the same edition.
-2. **Next: W6, the report object and the health number.** A versioned report, a health number beside
-   the tier, and ADV4, a substance screen. *Why:* a plugin of placeholder files can still earn Gold
-   today, so the grade needs a substance reading beside it before it is shown to anyone else.
-3. **Then cut 3 (evidence) and cut 5 (the graded cohort).** Cut 3 needs two maintainer rulings and no
-   code. Cut 5 grades plugins outside this organisation in public, and it waits for W6.
+2. **W6, the report object and the health number, is done** and ships in v1.23.0. A versioned report,
+   a health number beside the tier, and ADV4, a substance screen. *Why it came next:* a plugin of
+   placeholder files can still earn Gold, so the grade needed a substance reading beside it before it
+   is shown to anyone else. Until 2026-11-01 this item read "Next: W6".
+3. **Next: the behaviour loop, if [ADR 0066 (the goal is the builder whose libraries are proven to
+   work)](decisions/0066-the-goal-is-the-builder-whose-libraries-are-proven-and-best-is-measured.md)
+   is accepted; then cut 3 (evidence) and cut 5 (the graded cohort).** ADR 0066 is Proposed and waits
+   for a maintainer ruling. Cut 3 needs two maintainer rulings and no code. Cut 5 grades plugins
+   outside this organisation in public. It waited for W6, which has shipped, and it still needs the
+   four non-code items `roadmap.md` lists for it.
 4. **Standard 0.18** collects the rule changes ruled so far. It is named, not scheduled.
 
 ### v1.14.0 - four things the gate was telling you were not true (2026-08-16)
@@ -406,3 +411,25 @@ quotes, so a vendor change fails a test rather than leaving a stale number, and 
 held to a false-positive ceiling committed before the family measured 0 false fires in 1,186 files. The
 eval scorer gained the multi-entry credit rule, but no eval figure ships: the cells stay provisional
 until a human signs the adjudication.
+
+### v1.23.0 - the health number beside the tier (2026-11-01)
+
+**What:** a minor that ships W6 of the 2026-10-25 opportunities plan, which this project called cut B
+until the number was assigned. Reports gain a health number beside the tier, a fourth advisory screen
+for substance, and a versioned report object with a JSON Schema. Two builder instructions are fixed.
+
+**Value, plainly:** a tier says a plugin has the right files in the right places, and a plugin of
+placeholder files can still earn the top tier. The report now carries a second reading beside the tier,
+in five categories, and the placeholder plugin this repository keeps as a test scores 0 on substance
+while its tier stays Gold. The health number cannot change a grade or a badge. It also shows no band
+yet, such as "healthy", because no category has enough labelled examples to back one.
+
+**Value, for engineers:** `evaluate.mjs`'s report object gains `health{}`, `schemaVersion: 1`, `run`,
+`checks[]`, `components[]` and `blockedFindings[]`, with a JSON Schema at `schemas/report.v1.json`; no
+field was removed or renamed, and `check.mjs --json` is unchanged. Every cut point was committed before
+any measurement, and three later observations were recorded rather than tuned away, including that the
+substance screen flags the audit's five controls labelled as not defective, because the audit gave
+them placeholder bodies. The whole release was graded against v1.22.0 over 92 trees, the family plugins at their pinned
+releases and at `main` plus every fixture tree, and nothing moved. Linux CI caught one defect that two
+Windows-run reviews could not see: component sizes counted CRLF bytes and differed by platform, so they
+now count CRLF as LF.
