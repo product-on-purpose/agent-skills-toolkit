@@ -9,7 +9,7 @@ substance screen) and a versioned, additive report object with a JSON Schema. Tw
 documentation fixes. No numbered check is added or removed; the spine stays 35 and the Standard stays
 0.17. The plugin version follows `STANDARD.md` sec 7.4 (the largest component bump since the last
 release wins), and a new capability in an existing component is a minor bump. Per
-[ADR 0057](../../decisions/0057-unshipped-work-carries-a-name-never-a-version-number.md) the number
+[ADR 0057 (unshipped work carries a name, never a version number)](../../decisions/0057-unshipped-work-carries-a-name-never-a-version-number.md) the number
 `1.23.0` is assigned here, at cut time, and appears nowhere earlier. The work merged under the name
 "W6" in the 2026-10-25 opportunities plan, and this release was called "cut B" until now.
 
@@ -49,7 +49,7 @@ it gets its own review. #371 (an astro bump) was closed by Dependabot on 2026-11
    release, with the advisory keys removed.
 8. CHANGELOG and RELEASE-NOTES carry a dated section for 1.23.0, each bullet checked against its PR.
 9. Neither CHANGELOG nor RELEASE-NOTES states a health band, a calibrated threshold or an eval recall
-   figure, because every health category is `uncalibrated` and the E13 cells stay provisional until
+   figure, because every health category is `uncalibrated` and the cells of [E13 (run the defect-rich model triple)](../../backlog/enhancements.md) stay provisional until
    the maintainer signs the adjudication.
 10. Every live record that said "unreleased" for work in this cut says "SHIPPED in v1.23.0" instead.
 11. RELEASE-NOTES names which family plugins will see new ADV4 notices, measured, the way v1.22.0 did
