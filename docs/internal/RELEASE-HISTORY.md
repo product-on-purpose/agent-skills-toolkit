@@ -172,8 +172,8 @@ rendering at warn until 0.14 so nobody is gated on our defect.
 baseline, except two that gain one capped warning each from the `G4` migration. Zero verdicts moved.
 
 ## Where we are now
-- Version **1.23.0, shipped 2026-11-01** (tagged at `eb6bfc3` and on npm; the
-  `product-on-purpose` marketplace still pins v1.22.0 until its re-pin merges). Standard **0.17**, **35-check spine**, **3 scopes** (plugin, component, marketplace), **27
+- Version **1.23.0, shipped 2026-11-01** (tagged at `eb6bfc3`, on npm, and pinned by the
+  `product-on-purpose` marketplace from registry 1.118.0). Standard **0.17**, **35-check spine**, **3 scopes** (plugin, component, marketplace), **27
   skills**, suite **1984 tests, 1980 pass, 0 failures, 4 skipped**, gate **Advanced 0/0**,
   `release-ready` all seven gates green with a GitHub token. Full detail in [`STATUS.md`](STATUS.md),
   which is the live state this file's own convention points readers to. **This line read `1.17.0` from
