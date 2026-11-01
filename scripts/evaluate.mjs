@@ -83,6 +83,12 @@ function buildChecksArray(resolved, conditional, ranReqIds) {
 const COMPONENT_SCOPE_REQ_IDS = new Set(["U3", "U4", "U5", "U6", "U7"]);
 const PLUGIN_SCOPE_REQ_IDS = new Set(CHECKS.map((m) => m.meta.reqId));
 
+// UTF-8 bytes with every CRLF counted as LF. Raw bytes on disk depend on the checkout: a Windows
+// clone with core.autocrlf reported a larger size than CI's LF clone of the same file, so the report
+// differed by platform (Standard sec 4.4 requires identical results). The line count below already
+// splits on \r?\n for the same reason.
+const lfByteLength = (raw) => Buffer.byteLength((raw ?? "").replace(/\r\n/g, "\n"), "utf8");
+
 // ADR 0063 sec 5: "components[]... each component's description text, size, instruction-budget use
 // and emission targets". One entry per skill, subagent and command the plugin declares on disk.
 function buildComponentsArray(ctx) {
@@ -92,7 +98,7 @@ function buildComponentsArray(ctx) {
     const lines = (s.body || "").replace(/\r?\n$/, "").split(/\r?\n/).length;
     out.push({
       name: s.name, type: "skill", description: s.frontmatter?.description ?? null,
-      sizeBytes: Buffer.byteLength(s.raw ?? "", "utf8"),
+      sizeBytes: lfByteLength(s.raw),
       instructionBudget: { lines, max: INSTRUCTION_BUDGET_MAX_LINES, overBudget: lines > INSTRUCTION_BUDGET_MAX_LINES },
       emissionTargets: targets,
     });
@@ -100,13 +106,13 @@ function buildComponentsArray(ctx) {
   for (const a of ctx.agentDocs ?? ctx.subagents ?? []) {
     out.push({
       name: a.name, type: "subagent", description: a.frontmatter?.description ?? null,
-      sizeBytes: Buffer.byteLength(a.raw ?? "", "utf8"), instructionBudget: null, emissionTargets: targets,
+      sizeBytes: lfByteLength(a.raw), instructionBudget: null, emissionTargets: targets,
     });
   }
   for (const c of ctx.commands ?? []) {
     out.push({
       name: c.name, type: "command", description: c.frontmatter?.description ?? null,
-      sizeBytes: Buffer.byteLength(c.raw ?? "", "utf8"), instructionBudget: null, emissionTargets: targets,
+      sizeBytes: lfByteLength(c.raw), instructionBudget: null, emissionTargets: targets,
     });
   }
   return out;

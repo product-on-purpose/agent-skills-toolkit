@@ -9,7 +9,8 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { readFileSync } from "node:fs";
+import { cpSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import os from "node:os";
 import { evaluate } from "../../scripts/evaluate.mjs";
 
 const REPO = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
@@ -135,4 +136,35 @@ test("validation CAN fail: an invalid checks[] outcome is rejected", () => {
   const broken = { ...r, checks: [{ ...r.checks[0], outcome: "maybe" }] };
   const errors = validate(SCHEMA, broken);
   assert.ok(errors.some((e) => e.includes("outcome")), `expected an outcome error, got:\n${errors.join("\n")}`);
+});
+
+function mdFiles(dir, out = []) {
+  for (const e of readdirSync(dir, { withFileTypes: true })) {
+    const p = path.join(dir, e.name);
+    if (e.isDirectory()) mdFiles(p, out);
+    else if (e.name.endsWith(".md")) out.push(p);
+  }
+  return out;
+}
+
+// W6, found by CI on Linux 2026-10-31: components[].sizeBytes measured raw bytes on disk, so a
+// Windows checkout with core.autocrlf reported 206 B where CI's LF checkout reported 198 B for the
+// same SKILL.md, and every golden report snapshot drifted between the two. Standard sec 4.4 requires
+// identical results locally and in CI, so the same tree written once with LF and once with CRLF line
+// endings must report the same sizes.
+test("components[].sizeBytes does not depend on the checkout's line endings", () => {
+  const src = path.join(REPO, "tests/fixtures/golden/silver-fixture");
+  const sizesWith = (eol) => {
+    const dir = mkdtempSync(path.join(os.tmpdir(), "askit-eol-"));
+    try {
+      cpSync(src, dir, { recursive: true });
+      for (const f of mdFiles(dir)) writeFileSync(f, readFileSync(f, "utf8").replace(/\r\n/g, "\n").replace(/\n/g, eol));
+      return evaluate(dir).components.map((c) => [c.name, c.sizeBytes]);
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  };
+  const lf = sizesWith("\n");
+  assert.ok(lf.length > 0 && lf.every(([, n]) => Number.isInteger(n) && n > 0), "the fixture must report real sizes, or this test compares nothing");
+  assert.deepEqual(sizesWith("\r\n"), lf);
 });

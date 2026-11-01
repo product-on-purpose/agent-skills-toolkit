@@ -54,7 +54,7 @@ silver-fixture declares the Silver (Convergent) tier and earns Silver. Of the 35
 
 | Component | Type | Version | Size | Budget (lines/max) | Emission targets |
 | --- | --- | --- | --- | --- | --- |
-| sf-do-thing | skill | 0.1.0 | 206 B | 2/500 | claude, codex |
+| sf-do-thing | skill | 0.1.0 | 198 B | 2/500 | claude, codex |
 
 ## 04 Methodology and scope
 

@@ -103,7 +103,7 @@
         "name": { "type": "string" },
         "type": { "type": "string", "enum": ["skill", "subagent", "command"] },
         "description": { "type": ["string", "null"] },
-        "sizeBytes": { "type": ["integer", "null"], "minimum": 0 },
+        "sizeBytes": { "type": ["integer", "null"], "minimum": 0, "description": "UTF-8 bytes of the component file with every CRLF counted as LF, so the value does not depend on the checkout's line endings." },
         "instructionBudget": {
           "type": ["object", "null"],
           "properties": {
