@@ -71,10 +71,10 @@ The name in each heading is the required skill name, so the two arms cannot diff
 
 | Component | Pinned to |
 |---|---|
-| Environment | A fresh `node:24` Linux container under podman, for every build and every scoring suite. It has no personal Claude configuration, and it mounts only its own working folder and its arm's plugin, read-only. The maintainer provides the sign-in at run time |
+| Environment | A fresh `node:24` Linux container under podman, for every build and every scoring suite. It has no personal Claude configuration, and it mounts only its own working folder and its arm's plugin, read-only. The maintainer provides the sign-in at run time. The image must carry Python 3, because skill-creator's scripts are Python, and the dry run verifies that |
 | Claude Code | `@anthropic-ai/claude-code@2.1.318`, installed by exact version in the container, with `DISABLE_AUTOUPDATER=1` |
 | Toolkit | Tag `v1.23.0`, commit `eb6bfc3`, exported with `git archive` and without `docs/internal/` and `tests/`, so a builder cannot read the plan or the ADR |
-| skill-creator | `anthropic-agent-skills/document-skills`, version `ca45fc496a34`, the one `installed_plugins.json` marks as installed on 2026-11-05 |
+| skill-creator | `anthropic-agent-skills/document-skills`, version `ca45fc496a34`, the one `installed_plugins.json` marks as installed on 2026-11-05. The arm receives a wrapper plugin holding only `skills/skill-creator/`, not the whole document plugin |
 | Builder model | `sonnet`, in both arms and for all three briefs. Inner loops also use `sonnet` in both arms, so neither arm tunes against brief B's scoring model |
 | Agent under test | `--model sonnet` for briefs A and C, and `--model haiku` for brief B, which is the thin-input and smaller-model case the plan requires |
 | Judge model | `--judge-model sonnet` for every suite, because a haiku judge would match brief B's agent under test |
@@ -101,7 +101,7 @@ claude -p --plugin-dir /plugin --model sonnet --max-budget-usd 15 --no-session-p
 
 **Then the toolkit arm's instruction:**
 
-> Use the `askit-build-skill` skill in create mode to author the skill. Write your test cases under `./evals/` in the layout `claude plugin eval` expects. For each iteration, run `claude plugin eval . --ablation with-without --runs 3 --model sonnet --judge-model sonnet --threshold 0 --no-publish --trust-plugin --max-cost-usd 5`, and use `askit-build-skill` improve mode together with those results to improve the skill.
+> Use the `askit-build-skill` skill in create mode to author the skill. The toolkit is mounted at `/plugin`, so where a skill says `node scripts/...`, run `node /plugin/scripts/...`. Write your test cases under `./evals/` in the layout `claude plugin eval` expects. For each iteration, run `claude plugin eval . --ablation with-without --runs 3 --model sonnet --judge-model sonnet --threshold 0 --no-publish --trust-plugin --max-cost-usd 5`, and use `askit-build-skill` improve mode together with those results to improve the skill.
 
 **Then the skill-creator arm's instruction:**
 
