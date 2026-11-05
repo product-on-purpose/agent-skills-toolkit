@@ -2,7 +2,7 @@
 title: "Plan: validate where the toolkit could be best in class"
 description: "A proposed set of pre-registered experiments, each with a kill criterion, that decides whether the toolkit leads with proven builders, with marketplace governance, with both, or with neither"
 status: proposed
-last-updated: "2026-10-30"
+last-updated: "2026-11-05"
 ---
 
 # Plan: validate where the toolkit could be best in class
@@ -10,8 +10,8 @@ last-updated: "2026-10-30"
 **Status: PROPOSED 2026-10-30. Nothing outward-facing runs without the maintainer's go.** This plan
 operationalises [ADR 0066 (the goal is the builder whose libraries are proven to work, and "best" is
 measured, not claimed)](../../decisions/0066-the-goal-is-the-builder-whose-libraries-are-proven-and-best-is-measured.md),
-which is itself Proposed and carried as D-09 (the goal, and how "best" is measured) in
-[`roadmap.md`](../../roadmap.md) section 2. It cross-references ADR 0066's criteria C1 to C4 rather than
+which the maintainer accepted on 2026-11-05 as the ruling on D-09 (the goal, and how "best" is measured)
+in [`roadmap.md`](../../roadmap.md) section 2. This plan itself stays Proposed. It cross-references ADR 0066's criteria C1 to C4 rather than
 restating them.
 
 **The goal named by the maintainer is an industry-defining, best-in-class solution.** This plan does not
@@ -127,12 +127,17 @@ by 2026-11-13; contact on the maintainer's go; the window closes 30 days after c
 | Fails | Demand shown | Library governance. The loop ships as regression tooling |
 | Fails | No demand | Neither direction is industry-defining. The toolkit narrows to governing this family, and outward positioning stops |
 
-The table's outcome becomes the recommendation for D-09, and with it the roadmap sequence in ADR 0066
-section 4. The maintainer rules; this plan only supplies the evidence.
+The table's outcome becomes a recommendation on what the toolkit leads with, and on whether the roadmap
+sequence in ADR 0066 section 4 should change. The maintainer rules; this plan only supplies the evidence.
+
+**Annotated 2026-11-05.** This paragraph used to say the outcome fed D-09, but ADR 0066 was accepted before
+either experiment ran. A failed experiment B now demotes the loop, as ADR 0066 section 2 already provides.
+Changing the accepted goal itself would take a new ADR.
 
 ## What this plan does not do
 
-- **It builds no product feature.** Experiment B is run by hand. The behaviour-loop cut waits for D-09.
+- **It builds no product feature.** Experiment B is run by hand. The behaviour-loop cut no longer waits for D-09, which
+  was accepted 2026-11-05. Whether it waits for experiment B is the maintainer's choice when this plan is ruled.
 - **It publishes nothing about anyone else's catalogue** without consent.
 - **It sets no numeric adoption target.** ADR 0066 refuses targets before a first measurement, and this
   plan follows that.

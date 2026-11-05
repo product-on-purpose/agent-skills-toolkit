@@ -6,8 +6,9 @@
 > technical history), and `docs/internal/release-plans/` (the per-release spec + implementation
 > packets). Do not add accretive per-release paragraphs here; append them to those instead.
 >
-> Last updated: 2026-11-01 (v1.23.0 shipped and delivered: W6, the health number beside the tier, is
-> tagged, on the GitHub release page, on npm, and pinned by the `agent-plugins` marketplace).
+> Last updated: 2026-11-05 (ADR 0066, the goal and how "best" is measured, was accepted. The newest
+> release is still v1.23.0: W6, the health number beside the tier, is tagged, on the GitHub release
+> page, on npm, and pinned by the `agent-plugins` marketplace).
 >
 > **This page is the STATE. The PLAN is [`roadmap.md`](roadmap.md)** (added 2026-09-17): what is open,
 > what each open item depends on, what "done" means for it with its acceptance criteria quoted
@@ -448,9 +449,10 @@ blocked its own first real run** - on 7 failing tests and a stale count that had
   **What is next in the 2026-10-25 plan:** W6 (the versioned report object, the health number beside the
   tier, and ADV4, the substance screen), which landed 2026-10-31 and ships in v1.23.0 (see the bullet above). The two
   Dependabot PRs #371 and #372 are still parked.
-  **Proposed the same day, awaiting a ruling:** [ADR 0066 (the goal is the builder whose libraries are
+  **Proposed the same day and accepted 2026-11-05:** [ADR 0066 (the goal is the builder whose libraries are
   proven to work, and "best" is measured, not claimed)](decisions/0066-the-goal-is-the-builder-whose-libraries-are-proven-and-best-is-measured.md),
-  carried as D-09 in [`roadmap.md`](roadmap.md) section 2 with its behaviour-loop cut in section 3.
+  recorded as D-09 in [`roadmap.md`](roadmap.md) section 2. Its behaviour-loop cut, in section 3, is next
+  and has not started.
 - **As of the v1.21.0 cut (2026-10-23).** The 2026-10-23 first-party provider survey filed six new
   backlog entries, all OPEN: [E84](backlog/enhancements.md) (Claude Code "mods" unnamed), [E85](backlog/enhancements.md)
   (`claude plugin tag`'s version-agreement preflight, worth adopting), [E86](backlog/enhancements.md)

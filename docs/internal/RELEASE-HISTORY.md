@@ -185,7 +185,7 @@ baseline, except two that gain one capped warning each from the `G4` migration. 
 ## What's next, and why (the roadmap, in priority order)
 **The plan lives in [`roadmap.md`](roadmap.md); this section only says where it points.** Until
 2026-10-30 this section still described the v1.6.0 program and the v1.13.0 and v1.14.0 cuts, all long
-shipped. As of 2026-11-01:
+shipped. As of 2026-11-05:
 
 1. **Own plugins first is done.** Every plugin in the `product-on-purpose` marketplace pins Standard
    0.17 at its latest release, and each earns its declared tier. *Why it came first:* a toolkit that
@@ -194,10 +194,10 @@ shipped. As of 2026-11-01:
    a health number beside the tier, and ADV4, a substance screen. *Why it came next:* a plugin of
    placeholder files can still earn Gold, so the grade needed a substance reading beside it before it
    is shown to anyone else. Until 2026-11-01 this item read "Next: W6".
-3. **Next: the behaviour loop, if [ADR 0066 (the goal is the builder whose libraries are proven to
+3. **Next: the behaviour loop, because [ADR 0066 (the goal is the builder whose libraries are proven to
    work)](decisions/0066-the-goal-is-the-builder-whose-libraries-are-proven-and-best-is-measured.md)
-   is accepted; then cut 3 (evidence) and cut 5 (the graded cohort).** ADR 0066 is Proposed and waits
-   for a maintainer ruling. Cut 3 needs two maintainer rulings and no code. Cut 5 grades plugins
+   was accepted on 2026-11-05; then cut 3 (evidence) and cut 5 (the graded cohort).** The behaviour loop
+   has not started. Cut 3 needs two maintainer rulings and no code. Cut 5 grades plugins
    outside this organisation in public. It waited for W6, which has shipped, and it still needs the
    four non-code items `roadmap.md` lists for it.
 4. **Standard 0.18** collects the rule changes ruled so far. It is named, not scheduled.

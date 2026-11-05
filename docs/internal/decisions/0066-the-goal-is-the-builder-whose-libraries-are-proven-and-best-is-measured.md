@@ -5,7 +5,7 @@
 - **Decision: the toolkit's goal is to be the builder that produces a whole cross-agent library and proves it works, with evidence a CI gate can read.** It does not aim to out-feature the vendor's own behavioural tools on the vendor's platform. It composes with them: every builder ends by writing and running an eval suite in the format of `claude plugin eval`, and the result is reported as **evidence**, beside the tier and beside the health number, never inside either.
 - **"Best" becomes four measured criteria, each with a baseline taken 2026-10-30.** A built skill must beat a no-skill model more often than one built with the vendor's skill-creator alone. The placeholder fixture's report must show it is hollow. A newcomer's time to a first green gate is measured. And the first outside user is counted rather than assumed. A criterion that fails is reported as failed.
 - **Why.** On 2026-10-30 the vendor ships behavioural testing free inside Claude Code, and this toolkit's builders stop at file structure. The organisation's own pilots found structure says nothing about whether a skill is worth shipping. The one unoccupied position is the whole-library, cross-agent, deterministic one, so the goal is narrowed to it and made testable.
-- **Status: Proposed.** Drafted 2026-10-30 at the maintainer's request to draft the goal and its roadmap rows. Acceptance, amendment or refusal is the maintainer's.
+- **Status: Accepted (2026-11-05).** Ruled by the maintainer without amendment. Drafted 2026-10-30 at the maintainer's request to draft the goal and its roadmap rows. This ADR records the decision, and the behaviour-loop cut carries the code.
 
 - **Date:** 2026-10-30
 - **Deciders:** maintainer (jprisant), with Claude (Opus 5.5)
@@ -118,9 +118,9 @@ C3 and C4 need no cut. C3 is measured once the scripted run exists, and C4 is co
 
 ## Implementation sites
 
-This ADR is Proposed and implements nothing. On acceptance, these are the sites the named cut would change:
+This ADR implements nothing itself. These are the sites the named cut changes:
 
-- `docs/internal/roadmap.md` - the goal and criteria quoted verbatim, the new named cut, and the re-ordered sequence. Rows are added with this ADR, marked as awaiting its ruling.
+- `docs/internal/roadmap.md` - the goal and criteria quoted verbatim, the new named cut, and the re-ordered sequence. The rows were added with this ADR, marked as awaiting its ruling, and the ruling was recorded on them on 2026-11-05.
 - `skills/askit-build-*/SKILL.md` and `docs/reference/builder-pattern.md` - the create-mode eval step and the improve-mode reading step.
 - `scripts/lib/` - a reader for the vendor's `aggregate-result.json`, and the evidence section in the report object W6 builds (`schemas/report.v1.json`, additive).
 - `foundation/claims/vendor-claims.json` - `quote` claims for the eval layout and the result schema version.

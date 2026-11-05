@@ -18,7 +18,7 @@ not a content review, a safety audit, or a statement that the skills work" (`TIE
 `scripts/lib/tier-scope.mjs`). The toolkit's one unoccupied position is a deterministic gate over a whole
 plugin library ([ADR 0066 (the goal is the builder whose libraries are proven to work, and "best" is
 measured, not claimed)](../../decisions/0066-the-goal-is-the-builder-whose-libraries-are-proven-and-best-is-measured.md),
-Proposed). The public story should lead with that gate, and the tier should become a setting inside it.
+accepted 2026-11-05). The public story should lead with that gate, and the tier should become a setting inside it.
 
 **What does not change.** The rules, the checks, the tier logic, the burndown ("what the next level
 needs"), the exit codes and every machine identifier stay exactly as they are. This is a vocabulary and
