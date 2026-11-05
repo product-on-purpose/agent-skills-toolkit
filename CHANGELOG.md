@@ -11,7 +11,7 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
-- **[ADR 0066 (the goal is the builder whose libraries are proven to work, and "best" is measured, not claimed)](docs/internal/decisions/0066-the-goal-is-the-builder-whose-libraries-are-proven-and-best-is-measured.md) records a ruling.** The maintainer accepted it on 2026-11-05. The goal is now the builder that produces a whole cross-agent plugin library and proves it works, with four measured criteria. This changes no shipped behaviour, and no grade moves. The behaviour-loop cut that implements it has not started.
+- **[ADR 0066 (the goal is the builder whose libraries are proven to work, and "best" is measured, not claimed)](docs/internal/decisions/0066-the-goal-is-the-builder-whose-libraries-are-proven-and-best-is-measured.md) records a ruling ([#399](https://github.com/product-on-purpose/agent-skills-toolkit/pull/399)).** The maintainer accepted it on 2026-11-05. The goal is now the builder that produces a whole cross-agent plugin library and proves it works, with four measured criteria. This changes no shipped behaviour, and no grade moves. The behaviour-loop cut that implements it has not started.
 
 ## [1.23.0] - 2026-11-01
 
