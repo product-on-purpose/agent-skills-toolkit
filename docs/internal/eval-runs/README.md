@@ -10,6 +10,7 @@ Two purposes, in priority order:
 ## What lives where
 
 - **This folder (tracked):** [`eval-runs.md`](eval-runs.md) - one row per run plus the per-batch toolkit findings.
+- **This folder (tracked):** [`prereg_experiment-b-c1-pilot-20261105.md`](prereg_experiment-b-c1-pilot-20261105.md) and [`c1-pilot/`](c1-pilot/README.md) - the rules and fixed inputs for experiment B, the pilot behind criterion C1 of ADR 0066 (the goal, and how "best" is measured).
 - **Gitignored:** the raw advisory JSON files and rendered HTML reports, under `_local/audit/eval-runs/<date>/`. The record row carries the path.
 
 ## Running a batch (the pipeline, not a procedure)

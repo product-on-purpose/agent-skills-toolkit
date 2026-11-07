@@ -1,0 +1,12 @@
+# The one image for every build and scoring suite in experiment B (section 5 of the pre-registration).
+# Python packages come from apt because the image has no pip. skill-creator's scripts import yaml,
+# and its instructions call `python`, which this image otherwise lacks.
+# bubblewrap and socat are what Claude Code's Linux shell sandbox asks for.
+FROM docker.io/library/node:24
+RUN apt-get update \
+ && apt-get install -y --no-install-recommends python3-yaml python-is-python3 bubblewrap socat \
+ && rm -rf /var/lib/apt/lists/* \
+ && npm install -g @anthropic-ai/claude-code@2.1.318
+ENV DISABLE_AUTOUPDATER=1
+USER node
+WORKDIR /work
