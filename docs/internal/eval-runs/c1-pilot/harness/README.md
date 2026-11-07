@@ -35,3 +35,16 @@ Each entry is something the setup found. None changes a brief, a case or the pas
 6. **Session files are copied out, not mounted.** Section 5 allows only the working folder and the plugin as mounts. The harness copies `~/.claude` out of a stopped container to count the optimiser's child sessions, and then removes the container.
 7. **Each build has a safety stop that the pre-registration does not name.** The harness stops a build when its token estimate passes the stated limit or after three hours. A stopped build is recorded as stopped. The estimate uses list prices from the maintainer's routing reference, dated 2026-07-04.
 8. **The toolkit's own gate reports 11 errors on the export.** This is expected, because the export deliberately removes `docs/internal/` and `tests/`. The dry run checks whether a builder is misled by it.
+9. **Under `--ablation none`, the vendor scores the firing grader.** One throwaway run on 2026-11-06 reported `fired` as `scored: true`, with a score of 0.4, which is 2 of 5 graders. The true score on the four scored graders was 0.5. Left in, this would have read every calibration baseline at four fifths of its value, and a true 0.75 would have read 0.60 and escaped replacement. The harness therefore removes `fired.md` from its calibration copies of the cases, and the held-out cases themselves do not change. Under `--ablation with-without`, the vendor keeps the grader out of the score, as measured on 2026-11-05, so the scored suites are not affected.
+10. **A copied sign-in token can pick up a stray character.** The first saved token held one, and the server refused it with "invalid x-api-key". `save-token.mjs` now strips whitespace and refuses a damaged token.
+
+## Open blocker: nested sessions cannot sign in
+
+The first dry-run build, `dry-toolkit` on 2026-11-06, wrote a skill but could not run its nested `claude plugin eval`. Every run reported "Not logged in", and the build cost about $0.20. The build record correctly reported `methodRan: false`.
+
+- **Cause, measured.** Claude Code removes `CLAUDE_CODE_OAUTH_TOKEN` from its Bash tool's environment, so a session started from Bash has no credential. Setting `CLAUDE_CODE_SUBPROCESS_ENV_SCRUB=0` did not change this.
+- **Reach, inferred.** skill-creator's optimiser starts `claude -p` the same way, so both arms should be affected. Its build has not been run.
+- **What still works, measured.** A `claude plugin eval` started directly by the harness signs in, so the calibration does not depend on this fix.
+- **Status.** Moving the token into the container's settings file was refused by the session's safety check, so it was not tried. The maintainer decides the route.
+
+**A second finding from the same build.** The builder ran `rm -rf evals/results` when it finished, so a build can delete the files that `build-record.mjs` counts as proof of a nested eval, along with their spend. The record must also read the transcript before the real run.
