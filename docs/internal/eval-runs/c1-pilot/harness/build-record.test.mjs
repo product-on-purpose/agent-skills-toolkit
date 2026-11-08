@@ -67,6 +67,27 @@ test('the toolkit build record needs the builder and a finished nested eval, and
   }
 });
 
+test('a nested eval counts from the transcript even after its files are deleted, and a failed sign-in does not', () => {
+  const dir = workDir({ 'skills/x/SKILL.md': 'x' });
+  const evalCall = (id, output) => [
+    use(id, 'Bash', { command: 'claude plugin eval . --runs 3 | tail -4' }),
+    line({ message: { content: [{ type: 'tool_result', tool_use_id: id, is_error: false, content: output }] } }),
+  ];
+  try {
+    const builder = [use('a', 'Skill', { skill: 'askit-build-skill', args: 'create x' }), done('a')];
+    const good = [...builder, ...evalCall('b', '5 case(s) · 310s · $1.25 · 4 passed')].join('\n');
+    const record = buildRecord({ arm: 'toolkit', streamText: good, workDir: dir, skillName: 'x' });
+    assert.equal(record.methodRan, true);
+    assert.equal(record.nestedEvalSpendFromTranscriptUsd, 1.25);
+    const refused = [...builder, ...evalCall('b', '1 case(s) · 0s · $0.00 · ⚠ partial (stopped: authentication failed)')].join('\n');
+    assert.equal(buildRecord({ arm: 'toolkit', streamText: refused, workDir: dir, skillName: 'x' }).methodRan, false);
+    const help = [...builder, use('c', 'Bash', { command: 'claude plugin eval --help' }), done('c')].join('\n');
+    assert.equal(buildRecord({ arm: 'toolkit', streamText: help, workDir: dir, skillName: 'x' }).nestedEvalCommands, 0);
+  } finally {
+    rmSync(dir, { recursive: true });
+  }
+});
+
 test('the skill-creator build record needs the skill, a benchmark and the optimiser', () => {
   const dir = workDir({ 'skills/x/SKILL.md': 'x', 'workspace/iteration-1/benchmark.json': '{}' });
   try {

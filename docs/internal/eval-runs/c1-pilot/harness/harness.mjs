@@ -23,6 +23,12 @@ const LOCAL = join(REPO, '_local', 'c1-pilot');
 const PREREG = join(PILOT, '..', 'prereg_experiment-b-c1-pilot-20261105.md');
 const IMAGE = 'localhost/c1-pilot:1';
 const TOKEN_FILE = join(homedir(), '.c1-pilot.env');
+// Builds sign in from a login stored in this volume, because Claude Code removes an environment token
+// from its Bash tool, and a build's nested sessions start from Bash. Scoring suites keep the token.
+const LOGIN_VOLUME = process.env.C1_LOGIN_VOLUME ?? 'c1-pilot-login';
+// Without CLAUDE_CONFIG_DIR, Claude Code writes `.claude.json` to the home folder, outside the volume,
+// and `--rm` deletes it. Measured 2026-11-08. The setting keeps every login file inside the volume.
+const LOGIN_MOUNT = ['-v', `${LOGIN_VOLUME}:/home/node/.claude`, '-e', 'CLAUDE_CONFIG_DIR=/home/node/.claude'];
 const TAG = 'v1.23.0';
 const SKILL_CREATOR = join(homedir(), '.claude/plugins/cache/anthropic-agent-skills/document-skills/ca45fc496a34/skills/skill-creator');
 const CALIBRATION_CEILING_USD = '4';
@@ -153,6 +159,46 @@ function auth() {
   console.log({ reply: parsed.result, costUsd: parsed.total_cost_usd, isError: parsed.is_error, exit: result.status });
 }
 
+/**
+ * Empty the login volume of everything but the stored login, so no build sees another build's files.
+ * `.claude.json` also records per-folder history, so only its account fields are kept.
+ */
+function resetLogin() {
+  const trim = [
+    "const fs = require('fs'); const f = '/home/node/.claude/.claude.json';",
+    'if (fs.existsSync(f)) { const j = JSON.parse(fs.readFileSync(f, "utf8")); const k = {};',
+    "for (const n of ['oauthAccount', 'userID', 'hasCompletedOnboarding']) if (n in j) k[n] = j[n];",
+    'fs.writeFileSync(f, JSON.stringify(k)); }',
+  ].join(' ');
+  const script = [
+    'test -f /home/node/.claude/.credentials.json || { echo "no stored login"; exit 3; }',
+    'find /home/node/.claude -mindepth 1 -maxdepth 1 ! -name .credentials.json ! -name .claude.json -exec rm -rf {} +',
+    `node -e '${trim.replace(/'/g, "'\\''")}'`,
+  ].join('; ');
+  const result = run('podman', ['run', '--rm', ...LOGIN_MOUNT, IMAGE, 'sh', '-c', script]);
+  if (result.status !== 0) throw new Error(`The login volume is not ready: ${result.stdout}${result.stderr}`);
+}
+
+/** Check, for a few cents, that a session started from Bash can sign in and run an eval. */
+function nested() {
+  resetLogin();
+  const setup = [
+    'mkdir -p /tmp/p/.claude-plugin /tmp/p/evals/c/graders && cd /tmp/p',
+    `printf '{"name":"probe","version":"0.0.0","description":"probe"}\\n' > .claude-plugin/plugin.json`,
+    "printf 'Reply with the word hello.\\n' > evals/c/prompt.md",
+    "printf -- '---\\ntype: llm\\nweight: 1\\n---\\n\\nThe response says hello.\\n' > evals/c/graders/g.md",
+  ].join(' && ');
+  const inner = [
+    'Run exactly this bash command and reply with its raw output only:',
+    'cd /tmp/p && claude plugin eval . --runs 1 --model haiku --judge-model haiku --threshold 0 --no-publish --trust-plugin --max-cost-usd 0.1 --output-dir out 2>&1 | tail -3',
+  ].join('\n');
+  const result = run('podman', [
+    'run', '--rm', '-i', ...LOGIN_MOUNT, IMAGE, 'sh', '-c',
+    `${setup} && claude -p --model haiku --max-budget-usd 0.08 --allowed-tools Bash`,
+  ], { input: inner });
+  console.log(result.stdout.slice(-1500), result.stderr.slice(-500));
+}
+
 function containerSessions(name) {
   const script = "find /home/node/.claude/projects -name '*.jsonl' 2>/dev/null | xargs -r cat";
   const result = run('podman', ['exec', name, 'sh', '-c', script]);
@@ -160,7 +206,7 @@ function containerSessions(name) {
 }
 
 async function build(arm, briefName, id, stopAtUsd) {
-  needToken();
+  resetLogin();
   const prereg = readFileSync(PREREG, 'utf8');
   const prompt = builderPrompt(prereg, arm, briefName);
   const runDir = join(LOCAL, 'runs', id);
@@ -172,7 +218,8 @@ async function build(arm, briefName, id, stopAtUsd) {
 
   const name = `c1-${id}`;
   const args = [
-    'run', '-i', '--name', name, '--env-file', TOKEN_FILE,
+    'run', '-i', '--name', name,
+    ...LOGIN_MOUNT,
     '-v', `${work}:/work`, '-v', `${join(LOCAL, 'plugins', arm)}:/plugin:ro`,
     '-e', 'BASH_DEFAULT_TIMEOUT_MS=3600000', '-e', 'BASH_MAX_TIMEOUT_MS=5400000',
     IMAGE,
@@ -214,8 +261,10 @@ async function build(arm, briefName, id, stopAtUsd) {
   await new Promise((done) => stream.end(done));
 
   // Session files are copied out before the container goes, for the spend record.
+  // Only the session files leave the container. The stored login stays in its volume.
   const home = join(runDir, 'claude-home');
-  run('podman', ['cp', `${name}:/home/node/.claude`, home]);
+  mkdirSync(home, { recursive: true });
+  run('podman', ['cp', `${name}:/home/node/.claude/projects`, join(home, 'projects')]);
   const children = tallySessions(sessionsOnHost(join(home, 'projects')));
   run('podman', ['rm', '-f', name]);
 
@@ -314,10 +363,12 @@ async function main(argv) {
   if (command === 'prepare') return prepare();
   if (command === 'probe') return probe();
   if (command === 'auth') return auth();
+  if (command === 'nested') return nested();
+  if (command === 'reset-login') return resetLogin();
   if (command === 'denominator') return denominator();
   if (command === 'calibrate') return calibrate(rest);
   if (command === 'build') return build(rest[0], rest[1], rest[2], Number(rest[3] ?? 18));
-  console.error('usage: node harness.mjs prepare|probe|auth|denominator|calibrate|build');
+  console.error('usage: node harness.mjs prepare|probe|auth|reset-login|nested|denominator|calibrate|build');
   process.exitCode = 2;
 }
 

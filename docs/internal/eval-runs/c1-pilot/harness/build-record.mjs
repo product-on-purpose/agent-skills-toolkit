@@ -102,6 +102,22 @@ export function finalResult(streamText) {
   }
 }
 
+/**
+ * Find nested `claude plugin eval` runs in the transcript. A builder can delete its result files,
+ * so the transcript is the record that survives. A run counts as finished when its summary line
+ * appears and it neither failed to sign in nor stopped part way.
+ */
+export function nestedEvals(calls) {
+  return calls
+    .filter((c) => c.name === 'Bash' && /claude plugin eval(?!\s+(init|--help))/.test(c.input.command ?? ''))
+    .map((c) => {
+      const summary = c.result.match(/case\(s\) · [^\n]*/);
+      const cost = summary?.[0].match(/\$([0-9.]+)/);
+      const failed = /Not logged in|authentication failed|partial/i.test(summary?.[0] ?? c.result);
+      return { finished: Boolean(summary) && !failed, reportedUsd: cost ? Number(cost[1]) : null };
+    });
+}
+
 /** Report the build record for one arm, per section 6. */
 export function buildRecord({ arm, streamText, workDir, skillName }) {
   const calls = toolCalls(streamText);
@@ -128,9 +144,13 @@ export function buildRecord({ arm, streamText, workDir, skillName }) {
     toolCounts: calls.reduce((counts, c) => ({ ...counts, [c.name]: (counts[c.name] ?? 0) + 1 }), {}),
   };
 
+  const evals = nestedEvals(calls);
+  record.nestedEvalCommands = evals.length;
+  record.nestedEvalSpendFromTranscriptUsd = evals.reduce((sum, e) => sum + (e.reportedUsd ?? 0), 0);
+
   if (arm === 'toolkit') {
     record.builderInvoked = named('askit-build-skill').length > 0;
-    record.nestedEvalFinished = nestedResults.length;
+    record.nestedEvalFinished = Math.max(nestedResults.length, evals.filter((e) => e.finished).length);
     record.improveModeCount = named('askit-build-skill').filter((c) => /improve/i.test(String(c.input.args ?? ''))).length;
     record.createOnly = record.improveModeCount === 0;
     record.methodRan = record.builderInvoked && record.nestedEvalFinished > 0;
