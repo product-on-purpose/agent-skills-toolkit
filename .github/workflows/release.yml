@@ -81,7 +81,7 @@ jobs:
         run: node scripts/check-release-notes-section.mjs --extract "${GITHUB_REF_NAME#v}" --out RELEASE_BODY.md
 
       - name: Create GitHub release
-        uses: softprops/action-gh-release@efb35369e0ad2afab669f228072c1b0d510eae64 # v3.0.3 pinned 2026-09-04
+        uses: softprops/action-gh-release@8a0cd651e5b2365bd640854a3fa5dfc70e4875f3 # v3.0.3 pinned 2026-09-04
         with:
           body_path: RELEASE_BODY.md
           draft: false
