@@ -1,6 +1,13 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { check } from "../../scripts/checks/manifest-drift.mjs";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+import { spawnSync } from "node:child_process";
+import { loadPlugin } from "../../scripts/lib/load-plugin.mjs";
+
+const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
+const FIXTURES = path.join(ROOT, "tests/fixtures");
 
 test("matching name/version - no finding", () => {
   const ctx = { root: ".", library: { data: { name: "x", version: "0.1.0" } }, claudeManifest: { name: "x", version: "0.1.0" } };
@@ -64,4 +71,45 @@ test("an author field present on only one side is still not compared - no findin
     claudeManifest: { name: "x", version: "0.1.0", author: { name: "Jane Maintainer" } },
   };
   assert.deepEqual(check(ctx), []);
+});
+
+// A present-but-invalid native manifest used to vanish in the loader: readJsonSafe returned
+// { data: null, parseError }, the loader kept only .data, and U8 skipped the null as "no manifest".
+// The gate then graded a plugin Claude Code cannot load as passing, with exit 0. These tests pin the
+// fail-closed behaviour at three levels: the check, the loader-to-check wiring, and the CLI exit code.
+test("a claude manifest parse error is a U8 ERROR naming .claude-plugin/plugin.json", () => {
+  const ctx = { root: ".", library: { data: { name: "x", version: "0.1.0" } }, claudeManifest: null, claudeManifestParseError: "Unexpected token" };
+  const r = check(ctx);
+  assert.equal(r.length, 1);
+  assert.equal(r[0].severity, "error");
+  assert.equal(r[0].reqId, "U8");
+  assert.equal(r[0].file, ".claude-plugin/plugin.json");
+  assert.match(r[0].message, /not valid JSON/);
+});
+
+test("a codex manifest parse error is a U8 ERROR naming .codex-plugin/plugin.json", () => {
+  const ctx = { root: ".", library: { data: { name: "x", version: "0.1.0" } }, codexManifest: null, codexManifestParseError: "Unexpected token" };
+  const r = check(ctx);
+  assert.equal(r.length, 1);
+  assert.equal(r[0].file, ".codex-plugin/plugin.json");
+});
+
+test("a manifest parse error is reported even when library.json is absent", () => {
+  const r = check({ root: ".", library: { data: null }, claudeManifestParseError: "Unexpected token" });
+  assert.equal(r.length, 1);
+  assert.equal(r[0].severity, "error");
+});
+
+test("loadPlugin carries an invalid plugin.json's parse error through to U8", () => {
+  const ctx = loadPlugin(path.join(FIXTURES, "anti/bad-plugin-json"));
+  assert.equal(ctx.claudeManifest, null);
+  assert.ok(ctx.claudeManifestParseError);
+  assert.equal(ctx.codexManifestParseError, null);
+  assert.ok(check(ctx).some((f) => f.severity === "error" && f.file === ".claude-plugin/plugin.json"));
+});
+
+test("the gate exits 1 on a plugin whose plugin.json is not valid JSON", () => {
+  const res = spawnSync(process.execPath, [path.join(ROOT, "scripts/check.mjs"), path.join(FIXTURES, "anti/bad-plugin-json")], { encoding: "utf8" });
+  assert.equal(res.status, 1, res.stdout + res.stderr);
+  assert.match(res.stdout, /manifest-drift \(U8\): \.claude-plugin\/plugin\.json is present but not valid JSON/);
 });

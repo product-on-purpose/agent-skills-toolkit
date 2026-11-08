@@ -89,6 +89,9 @@ export function loadPlugin(root) {
   // the basename is what both `maps-to` and the Standard's `_workflows/<name>.md` refer to.
   const workflows = listWorkflowFiles(root).map((f) => loadSubagent(f));
 
+  // A present-but-invalid manifest yields data:null plus a parseError. Both are exposed: dropping the
+  // parseError made an unloadable plugin.json indistinguishable from an absent one, so U8 skipped it
+  // and the gate graded a plugin Claude Code cannot load as passing.
   const claude = readJsonSafe(path.join(root, ".claude-plugin", "plugin.json"));
   const codex = readJsonSafe(path.join(root, ".codex-plugin", "plugin.json"));
 
@@ -103,5 +106,5 @@ export function loadPlugin(root) {
   // Present + valid JSON but no usable mcpServers object => malformed (mcp-valid fails closed).
   const mcpMalformed = mcpPresent && !mcp.parseError && mcpMap === null;
 
-  return { root, library, agentsMdPath, skills, subagents, agentDocs, commands, workflows, claudeManifest: claude.data, codexManifest: codex.data, mcpServers, mcpPath, mcpParseError, mcpMalformed };
+  return { root, library, agentsMdPath, skills, subagents, agentDocs, commands, workflows, claudeManifest: claude.data, codexManifest: codex.data, claudeManifestParseError: claude.parseError, codexManifestParseError: codex.parseError, mcpServers, mcpPath, mcpParseError, mcpMalformed };
 }

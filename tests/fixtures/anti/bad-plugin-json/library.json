@@ -1,0 +1,1 @@
+{ "name": "bad-plugin-json", "version": "0.1.0", "description": "Anti fixture: a Universal plugin whose .claude-plugin/plugin.json is not valid JSON, to trip U8. Use it to prove the gate fails closed on an unloadable native manifest.", "standard": "0.7", "tier": "universal" }
