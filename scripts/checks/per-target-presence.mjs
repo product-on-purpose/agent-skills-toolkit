@@ -43,6 +43,7 @@ export function check(ctx) {
     for (const t of targets) {
       const rel = MANIFEST_FOR[t];
       if (!rel || !fileExists(path.join(ctx.root, rel))) continue; // a missing manifest is owned by the plugin-level loop above
+      if (ctx[`${t}ManifestParseError`]) continue; // an unparseable manifest is owned by U8 (manifest-drift); do not also claim it lacks the pointer
       const m = MANIFEST_OBJ[t];
       if (!m || m.mcpServers !== "./.mcp.json") {
         out.push(
