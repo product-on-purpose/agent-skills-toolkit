@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { mkdtempSync, mkdirSync, writeFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { usageCost, tallySessions, toolCalls, finalResult, buildRecord } from './build-record.mjs';
+import { usageCost, tallySessions, toolCalls, finalResult, buildRecord, UNANSWERED_REQUEST_USD } from './build-record.mjs';
 
 const line = (object) => JSON.stringify(object);
 const use = (id, name, input) => line({ message: { content: [{ type: 'tool_use', id, name, input }] } });
@@ -24,6 +24,14 @@ test('tallySessions counts a repeated message once and skips junk lines', () => 
   const tally = tallySessions(text);
   assert.equal(tally.messages, 1);
   assert.equal(tally.tokens.output, 1000);
+});
+
+test('tallySessions prices a session that sent a request and never saved a response', () => {
+  const killed = line({ type: 'api-request', sessionId: 's1' });
+  const answered = [line({ type: 'api-request', sessionId: 's2' }), line({ sessionId: 's2', message: { id: 'm2', model: 'sonnet', usage: { output_tokens: 1e6 } } })];
+  const tally = tallySessions([killed, ...answered].join('\n'));
+  assert.equal(tally.unansweredSessions, 1);
+  assert.ok(Math.abs(tally.dollars - (15 + UNANSWERED_REQUEST_USD)) < 1e-9);
 });
 
 test('toolCalls joins a call to its result', () => {

@@ -50,6 +50,7 @@ Each entry is something the setup found. None changes a brief, a case or the pas
 18. **The read-only plugin mount broke skill-creator's optimiser, silently.** skill-creator says to run `python -m scripts.run_loop` from its own folder. Its `run_eval.py` then writes a temporary command file into `.claude/commands/` under that folder, which on a read-only mount raised `[Errno 30] Read-only file system`. All 300 query runs failed, each failure was scored as "not triggered", and recall stayed at 0 % in all five iterations, at 0.0 to 0.1 s each (measured in `dry-skill-creator`). On a normal install that folder is writable, so the fault would have handicapped skill-creator only. Both arms now mount their plugin as an overlay (`:O`): writes go to a throwaway layer, and the plugin on disk never changes (measured). Section 5 of the pre-registration is amended to say so.
 19. **The build record passed an optimiser that measured nothing.** It had required only that a `run_loop` command exited without error, so `dry-skill-creator` showed `methodRan: true`. The record now reads the optimiser's output wherever the builder wrote it, counts its "query failed" warnings against its query runs, and requires fewer than half to have failed. Replayed on `dry-skill-creator`, it reports 300 failures in 300 runs and `methodRan: false`.
 20. **Two record quirks, not fixed.** `dry-skill-creator` took 112 minutes because the builder's own wait loop ran `pgrep -f scripts.run_loop`, which matched its own command line, until a time limit stopped it. And `final.turns` read 1, because the last result line came from a short continuation after a background notification.
+21. **The safety stop could not see the optimiser's trigger queries.** The optimiser kills each trigger query at the first tool call, so its session file keeps the request but never the response's token counts. In `dry-skill-creator-2` the tally saw 4 answered sessions and $0.23, while 300 sessions had each sent a request (measured). Three queries of the same kind, run to the end in the same container, cost $0.044 to $0.074 each (measured, API-equivalent dollars). The tally now prices every session with a request and no saved response at $0.044, the one-request case (medium confidence). Replayed on `dry-skill-creator-2`, the optimiser's children come to $13.43.
 
 ## Dry-run build results
 
@@ -58,6 +59,7 @@ Each entry is something the setup found. None changes a brief, a case or the pas
 | `dry-toolkit` (2026-11-06) | No | About $0.20 | Under 1 min | Nested evals could not sign in (fact 11) |
 | `dry-toolkit-2` (2026-11-10) | Yes | $2.88: parent $0.37, nested evals $2.51 | 12.9 min | `askit-build-skill` create, five cases, three nested evals with edits between them. `createOnly: true`, because the builder iterated by hand and never called improve mode. In iteration 1 it rewrote one of its own graders that had failed a correct output |
 | `dry-skill-creator` (2026-11-10) | No, by fact 19 | $1.55: parent $1.26, optimiser children $0.30 | 112 min | A benchmark of five cases with and without the skill. The optimiser ran five iterations, but every query failed on the read-only mount (fact 18), so the cost of a working optimiser is not measured |
+| `dry-skill-creator-2` (2026-11-10) | Yes | About $15.70: parent $2.25, optimiser children about $13.43 by fact 21 | 23 min | Two benchmark iterations. The optimiser ran five iterations of 60 query runs with 0 failures, about 32 s per training pass. Recall was 0 % to 11 %, so the description rarely triggered, and the best description came from iteration 1. The build record at run time showed $2.48, before fact 21 |
 
 ## Dry-run checks from section 8, as of 2026-11-10
 
@@ -67,5 +69,14 @@ Each entry is something the setup found. None changes a brief, a case or the pas
 | Nested `claude plugin eval` works inside a build | Yes with the stored login, measured in `dry-toolkit-2`: three nested evals finished |
 | `--ablation none` works | Yes, measured on 2026-11-06 (fact 9) |
 | The toolkit's commands work outside its repository | Yes, measured: `harness.mjs probe` from a shell, and `askit-build-skill` plus `evaluate.mjs` inside `dry-toolkit-2` |
-| The optimiser reports real triggering | No in `dry-skill-creator` (fact 18). Rerun as `dry-skill-creator-2` with the overlay mount |
-| A build cannot read the maintainer's configuration or this repository | Yes from a shell, measured with `harness.mjs probe` |
+| The optimiser reports real triggering | Yes in `dry-skill-creator-2`, measured: 300 query runs, 0 failures, recall up to 11 %. No in `dry-skill-creator` (fact 18) |
+| A build cannot read the maintainer's configuration or this repository | Yes from a shell, measured with `harness.mjs probe`, rerun with the overlay mount on 2026-11-10 |
+
+## What the dry run implies for the real run
+
+These are estimates for the maintainer's second go, not rules.
+
+- **A skill-creator build costs about $15, and nearly all of it is uncapped.** `--max-budget-usd 15` caps only the parent session, which spent $2.25. The optimiser's children spent about $13.43 outside every cap. Three skill-creator builds would cost about $45 (low confidence, from one dry run).
+- **A toolkit build cost $2.88,** of which $2.51 was nested evals, each capped by its own `--max-cost-usd`. Three toolkit builds would cost about $9 to $30 (low confidence), depending on how many evals each builder runs.
+- **The harness stop at $18** now sees the optimiser's children (fact 21), so a skill-creator build near $15 runs close to it. A stopped build is recorded as stopped and submits what it has, per section 10. The maintainer may want the stop raised before the run. That changes spend, not what is measured.
+- **The dollars are API-equivalent estimates.** Builds sign in with the maintainer's subscription login, so whether any of this is charged is not known.

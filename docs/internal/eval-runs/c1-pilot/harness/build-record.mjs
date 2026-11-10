@@ -25,9 +25,18 @@ export function usageCost(usage = {}, model) {
   return dollars / 1e6;
 }
 
+/**
+ * skill-creator's optimiser kills each trigger query as soon as it sees the first tool call, so the session
+ * file keeps the request but never the response's usage. Three such queries run to completion in the same
+ * container on 2026-11-10 cost $0.044 to $0.074 each. The lower figure is the one-request case, which is
+ * what a killed query pays. API-equivalent dollars, medium confidence.
+ */
+export const UNANSWERED_REQUEST_USD = 0.044;
+
 /** Tally JSONL session text, counting each API message once however many blocks repeat it. */
 export function tallySessions(jsonlText) {
   const seen = new Map();
+  const requests = new Set();
   for (const line of jsonlText.split('\n')) {
     if (!line.trim().startsWith('{')) continue;
     let entry;
@@ -36,9 +45,11 @@ export function tallySessions(jsonlText) {
     } catch {
       continue;
     }
+    if (entry.type === 'api-request' && entry.sessionId) requests.add(entry.sessionId);
     const message = entry.message;
     if (!message?.usage || !message.id) continue;
     seen.set(message.id, message);
+    if (entry.sessionId) requests.delete(entry.sessionId);
   }
   let dollars = 0;
   const tokens = { input: 0, cacheWrite: 0, cacheRead: 0, output: 0 };
@@ -49,7 +60,10 @@ export function tallySessions(jsonlText) {
     tokens.cacheRead += message.usage.cache_read_input_tokens ?? 0;
     tokens.output += message.usage.output_tokens ?? 0;
   }
-  return { messages: seen.size, dollars, tokens };
+  // A session counts as unanswered when it sent a request and no response with usage followed it.
+  const unanswered = requests.size;
+  dollars += unanswered * UNANSWERED_REQUEST_USD;
+  return { messages: seen.size, unansweredSessions: unanswered, dollars, tokens };
 }
 
 /** List the tool calls in a stream-json transcript, each joined to its result. */
