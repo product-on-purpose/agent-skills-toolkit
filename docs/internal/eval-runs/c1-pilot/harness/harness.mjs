@@ -30,6 +30,10 @@ const LOGIN_VOLUME = process.env.C1_LOGIN_VOLUME ?? 'c1-pilot-login';
 // Without CLAUDE_CONFIG_DIR, Claude Code writes `.claude.json` to the home folder, outside the volume,
 // and `--rm` deletes it. Measured 2026-11-08. The setting keeps every login file inside the volume.
 const LOGIN_MOUNT = ['-v', `${LOGIN_VOLUME}:/home/node/.claude`, '-e', 'CLAUDE_CONFIG_DIR=/home/node/.claude'];
+// An overlay mount (`:O`): a build can write inside its plugin, and the writes go to a throwaway layer
+// that is discarded with the container, so the plugin on disk never changes. skill-creator's optimiser
+// writes a command file inside its own folder and fails on a read-only mount. Measured 2026-11-10.
+const pluginMount = (arm) => ['-v', `${join(LOCAL, 'plugins', arm)}:/plugin:O`];
 const TAG = 'v1.23.0';
 const SKILL_CREATOR = join(homedir(), '.claude/plugins/cache/anthropic-agent-skills/document-skills/ca45fc496a34/skills/skill-creator');
 const CALIBRATION_CEILING_USD = '4';
@@ -148,7 +152,7 @@ function probe() {
   ].join('; ');
   const work = join(LOCAL, 'probe-work');
   mkdirSync(work, { recursive: true });
-  console.log(must('podman', ['run', '--rm', '-v', `${work}:/work`, '-v', `${join(LOCAL, 'plugins', 'toolkit')}:/plugin:ro`, IMAGE, 'sh', '-c', script]));
+  console.log(must('podman', ['run', '--rm', '-v', `${work}:/work`, ...pluginMount('toolkit'), IMAGE, 'sh', '-c', script]));
 }
 
 function auth() {
@@ -221,7 +225,7 @@ async function build(arm, briefName, id, stopAtUsd) {
   const args = [
     'run', '-i', '--name', name,
     ...LOGIN_MOUNT,
-    '-v', `${work}:/work`, '-v', `${join(LOCAL, 'plugins', arm)}:/plugin:ro`,
+    '-v', `${work}:/work`, ...pluginMount(arm),
     '-e', 'BASH_DEFAULT_TIMEOUT_MS=3600000', '-e', 'BASH_MAX_TIMEOUT_MS=5400000',
     IMAGE,
     'claude', '-p', '--plugin-dir', '/plugin', '--model', 'sonnet', '--max-budget-usd', '15',

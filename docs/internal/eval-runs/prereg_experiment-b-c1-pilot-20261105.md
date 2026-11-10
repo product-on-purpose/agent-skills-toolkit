@@ -71,7 +71,7 @@ The name in each heading is the required skill name, so the two arms cannot diff
 
 | Component | Pinned to |
 |---|---|
-| Environment | A fresh `node:24` Linux container under podman, for every build and every scoring suite. It has no personal Claude configuration, and it mounts only its own working folder and its arm's plugin, read-only. The maintainer provides the sign-in at run time. The image must carry Python 3, because skill-creator's scripts are Python, and the dry run verifies that |
+| Environment | A fresh `node:24` Linux container under podman, for every build and every scoring suite. It has no personal Claude configuration, and it mounts only its own working folder and its arm's plugin, read-only. **Amended 2026-11-10 by a dry-run harness fix:** the plugin is mounted as an overlay, so a build can write inside it, and the writes go to a throwaway layer discarded with the container. The plugin on disk never changes. skill-creator's optimiser writes inside its own folder and failed silently on a read-only mount. The maintainer provides the sign-in at run time. The image must carry Python 3, because skill-creator's scripts are Python, and the dry run verifies that |
 | Claude Code | `@anthropic-ai/claude-code@2.1.318`, installed by exact version in the container, with `DISABLE_AUTOUPDATER=1` |
 | Toolkit | Tag `v1.23.0`, commit `eb6bfc3`, exported with `git archive` and without `docs/internal/` and `tests/`, so a builder cannot read the plan or the ADR |
 | skill-creator | `anthropic-agent-skills/document-skills`, version `ca45fc496a34`, the one `installed_plugins.json` marks as installed on 2026-11-05. The arm receives a wrapper plugin holding only `skills/skill-creator/`, not the whole document plugin |

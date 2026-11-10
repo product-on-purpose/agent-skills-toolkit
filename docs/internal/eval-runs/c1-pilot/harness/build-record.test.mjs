@@ -98,6 +98,17 @@ test('the skill-creator build record needs the skill, a benchmark and the optimi
     const failed = [...builder, use('b', 'Bash', { command: 'python -m scripts.run_loop --x' }), done('b', true)].join('\n');
     assert.equal(buildRecord({ arm: 'skill-creator', streamText: failed, workDir: dir, skillName: 'x' }).methodRan, false);
     const ran = [...builder, use('b', 'Bash', { command: 'python -m scripts.run_loop --x' }), done('b')].join('\n');
+    // From dry-skill-creator on 2026-11-10: every query broke on a read-only folder, and recall stayed at 0.
+    const broken = [
+      "Warning: query failed: [Errno 30] Read-only file system: '/plugin/skills/skill-creator/.claude'\n".repeat(60),
+      'Train: 24/39 correct, precision=100% recall=0% accuracy=62% (0.1s)',
+      'Test : 12/21 correct, precision=100% recall=0% accuracy=57% (0.0s)',
+    ].join('\n');
+    writeFileSync(join(dir, 'workspace', 'optimize.log'), broken);
+    const unmeasured = buildRecord({ arm: 'skill-creator', streamText: ran, workDir: dir, skillName: 'x' });
+    assert.equal(unmeasured.optimiser.failures, 60);
+    assert.equal(unmeasured.methodRan, false, 'an optimiser whose every query failed did not run the method');
+    writeFileSync(join(dir, 'workspace', 'optimize.log'), 'Train: 30/39 correct, precision=90% recall=70% accuracy=77% (41.2s)\n');
     assert.equal(buildRecord({ arm: 'skill-creator', streamText: ran, workDir: dir, skillName: 'x' }).methodRan, true);
   } finally {
     rmSync(dir, { recursive: true });

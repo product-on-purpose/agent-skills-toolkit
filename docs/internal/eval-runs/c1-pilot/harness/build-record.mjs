@@ -118,6 +118,40 @@ export function nestedEvals(calls) {
     });
 }
 
+function textFiles(dir, found = []) {
+  if (!existsSync(dir)) return found;
+  for (const entry of readdirSync(dir)) {
+    const path = join(dir, entry);
+    const stat = statSync(path);
+    if (stat.isDirectory()) {
+      if (entry !== 'node_modules') textFiles(path, found);
+    } else if (!/\.(json|html|png|jpg)$/i.test(entry) && stat.size < 5e6) {
+      found.push(path);
+    }
+  }
+  return found;
+}
+
+/**
+ * Read skill-creator's optimiser output, wherever the builder wrote it, and say whether it measured
+ * triggering. It prints one "Train:" and one "Test :" line per iteration, and a "query failed" warning for
+ * each query run that broke before Claude answered. A query that fails is silently scored as not triggered,
+ * so a run counts as measured only when fewer than half of its query runs failed.
+ */
+export function optimiserMeasurement(texts) {
+  let queryRuns = 0;
+  let failures = 0;
+  let scoreLines = 0;
+  for (const text of texts) {
+    failures += (text.match(/Warning: query failed/g) ?? []).length;
+    for (const match of text.matchAll(/^(?:Train|Test)\s*: \d+\/(\d+) correct/gm)) {
+      scoreLines += 1;
+      queryRuns += Number(match[1]);
+    }
+  }
+  return { scoreLines, queryRuns, failures, measured: scoreLines > 0 && failures < queryRuns / 2 };
+}
+
 /** Report the build record for one arm, per section 6. */
 export function buildRecord({ arm, streamText, workDir, skillName }) {
   const calls = toolCalls(streamText);
@@ -163,7 +197,9 @@ export function buildRecord({ arm, streamText, workDir, skillName }) {
     record.benchmarkFinished = benchmarks.length;
     record.optimiserCommands = optimiser.length;
     record.optimiserResultFiles = findFiles(workDir, 'results.json').length;
-    record.methodRan = record.builderInvoked && benchmarks.length > 0 && optimiser.length > 0;
+    const outputs = [...textFiles(workDir).map((path) => readFileSync(path, 'utf8')), ...optimiser.map((c) => c.result)];
+    record.optimiser = optimiserMeasurement(outputs);
+    record.methodRan = record.builderInvoked && benchmarks.length > 0 && optimiser.length > 0 && record.optimiser.measured;
   }
   return record;
 }
