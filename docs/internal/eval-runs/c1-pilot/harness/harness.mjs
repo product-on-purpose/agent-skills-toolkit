@@ -19,7 +19,8 @@ import { buildRecord, tallySessions } from './build-record.mjs';
 const HERE = dirname(fileURLToPath(import.meta.url));
 const PILOT = resolve(HERE, '..');
 const REPO = resolve(PILOT, '../../../..');
-const LOCAL = join(REPO, '_local', 'c1-pilot');
+// C1_LOCAL lets a separate worktree share the main checkout's working data.
+const LOCAL = process.env.C1_LOCAL ?? join(REPO, '_local', 'c1-pilot');
 const PREREG = join(PILOT, '..', 'prereg_experiment-b-c1-pilot-20261105.md');
 const IMAGE = 'localhost/c1-pilot:1';
 const TOKEN_FILE = join(homedir(), '.c1-pilot.env');
