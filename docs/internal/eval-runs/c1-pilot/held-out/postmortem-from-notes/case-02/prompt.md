@@ -2,14 +2,11 @@
 max_turns: 10
 allowed_tools: [Read, Glob, Grep, Skill]
 ---
+can you turn these into something I can send around? I wrote them in a hurry after the cert thing yesterday
 
-Need an incident review for the DB thing last Tuesday. Notes from the channel (all times UTC):
-
-09:12 disk usage alarm on pg-primary at 85%, ignored (known noisy alarm)
-09:58 writes start failing, app returns 500s
-10:03 Priya on call, sees disk at 100%
-10:20 WAL archive to S3 had been stuck since Sunday, WAL piling up
-10:41 Priya cleared old WAL after confirming archive, writes recovered
-11:30 fixed archive creds (rotated key not updated)
-
-no idea yet how many orders were lost, finance to check
+- Priya (on-call) got paged by the synthetic check at 14:52, login endpoint throwing TLS errors, android only
+- Tomasz explained ios was fine because the ios build pins the intermediate cert, android pins the leaf
+- leaf cert for login-api expired at 14:30. the renewal reminder went to Dale's old mailbox, he moved teams in March
+- Priya got a new cert issued 15:40, deployed 16:05, error rate normal by 16:10
+- no idea how many users hit it, support ticket count not pulled yet
+- Tomasz wants leaf pinning gone from the android app

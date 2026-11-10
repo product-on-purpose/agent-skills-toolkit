@@ -2,5 +2,4 @@
 type: llm
 weight: 1
 ---
-
-The response states that customers were not emailed about the duplicates because they were caught before the invoice emails went out.
+The response lists as a contributing factor that the checkout error rate alert had a 20% threshold, so it did not page promptly.

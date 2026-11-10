@@ -1,0 +1,26 @@
+{
+  "postmortem-from-notes": {
+    "costUsd": 1.0966922999999997,
+    "partial": false,
+    "cases": [
+      {
+        "name": "case-02",
+        "score": 0.5,
+        "errors": 0,
+        "graders": 4
+      },
+      {
+        "name": "case-07",
+        "score": 0.5,
+        "errors": 0,
+        "graders": 4
+      },
+      {
+        "name": "case-08",
+        "score": 0.5,
+        "errors": 0,
+        "graders": 4
+      }
+    ]
+  }
+}

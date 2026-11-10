@@ -2,5 +2,4 @@
 type: llm
 weight: 1
 ---
-
-The response identifies that one UPDATE over all 15M `customers` rows holds locks for a long time, bloats the table and produces heavy WAL, and says the backfill must run in batches.
+The response identifies that renaming `fullname` to `display_name` in one step breaks the old application instances that are still running during the rolling deploy, because their queries still reference `fullname`.

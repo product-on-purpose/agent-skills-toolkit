@@ -1,0 +1,838 @@
+{
+  "schemaVersion": 1,
+  "claudeVersion": "2.1.318",
+  "startedAt": "2026-11-10T21:25:10.830Z",
+  "durationSeconds": 88,
+  "costUsd": 1.2221499999999996,
+  "partial": false,
+  "suite": {
+    "root": "/work",
+    "ablation": "none",
+    "modelOverride": "sonnet",
+    "judgeModel": "sonnet",
+    "threshold": 0,
+    "concurrency": 4,
+    "plugins": [
+      {
+        "name": "c1-pilot",
+        "version": "0.0.0",
+        "path": "/work"
+      }
+    ]
+  },
+  "cases": [
+    {
+      "name": "case-02",
+      "dir": "evals/case-02",
+      "source": "prose",
+      "promptMarkdown": "hey, we're shipping the billing cleanup on thursday and I wrote these three statements to go out with it. we're on postgres 14. is this fine to ship or is there something I'm missing?\n\n```sql\nALTER TABLE invoices\n  ADD CONSTRAINT invoices_customer_fk\n  FOREIGN KEY (customer_id) REFERENCES customers (id);\n\nCREATE INDEX idx_invoices_status_created\n  ON invoices (status, created_at);\n\nALTER TABLE invoices ALTER COLUMN currency SET DEFAULT 'USD';\n```\n\ninvoices is our main billing table, finance and the customer portal both hit it all day.",
+      "runsPerCase": 3,
+      "timeoutSeconds": 300,
+      "maxTurns": 10,
+      "graders": [
+        {
+          "name": "convention-1",
+          "type": "llm",
+          "weight": 1,
+          "graderMarkdown": "The first line of the response is exactly one of `Verdict: SAFE`, `Verdict: SAFE WITH CHANGES` or `Verdict: UNSAFE`, with nothing before it.",
+          "config": {
+            "criteria": "The first line of the response is exactly one of `Verdict: SAFE`, `Verdict: SAFE WITH CHANGES` or `Verdict: UNSAFE`, with nothing before it.",
+            "focus": "last_message"
+          }
+        },
+        {
+          "name": "convention-2",
+          "type": "llm",
+          "weight": 1,
+          "graderMarkdown": "The response contains one table whose column headers are exactly Statement, Lock taken, Risk and Fix, in that order.",
+          "config": {
+            "criteria": "The response contains one table whose column headers are exactly Statement, Lock taken, Risk and Fix, in that order.",
+            "focus": "last_message"
+          }
+        },
+        {
+          "name": "substance-1",
+          "type": "llm",
+          "weight": 1,
+          "graderMarkdown": "The response identifies that adding the foreign key to `invoices` without `NOT VALID` scans the whole table to validate it while holding a lock that blocks writes, and recommends adding it as `NOT VALID` and then running `VALIDATE CONSTRAINT` separately.",
+          "config": {
+            "criteria": "The response identifies that adding the foreign key to `invoices` without `NOT VALID` scans the whole table to validate it while holding a lock that blocks writes, and recommends adding it as `NOT VALID` and then running `VALIDATE CONSTRAINT` separately.",
+            "focus": "last_message"
+          }
+        },
+        {
+          "name": "substance-2",
+          "type": "llm",
+          "weight": 1,
+          "graderMarkdown": "The response identifies that a plain `CREATE INDEX` on `invoices` blocks inserts, updates and deletes for the whole build and recommends `CREATE INDEX CONCURRENTLY`, noting that it cannot run inside a transaction block.",
+          "config": {
+            "criteria": "The response identifies that a plain `CREATE INDEX` on `invoices` blocks inserts, updates and deletes for the whole build and recommends `CREATE INDEX CONCURRENTLY`, noting that it cannot run inside a transaction block.",
+            "focus": "last_message"
+          }
+        }
+      ],
+      "arms": {
+        "with": [
+          {
+            "score": 0.5,
+            "passed": false,
+            "turns": 1,
+            "costUsd": 0.15455199999999997,
+            "judgeCostUsd": 0.11621799999999996,
+            "durationSeconds": 29,
+            "startedAt": "2026-11-10T21:25:11.170Z",
+            "error": null,
+            "tracePath": "/tmp/claude-eval-CjJ93k/out/trace.jsonl",
+            "skippedPaidGraders": false,
+            "graders": [
+              {
+                "name": "convention-1",
+                "passed": false,
+                "weight": 1,
+                "explanation": "judge votes: FAIL FAIL FAIL",
+                "withOnly": false,
+                "scored": true,
+                "judgeVotes": [
+                  false,
+                  false,
+                  false
+                ],
+                "evidence": "It's not safe to ship as written. Two of the three statements will block writes to `invoices` while they run. The third is fine.\n\n**1. The foreign key blocks writes while it validates.**\n`ADD CONSTRAINT ... FOREIGN KEY` scans the whole table to check existing rows. While it scans, it holds a `SHARE ROW EXCLUSIVE` lock on `invoices` and `customers`. That lock blocks inserts, updates and deletes on both tables. On a large billing table, finance and the portal would stall for the length of the scan. If any orphaned `customer_id` exists, the statement also fails after doing all that work.\n\nSplit it into two steps:\n```sql\nALTER TABLE invoices\n  ADD CONSTRAINT invoices_customer_fk\n  FOREIGN KEY (customer_id) REFERENCES customers (id) NOT VALID;\n\nALTER TABLE invoices VALIDATE CONSTRAINT invoices_customer_fk;\n```\n`NOT VALID` is a quick metadata change that enforces the constraint on new writes. `VALIDATE` scans the existing rows with a lock that doesn't block reads or writes. Check for orphans first:\n```sql\nSELECT 1 FROM invoices i\nLEFT JOIN customers c ON c.id = i.customer_id\nWHERE i.customer_id IS NOT NULL AND c.id IS NULL LIMIT 1;\n```\n\n**2. The index build blocks writes.**\nA plain `CREATE INDEX` blocks writes for the whole build. Use:\n```sql\nCREATE INDEX CONCURRENTLY idx_invoices_status_created\n  ON invoices (status, created_at);\n```\n- **Transactions:** `CONCURRENTLY` can't run inside a transaction block. Many migration tools wrap each migration in one, so check that yours can disable that for this step.\n- **Failed builds:** If the build fails, it leaves an `INVALID` index behind. Drop it and retry.\n\n**3. `SET DEFAULT 'USD'` is fine.**\nIt only changes catalog metadata, so it's instant and doesn't rewrite the table. It only applies to future inserts. It won't backfill existing rows where `currency` is NULL, so check whether you expect it to.\n\n**Lock queueing affects the FK and default statements.**\nEven the quick statements need a brief strong lock (`SET DEFAULT` takes `ACCESS EXCLUSIVE`). If a long-running transaction is open on `invoices`, your `ALTER` waits behind it. Every query that arrives after yours then queues behind your `ALTER`, and the table looks frozen. Set a timeout so the migration fails fast instead:\n```sql\nSET lock_timeout = '3s';\n```\nRun it before the `ALTER`s and retry if it times out.\n\n**Other things to check:**\n- You're adding an FK on `invoices.customer_id`. Postgres doesn't index the referencing column automatically. If there's no index with `customer_id` as the leading column, deletes or updates on `customers` will seq-scan `invoices`. The portal's per-customer queries probably want that index anyway. If it's missing, add it with `CREATE INDEX CONCURRENTLY`.\n- Run the whole sequence against a production-sized copy first, so you know how long `VALIDATE` and the index build take.\n- Do the index build and `VALIDATE` off-peak if you can. They don't block writes, but they do add I/O load."
+              },
+              {
+                "name": "convention-2",
+                "passed": false,
+                "weight": 1,
+                "explanation": "judge votes: FAIL FAIL FAIL",
+                "withOnly": false,
+                "scored": true,
+                "judgeVotes": [
+                  false,
+                  false,
+                  false
+                ],
+                "evidence": "It's not safe to ship as written. Two of the three statements will block writes to `invoices` while they run. The third is fine.\n\n**1. The foreign key blocks writes while it validates.**\n`ADD CONSTRAINT ... FOREIGN KEY` scans the whole table to check existing rows. While it scans, it holds a `SHARE ROW EXCLUSIVE` lock on `invoices` and `customers`. That lock blocks inserts, updates and deletes on both tables. On a large billing table, finance and the portal would stall for the length of the scan. If any orphaned `customer_id` exists, the statement also fails after doing all that work.\n\nSplit it into two steps:\n```sql\nALTER TABLE invoices\n  ADD CONSTRAINT invoices_customer_fk\n  FOREIGN KEY (customer_id) REFERENCES customers (id) NOT VALID;\n\nALTER TABLE invoices VALIDATE CONSTRAINT invoices_customer_fk;\n```\n`NOT VALID` is a quick metadata change that enforces the constraint on new writes. `VALIDATE` scans the existing rows with a lock that doesn't block reads or writes. Check for orphans first:\n```sql\nSELECT 1 FROM invoices i\nLEFT JOIN customers c ON c.id = i.customer_id\nWHERE i.customer_id IS NOT NULL AND c.id IS NULL LIMIT 1;\n```\n\n**2. The index build blocks writes.**\nA plain `CREATE INDEX` blocks writes for the whole build. Use:\n```sql\nCREATE INDEX CONCURRENTLY idx_invoices_status_created\n  ON invoices (status, created_at);\n```\n- **Transactions:** `CONCURRENTLY` can't run inside a transaction block. Many migration tools wrap each migration in one, so check that yours can disable that for this step.\n- **Failed builds:** If the build fails, it leaves an `INVALID` index behind. Drop it and retry.\n\n**3. `SET DEFAULT 'USD'` is fine.**\nIt only changes catalog metadata, so it's instant and doesn't rewrite the table. It only applies to future inserts. It won't backfill existing rows where `currency` is NULL, so check whether you expect it to.\n\n**Lock queueing affects the FK and default statements.**\nEven the quick statements need a brief strong lock (`SET DEFAULT` takes `ACCESS EXCLUSIVE`). If a long-running transaction is open on `invoices`, your `ALTER` waits behind it. Every query that arrives after yours then queues behind your `ALTER`, and the table looks frozen. Set a timeout so the migration fails fast instead:\n```sql\nSET lock_timeout = '3s';\n```\nRun it before the `ALTER`s and retry if it times out.\n\n**Other things to check:**\n- You're adding an FK on `invoices.customer_id`. Postgres doesn't index the referencing column automatically. If there's no index with `customer_id` as the leading column, deletes or updates on `customers` will seq-scan `invoices`. The portal's per-customer queries probably want that index anyway. If it's missing, add it with `CREATE INDEX CONCURRENTLY`.\n- Run the whole sequence against a production-sized copy first, so you know how long `VALIDATE` and the index build take.\n- Do the index build and `VALIDATE` off-peak if you can. They don't block writes, but they do add I/O load."
+              },
+              {
+                "name": "substance-1",
+                "passed": true,
+                "weight": 1,
+                "explanation": "judge votes: PASS PASS PASS",
+                "withOnly": false,
+                "scored": true,
+                "judgeVotes": [
+                  true,
+                  true,
+                  true
+                ],
+                "evidence": "It's not safe to ship as written. Two of the three statements will block writes to `invoices` while they run. The third is fine.\n\n**1. The foreign key blocks writes while it validates.**\n`ADD CONSTRAINT ... FOREIGN KEY` scans the whole table to check existing rows. While it scans, it holds a `SHARE ROW EXCLUSIVE` lock on `invoices` and `customers`. That lock blocks inserts, updates and deletes on both tables. On a large billing table, finance and the portal would stall for the length of the scan. If any orphaned `customer_id` exists, the statement also fails after doing all that work.\n\nSplit it into two steps:\n```sql\nALTER TABLE invoices\n  ADD CONSTRAINT invoices_customer_fk\n  FOREIGN KEY (customer_id) REFERENCES customers (id) NOT VALID;\n\nALTER TABLE invoices VALIDATE CONSTRAINT invoices_customer_fk;\n```\n`NOT VALID` is a quick metadata change that enforces the constraint on new writes. `VALIDATE` scans the existing rows with a lock that doesn't block reads or writes. Check for orphans first:\n```sql\nSELECT 1 FROM invoices i\nLEFT JOIN customers c ON c.id = i.customer_id\nWHERE i.customer_id IS NOT NULL AND c.id IS NULL LIMIT 1;\n```\n\n**2. The index build blocks writes.**\nA plain `CREATE INDEX` blocks writes for the whole build. Use:\n```sql\nCREATE INDEX CONCURRENTLY idx_invoices_status_created\n  ON invoices (status, created_at);\n```\n- **Transactions:** `CONCURRENTLY` can't run inside a transaction block. Many migration tools wrap each migration in one, so check that yours can disable that for this step.\n- **Failed builds:** If the build fails, it leaves an `INVALID` index behind. Drop it and retry.\n\n**3. `SET DEFAULT 'USD'` is fine.**\nIt only changes catalog metadata, so it's instant and doesn't rewrite the table. It only applies to future inserts. It won't backfill existing rows where `currency` is NULL, so check whether you expect it to.\n\n**Lock queueing affects the FK and default statements.**\nEven the quick statements need a brief strong lock (`SET DEFAULT` takes `ACCESS EXCLUSIVE`). If a long-running transaction is open on `invoices`, your `ALTER` waits behind it. Every query that arrives after yours then queues behind your `ALTER`, and the table looks frozen. Set a timeout so the migration fails fast instead:\n```sql\nSET lock_timeout = '3s';\n```\nRun it before the `ALTER`s and retry if it times out.\n\n**Other things to check:**\n- You're adding an FK on `invoices.customer_id`. Postgres doesn't index the referencing column automatically. If there's no index with `customer_id` as the leading column, deletes or updates on `customers` will seq-scan `invoices`. The portal's per-customer queries probably want that index anyway. If it's missing, add it with `CREATE INDEX CONCURRENTLY`.\n- Run the whole sequence against a production-sized copy first, so you know how long `VALIDATE` and the index build take.\n- Do the index build and `VALIDATE` off-peak if you can. They don't block writes, but they do add I/O load."
+              },
+              {
+                "name": "substance-2",
+                "passed": true,
+                "weight": 1,
+                "explanation": "judge votes: PASS PASS PASS",
+                "withOnly": false,
+                "scored": true,
+                "judgeVotes": [
+                  true,
+                  true,
+                  true
+                ],
+                "evidence": "It's not safe to ship as written. Two of the three statements will block writes to `invoices` while they run. The third is fine.\n\n**1. The foreign key blocks writes while it validates.**\n`ADD CONSTRAINT ... FOREIGN KEY` scans the whole table to check existing rows. While it scans, it holds a `SHARE ROW EXCLUSIVE` lock on `invoices` and `customers`. That lock blocks inserts, updates and deletes on both tables. On a large billing table, finance and the portal would stall for the length of the scan. If any orphaned `customer_id` exists, the statement also fails after doing all that work.\n\nSplit it into two steps:\n```sql\nALTER TABLE invoices\n  ADD CONSTRAINT invoices_customer_fk\n  FOREIGN KEY (customer_id) REFERENCES customers (id) NOT VALID;\n\nALTER TABLE invoices VALIDATE CONSTRAINT invoices_customer_fk;\n```\n`NOT VALID` is a quick metadata change that enforces the constraint on new writes. `VALIDATE` scans the existing rows with a lock that doesn't block reads or writes. Check for orphans first:\n```sql\nSELECT 1 FROM invoices i\nLEFT JOIN customers c ON c.id = i.customer_id\nWHERE i.customer_id IS NOT NULL AND c.id IS NULL LIMIT 1;\n```\n\n**2. The index build blocks writes.**\nA plain `CREATE INDEX` blocks writes for the whole build. Use:\n```sql\nCREATE INDEX CONCURRENTLY idx_invoices_status_created\n  ON invoices (status, created_at);\n```\n- **Transactions:** `CONCURRENTLY` can't run inside a transaction block. Many migration tools wrap each migration in one, so check that yours can disable that for this step.\n- **Failed builds:** If the build fails, it leaves an `INVALID` index behind. Drop it and retry.\n\n**3. `SET DEFAULT 'USD'` is fine.**\nIt only changes catalog metadata, so it's instant and doesn't rewrite the table. It only applies to future inserts. It won't backfill existing rows where `currency` is NULL, so check whether you expect it to.\n\n**Lock queueing affects the FK and default statements.**\nEven the quick statements need a brief strong lock (`SET DEFAULT` takes `ACCESS EXCLUSIVE`). If a long-running transaction is open on `invoices`, your `ALTER` waits behind it. Every query that arrives after yours then queues behind your `ALTER`, and the table looks frozen. Set a timeout so the migration fails fast instead:\n```sql\nSET lock_timeout = '3s';\n```\nRun it before the `ALTER`s and retry if it times out.\n\n**Other things to check:**\n- You're adding an FK on `invoices.customer_id`. Postgres doesn't index the referencing column automatically. If there's no index with `customer_id` as the leading column, deletes or updates on `customers` will seq-scan `invoices`. The portal's per-customer queries probably want that index anyway. If it's missing, add it with `CREATE INDEX CONCURRENTLY`.\n- Run the whole sequence against a production-sized copy first, so you know how long `VALIDATE` and the index build take.\n- Do the index build and `VALIDATE` off-peak if you can. They don't block writes, but they do add I/O load."
+              }
+            ]
+          },
+          {
+            "score": 0.5,
+            "passed": false,
+            "turns": 1,
+            "costUsd": 0.14526799999999995,
+            "judgeCostUsd": 0.10778399999999996,
+            "durationSeconds": 28,
+            "startedAt": "2026-11-10T21:25:11.170Z",
+            "error": null,
+            "tracePath": "/tmp/claude-eval-mHQ33y/out/trace.jsonl",
+            "skippedPaidGraders": false,
+            "graders": [
+              {
+                "name": "convention-1",
+                "passed": false,
+                "weight": 1,
+                "explanation": "judge votes: FAIL FAIL FAIL",
+                "withOnly": false,
+                "scored": true,
+                "judgeVotes": [
+                  false,
+                  false,
+                  false
+                ],
+                "evidence": "Not as written. The third statement is fine. The first two will block writes on `invoices` while they run.\n\n**1. Foreign key: this will block writes**\n\n`ADD CONSTRAINT ... FOREIGN KEY` takes a `SHARE ROW EXCLUSIVE` lock on `invoices` and `customers`. It holds that lock while it scans every row to validate. Reads still work, but inserts and updates stall for the whole scan.\n\nSplit it into two steps:\n\n```sql\nALTER TABLE invoices\n  ADD CONSTRAINT invoices_customer_fk\n  FOREIGN KEY (customer_id) REFERENCES customers (id)\n  NOT VALID;\n\nALTER TABLE invoices VALIDATE CONSTRAINT invoices_customer_fk;\n```\n\n`NOT VALID` skips the scan, so the lock is brief. New writes are checked immediately. `VALIDATE` scans the existing rows under a lock that doesn't block writes.\n\nBefore Thursday, check for orphans, because validation fails if any exist:\n\n```sql\nSELECT 1 FROM invoices i\nLEFT JOIN customers c ON c.id = i.customer_id\nWHERE i.customer_id IS NOT NULL AND c.id IS NULL LIMIT 1;\n```\n\nYou may also want an index on `invoices(customer_id)`, created concurrently. Postgres doesn't index the referencing column automatically. Without one, deleting or updating a customer row seq-scans `invoices`. Check whether one already exists.\n\n**2. Index: this will block writes**\n\nA plain `CREATE INDEX` blocks writes for the whole build. Use:\n\n```sql\nCREATE INDEX CONCURRENTLY IF NOT EXISTS idx_invoices_status_created\n  ON invoices (status, created_at);\n```\n\n- `CONCURRENTLY` can't run inside a transaction block. Many migration tools (Rails, Flyway, Alembic and others) wrap migrations in one by default, so you'll need to disable that for this migration.\n- If the build fails or is cancelled, it leaves an `INVALID` index behind. Drop it and retry. Check with `\\d invoices` or `pg_index.indisvalid`.\n\n**3. Default: fine**\n\n`SET DEFAULT` only changes metadata, with no rewrite. It applies to future inserts only. Existing rows with a NULL `currency` stay NULL. If you expected a backfill, that needs a separate batched `UPDATE`.\n\n**Lock queueing affects all three**\n\nEven the quick `ALTER`s need a strong lock. If a long-running query, like a finance report, is holding a conflicting lock, your `ALTER` waits behind it. Every query that arrives after yours then queues behind the `ALTER`, and the portal appears to hang. Set a timeout so the migration gives up instead of stalling everyone:\n\n```sql\nSET lock_timeout = '3s';\n```\n\nRun it in the migration session and retry if it times out. `CREATE INDEX CONCURRENTLY` also waits on older transactions, so avoid starting it during a long report.\n\nIf you can, run the validation and index build off-peak. They're safe for writes now, but they still add I/O load."
+              },
+              {
+                "name": "convention-2",
+                "passed": false,
+                "weight": 1,
+                "explanation": "judge votes: FAIL FAIL FAIL",
+                "withOnly": false,
+                "scored": true,
+                "judgeVotes": [
+                  false,
+                  false,
+                  false
+                ],
+                "evidence": "Not as written. The third statement is fine. The first two will block writes on `invoices` while they run.\n\n**1. Foreign key: this will block writes**\n\n`ADD CONSTRAINT ... FOREIGN KEY` takes a `SHARE ROW EXCLUSIVE` lock on `invoices` and `customers`. It holds that lock while it scans every row to validate. Reads still work, but inserts and updates stall for the whole scan.\n\nSplit it into two steps:\n\n```sql\nALTER TABLE invoices\n  ADD CONSTRAINT invoices_customer_fk\n  FOREIGN KEY (customer_id) REFERENCES customers (id)\n  NOT VALID;\n\nALTER TABLE invoices VALIDATE CONSTRAINT invoices_customer_fk;\n```\n\n`NOT VALID` skips the scan, so the lock is brief. New writes are checked immediately. `VALIDATE` scans the existing rows under a lock that doesn't block writes.\n\nBefore Thursday, check for orphans, because validation fails if any exist:\n\n```sql\nSELECT 1 FROM invoices i\nLEFT JOIN customers c ON c.id = i.customer_id\nWHERE i.customer_id IS NOT NULL AND c.id IS NULL LIMIT 1;\n```\n\nYou may also want an index on `invoices(customer_id)`, created concurrently. Postgres doesn't index the referencing column automatically. Without one, deleting or updating a customer row seq-scans `invoices`. Check whether one already exists.\n\n**2. Index: this will block writes**\n\nA plain `CREATE INDEX` blocks writes for the whole build. Use:\n\n```sql\nCREATE INDEX CONCURRENTLY IF NOT EXISTS idx_invoices_status_created\n  ON invoices (status, created_at);\n```\n\n- `CONCURRENTLY` can't run inside a transaction block. Many migration tools (Rails, Flyway, Alembic and others) wrap migrations in one by default, so you'll need to disable that for this migration.\n- If the build fails or is cancelled, it leaves an `INVALID` index behind. Drop it and retry. Check with `\\d invoices` or `pg_index.indisvalid`.\n\n**3. Default: fine**\n\n`SET DEFAULT` only changes metadata, with no rewrite. It applies to future inserts only. Existing rows with a NULL `currency` stay NULL. If you expected a backfill, that needs a separate batched `UPDATE`.\n\n**Lock queueing affects all three**\n\nEven the quick `ALTER`s need a strong lock. If a long-running query, like a finance report, is holding a conflicting lock, your `ALTER` waits behind it. Every query that arrives after yours then queues behind the `ALTER`, and the portal appears to hang. Set a timeout so the migration gives up instead of stalling everyone:\n\n```sql\nSET lock_timeout = '3s';\n```\n\nRun it in the migration session and retry if it times out. `CREATE INDEX CONCURRENTLY` also waits on older transactions, so avoid starting it during a long report.\n\nIf you can, run the validation and index build off-peak. They're safe for writes now, but they still add I/O load."
+              },
+              {
+                "name": "substance-1",
+                "passed": true,
+                "weight": 1,
+                "explanation": "judge votes: PASS PASS PASS",
+                "withOnly": false,
+                "scored": true,
+                "judgeVotes": [
+                  true,
+                  true,
+                  true
+                ],
+                "evidence": "Not as written. The third statement is fine. The first two will block writes on `invoices` while they run.\n\n**1. Foreign key: this will block writes**\n\n`ADD CONSTRAINT ... FOREIGN KEY` takes a `SHARE ROW EXCLUSIVE` lock on `invoices` and `customers`. It holds that lock while it scans every row to validate. Reads still work, but inserts and updates stall for the whole scan.\n\nSplit it into two steps:\n\n```sql\nALTER TABLE invoices\n  ADD CONSTRAINT invoices_customer_fk\n  FOREIGN KEY (customer_id) REFERENCES customers (id)\n  NOT VALID;\n\nALTER TABLE invoices VALIDATE CONSTRAINT invoices_customer_fk;\n```\n\n`NOT VALID` skips the scan, so the lock is brief. New writes are checked immediately. `VALIDATE` scans the existing rows under a lock that doesn't block writes.\n\nBefore Thursday, check for orphans, because validation fails if any exist:\n\n```sql\nSELECT 1 FROM invoices i\nLEFT JOIN customers c ON c.id = i.customer_id\nWHERE i.customer_id IS NOT NULL AND c.id IS NULL LIMIT 1;\n```\n\nYou may also want an index on `invoices(customer_id)`, created concurrently. Postgres doesn't index the referencing column automatically. Without one, deleting or updating a customer row seq-scans `invoices`. Check whether one already exists.\n\n**2. Index: this will block writes**\n\nA plain `CREATE INDEX` blocks writes for the whole build. Use:\n\n```sql\nCREATE INDEX CONCURRENTLY IF NOT EXISTS idx_invoices_status_created\n  ON invoices (status, created_at);\n```\n\n- `CONCURRENTLY` can't run inside a transaction block. Many migration tools (Rails, Flyway, Alembic and others) wrap migrations in one by default, so you'll need to disable that for this migration.\n- If the build fails or is cancelled, it leaves an `INVALID` index behind. Drop it and retry. Check with `\\d invoices` or `pg_index.indisvalid`.\n\n**3. Default: fine**\n\n`SET DEFAULT` only changes metadata, with no rewrite. It applies to future inserts only. Existing rows with a NULL `currency` stay NULL. If you expected a backfill, that needs a separate batched `UPDATE`.\n\n**Lock queueing affects all three**\n\nEven the quick `ALTER`s need a strong lock. If a long-running query, like a finance report, is holding a conflicting lock, your `ALTER` waits behind it. Every query that arrives after yours then queues behind the `ALTER`, and the portal appears to hang. Set a timeout so the migration gives up instead of stalling everyone:\n\n```sql\nSET lock_timeout = '3s';\n```\n\nRun it in the migration session and retry if it times out. `CREATE INDEX CONCURRENTLY` also waits on older transactions, so avoid starting it during a long report.\n\nIf you can, run the validation and index build off-peak. They're safe for writes now, but they still add I/O load."
+              },
+              {
+                "name": "substance-2",
+                "passed": true,
+                "weight": 1,
+                "explanation": "judge votes: PASS PASS PASS",
+                "withOnly": false,
+                "scored": true,
+                "judgeVotes": [
+                  true,
+                  true,
+                  true
+                ],
+                "evidence": "Not as written. The third statement is fine. The first two will block writes on `invoices` while they run.\n\n**1. Foreign key: this will block writes**\n\n`ADD CONSTRAINT ... FOREIGN KEY` takes a `SHARE ROW EXCLUSIVE` lock on `invoices` and `customers`. It holds that lock while it scans every row to validate. Reads still work, but inserts and updates stall for the whole scan.\n\nSplit it into two steps:\n\n```sql\nALTER TABLE invoices\n  ADD CONSTRAINT invoices_customer_fk\n  FOREIGN KEY (customer_id) REFERENCES customers (id)\n  NOT VALID;\n\nALTER TABLE invoices VALIDATE CONSTRAINT invoices_customer_fk;\n```\n\n`NOT VALID` skips the scan, so the lock is brief. New writes are checked immediately. `VALIDATE` scans the existing rows under a lock that doesn't block writes.\n\nBefore Thursday, check for orphans, because validation fails if any exist:\n\n```sql\nSELECT 1 FROM invoices i\nLEFT JOIN customers c ON c.id = i.customer_id\nWHERE i.customer_id IS NOT NULL AND c.id IS NULL LIMIT 1;\n```\n\nYou may also want an index on `invoices(customer_id)`, created concurrently. Postgres doesn't index the referencing column automatically. Without one, deleting or updating a customer row seq-scans `invoices`. Check whether one already exists.\n\n**2. Index: this will block writes**\n\nA plain `CREATE INDEX` blocks writes for the whole build. Use:\n\n```sql\nCREATE INDEX CONCURRENTLY IF NOT EXISTS idx_invoices_status_created\n  ON invoices (status, created_at);\n```\n\n- `CONCURRENTLY` can't run inside a transaction block. Many migration tools (Rails, Flyway, Alembic and others) wrap migrations in one by default, so you'll need to disable that for this migration.\n- If the build fails or is cancelled, it leaves an `INVALID` index behind. Drop it and retry. Check with `\\d invoices` or `pg_index.indisvalid`.\n\n**3. Default: fine**\n\n`SET DEFAULT` only changes metadata, with no rewrite. It applies to future inserts only. Existing rows with a NULL `currency` stay NULL. If you expected a backfill, that needs a separate batched `UPDATE`.\n\n**Lock queueing affects all three**\n\nEven the quick `ALTER`s need a strong lock. If a long-running query, like a finance report, is holding a conflicting lock, your `ALTER` waits behind it. Every query that arrives after yours then queues behind the `ALTER`, and the portal appears to hang. Set a timeout so the migration gives up instead of stalling everyone:\n\n```sql\nSET lock_timeout = '3s';\n```\n\nRun it in the migration session and retry if it times out. `CREATE INDEX CONCURRENTLY` also waits on older transactions, so avoid starting it during a long report.\n\nIf you can, run the validation and index build off-peak. They're safe for writes now, but they still add I/O load."
+              }
+            ]
+          },
+          {
+            "score": 0.5,
+            "passed": false,
+            "turns": 1,
+            "costUsd": 0.14139599999999997,
+            "judgeCostUsd": 0.10519599999999996,
+            "durationSeconds": 27,
+            "startedAt": "2026-11-10T21:25:11.170Z",
+            "error": null,
+            "tracePath": "/tmp/claude-eval-LL059C/out/trace.jsonl",
+            "skippedPaidGraders": false,
+            "graders": [
+              {
+                "name": "convention-1",
+                "passed": false,
+                "weight": 1,
+                "explanation": "judge votes: FAIL FAIL FAIL",
+                "withOnly": false,
+                "scored": true,
+                "judgeVotes": [
+                  false,
+                  false,
+                  false
+                ],
+                "evidence": "Not as written. Two of the three statements will block writes on `invoices` while they run. The third is fine.\n\n**1. Foreign key: the problem**\n\n`ADD CONSTRAINT ... FOREIGN KEY` takes a `SHARE ROW EXCLUSIVE` lock on `invoices` and `customers`. It then scans every row of `invoices` to validate, holding that lock throughout. Inserts and updates on both tables stall for the whole scan. If any orphaned `customer_id` exists, the statement fails after all that time.\n\nThe fix is to add the constraint without validating, then validate separately. Validation only takes a `SHARE UPDATE EXCLUSIVE` lock, so normal reads and writes continue.\n\n```sql\nALTER TABLE invoices\n  ADD CONSTRAINT invoices_customer_fk\n  FOREIGN KEY (customer_id) REFERENCES customers (id) NOT VALID;\n\nALTER TABLE invoices VALIDATE CONSTRAINT invoices_customer_fk;\n```\n\nBefore Thursday, run this to look for orphans:\n\n```sql\nSELECT count(*) FROM invoices i\nLEFT JOIN customers c ON c.id = i.customer_id\nWHERE i.customer_id IS NOT NULL AND c.id IS NULL;\n```\n\nAlso check that `invoices (customer_id)` has an index. Without one, every delete or key update on `customers` seq-scans `invoices`.\n\n**2. Index: the problem**\n\nA plain `CREATE INDEX` blocks all writes to the table for the whole build. Use `CONCURRENTLY`:\n\n```sql\nCREATE INDEX CONCURRENTLY idx_invoices_status_created\n  ON invoices (status, created_at);\n```\n\n- It can't run inside a transaction block. Many migration tools (Rails, Flyway, Alembic and others) wrap migrations in a transaction by default, so you'll need to disable that for this step.\n- If it fails or is cancelled, it leaves an `INVALID` index behind. Drop it and retry.\n\n**3. Default: fine**\n\n`SET DEFAULT 'USD'` only changes metadata, so it's instant. It only affects future inserts, though. Existing rows with `NULL` currency stay `NULL`. If you expected a backfill, that needs a separate batched `UPDATE`.\n\n**Lock timeouts**\n\nThe `ALTER TABLE` statements need a brief strong lock. If a long-running query (a finance report, say) is holding the table, your statement queues behind it, and everything else queues behind your statement. That can look like an outage. Put this at the top of the migration session:\n\n```sql\nSET lock_timeout = '3s';\n```\n\nIf a statement times out, it fails cleanly and you retry at a quieter moment, instead of stalling the portal.\n\nI'd also run all of this against a production-sized copy first to get real timings for the validation and index build."
+              },
+              {
+                "name": "convention-2",
+                "passed": false,
+                "weight": 1,
+                "explanation": "judge votes: FAIL FAIL FAIL",
+                "withOnly": false,
+                "scored": true,
+                "judgeVotes": [
+                  false,
+                  false,
+                  false
+                ],
+                "evidence": "Not as written. Two of the three statements will block writes on `invoices` while they run. The third is fine.\n\n**1. Foreign key: the problem**\n\n`ADD CONSTRAINT ... FOREIGN KEY` takes a `SHARE ROW EXCLUSIVE` lock on `invoices` and `customers`. It then scans every row of `invoices` to validate, holding that lock throughout. Inserts and updates on both tables stall for the whole scan. If any orphaned `customer_id` exists, the statement fails after all that time.\n\nThe fix is to add the constraint without validating, then validate separately. Validation only takes a `SHARE UPDATE EXCLUSIVE` lock, so normal reads and writes continue.\n\n```sql\nALTER TABLE invoices\n  ADD CONSTRAINT invoices_customer_fk\n  FOREIGN KEY (customer_id) REFERENCES customers (id) NOT VALID;\n\nALTER TABLE invoices VALIDATE CONSTRAINT invoices_customer_fk;\n```\n\nBefore Thursday, run this to look for orphans:\n\n```sql\nSELECT count(*) FROM invoices i\nLEFT JOIN customers c ON c.id = i.customer_id\nWHERE i.customer_id IS NOT NULL AND c.id IS NULL;\n```\n\nAlso check that `invoices (customer_id)` has an index. Without one, every delete or key update on `customers` seq-scans `invoices`.\n\n**2. Index: the problem**\n\nA plain `CREATE INDEX` blocks all writes to the table for the whole build. Use `CONCURRENTLY`:\n\n```sql\nCREATE INDEX CONCURRENTLY idx_invoices_status_created\n  ON invoices (status, created_at);\n```\n\n- It can't run inside a transaction block. Many migration tools (Rails, Flyway, Alembic and others) wrap migrations in a transaction by default, so you'll need to disable that for this step.\n- If it fails or is cancelled, it leaves an `INVALID` index behind. Drop it and retry.\n\n**3. Default: fine**\n\n`SET DEFAULT 'USD'` only changes metadata, so it's instant. It only affects future inserts, though. Existing rows with `NULL` currency stay `NULL`. If you expected a backfill, that needs a separate batched `UPDATE`.\n\n**Lock timeouts**\n\nThe `ALTER TABLE` statements need a brief strong lock. If a long-running query (a finance report, say) is holding the table, your statement queues behind it, and everything else queues behind your statement. That can look like an outage. Put this at the top of the migration session:\n\n```sql\nSET lock_timeout = '3s';\n```\n\nIf a statement times out, it fails cleanly and you retry at a quieter moment, instead of stalling the portal.\n\nI'd also run all of this against a production-sized copy first to get real timings for the validation and index build."
+              },
+              {
+                "name": "substance-1",
+                "passed": true,
+                "weight": 1,
+                "explanation": "judge votes: PASS PASS PASS",
+                "withOnly": false,
+                "scored": true,
+                "judgeVotes": [
+                  true,
+                  true,
+                  true
+                ],
+                "evidence": "Not as written. Two of the three statements will block writes on `invoices` while they run. The third is fine.\n\n**1. Foreign key: the problem**\n\n`ADD CONSTRAINT ... FOREIGN KEY` takes a `SHARE ROW EXCLUSIVE` lock on `invoices` and `customers`. It then scans every row of `invoices` to validate, holding that lock throughout. Inserts and updates on both tables stall for the whole scan. If any orphaned `customer_id` exists, the statement fails after all that time.\n\nThe fix is to add the constraint without validating, then validate separately. Validation only takes a `SHARE UPDATE EXCLUSIVE` lock, so normal reads and writes continue.\n\n```sql\nALTER TABLE invoices\n  ADD CONSTRAINT invoices_customer_fk\n  FOREIGN KEY (customer_id) REFERENCES customers (id) NOT VALID;\n\nALTER TABLE invoices VALIDATE CONSTRAINT invoices_customer_fk;\n```\n\nBefore Thursday, run this to look for orphans:\n\n```sql\nSELECT count(*) FROM invoices i\nLEFT JOIN customers c ON c.id = i.customer_id\nWHERE i.customer_id IS NOT NULL AND c.id IS NULL;\n```\n\nAlso check that `invoices (customer_id)` has an index. Without one, every delete or key update on `customers` seq-scans `invoices`.\n\n**2. Index: the problem**\n\nA plain `CREATE INDEX` blocks all writes to the table for the whole build. Use `CONCURRENTLY`:\n\n```sql\nCREATE INDEX CONCURRENTLY idx_invoices_status_created\n  ON invoices (status, created_at);\n```\n\n- It can't run inside a transaction block. Many migration tools (Rails, Flyway, Alembic and others) wrap migrations in a transaction by default, so you'll need to disable that for this step.\n- If it fails or is cancelled, it leaves an `INVALID` index behind. Drop it and retry.\n\n**3. Default: fine**\n\n`SET DEFAULT 'USD'` only changes metadata, so it's instant. It only affects future inserts, though. Existing rows with `NULL` currency stay `NULL`. If you expected a backfill, that needs a separate batched `UPDATE`.\n\n**Lock timeouts**\n\nThe `ALTER TABLE` statements need a brief strong lock. If a long-running query (a finance report, say) is holding the table, your statement queues behind it, and everything else queues behind your statement. That can look like an outage. Put this at the top of the migration session:\n\n```sql\nSET lock_timeout = '3s';\n```\n\nIf a statement times out, it fails cleanly and you retry at a quieter moment, instead of stalling the portal.\n\nI'd also run all of this against a production-sized copy first to get real timings for the validation and index build."
+              },
+              {
+                "name": "substance-2",
+                "passed": true,
+                "weight": 1,
+                "explanation": "judge votes: PASS PASS PASS",
+                "withOnly": false,
+                "scored": true,
+                "judgeVotes": [
+                  true,
+                  true,
+                  true
+                ],
+                "evidence": "Not as written. Two of the three statements will block writes on `invoices` while they run. The third is fine.\n\n**1. Foreign key: the problem**\n\n`ADD CONSTRAINT ... FOREIGN KEY` takes a `SHARE ROW EXCLUSIVE` lock on `invoices` and `customers`. It then scans every row of `invoices` to validate, holding that lock throughout. Inserts and updates on both tables stall for the whole scan. If any orphaned `customer_id` exists, the statement fails after all that time.\n\nThe fix is to add the constraint without validating, then validate separately. Validation only takes a `SHARE UPDATE EXCLUSIVE` lock, so normal reads and writes continue.\n\n```sql\nALTER TABLE invoices\n  ADD CONSTRAINT invoices_customer_fk\n  FOREIGN KEY (customer_id) REFERENCES customers (id) NOT VALID;\n\nALTER TABLE invoices VALIDATE CONSTRAINT invoices_customer_fk;\n```\n\nBefore Thursday, run this to look for orphans:\n\n```sql\nSELECT count(*) FROM invoices i\nLEFT JOIN customers c ON c.id = i.customer_id\nWHERE i.customer_id IS NOT NULL AND c.id IS NULL;\n```\n\nAlso check that `invoices (customer_id)` has an index. Without one, every delete or key update on `customers` seq-scans `invoices`.\n\n**2. Index: the problem**\n\nA plain `CREATE INDEX` blocks all writes to the table for the whole build. Use `CONCURRENTLY`:\n\n```sql\nCREATE INDEX CONCURRENTLY idx_invoices_status_created\n  ON invoices (status, created_at);\n```\n\n- It can't run inside a transaction block. Many migration tools (Rails, Flyway, Alembic and others) wrap migrations in a transaction by default, so you'll need to disable that for this step.\n- If it fails or is cancelled, it leaves an `INVALID` index behind. Drop it and retry.\n\n**3. Default: fine**\n\n`SET DEFAULT 'USD'` only changes metadata, so it's instant. It only affects future inserts, though. Existing rows with `NULL` currency stay `NULL`. If you expected a backfill, that needs a separate batched `UPDATE`.\n\n**Lock timeouts**\n\nThe `ALTER TABLE` statements need a brief strong lock. If a long-running query (a finance report, say) is holding the table, your statement queues behind it, and everything else queues behind your statement. That can look like an outage. Put this at the top of the migration session:\n\n```sql\nSET lock_timeout = '3s';\n```\n\nIf a statement times out, it fails cleanly and you retry at a quieter moment, instead of stalling the portal.\n\nI'd also run all of this against a production-sized copy first to get real timings for the validation and index build."
+              }
+            ]
+          }
+        ]
+      },
+      "aggregates": {
+        "score": 0.5,
+        "passRate": 0
+      }
+    },
+    {
+      "name": "case-08",
+      "dir": "evals/case-08",
+      "source": "prose",
+      "promptMarkdown": "We're tidying up the users table in Postgres and I'd like a second pair of eyes before I open the PR. Plan is, in one release:\n\n1. rename `fullname` to `display_name`\n2. drop the old `nickname` column, nobody uses it as far as I know\n\nNumbers: users has about 12 million rows, roughly 800 writes a second at peak. The API runs as 40 instances on a rolling deploy, so for a few minutes old and new code are both live.\n\nOne thing I should mention: there's a view called `user_directory` that the support tools read from. It does `SELECT id, fullname, nickname, team FROM users`.\n\nMy draft:\n\n```sql\nALTER TABLE users RENAME COLUMN fullname TO display_name;\nALTER TABLE users DROP COLUMN nickname;\n```\n\nDoes that work?",
+      "runsPerCase": 3,
+      "timeoutSeconds": 300,
+      "maxTurns": 10,
+      "graders": [
+        {
+          "name": "convention-1",
+          "type": "llm",
+          "weight": 1,
+          "graderMarkdown": "The response recommends an expand-and-contract sequence in place of the single rename and names the separate deploy steps (for example, add the new column, deploy code that writes both, backfill, switch reads, then drop the old column) as distinct numbered steps.",
+          "config": {
+            "criteria": "The response recommends an expand-and-contract sequence in place of the single rename and names the separate deploy steps (for example, add the new column, deploy code that writes both, backfill, switch reads, then drop the old column) as distinct numbered steps.",
+            "focus": "last_message"
+          }
+        },
+        {
+          "name": "convention-2",
+          "type": "llm",
+          "weight": 1,
+          "graderMarkdown": "The response contains a section headed `Rollback` that gives a rollback statement for each change or says `No rollback` together with the reason.",
+          "config": {
+            "criteria": "The response contains a section headed `Rollback` that gives a rollback statement for each change or says `No rollback` together with the reason.",
+            "focus": "last_message"
+          }
+        },
+        {
+          "name": "substance-1",
+          "type": "llm",
+          "weight": 1,
+          "graderMarkdown": "The response identifies that renaming `fullname` to `display_name` in one step breaks the old application instances that are still running during the rolling deploy, because their queries still reference `fullname`.",
+          "config": {
+            "criteria": "The response identifies that renaming `fullname` to `display_name` in one step breaks the old application instances that are still running during the rolling deploy, because their queries still reference `fullname`.",
+            "focus": "last_message"
+          }
+        },
+        {
+          "name": "substance-2",
+          "type": "llm",
+          "weight": 1,
+          "graderMarkdown": "The response identifies that `DROP COLUMN nickname` will fail because the `user_directory` view selects that column, unless the view is changed first or `CASCADE` is used, which would drop the view.",
+          "config": {
+            "criteria": "The response identifies that `DROP COLUMN nickname` will fail because the `user_directory` view selects that column, unless the view is changed first or `CASCADE` is used, which would drop the view.",
+            "focus": "last_message"
+          }
+        }
+      ],
+      "arms": {
+        "with": [
+          {
+            "score": 0.5,
+            "passed": false,
+            "turns": 1,
+            "costUsd": 0.14811199999999997,
+            "judgeCostUsd": 0.10526199999999998,
+            "durationSeconds": 35,
+            "startedAt": "2026-11-10T21:25:11.170Z",
+            "error": null,
+            "tracePath": "/tmp/claude-eval-FTFeK5/out/trace.jsonl",
+            "skippedPaidGraders": false,
+            "graders": [
+              {
+                "name": "convention-1",
+                "passed": false,
+                "weight": 1,
+                "explanation": "judge votes: FAIL FAIL FAIL",
+                "withOnly": false,
+                "scored": true,
+                "judgeVotes": [
+                  false,
+                  false,
+                  false
+                ],
+                "evidence": "No, not as written, and it breaks in two different ways.\n\n**1. The `DROP COLUMN nickname` will fail.**\n`user_directory` selects `nickname`, so Postgres will refuse with `cannot drop column nickname ... because other objects depend on it`. Adding `CASCADE` would silently drop the view and break the support tools, so don't do that. Recreate the view first.\n\n**2. The rename breaks old code during the rolling deploy.**\nThe rename is instant, but every old instance that references `fullname` will start throwing errors the moment it runs. That lasts for the whole deploy window. The same applies to `nickname`: any old instance that selects it, including through an ORM's column list or `SELECT *` mapping, will fail once it's dropped.\n\nThe rename has a quieter side effect on the view. Postgres rewrites the view to point at `display_name`, but the view's output column stays named `fullname`. The support tools keep working, but the name is now misleading.\n\n**Safer plan (expand/contract across releases)**\n\n*Release 1, expand:*\n```sql\nALTER TABLE users ADD COLUMN display_name text;  -- metadata-only, fast\n```\n- Keep the two columns in sync for writes. You can dual-write in the app, or use a trigger that copies `fullname` to `display_name` on insert and update. The trigger covers old instances that only write `fullname`.\n- Backfill in batches (for example 10k rows by id range, with a short sleep between batches). Don't run one 12M-row `UPDATE`, because it creates bloat and long locks. Commit per batch.\n- New code reads `display_name`. Remove every `nickname` reference from the code.\n- Replace the view in one transaction. `CREATE OR REPLACE VIEW` can't drop or rename columns, so drop and recreate it, and re-apply grants:\n  ```sql\n  BEGIN;\n  DROP VIEW user_directory;\n  CREATE VIEW user_directory AS\n    SELECT id, display_name AS fullname, team FROM users;  -- or expose display_name if the tools are updated\n  GRANT SELECT ON user_directory TO <support_role>;\n  COMMIT;\n  ```\n  Aliasing it as `fullname` keeps the support tools working until you update them.\n\n*Release 2, contract (after the old code is gone everywhere):*\n```sql\nSET lock_timeout = '3s';\nALTER TABLE users DROP COLUMN fullname;   -- after dropping the sync trigger\nALTER TABLE users DROP COLUMN nickname;\n```\n`DROP COLUMN` doesn't rewrite the table, because Postgres just marks the column as dropped.\n\n**Other checks**\n- **Locks:** both `RENAME` and `DROP COLUMN` take `ACCESS EXCLUSIVE`. If a long transaction is holding the table, your DDL queues, and everything behind it queues too. At 800 writes/s that becomes an outage fast. Set `lock_timeout` (2–5s) and retry on failure.\n- **Confirm `nickname` is unused:** \"nobody uses it as far as I know\" isn't proof. Grep the code, check `pg_stat_statements` for queries mentioning it, and look for other dependents. That includes other views, functions, indexes, triggers, and BI or analytics jobs. Check `pg_depend`, or try the drop in a transaction on a staging copy.\n- **Rollback:** a dropped column's data is gone. Take a snapshot, or copy `nickname` into a side table first if there's any doubt.\n\nIf you can accept a short window of errors (a maintenance window, or draining old instances first), your original approach works once the view is fixed. With a rolling deploy at this write rate, I'd go with the two-release plan."
+              },
+              {
+                "name": "convention-2",
+                "passed": false,
+                "weight": 1,
+                "explanation": "judge votes: FAIL FAIL FAIL",
+                "withOnly": false,
+                "scored": true,
+                "judgeVotes": [
+                  false,
+                  false,
+                  false
+                ],
+                "evidence": "No, not as written, and it breaks in two different ways.\n\n**1. The `DROP COLUMN nickname` will fail.**\n`user_directory` selects `nickname`, so Postgres will refuse with `cannot drop column nickname ... because other objects depend on it`. Adding `CASCADE` would silently drop the view and break the support tools, so don't do that. Recreate the view first.\n\n**2. The rename breaks old code during the rolling deploy.**\nThe rename is instant, but every old instance that references `fullname` will start throwing errors the moment it runs. That lasts for the whole deploy window. The same applies to `nickname`: any old instance that selects it, including through an ORM's column list or `SELECT *` mapping, will fail once it's dropped.\n\nThe rename has a quieter side effect on the view. Postgres rewrites the view to point at `display_name`, but the view's output column stays named `fullname`. The support tools keep working, but the name is now misleading.\n\n**Safer plan (expand/contract across releases)**\n\n*Release 1, expand:*\n```sql\nALTER TABLE users ADD COLUMN display_name text;  -- metadata-only, fast\n```\n- Keep the two columns in sync for writes. You can dual-write in the app, or use a trigger that copies `fullname` to `display_name` on insert and update. The trigger covers old instances that only write `fullname`.\n- Backfill in batches (for example 10k rows by id range, with a short sleep between batches). Don't run one 12M-row `UPDATE`, because it creates bloat and long locks. Commit per batch.\n- New code reads `display_name`. Remove every `nickname` reference from the code.\n- Replace the view in one transaction. `CREATE OR REPLACE VIEW` can't drop or rename columns, so drop and recreate it, and re-apply grants:\n  ```sql\n  BEGIN;\n  DROP VIEW user_directory;\n  CREATE VIEW user_directory AS\n    SELECT id, display_name AS fullname, team FROM users;  -- or expose display_name if the tools are updated\n  GRANT SELECT ON user_directory TO <support_role>;\n  COMMIT;\n  ```\n  Aliasing it as `fullname` keeps the support tools working until you update them.\n\n*Release 2, contract (after the old code is gone everywhere):*\n```sql\nSET lock_timeout = '3s';\nALTER TABLE users DROP COLUMN fullname;   -- after dropping the sync trigger\nALTER TABLE users DROP COLUMN nickname;\n```\n`DROP COLUMN` doesn't rewrite the table, because Postgres just marks the column as dropped.\n\n**Other checks**\n- **Locks:** both `RENAME` and `DROP COLUMN` take `ACCESS EXCLUSIVE`. If a long transaction is holding the table, your DDL queues, and everything behind it queues too. At 800 writes/s that becomes an outage fast. Set `lock_timeout` (2–5s) and retry on failure.\n- **Confirm `nickname` is unused:** \"nobody uses it as far as I know\" isn't proof. Grep the code, check `pg_stat_statements` for queries mentioning it, and look for other dependents. That includes other views, functions, indexes, triggers, and BI or analytics jobs. Check `pg_depend`, or try the drop in a transaction on a staging copy.\n- **Rollback:** a dropped column's data is gone. Take a snapshot, or copy `nickname` into a side table first if there's any doubt.\n\nIf you can accept a short window of errors (a maintenance window, or draining old instances first), your original approach works once the view is fixed. With a rolling deploy at this write rate, I'd go with the two-release plan."
+              },
+              {
+                "name": "substance-1",
+                "passed": true,
+                "weight": 1,
+                "explanation": "judge votes: PASS PASS PASS",
+                "withOnly": false,
+                "scored": true,
+                "judgeVotes": [
+                  true,
+                  true,
+                  true
+                ],
+                "evidence": "No, not as written, and it breaks in two different ways.\n\n**1. The `DROP COLUMN nickname` will fail.**\n`user_directory` selects `nickname`, so Postgres will refuse with `cannot drop column nickname ... because other objects depend on it`. Adding `CASCADE` would silently drop the view and break the support tools, so don't do that. Recreate the view first.\n\n**2. The rename breaks old code during the rolling deploy.**\nThe rename is instant, but every old instance that references `fullname` will start throwing errors the moment it runs. That lasts for the whole deploy window. The same applies to `nickname`: any old instance that selects it, including through an ORM's column list or `SELECT *` mapping, will fail once it's dropped.\n\nThe rename has a quieter side effect on the view. Postgres rewrites the view to point at `display_name`, but the view's output column stays named `fullname`. The support tools keep working, but the name is now misleading.\n\n**Safer plan (expand/contract across releases)**\n\n*Release 1, expand:*\n```sql\nALTER TABLE users ADD COLUMN display_name text;  -- metadata-only, fast\n```\n- Keep the two columns in sync for writes. You can dual-write in the app, or use a trigger that copies `fullname` to `display_name` on insert and update. The trigger covers old instances that only write `fullname`.\n- Backfill in batches (for example 10k rows by id range, with a short sleep between batches). Don't run one 12M-row `UPDATE`, because it creates bloat and long locks. Commit per batch.\n- New code reads `display_name`. Remove every `nickname` reference from the code.\n- Replace the view in one transaction. `CREATE OR REPLACE VIEW` can't drop or rename columns, so drop and recreate it, and re-apply grants:\n  ```sql\n  BEGIN;\n  DROP VIEW user_directory;\n  CREATE VIEW user_directory AS\n    SELECT id, display_name AS fullname, team FROM users;  -- or expose display_name if the tools are updated\n  GRANT SELECT ON user_directory TO <support_role>;\n  COMMIT;\n  ```\n  Aliasing it as `fullname` keeps the support tools working until you update them.\n\n*Release 2, contract (after the old code is gone everywhere):*\n```sql\nSET lock_timeout = '3s';\nALTER TABLE users DROP COLUMN fullname;   -- after dropping the sync trigger\nALTER TABLE users DROP COLUMN nickname;\n```\n`DROP COLUMN` doesn't rewrite the table, because Postgres just marks the column as dropped.\n\n**Other checks**\n- **Locks:** both `RENAME` and `DROP COLUMN` take `ACCESS EXCLUSIVE`. If a long transaction is holding the table, your DDL queues, and everything behind it queues too. At 800 writes/s that becomes an outage fast. Set `lock_timeout` (2–5s) and retry on failure.\n- **Confirm `nickname` is unused:** \"nobody uses it as far as I know\" isn't proof. Grep the code, check `pg_stat_statements` for queries mentioning it, and look for other dependents. That includes other views, functions, indexes, triggers, and BI or analytics jobs. Check `pg_depend`, or try the drop in a transaction on a staging copy.\n- **Rollback:** a dropped column's data is gone. Take a snapshot, or copy `nickname` into a side table first if there's any doubt.\n\nIf you can accept a short window of errors (a maintenance window, or draining old instances first), your original approach works once the view is fixed. With a rolling deploy at this write rate, I'd go with the two-release plan."
+              },
+              {
+                "name": "substance-2",
+                "passed": true,
+                "weight": 1,
+                "explanation": "judge votes: PASS PASS PASS",
+                "withOnly": false,
+                "scored": true,
+                "judgeVotes": [
+                  true,
+                  true,
+                  true
+                ],
+                "evidence": "No, not as written, and it breaks in two different ways.\n\n**1. The `DROP COLUMN nickname` will fail.**\n`user_directory` selects `nickname`, so Postgres will refuse with `cannot drop column nickname ... because other objects depend on it`. Adding `CASCADE` would silently drop the view and break the support tools, so don't do that. Recreate the view first.\n\n**2. The rename breaks old code during the rolling deploy.**\nThe rename is instant, but every old instance that references `fullname` will start throwing errors the moment it runs. That lasts for the whole deploy window. The same applies to `nickname`: any old instance that selects it, including through an ORM's column list or `SELECT *` mapping, will fail once it's dropped.\n\nThe rename has a quieter side effect on the view. Postgres rewrites the view to point at `display_name`, but the view's output column stays named `fullname`. The support tools keep working, but the name is now misleading.\n\n**Safer plan (expand/contract across releases)**\n\n*Release 1, expand:*\n```sql\nALTER TABLE users ADD COLUMN display_name text;  -- metadata-only, fast\n```\n- Keep the two columns in sync for writes. You can dual-write in the app, or use a trigger that copies `fullname` to `display_name` on insert and update. The trigger covers old instances that only write `fullname`.\n- Backfill in batches (for example 10k rows by id range, with a short sleep between batches). Don't run one 12M-row `UPDATE`, because it creates bloat and long locks. Commit per batch.\n- New code reads `display_name`. Remove every `nickname` reference from the code.\n- Replace the view in one transaction. `CREATE OR REPLACE VIEW` can't drop or rename columns, so drop and recreate it, and re-apply grants:\n  ```sql\n  BEGIN;\n  DROP VIEW user_directory;\n  CREATE VIEW user_directory AS\n    SELECT id, display_name AS fullname, team FROM users;  -- or expose display_name if the tools are updated\n  GRANT SELECT ON user_directory TO <support_role>;\n  COMMIT;\n  ```\n  Aliasing it as `fullname` keeps the support tools working until you update them.\n\n*Release 2, contract (after the old code is gone everywhere):*\n```sql\nSET lock_timeout = '3s';\nALTER TABLE users DROP COLUMN fullname;   -- after dropping the sync trigger\nALTER TABLE users DROP COLUMN nickname;\n```\n`DROP COLUMN` doesn't rewrite the table, because Postgres just marks the column as dropped.\n\n**Other checks**\n- **Locks:** both `RENAME` and `DROP COLUMN` take `ACCESS EXCLUSIVE`. If a long transaction is holding the table, your DDL queues, and everything behind it queues too. At 800 writes/s that becomes an outage fast. Set `lock_timeout` (2–5s) and retry on failure.\n- **Confirm `nickname` is unused:** \"nobody uses it as far as I know\" isn't proof. Grep the code, check `pg_stat_statements` for queries mentioning it, and look for other dependents. That includes other views, functions, indexes, triggers, and BI or analytics jobs. Check `pg_depend`, or try the drop in a transaction on a staging copy.\n- **Rollback:** a dropped column's data is gone. Take a snapshot, or copy `nickname` into a side table first if there's any doubt.\n\nIf you can accept a short window of errors (a maintenance window, or draining old instances first), your original approach works once the view is fixed. With a rolling deploy at this write rate, I'd go with the two-release plan."
+              }
+            ]
+          },
+          {
+            "score": 0.75,
+            "passed": false,
+            "turns": 1,
+            "costUsd": 0.13347399999999993,
+            "judgeCostUsd": 0.09436399999999992,
+            "durationSeconds": 29,
+            "startedAt": "2026-11-10T21:25:38.442Z",
+            "error": null,
+            "tracePath": "/tmp/claude-eval-s4JRzm/out/trace.jsonl",
+            "skippedPaidGraders": false,
+            "graders": [
+              {
+                "name": "convention-1",
+                "passed": true,
+                "weight": 1,
+                "explanation": "judge votes: PASS PASS PASS",
+                "withOnly": false,
+                "scored": true,
+                "judgeVotes": [
+                  true,
+                  true,
+                  true
+                ],
+                "evidence": "No, it doesn't work as written. There are two problems, and a third issue is about the release shape.\n\n**1. The `DROP COLUMN` will fail because of the view.**\n`user_directory` depends on `nickname`. Postgres will refuse with `cannot drop column nickname ... because other objects depend on it`. Don't \"fix\" that with `CASCADE`. It would drop the view and break the support tools.\n\nYou need to redefine the view without `nickname` first. `CREATE OR REPLACE VIEW` can't remove columns, so it has to be `DROP VIEW` and `CREATE VIEW` in one transaction. Before that, check that the support tools don't select `nickname` from the view. That's a real consumer of the column, which undercuts \"nobody uses it\".\n\n**2. The rename will break the rolling deploy.**\n`RENAME COLUMN` is instant, but it takes effect immediately for every instance. Old instances still running `fullname` queries will start erroring the moment it commits. If you migrate first, the old code fails. If you deploy first, the new code fails. A rolling deploy has no ordering that avoids this.\n\nThe view is fine here. Postgres tracks columns by attribute number, so the view follows the rename. Its output column is still called `fullname`, though, so you'll probably want to redefine it as `display_name` anyway, and that needs coordinating with the support tools.\n\n**3. Don't do both in one release.**\nThe safe pattern is expand/contract, which spans several deploys:\n\n1. **Expand (migration):** `ALTER TABLE users ADD COLUMN display_name text;` This is metadata-only with no default. Add a trigger that copies `fullname` to `display_name` on insert and update, so old instances keep both columns in sync.\n2. **Backfill:** update the 12M existing rows in batches, say 5–10k rows per batch with short transactions and a pause between them. Don't run a single `UPDATE`.\n3. **Deploy:** new code writes `display_name` and reads it. Rebuild the view to expose `display_name`, coordinated with the support tools.\n4. **Contract (a later release):** once no instance references `fullname`, drop the trigger and drop `fullname`.\n\nFor `nickname`, first ship code that stops referencing it. Watch for `SELECT *` or ORM models that map it. Then rebuild the view without it, and drop the column in a later release. Dropping a column is irreversible, so take a backup or archive the data first. Check `SELECT count(*) FROM users WHERE nickname IS NOT NULL` and `pg_stat_statements` to see whether anything actually touches it.\n\n**Locking**\nBoth `ALTER`s are fast, but they need an `ACCESS EXCLUSIVE` lock. If a long transaction holds the table, your `ALTER` queues behind it and every other query queues behind your `ALTER`. At 800 writes/sec that becomes an outage within seconds. Run each DDL statement with a short timeout and retry:\n\n```sql\nSET lock_timeout = '3s';\n```\n\nIf you want, I can write the migration files for each step. If the code is in this repo, I can also grep for `fullname` and `nickname` usages."
+              },
+              {
+                "name": "convention-2",
+                "passed": false,
+                "weight": 1,
+                "explanation": "judge votes: FAIL FAIL FAIL",
+                "withOnly": false,
+                "scored": true,
+                "judgeVotes": [
+                  false,
+                  false,
+                  false
+                ],
+                "evidence": "No, it doesn't work as written. There are two problems, and a third issue is about the release shape.\n\n**1. The `DROP COLUMN` will fail because of the view.**\n`user_directory` depends on `nickname`. Postgres will refuse with `cannot drop column nickname ... because other objects depend on it`. Don't \"fix\" that with `CASCADE`. It would drop the view and break the support tools.\n\nYou need to redefine the view without `nickname` first. `CREATE OR REPLACE VIEW` can't remove columns, so it has to be `DROP VIEW` and `CREATE VIEW` in one transaction. Before that, check that the support tools don't select `nickname` from the view. That's a real consumer of the column, which undercuts \"nobody uses it\".\n\n**2. The rename will break the rolling deploy.**\n`RENAME COLUMN` is instant, but it takes effect immediately for every instance. Old instances still running `fullname` queries will start erroring the moment it commits. If you migrate first, the old code fails. If you deploy first, the new code fails. A rolling deploy has no ordering that avoids this.\n\nThe view is fine here. Postgres tracks columns by attribute number, so the view follows the rename. Its output column is still called `fullname`, though, so you'll probably want to redefine it as `display_name` anyway, and that needs coordinating with the support tools.\n\n**3. Don't do both in one release.**\nThe safe pattern is expand/contract, which spans several deploys:\n\n1. **Expand (migration):** `ALTER TABLE users ADD COLUMN display_name text;` This is metadata-only with no default. Add a trigger that copies `fullname` to `display_name` on insert and update, so old instances keep both columns in sync.\n2. **Backfill:** update the 12M existing rows in batches, say 5–10k rows per batch with short transactions and a pause between them. Don't run a single `UPDATE`.\n3. **Deploy:** new code writes `display_name` and reads it. Rebuild the view to expose `display_name`, coordinated with the support tools.\n4. **Contract (a later release):** once no instance references `fullname`, drop the trigger and drop `fullname`.\n\nFor `nickname`, first ship code that stops referencing it. Watch for `SELECT *` or ORM models that map it. Then rebuild the view without it, and drop the column in a later release. Dropping a column is irreversible, so take a backup or archive the data first. Check `SELECT count(*) FROM users WHERE nickname IS NOT NULL` and `pg_stat_statements` to see whether anything actually touches it.\n\n**Locking**\nBoth `ALTER`s are fast, but they need an `ACCESS EXCLUSIVE` lock. If a long transaction holds the table, your `ALTER` queues behind it and every other query queues behind your `ALTER`. At 800 writes/sec that becomes an outage within seconds. Run each DDL statement with a short timeout and retry:\n\n```sql\nSET lock_timeout = '3s';\n```\n\nIf you want, I can write the migration files for each step. If the code is in this repo, I can also grep for `fullname` and `nickname` usages."
+              },
+              {
+                "name": "substance-1",
+                "passed": true,
+                "weight": 1,
+                "explanation": "judge votes: PASS PASS PASS",
+                "withOnly": false,
+                "scored": true,
+                "judgeVotes": [
+                  true,
+                  true,
+                  true
+                ],
+                "evidence": "No, it doesn't work as written. There are two problems, and a third issue is about the release shape.\n\n**1. The `DROP COLUMN` will fail because of the view.**\n`user_directory` depends on `nickname`. Postgres will refuse with `cannot drop column nickname ... because other objects depend on it`. Don't \"fix\" that with `CASCADE`. It would drop the view and break the support tools.\n\nYou need to redefine the view without `nickname` first. `CREATE OR REPLACE VIEW` can't remove columns, so it has to be `DROP VIEW` and `CREATE VIEW` in one transaction. Before that, check that the support tools don't select `nickname` from the view. That's a real consumer of the column, which undercuts \"nobody uses it\".\n\n**2. The rename will break the rolling deploy.**\n`RENAME COLUMN` is instant, but it takes effect immediately for every instance. Old instances still running `fullname` queries will start erroring the moment it commits. If you migrate first, the old code fails. If you deploy first, the new code fails. A rolling deploy has no ordering that avoids this.\n\nThe view is fine here. Postgres tracks columns by attribute number, so the view follows the rename. Its output column is still called `fullname`, though, so you'll probably want to redefine it as `display_name` anyway, and that needs coordinating with the support tools.\n\n**3. Don't do both in one release.**\nThe safe pattern is expand/contract, which spans several deploys:\n\n1. **Expand (migration):** `ALTER TABLE users ADD COLUMN display_name text;` This is metadata-only with no default. Add a trigger that copies `fullname` to `display_name` on insert and update, so old instances keep both columns in sync.\n2. **Backfill:** update the 12M existing rows in batches, say 5–10k rows per batch with short transactions and a pause between them. Don't run a single `UPDATE`.\n3. **Deploy:** new code writes `display_name` and reads it. Rebuild the view to expose `display_name`, coordinated with the support tools.\n4. **Contract (a later release):** once no instance references `fullname`, drop the trigger and drop `fullname`.\n\nFor `nickname`, first ship code that stops referencing it. Watch for `SELECT *` or ORM models that map it. Then rebuild the view without it, and drop the column in a later release. Dropping a column is irreversible, so take a backup or archive the data first. Check `SELECT count(*) FROM users WHERE nickname IS NOT NULL` and `pg_stat_statements` to see whether anything actually touches it.\n\n**Locking**\nBoth `ALTER`s are fast, but they need an `ACCESS EXCLUSIVE` lock. If a long transaction holds the table, your `ALTER` queues behind it and every other query queues behind your `ALTER`. At 800 writes/sec that becomes an outage within seconds. Run each DDL statement with a short timeout and retry:\n\n```sql\nSET lock_timeout = '3s';\n```\n\nIf you want, I can write the migration files for each step. If the code is in this repo, I can also grep for `fullname` and `nickname` usages."
+              },
+              {
+                "name": "substance-2",
+                "passed": true,
+                "weight": 1,
+                "explanation": "judge votes: PASS PASS PASS",
+                "withOnly": false,
+                "scored": true,
+                "judgeVotes": [
+                  true,
+                  true,
+                  true
+                ],
+                "evidence": "No, it doesn't work as written. There are two problems, and a third issue is about the release shape.\n\n**1. The `DROP COLUMN` will fail because of the view.**\n`user_directory` depends on `nickname`. Postgres will refuse with `cannot drop column nickname ... because other objects depend on it`. Don't \"fix\" that with `CASCADE`. It would drop the view and break the support tools.\n\nYou need to redefine the view without `nickname` first. `CREATE OR REPLACE VIEW` can't remove columns, so it has to be `DROP VIEW` and `CREATE VIEW` in one transaction. Before that, check that the support tools don't select `nickname` from the view. That's a real consumer of the column, which undercuts \"nobody uses it\".\n\n**2. The rename will break the rolling deploy.**\n`RENAME COLUMN` is instant, but it takes effect immediately for every instance. Old instances still running `fullname` queries will start erroring the moment it commits. If you migrate first, the old code fails. If you deploy first, the new code fails. A rolling deploy has no ordering that avoids this.\n\nThe view is fine here. Postgres tracks columns by attribute number, so the view follows the rename. Its output column is still called `fullname`, though, so you'll probably want to redefine it as `display_name` anyway, and that needs coordinating with the support tools.\n\n**3. Don't do both in one release.**\nThe safe pattern is expand/contract, which spans several deploys:\n\n1. **Expand (migration):** `ALTER TABLE users ADD COLUMN display_name text;` This is metadata-only with no default. Add a trigger that copies `fullname` to `display_name` on insert and update, so old instances keep both columns in sync.\n2. **Backfill:** update the 12M existing rows in batches, say 5–10k rows per batch with short transactions and a pause between them. Don't run a single `UPDATE`.\n3. **Deploy:** new code writes `display_name` and reads it. Rebuild the view to expose `display_name`, coordinated with the support tools.\n4. **Contract (a later release):** once no instance references `fullname`, drop the trigger and drop `fullname`.\n\nFor `nickname`, first ship code that stops referencing it. Watch for `SELECT *` or ORM models that map it. Then rebuild the view without it, and drop the column in a later release. Dropping a column is irreversible, so take a backup or archive the data first. Check `SELECT count(*) FROM users WHERE nickname IS NOT NULL` and `pg_stat_statements` to see whether anything actually touches it.\n\n**Locking**\nBoth `ALTER`s are fast, but they need an `ACCESS EXCLUSIVE` lock. If a long transaction holds the table, your `ALTER` queues behind it and every other query queues behind your `ALTER`. At 800 writes/sec that becomes an outage within seconds. Run each DDL statement with a short timeout and retry:\n\n```sql\nSET lock_timeout = '3s';\n```\n\nIf you want, I can write the migration files for each step. If the code is in this repo, I can also grep for `fullname` and `nickname` usages."
+              }
+            ]
+          },
+          {
+            "score": 0.5,
+            "passed": false,
+            "turns": 1,
+            "costUsd": 0.1485979999999999,
+            "judgeCostUsd": 0.1083579999999999,
+            "durationSeconds": 31,
+            "startedAt": "2026-11-10T21:25:38.836Z",
+            "error": null,
+            "tracePath": "/tmp/claude-eval-57c3aJ/out/trace.jsonl",
+            "skippedPaidGraders": false,
+            "graders": [
+              {
+                "name": "convention-1",
+                "passed": false,
+                "weight": 1,
+                "explanation": "judge votes: FAIL FAIL FAIL",
+                "withOnly": false,
+                "scored": true,
+                "judgeVotes": [
+                  false,
+                  false,
+                  false
+                ],
+                "evidence": "No, it won't work as written, for two separate reasons.\n\n**1. `DROP COLUMN nickname` will fail because of the view.**\n`user_directory` selects `nickname`, so Postgres will refuse with `cannot drop column nickname of table users because other objects depend on it`. Don't use `CASCADE`, because that would drop the view the support tools read from. You'd need to redefine the view without `nickname`. `CREATE OR REPLACE VIEW` can't remove columns, so it has to be `DROP VIEW` then `CREATE VIEW` in one transaction. You'd also need to re-grant privileges. That change breaks any support tool that selects `nickname` from the view, so check with that team first.\n\n**2. The rename isn't safe in a rolling deploy.**\nOnce the rename commits, every old-code instance still querying `fullname` gets errors until it's replaced. That's a few minutes of failures on reads and writes across up to 40 instances. The same goes for the drop, if any old code touches `nickname`. That includes `SELECT *` into a strict struct, or `INSERT` statements that list the column.\n\nThe rename is fine for the view itself. Postgres tracks columns by attribute number, so the view keeps working and still exposes the column as `fullname`. If you want the view to expose `display_name`, redefine it, and tell the support team.\n\n**Safer plan (expand/contract, spread over a few releases):**\n\n*Release 1 (expand)*\n- `ALTER TABLE users ADD COLUMN display_name text;`. This is metadata-only and instant.\n- Dual-write. Either do it in app code or use a `BEFORE INSERT OR UPDATE` trigger that keeps `display_name` and `fullname` in sync.\n- Backfill in batches, for example 5–10k rows by `id` range with a short sleep between batches. Don't run one 12M-row `UPDATE`, which causes bloat, long locks and replication lag.\n- Stop referencing `nickname` in the code.\n- Recreate the view with `display_name` and without `nickname`, once the support tools are ready.\n\n*Release 2*\n- Switch reads and writes to `display_name`. Old and new code both still work because of the dual-write.\n\n*Release 3 (contract)*\n- Drop the trigger, then `ALTER TABLE users DROP COLUMN fullname, DROP COLUMN nickname;`.\n\n**Things to check before the PR:**\n- **Is `nickname` really unused?** Grep the code, and also check `pg_stat_statements`, other views and functions (`pg_depend` or `information_schema.view_column_usage`), BI tools, ETL jobs and exports.\n- **Locks.** `RENAME` and `DROP COLUMN` need a brief `ACCESS EXCLUSIVE` lock. They're fast, but if they queue behind a long transaction, everything else queues behind them. Run `SET lock_timeout = '3s';` and retry on failure.\n- **Dropped column space.** `DROP COLUMN` doesn't rewrite the table, so the space is only reclaimed gradually as rows get updated.\n- **Backfill constraints.** If you want `display_name` to be `NOT NULL`, add it as `CHECK (... IS NOT NULL) NOT VALID`, then `VALIDATE CONSTRAINT`, then set `NOT NULL`. That avoids a long lock.\n\nIf you can accept a short error window, you could do it in one release with a maintenance window. With a rolling deploy at your write rate, I'd go with the phased approach."
+              },
+              {
+                "name": "convention-2",
+                "passed": false,
+                "weight": 1,
+                "explanation": "judge votes: FAIL FAIL FAIL",
+                "withOnly": false,
+                "scored": true,
+                "judgeVotes": [
+                  false,
+                  false,
+                  false
+                ],
+                "evidence": "No, it won't work as written, for two separate reasons.\n\n**1. `DROP COLUMN nickname` will fail because of the view.**\n`user_directory` selects `nickname`, so Postgres will refuse with `cannot drop column nickname of table users because other objects depend on it`. Don't use `CASCADE`, because that would drop the view the support tools read from. You'd need to redefine the view without `nickname`. `CREATE OR REPLACE VIEW` can't remove columns, so it has to be `DROP VIEW` then `CREATE VIEW` in one transaction. You'd also need to re-grant privileges. That change breaks any support tool that selects `nickname` from the view, so check with that team first.\n\n**2. The rename isn't safe in a rolling deploy.**\nOnce the rename commits, every old-code instance still querying `fullname` gets errors until it's replaced. That's a few minutes of failures on reads and writes across up to 40 instances. The same goes for the drop, if any old code touches `nickname`. That includes `SELECT *` into a strict struct, or `INSERT` statements that list the column.\n\nThe rename is fine for the view itself. Postgres tracks columns by attribute number, so the view keeps working and still exposes the column as `fullname`. If you want the view to expose `display_name`, redefine it, and tell the support team.\n\n**Safer plan (expand/contract, spread over a few releases):**\n\n*Release 1 (expand)*\n- `ALTER TABLE users ADD COLUMN display_name text;`. This is metadata-only and instant.\n- Dual-write. Either do it in app code or use a `BEFORE INSERT OR UPDATE` trigger that keeps `display_name` and `fullname` in sync.\n- Backfill in batches, for example 5–10k rows by `id` range with a short sleep between batches. Don't run one 12M-row `UPDATE`, which causes bloat, long locks and replication lag.\n- Stop referencing `nickname` in the code.\n- Recreate the view with `display_name` and without `nickname`, once the support tools are ready.\n\n*Release 2*\n- Switch reads and writes to `display_name`. Old and new code both still work because of the dual-write.\n\n*Release 3 (contract)*\n- Drop the trigger, then `ALTER TABLE users DROP COLUMN fullname, DROP COLUMN nickname;`.\n\n**Things to check before the PR:**\n- **Is `nickname` really unused?** Grep the code, and also check `pg_stat_statements`, other views and functions (`pg_depend` or `information_schema.view_column_usage`), BI tools, ETL jobs and exports.\n- **Locks.** `RENAME` and `DROP COLUMN` need a brief `ACCESS EXCLUSIVE` lock. They're fast, but if they queue behind a long transaction, everything else queues behind them. Run `SET lock_timeout = '3s';` and retry on failure.\n- **Dropped column space.** `DROP COLUMN` doesn't rewrite the table, so the space is only reclaimed gradually as rows get updated.\n- **Backfill constraints.** If you want `display_name` to be `NOT NULL`, add it as `CHECK (... IS NOT NULL) NOT VALID`, then `VALIDATE CONSTRAINT`, then set `NOT NULL`. That avoids a long lock.\n\nIf you can accept a short error window, you could do it in one release with a maintenance window. With a rolling deploy at your write rate, I'd go with the phased approach."
+              },
+              {
+                "name": "substance-1",
+                "passed": true,
+                "weight": 1,
+                "explanation": "judge votes: PASS PASS PASS",
+                "withOnly": false,
+                "scored": true,
+                "judgeVotes": [
+                  true,
+                  true,
+                  true
+                ],
+                "evidence": "No, it won't work as written, for two separate reasons.\n\n**1. `DROP COLUMN nickname` will fail because of the view.**\n`user_directory` selects `nickname`, so Postgres will refuse with `cannot drop column nickname of table users because other objects depend on it`. Don't use `CASCADE`, because that would drop the view the support tools read from. You'd need to redefine the view without `nickname`. `CREATE OR REPLACE VIEW` can't remove columns, so it has to be `DROP VIEW` then `CREATE VIEW` in one transaction. You'd also need to re-grant privileges. That change breaks any support tool that selects `nickname` from the view, so check with that team first.\n\n**2. The rename isn't safe in a rolling deploy.**\nOnce the rename commits, every old-code instance still querying `fullname` gets errors until it's replaced. That's a few minutes of failures on reads and writes across up to 40 instances. The same goes for the drop, if any old code touches `nickname`. That includes `SELECT *` into a strict struct, or `INSERT` statements that list the column.\n\nThe rename is fine for the view itself. Postgres tracks columns by attribute number, so the view keeps working and still exposes the column as `fullname`. If you want the view to expose `display_name`, redefine it, and tell the support team.\n\n**Safer plan (expand/contract, spread over a few releases):**\n\n*Release 1 (expand)*\n- `ALTER TABLE users ADD COLUMN display_name text;`. This is metadata-only and instant.\n- Dual-write. Either do it in app code or use a `BEFORE INSERT OR UPDATE` trigger that keeps `display_name` and `fullname` in sync.\n- Backfill in batches, for example 5–10k rows by `id` range with a short sleep between batches. Don't run one 12M-row `UPDATE`, which causes bloat, long locks and replication lag.\n- Stop referencing `nickname` in the code.\n- Recreate the view with `display_name` and without `nickname`, once the support tools are ready.\n\n*Release 2*\n- Switch reads and writes to `display_name`. Old and new code both still work because of the dual-write.\n\n*Release 3 (contract)*\n- Drop the trigger, then `ALTER TABLE users DROP COLUMN fullname, DROP COLUMN nickname;`.\n\n**Things to check before the PR:**\n- **Is `nickname` really unused?** Grep the code, and also check `pg_stat_statements`, other views and functions (`pg_depend` or `information_schema.view_column_usage`), BI tools, ETL jobs and exports.\n- **Locks.** `RENAME` and `DROP COLUMN` need a brief `ACCESS EXCLUSIVE` lock. They're fast, but if they queue behind a long transaction, everything else queues behind them. Run `SET lock_timeout = '3s';` and retry on failure.\n- **Dropped column space.** `DROP COLUMN` doesn't rewrite the table, so the space is only reclaimed gradually as rows get updated.\n- **Backfill constraints.** If you want `display_name` to be `NOT NULL`, add it as `CHECK (... IS NOT NULL) NOT VALID`, then `VALIDATE CONSTRAINT`, then set `NOT NULL`. That avoids a long lock.\n\nIf you can accept a short error window, you could do it in one release with a maintenance window. With a rolling deploy at your write rate, I'd go with the phased approach."
+              },
+              {
+                "name": "substance-2",
+                "passed": true,
+                "weight": 1,
+                "explanation": "judge votes: PASS PASS PASS",
+                "withOnly": false,
+                "scored": true,
+                "judgeVotes": [
+                  true,
+                  true,
+                  true
+                ],
+                "evidence": "No, it won't work as written, for two separate reasons.\n\n**1. `DROP COLUMN nickname` will fail because of the view.**\n`user_directory` selects `nickname`, so Postgres will refuse with `cannot drop column nickname of table users because other objects depend on it`. Don't use `CASCADE`, because that would drop the view the support tools read from. You'd need to redefine the view without `nickname`. `CREATE OR REPLACE VIEW` can't remove columns, so it has to be `DROP VIEW` then `CREATE VIEW` in one transaction. You'd also need to re-grant privileges. That change breaks any support tool that selects `nickname` from the view, so check with that team first.\n\n**2. The rename isn't safe in a rolling deploy.**\nOnce the rename commits, every old-code instance still querying `fullname` gets errors until it's replaced. That's a few minutes of failures on reads and writes across up to 40 instances. The same goes for the drop, if any old code touches `nickname`. That includes `SELECT *` into a strict struct, or `INSERT` statements that list the column.\n\nThe rename is fine for the view itself. Postgres tracks columns by attribute number, so the view keeps working and still exposes the column as `fullname`. If you want the view to expose `display_name`, redefine it, and tell the support team.\n\n**Safer plan (expand/contract, spread over a few releases):**\n\n*Release 1 (expand)*\n- `ALTER TABLE users ADD COLUMN display_name text;`. This is metadata-only and instant.\n- Dual-write. Either do it in app code or use a `BEFORE INSERT OR UPDATE` trigger that keeps `display_name` and `fullname` in sync.\n- Backfill in batches, for example 5–10k rows by `id` range with a short sleep between batches. Don't run one 12M-row `UPDATE`, which causes bloat, long locks and replication lag.\n- Stop referencing `nickname` in the code.\n- Recreate the view with `display_name` and without `nickname`, once the support tools are ready.\n\n*Release 2*\n- Switch reads and writes to `display_name`. Old and new code both still work because of the dual-write.\n\n*Release 3 (contract)*\n- Drop the trigger, then `ALTER TABLE users DROP COLUMN fullname, DROP COLUMN nickname;`.\n\n**Things to check before the PR:**\n- **Is `nickname` really unused?** Grep the code, and also check `pg_stat_statements`, other views and functions (`pg_depend` or `information_schema.view_column_usage`), BI tools, ETL jobs and exports.\n- **Locks.** `RENAME` and `DROP COLUMN` need a brief `ACCESS EXCLUSIVE` lock. They're fast, but if they queue behind a long transaction, everything else queues behind them. Run `SET lock_timeout = '3s';` and retry on failure.\n- **Dropped column space.** `DROP COLUMN` doesn't rewrite the table, so the space is only reclaimed gradually as rows get updated.\n- **Backfill constraints.** If you want `display_name` to be `NOT NULL`, add it as `CHECK (... IS NOT NULL) NOT VALID`, then `VALIDATE CONSTRAINT`, then set `NOT NULL`. That avoids a long lock.\n\nIf you can accept a short error window, you could do it in one release with a maintenance window. With a rolling deploy at your write rate, I'd go with the phased approach."
+              }
+            ]
+          }
+        ]
+      },
+      "aggregates": {
+        "score": 0.5833333333333334,
+        "passRate": 0
+      }
+    },
+    {
+      "name": "case-10",
+      "dir": "evals/case-10",
+      "source": "prose",
+      "promptMarkdown": "ok last thing before I log off. I'm going to run these two against the prod shipments table tonight around 11, it's about 30M rows. postgres 15. anyone going to be mad at me in the morning?\n\n```sql\nALTER TABLE shipments ADD COLUMN tracking_token uuid NOT NULL DEFAULT gen_random_uuid();\nALTER TABLE shipments ALTER COLUMN carrier TYPE varchar(40);\n```\n\ncarrier is currently just `text`.",
+      "runsPerCase": 3,
+      "timeoutSeconds": 300,
+      "maxTurns": 10,
+      "graders": [
+        {
+          "name": "convention-1",
+          "type": "llm",
+          "weight": 1,
+          "graderMarkdown": "The response contains a section headed `Assumptions` that states what it assumed about the traffic on the `shipments` table, since the request gave a row count but no traffic figures.",
+          "config": {
+            "criteria": "The response contains a section headed `Assumptions` that states what it assumed about the traffic on the `shipments` table, since the request gave a row count but no traffic figures.",
+            "focus": "last_message"
+          }
+        },
+        {
+          "name": "convention-2",
+          "type": "llm",
+          "weight": 1,
+          "graderMarkdown": "The response has a table with a separate row for the statement that adds `tracking_token` and a separate row for the statement that changes the type of `carrier`.",
+          "config": {
+            "criteria": "The response has a table with a separate row for the statement that adds `tracking_token` and a separate row for the statement that changes the type of `carrier`.",
+            "focus": "last_message"
+          }
+        },
+        {
+          "name": "substance-1",
+          "type": "llm",
+          "weight": 1,
+          "graderMarkdown": "The response identifies that adding `tracking_token` with the volatile default `gen_random_uuid()` forces a full table rewrite under an exclusive lock on PostgreSQL 15, unlike a constant default which is applied without a rewrite.",
+          "config": {
+            "criteria": "The response identifies that adding `tracking_token` with the volatile default `gen_random_uuid()` forces a full table rewrite under an exclusive lock on PostgreSQL 15, unlike a constant default which is applied without a rewrite.",
+            "focus": "last_message"
+          }
+        },
+        {
+          "name": "substance-2",
+          "type": "llm",
+          "weight": 1,
+          "graderMarkdown": "The response identifies that changing `carrier` from `text` to `varchar(40)` will fail with an error if any existing row holds a value longer than 40 characters.",
+          "config": {
+            "criteria": "The response identifies that changing `carrier` from `text` to `varchar(40)` will fail with an error if any existing row holds a value longer than 40 characters.",
+            "focus": "last_message"
+          }
+        }
+      ],
+      "arms": {
+        "with": [
+          {
+            "score": 0.5,
+            "passed": false,
+            "turns": 1,
+            "costUsd": 0.14757599999999987,
+            "judgeCostUsd": 0.10812999999999989,
+            "durationSeconds": 29,
+            "startedAt": "2026-11-10T21:25:40.179Z",
+            "error": null,
+            "tracePath": "/tmp/claude-eval-noIIFy/out/trace.jsonl",
+            "skippedPaidGraders": false,
+            "graders": [
+              {
+                "name": "convention-1",
+                "passed": false,
+                "weight": 1,
+                "explanation": "judge votes: FAIL FAIL FAIL",
+                "withOnly": false,
+                "scored": true,
+                "judgeVotes": [
+                  false,
+                  false,
+                  false
+                ],
+                "evidence": "Yes, someone might be. Both statements take an `ACCESS EXCLUSIVE` lock and rewrite the table, so reads and writes on `shipments` will block while they run.\n\n**1. `ADD COLUMN ... DEFAULT gen_random_uuid()`**\n- Postgres 11+ skips the rewrite only when the default is non-volatile. `gen_random_uuid()` is volatile, so it evaluates per row and rewrites all 30M rows.\n- Expect minutes to tens of minutes of full blocking, plus a lot of WAL and temporarily about 2x the table's disk space. Replicas will lag.\n\n**2. `ALTER COLUMN carrier TYPE varchar(40)`**\n- Going from `text` to `varchar(n)` isn't one of the no-rewrite cases. It's a second full rewrite, and it rebuilds every index that includes `carrier`.\n- It fails if any row has a `carrier` longer than 40 characters. If it fails after a long rewrite, you've held the lock for nothing.\n- Run separately, the two statements rewrite the table twice.\n\n**Safer plan for the uuid column**\n```sql\nSET lock_timeout = '3s';  -- don't queue behind a long txn and block everyone else\n\nALTER TABLE shipments ADD COLUMN tracking_token uuid;                          -- instant\nALTER TABLE shipments ALTER COLUMN tracking_token SET DEFAULT gen_random_uuid(); -- new rows only\n\n-- backfill in batches (e.g. 10-50k rows by id range, committing between batches)\nUPDATE shipments SET tracking_token = gen_random_uuid()\nWHERE id >= $1 AND id < $2 AND tracking_token IS NULL;\n\n-- then enforce NOT NULL without a long lock (PG12+ uses the validated check to skip the scan)\nALTER TABLE shipments ADD CONSTRAINT tt_nn CHECK (tracking_token IS NOT NULL) NOT VALID;\nALTER TABLE shipments VALIDATE CONSTRAINT tt_nn;\nALTER TABLE shipments ALTER COLUMN tracking_token SET NOT NULL;\nALTER TABLE shipments DROP CONSTRAINT tt_nn;\n-- if you need uniqueness: CREATE UNIQUE INDEX CONCURRENTLY ...\n```\n\n**For `carrier`**\n- First check the data: `SELECT max(length(carrier)) FROM shipments;`\n- If the goal is just to cap the length, a check constraint avoids the rewrite:\n  ```sql\n  ALTER TABLE shipments ADD CONSTRAINT carrier_len CHECK (length(carrier) <= 40) NOT VALID;\n  ALTER TABLE shipments VALIDATE CONSTRAINT carrier_len;\n  ```\n  Validation only takes a `SHARE UPDATE EXCLUSIVE` lock, so writes keep flowing.\n- If you really need `varchar(40)`, do it in a proper maintenance window, and do it as a single `ALTER TABLE` with the other change so you only pay for one rewrite.\n\nIf 11pm is a real low-traffic window and you can tolerate the downtime, running both in one `ALTER TABLE` with `lock_timeout` set is acceptable. Check the max length first, and make sure you have disk headroom. Otherwise I'd go with the staged version."
+              },
+              {
+                "name": "convention-2",
+                "passed": false,
+                "weight": 1,
+                "explanation": "judge votes: FAIL FAIL FAIL",
+                "withOnly": false,
+                "scored": true,
+                "judgeVotes": [
+                  false,
+                  false,
+                  false
+                ],
+                "evidence": "Yes, someone might be. Both statements take an `ACCESS EXCLUSIVE` lock and rewrite the table, so reads and writes on `shipments` will block while they run.\n\n**1. `ADD COLUMN ... DEFAULT gen_random_uuid()`**\n- Postgres 11+ skips the rewrite only when the default is non-volatile. `gen_random_uuid()` is volatile, so it evaluates per row and rewrites all 30M rows.\n- Expect minutes to tens of minutes of full blocking, plus a lot of WAL and temporarily about 2x the table's disk space. Replicas will lag.\n\n**2. `ALTER COLUMN carrier TYPE varchar(40)`**\n- Going from `text` to `varchar(n)` isn't one of the no-rewrite cases. It's a second full rewrite, and it rebuilds every index that includes `carrier`.\n- It fails if any row has a `carrier` longer than 40 characters. If it fails after a long rewrite, you've held the lock for nothing.\n- Run separately, the two statements rewrite the table twice.\n\n**Safer plan for the uuid column**\n```sql\nSET lock_timeout = '3s';  -- don't queue behind a long txn and block everyone else\n\nALTER TABLE shipments ADD COLUMN tracking_token uuid;                          -- instant\nALTER TABLE shipments ALTER COLUMN tracking_token SET DEFAULT gen_random_uuid(); -- new rows only\n\n-- backfill in batches (e.g. 10-50k rows by id range, committing between batches)\nUPDATE shipments SET tracking_token = gen_random_uuid()\nWHERE id >= $1 AND id < $2 AND tracking_token IS NULL;\n\n-- then enforce NOT NULL without a long lock (PG12+ uses the validated check to skip the scan)\nALTER TABLE shipments ADD CONSTRAINT tt_nn CHECK (tracking_token IS NOT NULL) NOT VALID;\nALTER TABLE shipments VALIDATE CONSTRAINT tt_nn;\nALTER TABLE shipments ALTER COLUMN tracking_token SET NOT NULL;\nALTER TABLE shipments DROP CONSTRAINT tt_nn;\n-- if you need uniqueness: CREATE UNIQUE INDEX CONCURRENTLY ...\n```\n\n**For `carrier`**\n- First check the data: `SELECT max(length(carrier)) FROM shipments;`\n- If the goal is just to cap the length, a check constraint avoids the rewrite:\n  ```sql\n  ALTER TABLE shipments ADD CONSTRAINT carrier_len CHECK (length(carrier) <= 40) NOT VALID;\n  ALTER TABLE shipments VALIDATE CONSTRAINT carrier_len;\n  ```\n  Validation only takes a `SHARE UPDATE EXCLUSIVE` lock, so writes keep flowing.\n- If you really need `varchar(40)`, do it in a proper maintenance window, and do it as a single `ALTER TABLE` with the other change so you only pay for one rewrite.\n\nIf 11pm is a real low-traffic window and you can tolerate the downtime, running both in one `ALTER TABLE` with `lock_timeout` set is acceptable. Check the max length first, and make sure you have disk headroom. Otherwise I'd go with the staged version."
+              },
+              {
+                "name": "substance-1",
+                "passed": true,
+                "weight": 1,
+                "explanation": "judge votes: PASS PASS PASS",
+                "withOnly": false,
+                "scored": true,
+                "judgeVotes": [
+                  true,
+                  true,
+                  true
+                ],
+                "evidence": "Yes, someone might be. Both statements take an `ACCESS EXCLUSIVE` lock and rewrite the table, so reads and writes on `shipments` will block while they run.\n\n**1. `ADD COLUMN ... DEFAULT gen_random_uuid()`**\n- Postgres 11+ skips the rewrite only when the default is non-volatile. `gen_random_uuid()` is volatile, so it evaluates per row and rewrites all 30M rows.\n- Expect minutes to tens of minutes of full blocking, plus a lot of WAL and temporarily about 2x the table's disk space. Replicas will lag.\n\n**2. `ALTER COLUMN carrier TYPE varchar(40)`**\n- Going from `text` to `varchar(n)` isn't one of the no-rewrite cases. It's a second full rewrite, and it rebuilds every index that includes `carrier`.\n- It fails if any row has a `carrier` longer than 40 characters. If it fails after a long rewrite, you've held the lock for nothing.\n- Run separately, the two statements rewrite the table twice.\n\n**Safer plan for the uuid column**\n```sql\nSET lock_timeout = '3s';  -- don't queue behind a long txn and block everyone else\n\nALTER TABLE shipments ADD COLUMN tracking_token uuid;                          -- instant\nALTER TABLE shipments ALTER COLUMN tracking_token SET DEFAULT gen_random_uuid(); -- new rows only\n\n-- backfill in batches (e.g. 10-50k rows by id range, committing between batches)\nUPDATE shipments SET tracking_token = gen_random_uuid()\nWHERE id >= $1 AND id < $2 AND tracking_token IS NULL;\n\n-- then enforce NOT NULL without a long lock (PG12+ uses the validated check to skip the scan)\nALTER TABLE shipments ADD CONSTRAINT tt_nn CHECK (tracking_token IS NOT NULL) NOT VALID;\nALTER TABLE shipments VALIDATE CONSTRAINT tt_nn;\nALTER TABLE shipments ALTER COLUMN tracking_token SET NOT NULL;\nALTER TABLE shipments DROP CONSTRAINT tt_nn;\n-- if you need uniqueness: CREATE UNIQUE INDEX CONCURRENTLY ...\n```\n\n**For `carrier`**\n- First check the data: `SELECT max(length(carrier)) FROM shipments;`\n- If the goal is just to cap the length, a check constraint avoids the rewrite:\n  ```sql\n  ALTER TABLE shipments ADD CONSTRAINT carrier_len CHECK (length(carrier) <= 40) NOT VALID;\n  ALTER TABLE shipments VALIDATE CONSTRAINT carrier_len;\n  ```\n  Validation only takes a `SHARE UPDATE EXCLUSIVE` lock, so writes keep flowing.\n- If you really need `varchar(40)`, do it in a proper maintenance window, and do it as a single `ALTER TABLE` with the other change so you only pay for one rewrite.\n\nIf 11pm is a real low-traffic window and you can tolerate the downtime, running both in one `ALTER TABLE` with `lock_timeout` set is acceptable. Check the max length first, and make sure you have disk headroom. Otherwise I'd go with the staged version."
+              },
+              {
+                "name": "substance-2",
+                "passed": true,
+                "weight": 1,
+                "explanation": "judge votes: PASS PASS PASS",
+                "withOnly": false,
+                "scored": true,
+                "judgeVotes": [
+                  true,
+                  true,
+                  true
+                ],
+                "evidence": "Yes, someone might be. Both statements take an `ACCESS EXCLUSIVE` lock and rewrite the table, so reads and writes on `shipments` will block while they run.\n\n**1. `ADD COLUMN ... DEFAULT gen_random_uuid()`**\n- Postgres 11+ skips the rewrite only when the default is non-volatile. `gen_random_uuid()` is volatile, so it evaluates per row and rewrites all 30M rows.\n- Expect minutes to tens of minutes of full blocking, plus a lot of WAL and temporarily about 2x the table's disk space. Replicas will lag.\n\n**2. `ALTER COLUMN carrier TYPE varchar(40)`**\n- Going from `text` to `varchar(n)` isn't one of the no-rewrite cases. It's a second full rewrite, and it rebuilds every index that includes `carrier`.\n- It fails if any row has a `carrier` longer than 40 characters. If it fails after a long rewrite, you've held the lock for nothing.\n- Run separately, the two statements rewrite the table twice.\n\n**Safer plan for the uuid column**\n```sql\nSET lock_timeout = '3s';  -- don't queue behind a long txn and block everyone else\n\nALTER TABLE shipments ADD COLUMN tracking_token uuid;                          -- instant\nALTER TABLE shipments ALTER COLUMN tracking_token SET DEFAULT gen_random_uuid(); -- new rows only\n\n-- backfill in batches (e.g. 10-50k rows by id range, committing between batches)\nUPDATE shipments SET tracking_token = gen_random_uuid()\nWHERE id >= $1 AND id < $2 AND tracking_token IS NULL;\n\n-- then enforce NOT NULL without a long lock (PG12+ uses the validated check to skip the scan)\nALTER TABLE shipments ADD CONSTRAINT tt_nn CHECK (tracking_token IS NOT NULL) NOT VALID;\nALTER TABLE shipments VALIDATE CONSTRAINT tt_nn;\nALTER TABLE shipments ALTER COLUMN tracking_token SET NOT NULL;\nALTER TABLE shipments DROP CONSTRAINT tt_nn;\n-- if you need uniqueness: CREATE UNIQUE INDEX CONCURRENTLY ...\n```\n\n**For `carrier`**\n- First check the data: `SELECT max(length(carrier)) FROM shipments;`\n- If the goal is just to cap the length, a check constraint avoids the rewrite:\n  ```sql\n  ALTER TABLE shipments ADD CONSTRAINT carrier_len CHECK (length(carrier) <= 40) NOT VALID;\n  ALTER TABLE shipments VALIDATE CONSTRAINT carrier_len;\n  ```\n  Validation only takes a `SHARE UPDATE EXCLUSIVE` lock, so writes keep flowing.\n- If you really need `varchar(40)`, do it in a proper maintenance window, and do it as a single `ALTER TABLE` with the other change so you only pay for one rewrite.\n\nIf 11pm is a real low-traffic window and you can tolerate the downtime, running both in one `ALTER TABLE` with `lock_timeout` set is acceptable. Check the max length first, and make sure you have disk headroom. Otherwise I'd go with the staged version."
+              }
+            ]
+          },
+          {
+            "score": 0.5,
+            "passed": false,
+            "turns": 1,
+            "costUsd": 0.130256,
+            "judgeCostUsd": 0.089728,
+            "durationSeconds": 33,
+            "startedAt": "2026-11-10T21:25:45.840Z",
+            "error": null,
+            "tracePath": "/tmp/claude-eval-VsyqzS/out/trace.jsonl",
+            "skippedPaidGraders": false,
+            "graders": [
+              {
+                "name": "convention-1",
+                "passed": false,
+                "weight": 1,
+                "explanation": "judge votes: FAIL FAIL FAIL",
+                "withOnly": false,
+                "scored": true,
+                "judgeVotes": [
+                  false,
+                  false,
+                  false
+                ],
+                "evidence": "Yes, someone is likely to be mad. Both statements rewrite the table, and each holds an `ACCESS EXCLUSIVE` lock while it does. Reads and writes on `shipments` would block for the whole time.\n\n**1. `ADD COLUMN ... DEFAULT gen_random_uuid()`**\nPostgres 11+ makes `ADD COLUMN` with a default instant, but only if the default is non-volatile. `gen_random_uuid()` is volatile, so each of the 30M rows needs its own value. That forces a full rewrite. Expect minutes or more, a large WAL spike, replica lag, and every index on the table rebuilt.\n\n**2. `ALTER COLUMN carrier TYPE varchar(40)`**\nGoing from `text` to `varchar(n)` also rewrites the table and rebuilds any index on `carrier`. If any row has a carrier longer than 40 characters, it fails at the end, after holding the lock the whole time. Check first:\n```sql\nSELECT count(*) FROM shipments WHERE length(carrier) > 40;\n```\n\n**Safer approach**\n\n```sql\n-- 1. Instant, metadata only\nALTER TABLE shipments ADD COLUMN tracking_token uuid;\nALTER TABLE shipments ALTER COLUMN tracking_token SET DEFAULT gen_random_uuid();  -- new rows only\n\n-- 2. Backfill in batches (loop this, e.g. 10k–50k rows per batch, committing between batches)\nUPDATE shipments SET tracking_token = gen_random_uuid()\nWHERE id IN (SELECT id FROM shipments WHERE tracking_token IS NULL LIMIT 10000);\n\n-- 3. Enforce NOT NULL without a long lock\nALTER TABLE shipments ADD CONSTRAINT tt_nn CHECK (tracking_token IS NOT NULL) NOT VALID;\nALTER TABLE shipments VALIDATE CONSTRAINT tt_nn;   -- light lock\nALTER TABLE shipments ALTER COLUMN tracking_token SET NOT NULL;  -- PG12+ uses the check, skips the scan\nALTER TABLE shipments DROP CONSTRAINT tt_nn;\n```\nIf you want uniqueness, use `CREATE UNIQUE INDEX CONCURRENTLY`.\n\nFor `carrier`, the cheapest option is to skip the type change and enforce the limit with a constraint:\n```sql\nALTER TABLE shipments ADD CONSTRAINT carrier_len CHECK (length(carrier) <= 40) NOT VALID;\nALTER TABLE shipments VALIDATE CONSTRAINT carrier_len;\n```\nIf you need the column to be literally `varchar(40)`, plan that as its own maintenance window, or use the add-new-column, backfill, swap approach.\n\n**Whichever way you go:**\n- Run `SET lock_timeout = '3s';` first. Without it, an `ALTER` waiting behind a long-running query or transaction queues up every other query behind it. Check `pg_stat_activity` for long transactions or batch jobs around 11pm.\n- Run the statements separately, not in one transaction, so the locks aren't held together.\n- Check free disk space. A rewrite needs roughly another copy of the table plus its indexes, and WAL on top of that.\n\nIf the table is idle at 11 and you're fine with downtime, the original statements will work. But 30M rows is probably 5–20+ minutes of full outage per statement, so I'd use the batched version."
+              },
+              {
+                "name": "convention-2",
+                "passed": false,
+                "weight": 1,
+                "explanation": "judge votes: FAIL FAIL FAIL",
+                "withOnly": false,
+                "scored": true,
+                "judgeVotes": [
+                  false,
+                  false,
+                  false
+                ],
+                "evidence": "Yes, someone is likely to be mad. Both statements rewrite the table, and each holds an `ACCESS EXCLUSIVE` lock while it does. Reads and writes on `shipments` would block for the whole time.\n\n**1. `ADD COLUMN ... DEFAULT gen_random_uuid()`**\nPostgres 11+ makes `ADD COLUMN` with a default instant, but only if the default is non-volatile. `gen_random_uuid()` is volatile, so each of the 30M rows needs its own value. That forces a full rewrite. Expect minutes or more, a large WAL spike, replica lag, and every index on the table rebuilt.\n\n**2. `ALTER COLUMN carrier TYPE varchar(40)`**\nGoing from `text` to `varchar(n)` also rewrites the table and rebuilds any index on `carrier`. If any row has a carrier longer than 40 characters, it fails at the end, after holding the lock the whole time. Check first:\n```sql\nSELECT count(*) FROM shipments WHERE length(carrier) > 40;\n```\n\n**Safer approach**\n\n```sql\n-- 1. Instant, metadata only\nALTER TABLE shipments ADD COLUMN tracking_token uuid;\nALTER TABLE shipments ALTER COLUMN tracking_token SET DEFAULT gen_random_uuid();  -- new rows only\n\n-- 2. Backfill in batches (loop this, e.g. 10k–50k rows per batch, committing between batches)\nUPDATE shipments SET tracking_token = gen_random_uuid()\nWHERE id IN (SELECT id FROM shipments WHERE tracking_token IS NULL LIMIT 10000);\n\n-- 3. Enforce NOT NULL without a long lock\nALTER TABLE shipments ADD CONSTRAINT tt_nn CHECK (tracking_token IS NOT NULL) NOT VALID;\nALTER TABLE shipments VALIDATE CONSTRAINT tt_nn;   -- light lock\nALTER TABLE shipments ALTER COLUMN tracking_token SET NOT NULL;  -- PG12+ uses the check, skips the scan\nALTER TABLE shipments DROP CONSTRAINT tt_nn;\n```\nIf you want uniqueness, use `CREATE UNIQUE INDEX CONCURRENTLY`.\n\nFor `carrier`, the cheapest option is to skip the type change and enforce the limit with a constraint:\n```sql\nALTER TABLE shipments ADD CONSTRAINT carrier_len CHECK (length(carrier) <= 40) NOT VALID;\nALTER TABLE shipments VALIDATE CONSTRAINT carrier_len;\n```\nIf you need the column to be literally `varchar(40)`, plan that as its own maintenance window, or use the add-new-column, backfill, swap approach.\n\n**Whichever way you go:**\n- Run `SET lock_timeout = '3s';` first. Without it, an `ALTER` waiting behind a long-running query or transaction queues up every other query behind it. Check `pg_stat_activity` for long transactions or batch jobs around 11pm.\n- Run the statements separately, not in one transaction, so the locks aren't held together.\n- Check free disk space. A rewrite needs roughly another copy of the table plus its indexes, and WAL on top of that.\n\nIf the table is idle at 11 and you're fine with downtime, the original statements will work. But 30M rows is probably 5–20+ minutes of full outage per statement, so I'd use the batched version."
+              },
+              {
+                "name": "substance-1",
+                "passed": true,
+                "weight": 1,
+                "explanation": "judge votes: PASS PASS PASS",
+                "withOnly": false,
+                "scored": true,
+                "judgeVotes": [
+                  true,
+                  true,
+                  true
+                ],
+                "evidence": "Yes, someone is likely to be mad. Both statements rewrite the table, and each holds an `ACCESS EXCLUSIVE` lock while it does. Reads and writes on `shipments` would block for the whole time.\n\n**1. `ADD COLUMN ... DEFAULT gen_random_uuid()`**\nPostgres 11+ makes `ADD COLUMN` with a default instant, but only if the default is non-volatile. `gen_random_uuid()` is volatile, so each of the 30M rows needs its own value. That forces a full rewrite. Expect minutes or more, a large WAL spike, replica lag, and every index on the table rebuilt.\n\n**2. `ALTER COLUMN carrier TYPE varchar(40)`**\nGoing from `text` to `varchar(n)` also rewrites the table and rebuilds any index on `carrier`. If any row has a carrier longer than 40 characters, it fails at the end, after holding the lock the whole time. Check first:\n```sql\nSELECT count(*) FROM shipments WHERE length(carrier) > 40;\n```\n\n**Safer approach**\n\n```sql\n-- 1. Instant, metadata only\nALTER TABLE shipments ADD COLUMN tracking_token uuid;\nALTER TABLE shipments ALTER COLUMN tracking_token SET DEFAULT gen_random_uuid();  -- new rows only\n\n-- 2. Backfill in batches (loop this, e.g. 10k–50k rows per batch, committing between batches)\nUPDATE shipments SET tracking_token = gen_random_uuid()\nWHERE id IN (SELECT id FROM shipments WHERE tracking_token IS NULL LIMIT 10000);\n\n-- 3. Enforce NOT NULL without a long lock\nALTER TABLE shipments ADD CONSTRAINT tt_nn CHECK (tracking_token IS NOT NULL) NOT VALID;\nALTER TABLE shipments VALIDATE CONSTRAINT tt_nn;   -- light lock\nALTER TABLE shipments ALTER COLUMN tracking_token SET NOT NULL;  -- PG12+ uses the check, skips the scan\nALTER TABLE shipments DROP CONSTRAINT tt_nn;\n```\nIf you want uniqueness, use `CREATE UNIQUE INDEX CONCURRENTLY`.\n\nFor `carrier`, the cheapest option is to skip the type change and enforce the limit with a constraint:\n```sql\nALTER TABLE shipments ADD CONSTRAINT carrier_len CHECK (length(carrier) <= 40) NOT VALID;\nALTER TABLE shipments VALIDATE CONSTRAINT carrier_len;\n```\nIf you need the column to be literally `varchar(40)`, plan that as its own maintenance window, or use the add-new-column, backfill, swap approach.\n\n**Whichever way you go:**\n- Run `SET lock_timeout = '3s';` first. Without it, an `ALTER` waiting behind a long-running query or transaction queues up every other query behind it. Check `pg_stat_activity` for long transactions or batch jobs around 11pm.\n- Run the statements separately, not in one transaction, so the locks aren't held together.\n- Check free disk space. A rewrite needs roughly another copy of the table plus its indexes, and WAL on top of that.\n\nIf the table is idle at 11 and you're fine with downtime, the original statements will work. But 30M rows is probably 5–20+ minutes of full outage per statement, so I'd use the batched version."
+              },
+              {
+                "name": "substance-2",
+                "passed": true,
+                "weight": 1,
+                "explanation": "judge votes: PASS PASS PASS",
+                "withOnly": false,
+                "scored": true,
+                "judgeVotes": [
+                  true,
+                  true,
+                  true
+                ],
+                "evidence": "Yes, someone is likely to be mad. Both statements rewrite the table, and each holds an `ACCESS EXCLUSIVE` lock while it does. Reads and writes on `shipments` would block for the whole time.\n\n**1. `ADD COLUMN ... DEFAULT gen_random_uuid()`**\nPostgres 11+ makes `ADD COLUMN` with a default instant, but only if the default is non-volatile. `gen_random_uuid()` is volatile, so each of the 30M rows needs its own value. That forces a full rewrite. Expect minutes or more, a large WAL spike, replica lag, and every index on the table rebuilt.\n\n**2. `ALTER COLUMN carrier TYPE varchar(40)`**\nGoing from `text` to `varchar(n)` also rewrites the table and rebuilds any index on `carrier`. If any row has a carrier longer than 40 characters, it fails at the end, after holding the lock the whole time. Check first:\n```sql\nSELECT count(*) FROM shipments WHERE length(carrier) > 40;\n```\n\n**Safer approach**\n\n```sql\n-- 1. Instant, metadata only\nALTER TABLE shipments ADD COLUMN tracking_token uuid;\nALTER TABLE shipments ALTER COLUMN tracking_token SET DEFAULT gen_random_uuid();  -- new rows only\n\n-- 2. Backfill in batches (loop this, e.g. 10k–50k rows per batch, committing between batches)\nUPDATE shipments SET tracking_token = gen_random_uuid()\nWHERE id IN (SELECT id FROM shipments WHERE tracking_token IS NULL LIMIT 10000);\n\n-- 3. Enforce NOT NULL without a long lock\nALTER TABLE shipments ADD CONSTRAINT tt_nn CHECK (tracking_token IS NOT NULL) NOT VALID;\nALTER TABLE shipments VALIDATE CONSTRAINT tt_nn;   -- light lock\nALTER TABLE shipments ALTER COLUMN tracking_token SET NOT NULL;  -- PG12+ uses the check, skips the scan\nALTER TABLE shipments DROP CONSTRAINT tt_nn;\n```\nIf you want uniqueness, use `CREATE UNIQUE INDEX CONCURRENTLY`.\n\nFor `carrier`, the cheapest option is to skip the type change and enforce the limit with a constraint:\n```sql\nALTER TABLE shipments ADD CONSTRAINT carrier_len CHECK (length(carrier) <= 40) NOT VALID;\nALTER TABLE shipments VALIDATE CONSTRAINT carrier_len;\n```\nIf you need the column to be literally `varchar(40)`, plan that as its own maintenance window, or use the add-new-column, backfill, swap approach.\n\n**Whichever way you go:**\n- Run `SET lock_timeout = '3s';` first. Without it, an `ALTER` waiting behind a long-running query or transaction queues up every other query behind it. Check `pg_stat_activity` for long transactions or batch jobs around 11pm.\n- Run the statements separately, not in one transaction, so the locks aren't held together.\n- Check free disk space. A rewrite needs roughly another copy of the table plus its indexes, and WAL on top of that.\n\nIf the table is idle at 11 and you're fine with downtime, the original statements will work. But 30M rows is probably 5–20+ minutes of full outage per statement, so I'd use the batched version."
+              }
+            ]
+          },
+          {
+            "score": 0.5,
+            "passed": false,
+            "turns": 1,
+            "costUsd": 0.07291799999999991,
+            "judgeCostUsd": 0.034049999999999914,
+            "durationSeconds": 32,
+            "startedAt": "2026-11-10T21:26:07.275Z",
+            "error": null,
+            "tracePath": "/tmp/claude-eval-dh3C0N/out/trace.jsonl",
+            "skippedPaidGraders": false,
+            "graders": [
+              {
+                "name": "convention-1",
+                "passed": false,
+                "weight": 1,
+                "explanation": "judge votes: FAIL FAIL FAIL",
+                "withOnly": false,
+                "scored": true,
+                "judgeVotes": [
+                  false,
+                  false,
+                  false
+                ],
+                "evidence": "Yes, someone could be mad. Both statements take an `ACCESS EXCLUSIVE` lock and rewrite the table, so shipments would be fully blocked (reads and writes) for the whole run.\n\n**1. `ADD COLUMN ... DEFAULT gen_random_uuid()`**\n- Postgres 11 and later make constant defaults instant. `gen_random_uuid()` is volatile, so each row needs its own value and the table is rewritten.\n- With 30M rows, expect minutes of total blockage, a large burst of WAL (replicas may lag), and temporary disk use of about 2x the table plus its indexes.\n\n**2. `text` → `varchar(40)`**\n- Adding a length limit isn't a metadata-only change. Postgres rewrites the table and rebuilds every index on `carrier`.\n- If any row has a carrier longer than 40 characters, the statement fails. You would only find out after it has held the lock for a long time and then rolled back.\n- Dependent views or rules will also make it error.\n\n**Lock queueing.** If a long-running transaction or query is open on `shipments` at 11pm, your `ALTER` waits for it. While it waits, every new query queues behind it, so the table looks frozen even before your rewrite starts.\n\n**Safer version**\n\n```sql\n-- Always, in the session:\nSET lock_timeout = '3s';\n\n-- 1. tracking_token: instant add, then backfill\nALTER TABLE shipments ADD COLUMN tracking_token uuid;\nALTER TABLE shipments ALTER COLUMN tracking_token SET DEFAULT gen_random_uuid(); -- new rows only\n\n-- backfill in batches (loop/script, commit between batches):\nUPDATE shipments SET tracking_token = gen_random_uuid()\nWHERE id IN (SELECT id FROM shipments WHERE tracking_token IS NULL LIMIT 10000);\n\n-- enforce NOT NULL without a long lock:\nALTER TABLE shipments ADD CONSTRAINT shipments_tt_nn\n  CHECK (tracking_token IS NOT NULL) NOT VALID;\nALTER TABLE shipments VALIDATE CONSTRAINT shipments_tt_nn;  -- light lock\nALTER TABLE shipments ALTER COLUMN tracking_token SET NOT NULL; -- skips scan (PG12+)\nALTER TABLE shipments DROP CONSTRAINT shipments_tt_nn;\n```\n\n```sql\n-- 2. carrier: first check whether it will even fit\nSELECT max(length(carrier)) FROM shipments;\n\n-- If you only need the limit enforced, skip the rewrite and keep text:\nALTER TABLE shipments ADD CONSTRAINT carrier_len\n  CHECK (length(carrier) <= 40) NOT VALID;\nALTER TABLE shipments VALIDATE CONSTRAINT carrier_len;\n```\n\nAlso consider these:\n- If the column is only used for lookups, add an index with `CREATE UNIQUE INDEX CONCURRENTLY` afterward.\n- If you really need `varchar(40)` as the type, schedule a maintenance window, because it's a rewrite no matter what.\n- If you do run the originals as-is, combine them into one `ALTER TABLE` with two actions so the table is rewritten once, not twice. Still use `lock_timeout`, and check `pg_stat_activity` for long transactions first.\n- Test on a restored copy or a staging table of similar size to get real timings.\n\nThe batched route takes more steps, but nothing blocks, so nobody gets paged."
+              },
+              {
+                "name": "convention-2",
+                "passed": false,
+                "weight": 1,
+                "explanation": "judge votes: FAIL FAIL FAIL",
+                "withOnly": false,
+                "scored": true,
+                "judgeVotes": [
+                  false,
+                  false,
+                  false
+                ],
+                "evidence": "Yes, someone could be mad. Both statements take an `ACCESS EXCLUSIVE` lock and rewrite the table, so shipments would be fully blocked (reads and writes) for the whole run.\n\n**1. `ADD COLUMN ... DEFAULT gen_random_uuid()`**\n- Postgres 11 and later make constant defaults instant. `gen_random_uuid()` is volatile, so each row needs its own value and the table is rewritten.\n- With 30M rows, expect minutes of total blockage, a large burst of WAL (replicas may lag), and temporary disk use of about 2x the table plus its indexes.\n\n**2. `text` → `varchar(40)`**\n- Adding a length limit isn't a metadata-only change. Postgres rewrites the table and rebuilds every index on `carrier`.\n- If any row has a carrier longer than 40 characters, the statement fails. You would only find out after it has held the lock for a long time and then rolled back.\n- Dependent views or rules will also make it error.\n\n**Lock queueing.** If a long-running transaction or query is open on `shipments` at 11pm, your `ALTER` waits for it. While it waits, every new query queues behind it, so the table looks frozen even before your rewrite starts.\n\n**Safer version**\n\n```sql\n-- Always, in the session:\nSET lock_timeout = '3s';\n\n-- 1. tracking_token: instant add, then backfill\nALTER TABLE shipments ADD COLUMN tracking_token uuid;\nALTER TABLE shipments ALTER COLUMN tracking_token SET DEFAULT gen_random_uuid(); -- new rows only\n\n-- backfill in batches (loop/script, commit between batches):\nUPDATE shipments SET tracking_token = gen_random_uuid()\nWHERE id IN (SELECT id FROM shipments WHERE tracking_token IS NULL LIMIT 10000);\n\n-- enforce NOT NULL without a long lock:\nALTER TABLE shipments ADD CONSTRAINT shipments_tt_nn\n  CHECK (tracking_token IS NOT NULL) NOT VALID;\nALTER TABLE shipments VALIDATE CONSTRAINT shipments_tt_nn;  -- light lock\nALTER TABLE shipments ALTER COLUMN tracking_token SET NOT NULL; -- skips scan (PG12+)\nALTER TABLE shipments DROP CONSTRAINT shipments_tt_nn;\n```\n\n```sql\n-- 2. carrier: first check whether it will even fit\nSELECT max(length(carrier)) FROM shipments;\n\n-- If you only need the limit enforced, skip the rewrite and keep text:\nALTER TABLE shipments ADD CONSTRAINT carrier_len\n  CHECK (length(carrier) <= 40) NOT VALID;\nALTER TABLE shipments VALIDATE CONSTRAINT carrier_len;\n```\n\nAlso consider these:\n- If the column is only used for lookups, add an index with `CREATE UNIQUE INDEX CONCURRENTLY` afterward.\n- If you really need `varchar(40)` as the type, schedule a maintenance window, because it's a rewrite no matter what.\n- If you do run the originals as-is, combine them into one `ALTER TABLE` with two actions so the table is rewritten once, not twice. Still use `lock_timeout`, and check `pg_stat_activity` for long transactions first.\n- Test on a restored copy or a staging table of similar size to get real timings.\n\nThe batched route takes more steps, but nothing blocks, so nobody gets paged."
+              },
+              {
+                "name": "substance-1",
+                "passed": true,
+                "weight": 1,
+                "explanation": "judge votes: PASS PASS PASS",
+                "withOnly": false,
+                "scored": true,
+                "judgeVotes": [
+                  true,
+                  true,
+                  true
+                ],
+                "evidence": "Yes, someone could be mad. Both statements take an `ACCESS EXCLUSIVE` lock and rewrite the table, so shipments would be fully blocked (reads and writes) for the whole run.\n\n**1. `ADD COLUMN ... DEFAULT gen_random_uuid()`**\n- Postgres 11 and later make constant defaults instant. `gen_random_uuid()` is volatile, so each row needs its own value and the table is rewritten.\n- With 30M rows, expect minutes of total blockage, a large burst of WAL (replicas may lag), and temporary disk use of about 2x the table plus its indexes.\n\n**2. `text` → `varchar(40)`**\n- Adding a length limit isn't a metadata-only change. Postgres rewrites the table and rebuilds every index on `carrier`.\n- If any row has a carrier longer than 40 characters, the statement fails. You would only find out after it has held the lock for a long time and then rolled back.\n- Dependent views or rules will also make it error.\n\n**Lock queueing.** If a long-running transaction or query is open on `shipments` at 11pm, your `ALTER` waits for it. While it waits, every new query queues behind it, so the table looks frozen even before your rewrite starts.\n\n**Safer version**\n\n```sql\n-- Always, in the session:\nSET lock_timeout = '3s';\n\n-- 1. tracking_token: instant add, then backfill\nALTER TABLE shipments ADD COLUMN tracking_token uuid;\nALTER TABLE shipments ALTER COLUMN tracking_token SET DEFAULT gen_random_uuid(); -- new rows only\n\n-- backfill in batches (loop/script, commit between batches):\nUPDATE shipments SET tracking_token = gen_random_uuid()\nWHERE id IN (SELECT id FROM shipments WHERE tracking_token IS NULL LIMIT 10000);\n\n-- enforce NOT NULL without a long lock:\nALTER TABLE shipments ADD CONSTRAINT shipments_tt_nn\n  CHECK (tracking_token IS NOT NULL) NOT VALID;\nALTER TABLE shipments VALIDATE CONSTRAINT shipments_tt_nn;  -- light lock\nALTER TABLE shipments ALTER COLUMN tracking_token SET NOT NULL; -- skips scan (PG12+)\nALTER TABLE shipments DROP CONSTRAINT shipments_tt_nn;\n```\n\n```sql\n-- 2. carrier: first check whether it will even fit\nSELECT max(length(carrier)) FROM shipments;\n\n-- If you only need the limit enforced, skip the rewrite and keep text:\nALTER TABLE shipments ADD CONSTRAINT carrier_len\n  CHECK (length(carrier) <= 40) NOT VALID;\nALTER TABLE shipments VALIDATE CONSTRAINT carrier_len;\n```\n\nAlso consider these:\n- If the column is only used for lookups, add an index with `CREATE UNIQUE INDEX CONCURRENTLY` afterward.\n- If you really need `varchar(40)` as the type, schedule a maintenance window, because it's a rewrite no matter what.\n- If you do run the originals as-is, combine them into one `ALTER TABLE` with two actions so the table is rewritten once, not twice. Still use `lock_timeout`, and check `pg_stat_activity` for long transactions first.\n- Test on a restored copy or a staging table of similar size to get real timings.\n\nThe batched route takes more steps, but nothing blocks, so nobody gets paged."
+              },
+              {
+                "name": "substance-2",
+                "passed": true,
+                "weight": 1,
+                "explanation": "judge votes: PASS PASS PASS",
+                "withOnly": false,
+                "scored": true,
+                "judgeVotes": [
+                  true,
+                  true,
+                  true
+                ],
+                "evidence": "Yes, someone could be mad. Both statements take an `ACCESS EXCLUSIVE` lock and rewrite the table, so shipments would be fully blocked (reads and writes) for the whole run.\n\n**1. `ADD COLUMN ... DEFAULT gen_random_uuid()`**\n- Postgres 11 and later make constant defaults instant. `gen_random_uuid()` is volatile, so each row needs its own value and the table is rewritten.\n- With 30M rows, expect minutes of total blockage, a large burst of WAL (replicas may lag), and temporary disk use of about 2x the table plus its indexes.\n\n**2. `text` → `varchar(40)`**\n- Adding a length limit isn't a metadata-only change. Postgres rewrites the table and rebuilds every index on `carrier`.\n- If any row has a carrier longer than 40 characters, the statement fails. You would only find out after it has held the lock for a long time and then rolled back.\n- Dependent views or rules will also make it error.\n\n**Lock queueing.** If a long-running transaction or query is open on `shipments` at 11pm, your `ALTER` waits for it. While it waits, every new query queues behind it, so the table looks frozen even before your rewrite starts.\n\n**Safer version**\n\n```sql\n-- Always, in the session:\nSET lock_timeout = '3s';\n\n-- 1. tracking_token: instant add, then backfill\nALTER TABLE shipments ADD COLUMN tracking_token uuid;\nALTER TABLE shipments ALTER COLUMN tracking_token SET DEFAULT gen_random_uuid(); -- new rows only\n\n-- backfill in batches (loop/script, commit between batches):\nUPDATE shipments SET tracking_token = gen_random_uuid()\nWHERE id IN (SELECT id FROM shipments WHERE tracking_token IS NULL LIMIT 10000);\n\n-- enforce NOT NULL without a long lock:\nALTER TABLE shipments ADD CONSTRAINT shipments_tt_nn\n  CHECK (tracking_token IS NOT NULL) NOT VALID;\nALTER TABLE shipments VALIDATE CONSTRAINT shipments_tt_nn;  -- light lock\nALTER TABLE shipments ALTER COLUMN tracking_token SET NOT NULL; -- skips scan (PG12+)\nALTER TABLE shipments DROP CONSTRAINT shipments_tt_nn;\n```\n\n```sql\n-- 2. carrier: first check whether it will even fit\nSELECT max(length(carrier)) FROM shipments;\n\n-- If you only need the limit enforced, skip the rewrite and keep text:\nALTER TABLE shipments ADD CONSTRAINT carrier_len\n  CHECK (length(carrier) <= 40) NOT VALID;\nALTER TABLE shipments VALIDATE CONSTRAINT carrier_len;\n```\n\nAlso consider these:\n- If the column is only used for lookups, add an index with `CREATE UNIQUE INDEX CONCURRENTLY` afterward.\n- If you really need `varchar(40)` as the type, schedule a maintenance window, because it's a rewrite no matter what.\n- If you do run the originals as-is, combine them into one `ALTER TABLE` with two actions so the table is rewritten once, not twice. Still use `lock_timeout`, and check `pg_stat_activity` for long transactions first.\n- Test on a restored copy or a staging table of similar size to get real timings.\n\nThe batched route takes more steps, but nothing blocks, so nobody gets paged."
+              }
+            ]
+          }
+        ]
+      },
+      "aggregates": {
+        "score": 0.5,
+        "passRate": 0
+      }
+    }
+  ],
+  "aggregates": {
+    "casesTotal": 3,
+    "casesPassed": 3,
+    "overallScore": 0.5277777777777778,
+    "overallPassRate": 0
+  }
+}

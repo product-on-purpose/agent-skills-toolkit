@@ -348,7 +348,9 @@ function calibrate(argv) {
   const out = join(PILOT, 'calibration');
   mkdirSync(out, { recursive: true });
   const summary = {};
-  for (const brief of Object.keys(AGENT_MODEL)) {
+  const briefs = argv.includes('--brief') ? argv[argv.indexOf('--brief') + 1].split(',') : Object.keys(AGENT_MODEL);
+  for (const brief of briefs) {
+    if (!AGENT_MODEL[brief]) throw new Error(`Unknown brief: ${brief}`);
     const dir = join(LOCAL, stamp, brief);
     stubWithCases(dir, brief, { keepFired: false, only });
     const result = runSuite(dir, brief, CALIBRATION_CEILING_USD, brief);

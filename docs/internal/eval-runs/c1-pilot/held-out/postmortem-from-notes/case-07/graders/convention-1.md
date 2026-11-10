@@ -2,5 +2,4 @@
 type: llm
 weight: 1
 ---
-
-The Contributing factors section blames no individual or team and lists the absence of a backup email provider as a system-level factor.
+The Summary section of the response is at most three sentences long.

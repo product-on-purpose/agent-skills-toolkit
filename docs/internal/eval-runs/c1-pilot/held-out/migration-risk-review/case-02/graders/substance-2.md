@@ -2,5 +2,4 @@
 type: llm
 weight: 1
 ---
-
-The response states that RENAME COLUMN is a metadata-only change that takes a brief ACCESS EXCLUSIVE lock and does not rewrite the 2M-row `users` table.
+The response identifies that a plain `CREATE INDEX` on `invoices` blocks inserts, updates and deletes for the whole build and recommends `CREATE INDEX CONCURRENTLY`, noting that it cannot run inside a transaction block.

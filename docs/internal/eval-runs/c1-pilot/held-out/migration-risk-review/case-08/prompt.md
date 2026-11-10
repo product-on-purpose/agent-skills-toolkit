@@ -2,7 +2,20 @@
 max_turns: 10
 allowed_tools: [Read, Glob, Grep, Skill]
 ---
+We're tidying up the users table in Postgres and I'd like a second pair of eyes before I open the PR. Plan is, in one release:
 
-We want to split customers.full_name into first_name and last_name and then drop full_name. The table has about 15M rows, takes ~200 writes a second, we're on Postgres 15 and do rolling deploys twice a day.
+1. rename `fullname` to `display_name`
+2. drop the old `nickname` column, nobody uses it as far as I know
 
-My plan is a single migration file: add the two columns, run UPDATE customers SET first_name = split_part(full_name, ' ', 1), last_name = substring(full_name from position(' ' in full_name) + 1), then ALTER TABLE customers DROP COLUMN full_name. Can I ship it Friday?
+Numbers: users has about 12 million rows, roughly 800 writes a second at peak. The API runs as 40 instances on a rolling deploy, so for a few minutes old and new code are both live.
+
+One thing I should mention: there's a view called `user_directory` that the support tools read from. It does `SELECT id, fullname, nickname, team FROM users`.
+
+My draft:
+
+```sql
+ALTER TABLE users RENAME COLUMN fullname TO display_name;
+ALTER TABLE users DROP COLUMN nickname;
+```
+
+Does that work?

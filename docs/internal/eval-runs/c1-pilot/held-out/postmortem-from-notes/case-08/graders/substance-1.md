@@ -2,5 +2,4 @@
 type: llm
 weight: 1
 ---
-
-The response records that 1,100 duplicate invoices were created, were caught by finance during Monday reconciliation, and were deleted by hand that afternoon.
+The response states that errors were limited to saved-card payments because the new tax calculation crashes when the card's billing region is null and older saved cards have no billing region.

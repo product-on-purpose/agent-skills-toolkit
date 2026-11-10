@@ -6,6 +6,8 @@ This folder holds the fixed inputs for experiment B, the pilot that measures cri
 |---|---|
 | `held-out/` | The 30 test cases that score the built skills. They are not components of this plugin, and no builder may see them |
 | `case-author-prompt.md` | The instructions given to the subagent that wrote the cases |
+| `replacement-author-prompt.md` | The instructions given to the subagent that wrote the six replacement cases after calibration |
+| `calibration/` | The no-skill baseline of every case, and the replacements. See [its README](calibration/README.md) |
 | `threshold-simulation.mjs` | The toy simulation behind the 0.25 threshold. Its probabilities are assumed, and it reads no real data |
 | `harness/` | The container image, the run driver, the scorer and the setup record. See [its README](harness/README.md) |
 

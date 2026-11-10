@@ -2,5 +2,4 @@
 type: llm
 weight: 1
 ---
-
-The response's sections appear in exactly this order: Summary, Impact, Timeline, Contributing factors, What went well, Actions.
+The response does not contain any of the personal names Priya, Tomasz or Dale anywhere, and refers to those people only by role.

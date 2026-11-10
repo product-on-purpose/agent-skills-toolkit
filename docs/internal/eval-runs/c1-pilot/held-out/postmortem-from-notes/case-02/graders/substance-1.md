@@ -2,5 +2,4 @@
 type: llm
 weight: 1
 ---
-
-The response carries the cause chain that the WAL archive to S3 was stuck because a rotated key had not been updated, so WAL filled the primary's disk and writes failed.
+The response explains that only Android users were affected because the Android app pins the leaf certificate, which had expired, while the iOS app pins the intermediate certificate.

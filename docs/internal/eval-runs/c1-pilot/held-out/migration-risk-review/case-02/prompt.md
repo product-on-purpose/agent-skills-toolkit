@@ -2,9 +2,17 @@
 max_turns: 10
 allowed_tools: [Read, Glob, Grep, Skill]
 ---
+hey, we're shipping the billing cleanup on thursday and I wrote these three statements to go out with it. we're on postgres 14. is this fine to ship or is there something I'm missing?
 
-Quick sanity check before I ship. We're renaming users.email to users.email_address because the naming is inconsistent with the rest of our tables:
+```sql
+ALTER TABLE invoices
+  ADD CONSTRAINT invoices_customer_fk
+  FOREIGN KEY (customer_id) REFERENCES customers (id);
 
-ALTER TABLE users RENAME COLUMN email TO email_address;
+CREATE INDEX idx_invoices_status_created
+  ON invoices (status, created_at);
 
-users is around 2M rows, roughly 300 requests a second, Postgres 15, and we do rolling deploys of the app that take about ten minutes. Is this safe to ship as is?
+ALTER TABLE invoices ALTER COLUMN currency SET DEFAULT 'USD';
+```
+
+invoices is our main billing table, finance and the customer portal both hit it all day.

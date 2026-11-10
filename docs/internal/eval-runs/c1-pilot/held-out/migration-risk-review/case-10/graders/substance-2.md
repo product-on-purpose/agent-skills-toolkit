@@ -2,5 +2,4 @@
 type: llm
 weight: 1
 ---
-
-The response identifies that SET NOT NULL scans the whole `users` table under an ACCESS EXCLUSIVE lock and fails if any handle is null, and suggests proving it first with a CHECK (handle IS NOT NULL) NOT VALID constraint that is then validated.
+The response identifies that changing `carrier` from `text` to `varchar(40)` will fail with an error if any existing row holds a value longer than 40 characters.

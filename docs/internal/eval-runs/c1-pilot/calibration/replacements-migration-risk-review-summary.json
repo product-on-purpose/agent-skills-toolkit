@@ -1,0 +1,26 @@
+{
+  "migration-risk-review": {
+    "costUsd": 1.2221499999999996,
+    "partial": false,
+    "cases": [
+      {
+        "name": "case-02",
+        "score": 0.5,
+        "errors": 0,
+        "graders": 4
+      },
+      {
+        "name": "case-08",
+        "score": 0.5833333333333334,
+        "errors": 0,
+        "graders": 4
+      },
+      {
+        "name": "case-10",
+        "score": 0.5,
+        "errors": 0,
+        "graders": 4
+      }
+    ]
+  }
+}
