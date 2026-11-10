@@ -239,15 +239,19 @@ async function build(arm, briefName, id, stopAtUsd) {
   child.stdin.end(prompt);
 
   let stoppedBy = null;
+  // Nested evals write no session files, so their spend comes from their result files and summary lines.
+  // A nested eval still running is not counted until it finishes, which its own --max-cost-usd bounds.
   const estimate = () => {
-    const parent = existsSync(streamPath) ? tallySessions(readFileSync(streamPath, 'utf8')).dollars : 0;
+    const text = existsSync(streamPath) ? readFileSync(streamPath, 'utf8') : '';
+    const parent = tallySessions(text).dollars;
     const children = tallySessions(containerSessions(name)).dollars;
-    return { parent, children, total: parent + children };
+    const nested = buildRecord({ arm, streamText: text, workDir: work, skillName: briefName }).nestedEvalSpendBestUsd;
+    return { parent, children, nested, total: parent + children + nested };
   };
   const watch = setInterval(() => {
     const current = estimate();
     const minutes = (Date.now() - started) / 60000;
-    console.log(`[${minutes.toFixed(0)} min] parent $${current.parent.toFixed(2)}, child sessions $${current.children.toFixed(2)}`);
+    console.log(`[${minutes.toFixed(0)} min] parent $${current.parent.toFixed(2)}, child sessions $${current.children.toFixed(2)}, nested evals $${current.nested.toFixed(2)}`);
     if (current.total > stopAtUsd) stoppedBy = `estimate $${current.total.toFixed(2)} passed the stop at $${stopAtUsd}`;
     else if (minutes > WALL_CLOCK_HOURS * 60) stoppedBy = `wall clock passed ${WALL_CLOCK_HOURS} hours`;
     if (stoppedBy) {
@@ -277,6 +281,7 @@ async function build(arm, briefName, id, stopAtUsd) {
   record.wallClockMinutes = (Date.now() - started) / 60000;
   record.childSessions = children;
   record.parentTokens = tallySessions(streamText);
+  record.totalEstimateUsd = record.parentTokens.dollars + children.dollars + record.nestedEvalSpendBestUsd;
   writeFileSync(join(runDir, 'build-record.json'), `${JSON.stringify(record, null, 2)}\n`);
   console.log(JSON.stringify(record, null, 2));
 }

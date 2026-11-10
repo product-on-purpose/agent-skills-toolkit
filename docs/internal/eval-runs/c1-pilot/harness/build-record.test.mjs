@@ -79,6 +79,7 @@ test('a nested eval counts from the transcript even after its files are deleted,
     const record = buildRecord({ arm: 'toolkit', streamText: good, workDir: dir, skillName: 'x' });
     assert.equal(record.methodRan, true);
     assert.equal(record.nestedEvalSpendFromTranscriptUsd, 1.25);
+    assert.equal(record.nestedEvalSpendBestUsd, 1.25, 'the transcript counts when the result files are gone');
     const refused = [...builder, ...evalCall('b', '1 case(s) · 0s · $0.00 · ⚠ partial (stopped: authentication failed)')].join('\n');
     assert.equal(buildRecord({ arm: 'toolkit', streamText: refused, workDir: dir, skillName: 'x' }).methodRan, false);
     const help = [...builder, use('c', 'Bash', { command: 'claude plugin eval --help' }), done('c')].join('\n');

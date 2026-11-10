@@ -43,13 +43,24 @@ Each entry is something the setup found. None changes a brief, a case or the pas
 13. **The login wrote one file outside the volume.** Without `CLAUDE_CONFIG_DIR`, Claude Code writes `.claude.json` to `/home/node/`, outside the mounted folder, and `--rm` deletes it with the container (measured 2026-11-08). Every container that uses the volume now sets `CLAUDE_CONFIG_DIR=/home/node/.claude`, which keeps the file inside it.
 14. **A builder can delete its own proof.** The `dry-toolkit` builder ran `rm -rf evals/results` when it finished. That removed the files `build-record.mjs` counted as proof of a nested eval, along with their spend. The record now also reads each nested eval's summary line from the transcript, and it does not count a run that failed to sign in or stopped part way.
 
-## Dry-run checks from section 8, as of 2026-11-08
+15. **The stored login works for nested sessions.** The maintainer logged in on 2026-11-10. `harness.mjs nested` then ran a `claude plugin eval` from a session started by Bash, and it finished one case in 14 s with no sign-in error (measured).
+16. **The safety stop missed nested-eval spend.** Nested evals write no session files, so the watchdog in fact 7 saw only the parent session. In `dry-toolkit-2` it reported $0.39 while the nested evals had spent $2.51 (measured). The watchdog now adds the nested-eval spend from the result files or the transcript, whichever is larger. A nested eval that is still running is counted only when it finishes, and its own `--max-cost-usd` bounds it.
+17. **A worktree can run the harness.** On 2026-11-10 the main checkout had been switched to `main` by another session, so the run continued from a worktree of this branch. `C1_LOCAL` points the harness at the main checkout's `_local/c1-pilot/`.
+
+## Dry-run build results
+
+| Build | Method ran | Build cost | Wall clock | Notes |
+|---|---|---|---|---|
+| `dry-toolkit` (2026-11-06) | No | About $0.20 | Under 1 min | Nested evals could not sign in (fact 11) |
+| `dry-toolkit-2` (2026-11-10) | Yes | $2.88: parent $0.37, nested evals $2.51 | 12.9 min | `askit-build-skill` create, five cases, three nested evals with edits between them. `createOnly: true`, because the builder iterated by hand and never called improve mode. In iteration 1 it rewrote one of its own graders that had failed a correct output |
+
+## Dry-run checks from section 8, as of 2026-11-10
 
 | Check | State |
 |---|---|
-| The sign-in works | Yes for the token route, measured. The stored-login route waits for the maintainer's login |
-| Nested `claude plugin eval` works inside a build | No with the token, measured. Untested with the stored login |
+| The sign-in works | Yes for both routes, measured: the token for scoring, and the stored login for builds |
+| Nested `claude plugin eval` works inside a build | Yes with the stored login, measured in `dry-toolkit-2`: three nested evals finished |
 | `--ablation none` works | Yes, measured on 2026-11-06 (fact 9) |
-| The toolkit's commands work outside its repository | Yes from a shell, measured with `harness.mjs probe`. The builder ran `askit-build-skill` create in `dry-toolkit` |
+| The toolkit's commands work outside its repository | Yes, measured: `harness.mjs probe` from a shell, and `askit-build-skill` plus `evaluate.mjs` inside `dry-toolkit-2` |
 | The optimiser reports real triggering | Not run. The skill-creator dry run waits for the stored login |
 | A build cannot read the maintainer's configuration or this repository | Yes from a shell, measured with `harness.mjs probe` |

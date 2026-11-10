@@ -147,6 +147,8 @@ export function buildRecord({ arm, streamText, workDir, skillName }) {
   const evals = nestedEvals(calls);
   record.nestedEvalCommands = evals.length;
   record.nestedEvalSpendFromTranscriptUsd = evals.reduce((sum, e) => sum + (e.reportedUsd ?? 0), 0);
+  // The larger of the two, because a builder can delete result files and a summary line can be cut off.
+  record.nestedEvalSpendBestUsd = Math.max(record.nestedEvalSpendUsd, record.nestedEvalSpendFromTranscriptUsd);
 
   if (arm === 'toolkit') {
     record.builderInvoked = named('askit-build-skill').length > 0;
