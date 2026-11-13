@@ -453,7 +453,7 @@ blocked its own first real run** - on 7 failing tests and a stale count that had
   proven to work, and "best" is measured, not claimed)](decisions/0066-the-goal-is-the-builder-whose-libraries-are-proven-and-best-is-measured.md),
   recorded as D-09 in [`roadmap.md`](roadmap.md) section 2. Its behaviour-loop cut, in section 3, is next
   and has not started. Experiment B, the pilot that tests the goal's leading claim, is drafted as
-  [a pre-registration](eval-runs/prereg_experiment-b-c1-pilot-20261105.md) that is not frozen and has not run.
+  [a pre-registration](eval-runs/prereg_experiment-b-c1-pilot-20261105.md), frozen on 2026-11-12, and its real run is under way.
 - **As of the v1.21.0 cut (2026-10-23).** The 2026-10-23 first-party provider survey filed six new
   backlog entries, all OPEN: [E84](backlog/enhancements.md) (Claude Code "mods" unnamed), [E85](backlog/enhancements.md)
   (`claude plugin tag`'s version-agreement preflight, worth adopting), [E86](backlog/enhancements.md)
