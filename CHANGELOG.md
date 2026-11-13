@@ -13,6 +13,10 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 - **[ADR 0066 (the goal is the builder whose libraries are proven to work, and "best" is measured, not claimed)](docs/internal/decisions/0066-the-goal-is-the-builder-whose-libraries-are-proven-and-best-is-measured.md) records a ruling ([#399](https://github.com/product-on-purpose/agent-skills-toolkit/pull/399)).** The maintainer accepted it on 2026-11-05. The goal is now the builder that produces a whole cross-agent plugin library and proves it works, with four measured criteria. This changes no shipped behaviour, and no grade moves. The behaviour-loop cut that implements it has not started.
 
+### Fixed
+
+- **The gate now fails a plugin whose native manifest is not valid JSON (U8, manifest-drift).** The loader read `.claude-plugin/plugin.json` and `.codex-plugin/plugin.json` with `readJsonSafe` but kept only the parsed data, so a manifest that failed to parse looked exactly like an absent one. U8 skipped it, and a plugin Claude Code cannot load graded Universal with exit code 0; `claude plugin validate` caught the same defect. The loader now exposes `claudeManifestParseError` and `codexManifestParseError`, and U8 reports each as an objective ERROR, even when `library.json` is absent, the same fail-closed pattern U9 uses for `package.json` and U11 for `.mcp.json`. S6 no longer also reports a missing `mcpServers` pointer for a manifest it cannot read. A new anti fixture, `tests/fixtures/anti/bad-plugin-json/`, pins the check, the loader wiring, and the CLI exit code. A plugin that was graded with an unparseable manifest now drops to tier None; no correctly formed plugin changes grade.
+
 ## [1.23.0] - 2026-11-01
 
 ### Added
