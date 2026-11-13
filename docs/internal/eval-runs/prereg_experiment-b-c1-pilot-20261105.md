@@ -1,6 +1,6 @@
 # Pre-registration: experiment B, the C1 pilot, 2026-11-05
 
-**Status: DRAFT, NOT FROZEN, NOT RUN.** This file and the held-out cases freeze when the calibration in section 4 is recorded and this file merges. Everything is committed before any real build and before any built skill has been scored. The dry run and the calibration need the maintainer's go. Merging does not authorise the real run, which needs a second go.
+**Status: PRE-REGISTERED 2026-11-12, NOT RUN.** This file and the held-out cases froze when PR #400 (experiment B pre-registration) merged, after the calibration in section 4 was recorded in `c1-pilot/calibration/`. Nothing below changes after that merge. The maintainer gave the go for the dry run and calibration on 2026-11-06, and the second go for the real run on 2026-11-12.
 
 **Serves:** criterion C1 of [ADR 0066 (the goal is the builder whose libraries are proven to work, and "best" is measured, not claimed)](../decisions/0066-the-goal-is-the-builder-whose-libraries-are-proven-and-best-is-measured.md), through experiment B of [`plan_validate-best-in-class`](../release-plans/plan_validate-best-in-class/RELEASE-PLAN.md).
 

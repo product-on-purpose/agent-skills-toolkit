@@ -379,7 +379,7 @@ async function main(argv) {
   if (command === 'reset-login') return resetLogin();
   if (command === 'denominator') return denominator();
   if (command === 'calibrate') return calibrate(rest);
-  if (command === 'build') return build(rest[0], rest[1], rest[2], Number(rest[3] ?? 18));
+  if (command === 'build') return build(rest[0], rest[1], rest[2], Number(rest[3] ?? 25));
   console.error('usage: node harness.mjs prepare|probe|auth|reset-login|nested|denominator|calibrate|build');
   process.exitCode = 2;
 }
