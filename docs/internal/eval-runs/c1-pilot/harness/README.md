@@ -10,6 +10,7 @@ This folder holds the scripts that run experiment B, and the record of how its e
 | `build-record.mjs` | Reports the build record in section 6 from a transcript and a working folder |
 | `save-token.mjs` | Saves the maintainer's sign-in to the home folder, with hidden input, outside this repository |
 | `leak.mjs` and `leak-tokens.json` | The leak check in section 8 step 8, and the case-specific words it searches for, fixed before any real build (fact 23) |
+| `run-builds.mjs` | Runs the six real builds in section 6's order, rebuilding once on a missed method or a leak |
 
 ## Setup record, 2026-11-06
 

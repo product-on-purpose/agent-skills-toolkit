@@ -6,6 +6,7 @@
 //   node harness.mjs build <arm> <brief> <id>    Run one build. <arm> is toolkit or skill-creator
 //   node harness.mjs denominator                 Test whether --ablation none scores the firing grader
 //   node harness.mjs calibrate [--case <glob>]   Run section 4's calibration
+//   node harness.mjs suite <brief> <arm> <id>    Run section 5's scoring command on one built skill
 //
 // Every prompt is cut from the pre-registration, so a builder receives its exact words.
 
@@ -370,6 +371,63 @@ function calibrate(argv) {
   console.log(JSON.stringify(summary, null, 2));
 }
 
+/**
+ * Section 5's scoring plugin: one identical wrapper named `c1-pilot`, holding only the built skill's own
+ * folder and that brief's held-out cases, firing graders included. Nothing else from the build is copied.
+ */
+export function scoringPlugin(target, brief, skillSource, only = null) {
+  rmSync(target, { recursive: true, force: true });
+  writePlugin(target, 'c1-pilot');
+  if (!existsSync(join(skillSource, 'SKILL.md'))) throw new Error(`No built skill at ${skillSource}`);
+  cpSync(skillSource, join(target, 'skills', brief), { recursive: true });
+  const source = join(PILOT, 'held-out', brief);
+  for (const caseName of readdirSync(source).sort()) {
+    if (only && !only.includes(caseName)) continue;
+    cpSync(join(source, caseName), join(target, 'evals', caseName), { recursive: true });
+  }
+  mkdirSync(join(target, 'out'), { recursive: true });
+}
+
+/**
+ * `node harness.mjs suite <brief> <arm> <build-id> [--case case-01] [--label <name>]` runs section 5's
+ * scoring command on one built skill. A full suite writes `results/<brief>/<arm>/aggregate-result.json`,
+ * which `score.mjs` reads. A suite with `--case` is the shakedown, and its result goes in `_local/` only.
+ */
+function suite(argv) {
+  needToken();
+  const [brief, arm, buildId] = argv;
+  if (!AGENT_MODEL[brief] || !['toolkit', 'skill-creator'].includes(arm) || !buildId) {
+    throw new Error('usage: suite <brief> <arm> <build-id> [--case case-01] [--label <name>]');
+  }
+  const only = argv.includes('--case') ? argv[argv.indexOf('--case') + 1].split(',') : null;
+  const label = argv.includes('--label') ? argv[argv.indexOf('--label') + 1] : only ? 'shakedown' : 'scoring';
+  const dir = join(LOCAL, label, brief, arm);
+  scoringPlugin(dir, brief, join(LOCAL, 'runs', buildId, 'work', 'skills', brief), only);
+  const started = Date.now();
+  const output = run('podman', [
+    'run', '--rm', '--env-file', TOKEN_FILE, '-v', `${dir}:/work`, IMAGE,
+    'claude', 'plugin', 'eval', '.', '--ablation', 'with-without', '--runs', '3',
+    '--model', AGENT_MODEL[brief], '--judge-model', 'sonnet', '--threshold', '0', '-j', '4',
+    '--no-publish', '--trust-plugin', '--max-cost-usd', '15',
+    '--output-dir', 'out', '--json', 'out/run.json',
+  ]);
+  const resultPath = join(dir, 'out', 'aggregate-result.json');
+  if (!existsSync(resultPath)) throw new Error(`No result for ${brief} ${arm}: exit ${output.status}\n${output.stderr.slice(-800)}`);
+  const result = JSON.parse(readFileSync(resultPath, 'utf8'));
+  if (!only) {
+    const out = join(PILOT, 'results', brief, arm);
+    mkdirSync(out, { recursive: true });
+    cpSync(resultPath, join(out, 'aggregate-result.json'));
+  }
+  // Validity only. Section 8 step 10 forbids reading scores until all six suites have finished.
+  const errors = result.cases.reduce((n, c) => n + ['with', 'without'].reduce((m, a) => m + (c.arms?.[a] ?? []).filter((r) => r.error).length, 0), 0);
+  console.log(JSON.stringify({
+    brief, arm, buildId, label, exit: output.status, cases: result.cases.length, errors,
+    partial: result.partial, partialReason: result.partialReason ?? null, costUsd: result.costUsd,
+    minutes: Number(((Date.now() - started) / 60000).toFixed(1)),
+  }));
+}
+
 async function main(argv) {
   const [command, ...rest] = argv.slice(2);
   if (command === 'prepare') return prepare();
@@ -379,8 +437,9 @@ async function main(argv) {
   if (command === 'reset-login') return resetLogin();
   if (command === 'denominator') return denominator();
   if (command === 'calibrate') return calibrate(rest);
+  if (command === 'suite') return suite(rest);
   if (command === 'build') return build(rest[0], rest[1], rest[2], Number(rest[3] ?? 25));
-  console.error('usage: node harness.mjs prepare|probe|auth|reset-login|nested|denominator|calibrate|build');
+  console.error('usage: node harness.mjs prepare|probe|auth|reset-login|nested|denominator|calibrate|suite|build');
   process.exitCode = 2;
 }
 
