@@ -1,0 +1,157 @@
+{
+  "acceptance-criteria-writer/case-01": [
+    "forgot",
+    "spell"
+  ],
+  "acceptance-criteria-writer/case-02": [
+    "admins"
+  ],
+  "acceptance-criteria-writer/case-03": [
+    "mobile"
+  ],
+  "acceptance-criteria-writer/case-04": [
+    "coupon",
+    "shopper"
+  ],
+  "acceptance-criteria-writer/case-05": [],
+  "acceptance-criteria-writer/case-06": [
+    "replies"
+  ],
+  "acceptance-criteria-writer/case-07": [],
+  "acceptance-criteria-writer/case-08": [],
+  "acceptance-criteria-writer/case-09": [
+    "autosave",
+    "blog",
+    "somehow"
+  ],
+  "acceptance-criteria-writer/case-10": [],
+  "migration-risk-review/case-01": [
+    "idx_orders_status"
+  ],
+  "migration-risk-review/case-02": [
+    "created_at",
+    "idx_invoices_status_created",
+    "invoices_customer_fk",
+    "portal"
+  ],
+  "migration-risk-review/case-03": [
+    "fk_invoices_customer"
+  ],
+  "migration-risk-review/case-04": [
+    "legacy_notes",
+    "tmp_import_2022"
+  ],
+  "migration-risk-review/case-05": [
+    "120m",
+    "bigint",
+    "currencies",
+    "saturday"
+  ],
+  "migration-risk-review/case-06": [
+    "500m",
+    "flyway",
+    "idx_events_user_id",
+    "inserts",
+    "user_id"
+  ],
+  "migration-risk-review/case-07": [
+    "alembic",
+    "okay",
+    "order_state",
+    "refund_id",
+    "refunded",
+    "transaction"
+  ],
+  "migration-risk-review/case-08": [
+    "display_name",
+    "fullname",
+    "nickname",
+    "tidying",
+    "user_directory"
+  ],
+  "migration-risk-review/case-09": [
+    "last_login",
+    "overnight",
+    "timestamptz"
+  ],
+  "migration-risk-review/case-10": [
+    "gen_random_uuid",
+    "shipments",
+    "tracking_token",
+    "varchar"
+  ],
+  "postmortem-from-notes/case-01": [
+    "alerted",
+    "alerts",
+    "angry",
+    "figured",
+    "gateway",
+    "renew",
+    "renewed"
+  ],
+  "postmortem-from-notes/case-02": [
+    "dale",
+    "hurry",
+    "issued",
+    "mailbox",
+    "renewal",
+    "tomasz"
+  ],
+  "postmortem-from-notes/case-03": [
+    "ahmed",
+    "hammering",
+    "paging",
+    "recovering",
+    "rollout",
+    "spiking",
+    "wiki"
+  ],
+  "postmortem-from-notes/case-04": [
+    "3ish",
+    "twitter"
+  ],
+  "postmortem-from-notes/case-05": [
+    "database_url",
+    "lena",
+    "omar",
+    "redeployed",
+    "weirdness"
+  ],
+  "postmortem-from-notes/case-06": [
+    "cold",
+    "kwame",
+    "patching",
+    "replicas",
+    "warming",
+    "yuki"
+  ],
+  "postmortem-from-notes/case-07": [
+    "bank",
+    "deposits",
+    "elena",
+    "mess",
+    "nightly",
+    "order_id",
+    "scheduler"
+  ],
+  "postmortem-from-notes/case-08": [
+    "aiyana",
+    "calc",
+    "rahul",
+    "sofia"
+  ],
+  "postmortem-from-notes/case-09": [
+    "aiko",
+    "digging",
+    "flooded",
+    "logins"
+  ],
+  "postmortem-from-notes/case-10": [
+    "carla",
+    "night",
+    "packing",
+    "rebooting",
+    "scribbles",
+    "syncing"
+  ]
+}

@@ -1,0 +1,838 @@
+{
+  "schemaVersion": 1,
+  "claudeVersion": "2.1.318",
+  "startedAt": "2026-11-10T21:26:41.127Z",
+  "durationSeconds": 82,
+  "costUsd": 1.0966922999999997,
+  "partial": false,
+  "suite": {
+    "root": "/work",
+    "ablation": "none",
+    "modelOverride": "haiku",
+    "judgeModel": "sonnet",
+    "threshold": 0,
+    "concurrency": 4,
+    "plugins": [
+      {
+        "name": "c1-pilot",
+        "version": "0.0.0",
+        "path": "/work"
+      }
+    ]
+  },
+  "cases": [
+    {
+      "name": "case-02",
+      "dir": "evals/case-02",
+      "source": "prose",
+      "promptMarkdown": "can you turn these into something I can send around? I wrote them in a hurry after the cert thing yesterday\n\n- Priya (on-call) got paged by the synthetic check at 14:52, login endpoint throwing TLS errors, android only\n- Tomasz explained ios was fine because the ios build pins the intermediate cert, android pins the leaf\n- leaf cert for login-api expired at 14:30. the renewal reminder went to Dale's old mailbox, he moved teams in March\n- Priya got a new cert issued 15:40, deployed 16:05, error rate normal by 16:10\n- no idea how many users hit it, support ticket count not pulled yet\n- Tomasz wants leaf pinning gone from the android app",
+      "runsPerCase": 3,
+      "timeoutSeconds": 300,
+      "maxTurns": 10,
+      "graders": [
+        {
+          "name": "convention-1",
+          "type": "llm",
+          "weight": 1,
+          "graderMarkdown": "The response does not contain any of the personal names Priya, Tomasz or Dale anywhere, and refers to those people only by role.",
+          "config": {
+            "criteria": "The response does not contain any of the personal names Priya, Tomasz or Dale anywhere, and refers to those people only by role.",
+            "focus": "last_message"
+          }
+        },
+        {
+          "name": "convention-2",
+          "type": "llm",
+          "weight": 1,
+          "graderMarkdown": "The Timeline section of the response states `Timezone: UNKNOWN`, because the notes give clock times with no timezone.",
+          "config": {
+            "criteria": "The Timeline section of the response states `Timezone: UNKNOWN`, because the notes give clock times with no timezone.",
+            "focus": "last_message"
+          }
+        },
+        {
+          "name": "substance-1",
+          "type": "llm",
+          "weight": 1,
+          "graderMarkdown": "The response explains that only Android users were affected because the Android app pins the leaf certificate, which had expired, while the iOS app pins the intermediate certificate.",
+          "config": {
+            "criteria": "The response explains that only Android users were affected because the Android app pins the leaf certificate, which had expired, while the iOS app pins the intermediate certificate.",
+            "focus": "last_message"
+          }
+        },
+        {
+          "name": "substance-2",
+          "type": "llm",
+          "weight": 1,
+          "graderMarkdown": "The response gives the missed renewal as a contributing factor by stating that the renewal reminder was sent to the mailbox of an engineer who had since changed teams, and frames it as a process gap rather than that person's fault.",
+          "config": {
+            "criteria": "The response gives the missed renewal as a contributing factor by stating that the renewal reminder was sent to the mailbox of an engineer who had since changed teams, and frames it as a process gap rather than that person's fault.",
+            "focus": "last_message"
+          }
+        }
+      ],
+      "arms": {
+        "with": [
+          {
+            "score": 0.5,
+            "passed": false,
+            "turns": 1,
+            "costUsd": 0.09362610000000002,
+            "judgeCostUsd": 0.09191600000000001,
+            "durationSeconds": 26,
+            "startedAt": "2026-11-10T21:26:41.423Z",
+            "error": null,
+            "tracePath": "/tmp/claude-eval-WDdCo1/out/trace.jsonl",
+            "skippedPaidGraders": false,
+            "graders": [
+              {
+                "name": "convention-1",
+                "passed": false,
+                "weight": 1,
+                "explanation": "judge votes: FAIL FAIL FAIL",
+                "withOnly": false,
+                "scored": true,
+                "judgeVotes": [
+                  false,
+                  false,
+                  false
+                ],
+                "evidence": "**Subject: login-api certificate expiry and Android TLS outage (Nov 10)**\n\n**Summary:** The leaf certificate for login-api expired at 14:30, and Android users got TLS errors on the login endpoint until a replacement was deployed at 16:05. Error rates were back to normal by 16:10. iOS was not affected.\n\n**Timeline**\n- **14:30**: Leaf certificate for login-api expires.\n- **14:52**: Synthetic check pages Priya (on-call) for TLS errors on the login endpoint, Android only.\n- **15:40**: Priya issues a new certificate.\n- **16:05**: New certificate deployed.\n- **16:10**: Error rate back to normal.\n\n**Root causes**\n- **Expiry:** The renewal reminder went to Dale's old mailbox. Dale moved teams in March, and the reminder was never redirected.\n- **Android-only impact:** The iOS build pins the intermediate certificate, so it was unaffected by the leaf renewal. The Android build pins the leaf certificate, so it broke when the leaf expired.\n\n**Open items**\n- **User impact:** Not yet known. The support ticket count has not been pulled.\n- **Remove leaf pinning from the Android app:** Tomasz proposes this so future renewals don't break Android. Owner and date to be confirmed.\n- **Renewal reminders:** Need to go to a team alias or ticket queue, not an individual. Not yet assigned.\n\nTwo things I'd add before sending, since the draft doesn't cover them: an owner and date for removing leaf pinning, and an owner for fixing the reminder routing. Both are currently unassigned, so the email will read as incomplete without them. I can also draft the support-ticket query if you tell me which system you use."
+              },
+              {
+                "name": "convention-2",
+                "passed": false,
+                "weight": 1,
+                "explanation": "judge votes: FAIL FAIL FAIL",
+                "withOnly": false,
+                "scored": true,
+                "judgeVotes": [
+                  false,
+                  false,
+                  false
+                ],
+                "evidence": "**Subject: login-api certificate expiry and Android TLS outage (Nov 10)**\n\n**Summary:** The leaf certificate for login-api expired at 14:30, and Android users got TLS errors on the login endpoint until a replacement was deployed at 16:05. Error rates were back to normal by 16:10. iOS was not affected.\n\n**Timeline**\n- **14:30**: Leaf certificate for login-api expires.\n- **14:52**: Synthetic check pages Priya (on-call) for TLS errors on the login endpoint, Android only.\n- **15:40**: Priya issues a new certificate.\n- **16:05**: New certificate deployed.\n- **16:10**: Error rate back to normal.\n\n**Root causes**\n- **Expiry:** The renewal reminder went to Dale's old mailbox. Dale moved teams in March, and the reminder was never redirected.\n- **Android-only impact:** The iOS build pins the intermediate certificate, so it was unaffected by the leaf renewal. The Android build pins the leaf certificate, so it broke when the leaf expired.\n\n**Open items**\n- **User impact:** Not yet known. The support ticket count has not been pulled.\n- **Remove leaf pinning from the Android app:** Tomasz proposes this so future renewals don't break Android. Owner and date to be confirmed.\n- **Renewal reminders:** Need to go to a team alias or ticket queue, not an individual. Not yet assigned.\n\nTwo things I'd add before sending, since the draft doesn't cover them: an owner and date for removing leaf pinning, and an owner for fixing the reminder routing. Both are currently unassigned, so the email will read as incomplete without them. I can also draft the support-ticket query if you tell me which system you use."
+              },
+              {
+                "name": "substance-1",
+                "passed": true,
+                "weight": 1,
+                "explanation": "judge votes: PASS PASS PASS",
+                "withOnly": false,
+                "scored": true,
+                "judgeVotes": [
+                  true,
+                  true,
+                  true
+                ],
+                "evidence": "**Subject: login-api certificate expiry and Android TLS outage (Nov 10)**\n\n**Summary:** The leaf certificate for login-api expired at 14:30, and Android users got TLS errors on the login endpoint until a replacement was deployed at 16:05. Error rates were back to normal by 16:10. iOS was not affected.\n\n**Timeline**\n- **14:30**: Leaf certificate for login-api expires.\n- **14:52**: Synthetic check pages Priya (on-call) for TLS errors on the login endpoint, Android only.\n- **15:40**: Priya issues a new certificate.\n- **16:05**: New certificate deployed.\n- **16:10**: Error rate back to normal.\n\n**Root causes**\n- **Expiry:** The renewal reminder went to Dale's old mailbox. Dale moved teams in March, and the reminder was never redirected.\n- **Android-only impact:** The iOS build pins the intermediate certificate, so it was unaffected by the leaf renewal. The Android build pins the leaf certificate, so it broke when the leaf expired.\n\n**Open items**\n- **User impact:** Not yet known. The support ticket count has not been pulled.\n- **Remove leaf pinning from the Android app:** Tomasz proposes this so future renewals don't break Android. Owner and date to be confirmed.\n- **Renewal reminders:** Need to go to a team alias or ticket queue, not an individual. Not yet assigned.\n\nTwo things I'd add before sending, since the draft doesn't cover them: an owner and date for removing leaf pinning, and an owner for fixing the reminder routing. Both are currently unassigned, so the email will read as incomplete without them. I can also draft the support-ticket query if you tell me which system you use."
+              },
+              {
+                "name": "substance-2",
+                "passed": true,
+                "weight": 1,
+                "explanation": "judge votes: PASS PASS PASS",
+                "withOnly": false,
+                "scored": true,
+                "judgeVotes": [
+                  true,
+                  true,
+                  true
+                ],
+                "evidence": "**Subject: login-api certificate expiry and Android TLS outage (Nov 10)**\n\n**Summary:** The leaf certificate for login-api expired at 14:30, and Android users got TLS errors on the login endpoint until a replacement was deployed at 16:05. Error rates were back to normal by 16:10. iOS was not affected.\n\n**Timeline**\n- **14:30**: Leaf certificate for login-api expires.\n- **14:52**: Synthetic check pages Priya (on-call) for TLS errors on the login endpoint, Android only.\n- **15:40**: Priya issues a new certificate.\n- **16:05**: New certificate deployed.\n- **16:10**: Error rate back to normal.\n\n**Root causes**\n- **Expiry:** The renewal reminder went to Dale's old mailbox. Dale moved teams in March, and the reminder was never redirected.\n- **Android-only impact:** The iOS build pins the intermediate certificate, so it was unaffected by the leaf renewal. The Android build pins the leaf certificate, so it broke when the leaf expired.\n\n**Open items**\n- **User impact:** Not yet known. The support ticket count has not been pulled.\n- **Remove leaf pinning from the Android app:** Tomasz proposes this so future renewals don't break Android. Owner and date to be confirmed.\n- **Renewal reminders:** Need to go to a team alias or ticket queue, not an individual. Not yet assigned.\n\nTwo things I'd add before sending, since the draft doesn't cover them: an owner and date for removing leaf pinning, and an owner for fixing the reminder routing. Both are currently unassigned, so the email will read as incomplete without them. I can also draft the support-ticket query if you tell me which system you use."
+              }
+            ]
+          },
+          {
+            "score": 0.5,
+            "passed": false,
+            "turns": 1,
+            "costUsd": 0.10513110000000002,
+            "judgeCostUsd": 0.10314600000000002,
+            "durationSeconds": 30,
+            "startedAt": "2026-11-10T21:26:41.423Z",
+            "error": null,
+            "tracePath": "/tmp/claude-eval-3fvVb2/out/trace.jsonl",
+            "skippedPaidGraders": false,
+            "graders": [
+              {
+                "name": "convention-1",
+                "passed": false,
+                "weight": 1,
+                "explanation": "judge votes: FAIL FAIL FAIL",
+                "withOnly": false,
+                "scored": true,
+                "judgeVotes": [
+                  false,
+                  false,
+                  false
+                ],
+                "evidence": "**Incident: Android login TLS errors, 9 Nov 2026**\n\n**Summary**\nThe leaf certificate for login-api expired at 14:30, and the Android app began failing TLS on the login endpoint. The app pins the leaf certificate, so it rejected the new one. iOS was unaffected because its build pins the intermediate certificate. A new certificate was issued and deployed, and error rates were back to normal by 16:10.\n\n**Timeline**\n- **14:30**: Leaf certificate for login-api expires.\n- **14:52**: Synthetic check pages Priya (on-call). Login endpoint is throwing TLS errors on Android only.\n- **15:40**: New certificate issued.\n- **16:05**: New certificate deployed.\n- **16:10**: Error rate back to normal.\n\n**Root cause**\n- The certificate renewal reminder was sent to Dale's old mailbox. Dale moved teams in March, so the reminder was never seen.\n- Android pins the leaf certificate, so every renewal breaks the Android app unless the app is updated. iOS pins the intermediate, so it survives renewal.\n\n**Impact**\n- Android users attempting to log in between roughly 14:30 and 16:05 were likely affected.\n- Number of affected users is not yet known. Support ticket count has not been pulled.\n\n**Follow-ups**\n- Pull support ticket count to estimate affected users. (Owner: TBD)\n- Remove leaf certificate pinning from the Android app. (Proposed by Tomasz)\n\nBefore you send it, fill in the owner for the first follow-up, since your notes don't name one. You might also add a follow-up for the renewal reminder going to a stale mailbox, because nothing in your notes says it's been fixed. I left that out because it isn't in your notes."
+              },
+              {
+                "name": "convention-2",
+                "passed": false,
+                "weight": 1,
+                "explanation": "judge votes: FAIL FAIL FAIL",
+                "withOnly": false,
+                "scored": true,
+                "judgeVotes": [
+                  false,
+                  false,
+                  false
+                ],
+                "evidence": "**Incident: Android login TLS errors, 9 Nov 2026**\n\n**Summary**\nThe leaf certificate for login-api expired at 14:30, and the Android app began failing TLS on the login endpoint. The app pins the leaf certificate, so it rejected the new one. iOS was unaffected because its build pins the intermediate certificate. A new certificate was issued and deployed, and error rates were back to normal by 16:10.\n\n**Timeline**\n- **14:30**: Leaf certificate for login-api expires.\n- **14:52**: Synthetic check pages Priya (on-call). Login endpoint is throwing TLS errors on Android only.\n- **15:40**: New certificate issued.\n- **16:05**: New certificate deployed.\n- **16:10**: Error rate back to normal.\n\n**Root cause**\n- The certificate renewal reminder was sent to Dale's old mailbox. Dale moved teams in March, so the reminder was never seen.\n- Android pins the leaf certificate, so every renewal breaks the Android app unless the app is updated. iOS pins the intermediate, so it survives renewal.\n\n**Impact**\n- Android users attempting to log in between roughly 14:30 and 16:05 were likely affected.\n- Number of affected users is not yet known. Support ticket count has not been pulled.\n\n**Follow-ups**\n- Pull support ticket count to estimate affected users. (Owner: TBD)\n- Remove leaf certificate pinning from the Android app. (Proposed by Tomasz)\n\nBefore you send it, fill in the owner for the first follow-up, since your notes don't name one. You might also add a follow-up for the renewal reminder going to a stale mailbox, because nothing in your notes says it's been fixed. I left that out because it isn't in your notes."
+              },
+              {
+                "name": "substance-1",
+                "passed": true,
+                "weight": 1,
+                "explanation": "judge votes: PASS PASS PASS",
+                "withOnly": false,
+                "scored": true,
+                "judgeVotes": [
+                  true,
+                  true,
+                  true
+                ],
+                "evidence": "**Incident: Android login TLS errors, 9 Nov 2026**\n\n**Summary**\nThe leaf certificate for login-api expired at 14:30, and the Android app began failing TLS on the login endpoint. The app pins the leaf certificate, so it rejected the new one. iOS was unaffected because its build pins the intermediate certificate. A new certificate was issued and deployed, and error rates were back to normal by 16:10.\n\n**Timeline**\n- **14:30**: Leaf certificate for login-api expires.\n- **14:52**: Synthetic check pages Priya (on-call). Login endpoint is throwing TLS errors on Android only.\n- **15:40**: New certificate issued.\n- **16:05**: New certificate deployed.\n- **16:10**: Error rate back to normal.\n\n**Root cause**\n- The certificate renewal reminder was sent to Dale's old mailbox. Dale moved teams in March, so the reminder was never seen.\n- Android pins the leaf certificate, so every renewal breaks the Android app unless the app is updated. iOS pins the intermediate, so it survives renewal.\n\n**Impact**\n- Android users attempting to log in between roughly 14:30 and 16:05 were likely affected.\n- Number of affected users is not yet known. Support ticket count has not been pulled.\n\n**Follow-ups**\n- Pull support ticket count to estimate affected users. (Owner: TBD)\n- Remove leaf certificate pinning from the Android app. (Proposed by Tomasz)\n\nBefore you send it, fill in the owner for the first follow-up, since your notes don't name one. You might also add a follow-up for the renewal reminder going to a stale mailbox, because nothing in your notes says it's been fixed. I left that out because it isn't in your notes."
+              },
+              {
+                "name": "substance-2",
+                "passed": true,
+                "weight": 1,
+                "explanation": "judge votes: PASS PASS PASS",
+                "withOnly": false,
+                "scored": true,
+                "judgeVotes": [
+                  true,
+                  true,
+                  true
+                ],
+                "evidence": "**Incident: Android login TLS errors, 9 Nov 2026**\n\n**Summary**\nThe leaf certificate for login-api expired at 14:30, and the Android app began failing TLS on the login endpoint. The app pins the leaf certificate, so it rejected the new one. iOS was unaffected because its build pins the intermediate certificate. A new certificate was issued and deployed, and error rates were back to normal by 16:10.\n\n**Timeline**\n- **14:30**: Leaf certificate for login-api expires.\n- **14:52**: Synthetic check pages Priya (on-call). Login endpoint is throwing TLS errors on Android only.\n- **15:40**: New certificate issued.\n- **16:05**: New certificate deployed.\n- **16:10**: Error rate back to normal.\n\n**Root cause**\n- The certificate renewal reminder was sent to Dale's old mailbox. Dale moved teams in March, so the reminder was never seen.\n- Android pins the leaf certificate, so every renewal breaks the Android app unless the app is updated. iOS pins the intermediate, so it survives renewal.\n\n**Impact**\n- Android users attempting to log in between roughly 14:30 and 16:05 were likely affected.\n- Number of affected users is not yet known. Support ticket count has not been pulled.\n\n**Follow-ups**\n- Pull support ticket count to estimate affected users. (Owner: TBD)\n- Remove leaf certificate pinning from the Android app. (Proposed by Tomasz)\n\nBefore you send it, fill in the owner for the first follow-up, since your notes don't name one. You might also add a follow-up for the renewal reminder going to a stale mailbox, because nothing in your notes says it's been fixed. I left that out because it isn't in your notes."
+              }
+            ]
+          },
+          {
+            "score": 0.5,
+            "passed": false,
+            "turns": 1,
+            "costUsd": 0.0840377,
+            "judgeCostUsd": 0.08224400000000001,
+            "durationSeconds": 25,
+            "startedAt": "2026-11-10T21:26:41.423Z",
+            "error": null,
+            "tracePath": "/tmp/claude-eval-N1Xl6J/out/trace.jsonl",
+            "skippedPaidGraders": false,
+            "graders": [
+              {
+                "name": "convention-1",
+                "passed": false,
+                "weight": 1,
+                "explanation": "judge votes: FAIL FAIL FAIL",
+                "withOnly": false,
+                "scored": true,
+                "judgeVotes": [
+                  false,
+                  false,
+                  false
+                ],
+                "evidence": "**Incident: login-api TLS errors on Android (expired leaf certificate)**\n\n**Summary**\nOn [date], the login endpoint returned TLS errors to Android users for roughly 1.5 hours. iOS was not affected. The cause was an expired leaf certificate for login-api. The Android app pins the leaf certificate, so it rejected the server once that certificate expired. Service was restored at 16:10.\n\n**Timeline**\n- **14:30**: Leaf certificate for login-api expires.\n- **14:52**: Synthetic check pages on-call (Priya). Login endpoint is throwing TLS errors, Android only.\n- **15:40**: New certificate issued.\n- **16:05**: New certificate deployed.\n- **16:10**: Error rate back to normal.\n\n**Root cause**\n- The renewal reminder for the certificate went to a mailbox that was no longer monitored. The owner (Dale) moved teams in March, and the reminder was not redirected.\n- The Android app pins the leaf certificate, so any leaf renewal breaks Android logins until the app is updated. The iOS build pins the intermediate certificate, which is why it was unaffected.\n\n**Impact**\n- Number of affected users: **not yet known**. Support ticket count has not been pulled.\n\n**Action items**\n1. **Tomasz**: Remove leaf certificate pinning from the Android app.\n2. **Team**: Pull support ticket count to estimate affected users.\n3. **Suggested, not yet discussed**: Confirm who owns certificate renewal reminders now, and make sure the reminder routes to a current team alias rather than an individual mailbox."
+              },
+              {
+                "name": "convention-2",
+                "passed": false,
+                "weight": 1,
+                "explanation": "judge votes: FAIL FAIL FAIL",
+                "withOnly": false,
+                "scored": true,
+                "judgeVotes": [
+                  false,
+                  false,
+                  false
+                ],
+                "evidence": "**Incident: login-api TLS errors on Android (expired leaf certificate)**\n\n**Summary**\nOn [date], the login endpoint returned TLS errors to Android users for roughly 1.5 hours. iOS was not affected. The cause was an expired leaf certificate for login-api. The Android app pins the leaf certificate, so it rejected the server once that certificate expired. Service was restored at 16:10.\n\n**Timeline**\n- **14:30**: Leaf certificate for login-api expires.\n- **14:52**: Synthetic check pages on-call (Priya). Login endpoint is throwing TLS errors, Android only.\n- **15:40**: New certificate issued.\n- **16:05**: New certificate deployed.\n- **16:10**: Error rate back to normal.\n\n**Root cause**\n- The renewal reminder for the certificate went to a mailbox that was no longer monitored. The owner (Dale) moved teams in March, and the reminder was not redirected.\n- The Android app pins the leaf certificate, so any leaf renewal breaks Android logins until the app is updated. The iOS build pins the intermediate certificate, which is why it was unaffected.\n\n**Impact**\n- Number of affected users: **not yet known**. Support ticket count has not been pulled.\n\n**Action items**\n1. **Tomasz**: Remove leaf certificate pinning from the Android app.\n2. **Team**: Pull support ticket count to estimate affected users.\n3. **Suggested, not yet discussed**: Confirm who owns certificate renewal reminders now, and make sure the reminder routes to a current team alias rather than an individual mailbox."
+              },
+              {
+                "name": "substance-1",
+                "passed": true,
+                "weight": 1,
+                "explanation": "judge votes: PASS PASS PASS",
+                "withOnly": false,
+                "scored": true,
+                "judgeVotes": [
+                  true,
+                  true,
+                  true
+                ],
+                "evidence": "**Incident: login-api TLS errors on Android (expired leaf certificate)**\n\n**Summary**\nOn [date], the login endpoint returned TLS errors to Android users for roughly 1.5 hours. iOS was not affected. The cause was an expired leaf certificate for login-api. The Android app pins the leaf certificate, so it rejected the server once that certificate expired. Service was restored at 16:10.\n\n**Timeline**\n- **14:30**: Leaf certificate for login-api expires.\n- **14:52**: Synthetic check pages on-call (Priya). Login endpoint is throwing TLS errors, Android only.\n- **15:40**: New certificate issued.\n- **16:05**: New certificate deployed.\n- **16:10**: Error rate back to normal.\n\n**Root cause**\n- The renewal reminder for the certificate went to a mailbox that was no longer monitored. The owner (Dale) moved teams in March, and the reminder was not redirected.\n- The Android app pins the leaf certificate, so any leaf renewal breaks Android logins until the app is updated. The iOS build pins the intermediate certificate, which is why it was unaffected.\n\n**Impact**\n- Number of affected users: **not yet known**. Support ticket count has not been pulled.\n\n**Action items**\n1. **Tomasz**: Remove leaf certificate pinning from the Android app.\n2. **Team**: Pull support ticket count to estimate affected users.\n3. **Suggested, not yet discussed**: Confirm who owns certificate renewal reminders now, and make sure the reminder routes to a current team alias rather than an individual mailbox."
+              },
+              {
+                "name": "substance-2",
+                "passed": true,
+                "weight": 1,
+                "explanation": "judge votes: PASS PASS PASS",
+                "withOnly": false,
+                "scored": true,
+                "judgeVotes": [
+                  true,
+                  true,
+                  true
+                ],
+                "evidence": "**Incident: login-api TLS errors on Android (expired leaf certificate)**\n\n**Summary**\nOn [date], the login endpoint returned TLS errors to Android users for roughly 1.5 hours. iOS was not affected. The cause was an expired leaf certificate for login-api. The Android app pins the leaf certificate, so it rejected the server once that certificate expired. Service was restored at 16:10.\n\n**Timeline**\n- **14:30**: Leaf certificate for login-api expires.\n- **14:52**: Synthetic check pages on-call (Priya). Login endpoint is throwing TLS errors, Android only.\n- **15:40**: New certificate issued.\n- **16:05**: New certificate deployed.\n- **16:10**: Error rate back to normal.\n\n**Root cause**\n- The renewal reminder for the certificate went to a mailbox that was no longer monitored. The owner (Dale) moved teams in March, and the reminder was not redirected.\n- The Android app pins the leaf certificate, so any leaf renewal breaks Android logins until the app is updated. The iOS build pins the intermediate certificate, which is why it was unaffected.\n\n**Impact**\n- Number of affected users: **not yet known**. Support ticket count has not been pulled.\n\n**Action items**\n1. **Tomasz**: Remove leaf certificate pinning from the Android app.\n2. **Team**: Pull support ticket count to estimate affected users.\n3. **Suggested, not yet discussed**: Confirm who owns certificate renewal reminders now, and make sure the reminder routes to a current team alias rather than an individual mailbox."
+              }
+            ]
+          }
+        ]
+      },
+      "aggregates": {
+        "score": 0.5,
+        "passRate": 0
+      }
+    },
+    {
+      "name": "case-07",
+      "dir": "evals/case-07",
+      "source": "prose",
+      "promptMarkdown": "Need an incident write-up for the revenue dashboard mess. Here's the event list I pulled together. All times PST.\n\nMon 02:10 nightly orders load into the warehouse timed out at step 3 of 5\nMon 02:25 scheduler auto-retried the whole job from step 1\nMon 02:40 job succeeded, but the orders from the first attempt were already inserted and the table has no unique key, so every order landed twice\nMon 08:00 the exec weekly email went out with the dashboard numbers\nMon 09:15 Marcus (finance analyst) noticed Monday revenue was about 1.4M higher than the bank deposits he expected\nMon 11:30 Elena from data eng confirmed the duplicates and deleted them by order_id\nMon 12:05 dashboard refreshed and showed the right figure\n\nNobody has said whether the retry setting was ever looked at.",
+      "runsPerCase": 3,
+      "timeoutSeconds": 300,
+      "maxTurns": 10,
+      "graders": [
+        {
+          "name": "convention-1",
+          "type": "llm",
+          "weight": 1,
+          "graderMarkdown": "The Summary section of the response is at most three sentences long.",
+          "config": {
+            "criteria": "The Summary section of the response is at most three sentences long.",
+            "focus": "last_message"
+          }
+        },
+        {
+          "name": "convention-2",
+          "type": "llm",
+          "weight": 1,
+          "graderMarkdown": "The Actions section of the response is a table whose column headers are exactly Action, Owner role, Type and Due, and every value in the Type column is one of Prevent, Detect or Mitigate.",
+          "config": {
+            "criteria": "The Actions section of the response is a table whose column headers are exactly Action, Owner role, Type and Due, and every value in the Type column is one of Prevent, Detect or Mitigate.",
+            "focus": "last_message"
+          }
+        },
+        {
+          "name": "substance-1",
+          "type": "llm",
+          "weight": 1,
+          "graderMarkdown": "The response identifies the cause as the scheduler automatically retrying the whole job from step 1 and re-inserting orders into a table with no unique key, so each order was loaded twice.",
+          "config": {
+            "criteria": "The response identifies the cause as the scheduler automatically retrying the whole job from step 1 and re-inserting orders into a table with no unique key, so each order was loaded twice.",
+            "focus": "last_message"
+          }
+        },
+        {
+          "name": "substance-2",
+          "type": "llm",
+          "weight": 1,
+          "graderMarkdown": "The response records in its Impact or Timeline that the executive weekly email had already been sent at 08:00 with the overstated figures, before the duplicates were noticed.",
+          "config": {
+            "criteria": "The response records in its Impact or Timeline that the executive weekly email had already been sent at 08:00 with the overstated figures, before the duplicates were noticed.",
+            "focus": "last_message"
+          }
+        }
+      ],
+      "arms": {
+        "with": [
+          {
+            "score": 0.5,
+            "passed": false,
+            "turns": 1,
+            "costUsd": 0.10155030000000001,
+            "judgeCostUsd": 0.09902400000000001,
+            "durationSeconds": 32,
+            "startedAt": "2026-11-10T21:26:41.423Z",
+            "error": null,
+            "tracePath": "/tmp/claude-eval-x6sSuD/out/trace.jsonl",
+            "skippedPaidGraders": false,
+            "graders": [
+              {
+                "name": "convention-1",
+                "passed": false,
+                "weight": 1,
+                "explanation": "judge votes: FAIL FAIL FAIL",
+                "withOnly": false,
+                "scored": true,
+                "judgeVotes": [
+                  false,
+                  false,
+                  false
+                ],
+                "evidence": "# Incident Write-up: Duplicated Orders in Revenue Dashboard\n\n**Status:** Resolved. Duplicates removed and dashboard corrected. Exec email sent with incorrect figures; correction not yet confirmed. Root cause partly open (see Open Questions).\n**Date:** Monday (all times PST)\n**Systems:** Nightly orders load into warehouse, weekly exec email, revenue dashboard\n**Impact:** Monday revenue overstated by about $1.4M in the dashboard and in the 08:00 exec weekly email.\n\n## Summary\n\nThe nightly orders load timed out at step 3 of 5. The scheduler then auto-retried the whole job from step 1 instead of resuming. The first attempt had already inserted its orders, so the retry inserted them again. The target table has no unique key, so nothing blocked the duplicates, and every order was loaded twice. The job reported success. The duplicates reached the 08:00 exec email, and finance caught the discrepancy at 09:15 when Monday revenue did not match bank deposits.\n\n## Timeline (PST)\n\n| Time | Event |\n|---|---|\n| 02:10 | Nightly orders load times out at step 3 of 5. |\n| 02:25 | Scheduler auto-retries the whole job from step 1. |\n| 02:40 | Retry succeeds. First-attempt orders are already in the table, so every order is now present twice. Job reports success. |\n| 08:00 | Weekly exec email sent with inflated dashboard figures. |\n| 09:15 | Marcus (finance analyst) sees Monday revenue about $1.4M above expected bank deposits. |\n| 11:30 | Elena (data eng) confirms duplicates and deletes them by `order_id`. |\n| 12:05 | Dashboard refreshes and shows the correct figure. |\n\n**Detection gap:** About 5 hours 35 minutes passed between the duplicate load (02:40) and detection (09:15). The bad numbers went out in the exec email before anyone noticed. Detection came from manual reconciliation by finance, not from any automated check.\n\n## Root Cause\n\nTwo conditions combined:\n\n1. **Non-idempotent load.** Step 1 inserts orders without any way to detect or skip rows already loaded. Re-running it duplicates data.\n2. **Retry from the beginning.** The scheduler restarts the entire job after a partial failure, so completed steps run again.\n\nThe table lacking a unique key on `order_id` (or an equivalent) is why nothing rejected the duplicate inserts.\n\n**Not yet established:** whether the scheduler retry setting was reviewed when it was configured, and whether the 02:10 timeout had a cause that should also be fixed.\n\n## Contributing Factors\n\n- No unique constraint on order identifiers in the target table.\n- Job-level auto-retry with no checkpoint or resume-from-failed-step behavior.\n- Job success status depends only on exit code, not on row counts or duplicate checks.\n- The exec email pulls directly from the dashboard with no data-quality gate.\n- No reconciliation of daily revenue against an independent source (bank deposits) until finance did it manually.\n\n## What Went Well\n\n- Finance caught the discrepancy the same morning and escalated it.\n- Data eng identified and removed the duplicates within about 2 hours of detection.\n- The dashboard was correct again by 12:05.\n\n## What Went Poorly\n\n- The duplicated load reported success.\n- The exec email went out with unverified figures.\n- About 5.5 hours passed before detection.\n\n## Action Items\n\n| # | Action | Suggested owner | Priority |\n|---|---|---|---|\n| 1 | Make the orders load idempotent: add a unique key on `order_id` (or a natural key), and use upsert/merge semantics. | Data eng | High |\n| 2 | Review the scheduler retry config. Disable auto-retry for this job, or change it to resume from the failed step with checkpoints. Document the decision. | Data eng | High |\n| 3 | Add post-load checks: row count vs. source, and duplicate `order_id` count must be zero. Fail the job if the checks fail. | Data eng | High |\n| 4 | Add a gate on the exec email: send only if the data-quality checks pass, or flag the email as preliminary when they do not. | Data eng + exec comms owner | Medium |\n| 5 | Add a daily revenue reconciliation against bank deposits or payment processor totals, with an alert on large variance. | Finance + data eng | Medium |\n| 6 | Investigate why the 02:10 load timed out at step 3 and whether it will recur. | Data eng | Medium |\n| 7 | Confirm the deletion removed exactly one copy of each duplicate, and that no legitimate same-`order_id` rows were removed. | Elena / Marcus | High (verify now) |\n\n## Open Questions\n\n1. **Retry setting:** Was the scheduler's auto-retry ever reviewed for non-idempotent jobs? Who owns it?\n2. **Dedup correctness:** Deleting by `order_id` assumes each order should have exactly one row. Was that checked against the source system?\n3. **Exec correction:** The 08:00 email carried wrong numbers. Does leadership need a correction? I have not drafted or sent one, since that goes to external stakeholders and needs a decision from you.\n4. **Timeout cause:** What caused the 02:10 timeout, and is it likely to recur?"
+              },
+              {
+                "name": "convention-2",
+                "passed": false,
+                "weight": 1,
+                "explanation": "judge votes: FAIL FAIL FAIL",
+                "withOnly": false,
+                "scored": true,
+                "judgeVotes": [
+                  false,
+                  false,
+                  false
+                ],
+                "evidence": "# Incident Write-up: Duplicated Orders in Revenue Dashboard\n\n**Status:** Resolved. Duplicates removed and dashboard corrected. Exec email sent with incorrect figures; correction not yet confirmed. Root cause partly open (see Open Questions).\n**Date:** Monday (all times PST)\n**Systems:** Nightly orders load into warehouse, weekly exec email, revenue dashboard\n**Impact:** Monday revenue overstated by about $1.4M in the dashboard and in the 08:00 exec weekly email.\n\n## Summary\n\nThe nightly orders load timed out at step 3 of 5. The scheduler then auto-retried the whole job from step 1 instead of resuming. The first attempt had already inserted its orders, so the retry inserted them again. The target table has no unique key, so nothing blocked the duplicates, and every order was loaded twice. The job reported success. The duplicates reached the 08:00 exec email, and finance caught the discrepancy at 09:15 when Monday revenue did not match bank deposits.\n\n## Timeline (PST)\n\n| Time | Event |\n|---|---|\n| 02:10 | Nightly orders load times out at step 3 of 5. |\n| 02:25 | Scheduler auto-retries the whole job from step 1. |\n| 02:40 | Retry succeeds. First-attempt orders are already in the table, so every order is now present twice. Job reports success. |\n| 08:00 | Weekly exec email sent with inflated dashboard figures. |\n| 09:15 | Marcus (finance analyst) sees Monday revenue about $1.4M above expected bank deposits. |\n| 11:30 | Elena (data eng) confirms duplicates and deletes them by `order_id`. |\n| 12:05 | Dashboard refreshes and shows the correct figure. |\n\n**Detection gap:** About 5 hours 35 minutes passed between the duplicate load (02:40) and detection (09:15). The bad numbers went out in the exec email before anyone noticed. Detection came from manual reconciliation by finance, not from any automated check.\n\n## Root Cause\n\nTwo conditions combined:\n\n1. **Non-idempotent load.** Step 1 inserts orders without any way to detect or skip rows already loaded. Re-running it duplicates data.\n2. **Retry from the beginning.** The scheduler restarts the entire job after a partial failure, so completed steps run again.\n\nThe table lacking a unique key on `order_id` (or an equivalent) is why nothing rejected the duplicate inserts.\n\n**Not yet established:** whether the scheduler retry setting was reviewed when it was configured, and whether the 02:10 timeout had a cause that should also be fixed.\n\n## Contributing Factors\n\n- No unique constraint on order identifiers in the target table.\n- Job-level auto-retry with no checkpoint or resume-from-failed-step behavior.\n- Job success status depends only on exit code, not on row counts or duplicate checks.\n- The exec email pulls directly from the dashboard with no data-quality gate.\n- No reconciliation of daily revenue against an independent source (bank deposits) until finance did it manually.\n\n## What Went Well\n\n- Finance caught the discrepancy the same morning and escalated it.\n- Data eng identified and removed the duplicates within about 2 hours of detection.\n- The dashboard was correct again by 12:05.\n\n## What Went Poorly\n\n- The duplicated load reported success.\n- The exec email went out with unverified figures.\n- About 5.5 hours passed before detection.\n\n## Action Items\n\n| # | Action | Suggested owner | Priority |\n|---|---|---|---|\n| 1 | Make the orders load idempotent: add a unique key on `order_id` (or a natural key), and use upsert/merge semantics. | Data eng | High |\n| 2 | Review the scheduler retry config. Disable auto-retry for this job, or change it to resume from the failed step with checkpoints. Document the decision. | Data eng | High |\n| 3 | Add post-load checks: row count vs. source, and duplicate `order_id` count must be zero. Fail the job if the checks fail. | Data eng | High |\n| 4 | Add a gate on the exec email: send only if the data-quality checks pass, or flag the email as preliminary when they do not. | Data eng + exec comms owner | Medium |\n| 5 | Add a daily revenue reconciliation against bank deposits or payment processor totals, with an alert on large variance. | Finance + data eng | Medium |\n| 6 | Investigate why the 02:10 load timed out at step 3 and whether it will recur. | Data eng | Medium |\n| 7 | Confirm the deletion removed exactly one copy of each duplicate, and that no legitimate same-`order_id` rows were removed. | Elena / Marcus | High (verify now) |\n\n## Open Questions\n\n1. **Retry setting:** Was the scheduler's auto-retry ever reviewed for non-idempotent jobs? Who owns it?\n2. **Dedup correctness:** Deleting by `order_id` assumes each order should have exactly one row. Was that checked against the source system?\n3. **Exec correction:** The 08:00 email carried wrong numbers. Does leadership need a correction? I have not drafted or sent one, since that goes to external stakeholders and needs a decision from you.\n4. **Timeout cause:** What caused the 02:10 timeout, and is it likely to recur?"
+              },
+              {
+                "name": "substance-1",
+                "passed": true,
+                "weight": 1,
+                "explanation": "judge votes: PASS PASS PASS",
+                "withOnly": false,
+                "scored": true,
+                "judgeVotes": [
+                  true,
+                  true,
+                  true
+                ],
+                "evidence": "# Incident Write-up: Duplicated Orders in Revenue Dashboard\n\n**Status:** Resolved. Duplicates removed and dashboard corrected. Exec email sent with incorrect figures; correction not yet confirmed. Root cause partly open (see Open Questions).\n**Date:** Monday (all times PST)\n**Systems:** Nightly orders load into warehouse, weekly exec email, revenue dashboard\n**Impact:** Monday revenue overstated by about $1.4M in the dashboard and in the 08:00 exec weekly email.\n\n## Summary\n\nThe nightly orders load timed out at step 3 of 5. The scheduler then auto-retried the whole job from step 1 instead of resuming. The first attempt had already inserted its orders, so the retry inserted them again. The target table has no unique key, so nothing blocked the duplicates, and every order was loaded twice. The job reported success. The duplicates reached the 08:00 exec email, and finance caught the discrepancy at 09:15 when Monday revenue did not match bank deposits.\n\n## Timeline (PST)\n\n| Time | Event |\n|---|---|\n| 02:10 | Nightly orders load times out at step 3 of 5. |\n| 02:25 | Scheduler auto-retries the whole job from step 1. |\n| 02:40 | Retry succeeds. First-attempt orders are already in the table, so every order is now present twice. Job reports success. |\n| 08:00 | Weekly exec email sent with inflated dashboard figures. |\n| 09:15 | Marcus (finance analyst) sees Monday revenue about $1.4M above expected bank deposits. |\n| 11:30 | Elena (data eng) confirms duplicates and deletes them by `order_id`. |\n| 12:05 | Dashboard refreshes and shows the correct figure. |\n\n**Detection gap:** About 5 hours 35 minutes passed between the duplicate load (02:40) and detection (09:15). The bad numbers went out in the exec email before anyone noticed. Detection came from manual reconciliation by finance, not from any automated check.\n\n## Root Cause\n\nTwo conditions combined:\n\n1. **Non-idempotent load.** Step 1 inserts orders without any way to detect or skip rows already loaded. Re-running it duplicates data.\n2. **Retry from the beginning.** The scheduler restarts the entire job after a partial failure, so completed steps run again.\n\nThe table lacking a unique key on `order_id` (or an equivalent) is why nothing rejected the duplicate inserts.\n\n**Not yet established:** whether the scheduler retry setting was reviewed when it was configured, and whether the 02:10 timeout had a cause that should also be fixed.\n\n## Contributing Factors\n\n- No unique constraint on order identifiers in the target table.\n- Job-level auto-retry with no checkpoint or resume-from-failed-step behavior.\n- Job success status depends only on exit code, not on row counts or duplicate checks.\n- The exec email pulls directly from the dashboard with no data-quality gate.\n- No reconciliation of daily revenue against an independent source (bank deposits) until finance did it manually.\n\n## What Went Well\n\n- Finance caught the discrepancy the same morning and escalated it.\n- Data eng identified and removed the duplicates within about 2 hours of detection.\n- The dashboard was correct again by 12:05.\n\n## What Went Poorly\n\n- The duplicated load reported success.\n- The exec email went out with unverified figures.\n- About 5.5 hours passed before detection.\n\n## Action Items\n\n| # | Action | Suggested owner | Priority |\n|---|---|---|---|\n| 1 | Make the orders load idempotent: add a unique key on `order_id` (or a natural key), and use upsert/merge semantics. | Data eng | High |\n| 2 | Review the scheduler retry config. Disable auto-retry for this job, or change it to resume from the failed step with checkpoints. Document the decision. | Data eng | High |\n| 3 | Add post-load checks: row count vs. source, and duplicate `order_id` count must be zero. Fail the job if the checks fail. | Data eng | High |\n| 4 | Add a gate on the exec email: send only if the data-quality checks pass, or flag the email as preliminary when they do not. | Data eng + exec comms owner | Medium |\n| 5 | Add a daily revenue reconciliation against bank deposits or payment processor totals, with an alert on large variance. | Finance + data eng | Medium |\n| 6 | Investigate why the 02:10 load timed out at step 3 and whether it will recur. | Data eng | Medium |\n| 7 | Confirm the deletion removed exactly one copy of each duplicate, and that no legitimate same-`order_id` rows were removed. | Elena / Marcus | High (verify now) |\n\n## Open Questions\n\n1. **Retry setting:** Was the scheduler's auto-retry ever reviewed for non-idempotent jobs? Who owns it?\n2. **Dedup correctness:** Deleting by `order_id` assumes each order should have exactly one row. Was that checked against the source system?\n3. **Exec correction:** The 08:00 email carried wrong numbers. Does leadership need a correction? I have not drafted or sent one, since that goes to external stakeholders and needs a decision from you.\n4. **Timeout cause:** What caused the 02:10 timeout, and is it likely to recur?"
+              },
+              {
+                "name": "substance-2",
+                "passed": true,
+                "weight": 1,
+                "explanation": "judge votes: PASS PASS PASS",
+                "withOnly": false,
+                "scored": true,
+                "judgeVotes": [
+                  true,
+                  true,
+                  true
+                ],
+                "evidence": "# Incident Write-up: Duplicated Orders in Revenue Dashboard\n\n**Status:** Resolved. Duplicates removed and dashboard corrected. Exec email sent with incorrect figures; correction not yet confirmed. Root cause partly open (see Open Questions).\n**Date:** Monday (all times PST)\n**Systems:** Nightly orders load into warehouse, weekly exec email, revenue dashboard\n**Impact:** Monday revenue overstated by about $1.4M in the dashboard and in the 08:00 exec weekly email.\n\n## Summary\n\nThe nightly orders load timed out at step 3 of 5. The scheduler then auto-retried the whole job from step 1 instead of resuming. The first attempt had already inserted its orders, so the retry inserted them again. The target table has no unique key, so nothing blocked the duplicates, and every order was loaded twice. The job reported success. The duplicates reached the 08:00 exec email, and finance caught the discrepancy at 09:15 when Monday revenue did not match bank deposits.\n\n## Timeline (PST)\n\n| Time | Event |\n|---|---|\n| 02:10 | Nightly orders load times out at step 3 of 5. |\n| 02:25 | Scheduler auto-retries the whole job from step 1. |\n| 02:40 | Retry succeeds. First-attempt orders are already in the table, so every order is now present twice. Job reports success. |\n| 08:00 | Weekly exec email sent with inflated dashboard figures. |\n| 09:15 | Marcus (finance analyst) sees Monday revenue about $1.4M above expected bank deposits. |\n| 11:30 | Elena (data eng) confirms duplicates and deletes them by `order_id`. |\n| 12:05 | Dashboard refreshes and shows the correct figure. |\n\n**Detection gap:** About 5 hours 35 minutes passed between the duplicate load (02:40) and detection (09:15). The bad numbers went out in the exec email before anyone noticed. Detection came from manual reconciliation by finance, not from any automated check.\n\n## Root Cause\n\nTwo conditions combined:\n\n1. **Non-idempotent load.** Step 1 inserts orders without any way to detect or skip rows already loaded. Re-running it duplicates data.\n2. **Retry from the beginning.** The scheduler restarts the entire job after a partial failure, so completed steps run again.\n\nThe table lacking a unique key on `order_id` (or an equivalent) is why nothing rejected the duplicate inserts.\n\n**Not yet established:** whether the scheduler retry setting was reviewed when it was configured, and whether the 02:10 timeout had a cause that should also be fixed.\n\n## Contributing Factors\n\n- No unique constraint on order identifiers in the target table.\n- Job-level auto-retry with no checkpoint or resume-from-failed-step behavior.\n- Job success status depends only on exit code, not on row counts or duplicate checks.\n- The exec email pulls directly from the dashboard with no data-quality gate.\n- No reconciliation of daily revenue against an independent source (bank deposits) until finance did it manually.\n\n## What Went Well\n\n- Finance caught the discrepancy the same morning and escalated it.\n- Data eng identified and removed the duplicates within about 2 hours of detection.\n- The dashboard was correct again by 12:05.\n\n## What Went Poorly\n\n- The duplicated load reported success.\n- The exec email went out with unverified figures.\n- About 5.5 hours passed before detection.\n\n## Action Items\n\n| # | Action | Suggested owner | Priority |\n|---|---|---|---|\n| 1 | Make the orders load idempotent: add a unique key on `order_id` (or a natural key), and use upsert/merge semantics. | Data eng | High |\n| 2 | Review the scheduler retry config. Disable auto-retry for this job, or change it to resume from the failed step with checkpoints. Document the decision. | Data eng | High |\n| 3 | Add post-load checks: row count vs. source, and duplicate `order_id` count must be zero. Fail the job if the checks fail. | Data eng | High |\n| 4 | Add a gate on the exec email: send only if the data-quality checks pass, or flag the email as preliminary when they do not. | Data eng + exec comms owner | Medium |\n| 5 | Add a daily revenue reconciliation against bank deposits or payment processor totals, with an alert on large variance. | Finance + data eng | Medium |\n| 6 | Investigate why the 02:10 load timed out at step 3 and whether it will recur. | Data eng | Medium |\n| 7 | Confirm the deletion removed exactly one copy of each duplicate, and that no legitimate same-`order_id` rows were removed. | Elena / Marcus | High (verify now) |\n\n## Open Questions\n\n1. **Retry setting:** Was the scheduler's auto-retry ever reviewed for non-idempotent jobs? Who owns it?\n2. **Dedup correctness:** Deleting by `order_id` assumes each order should have exactly one row. Was that checked against the source system?\n3. **Exec correction:** The 08:00 email carried wrong numbers. Does leadership need a correction? I have not drafted or sent one, since that goes to external stakeholders and needs a decision from you.\n4. **Timeout cause:** What caused the 02:10 timeout, and is it likely to recur?"
+              }
+            ]
+          },
+          {
+            "score": 0.5,
+            "passed": false,
+            "turns": 1,
+            "costUsd": 0.14880779999999996,
+            "judgeCostUsd": 0.14630799999999997,
+            "durationSeconds": 30,
+            "startedAt": "2026-11-10T21:27:06.004Z",
+            "error": null,
+            "tracePath": "/tmp/claude-eval-7ByjMM/out/trace.jsonl",
+            "skippedPaidGraders": false,
+            "graders": [
+              {
+                "name": "convention-1",
+                "passed": false,
+                "weight": 1,
+                "explanation": "judge votes: FAIL FAIL FAIL",
+                "withOnly": false,
+                "scored": true,
+                "judgeVotes": [
+                  false,
+                  false,
+                  false
+                ],
+                "evidence": "# Incident Write-up: Duplicate Orders Inflated Monday Revenue Dashboard\n\n**Date:** Monday\n**Times:** PST\n**Status:** Resolved. Duplicates deleted and dashboard corrected at 12:05. Open items below.\n\n## Summary\n\nThe nightly orders load timed out partway through, and the scheduler retried the whole job from step 1 instead of resuming. The first attempt's rows had already been inserted, so every order that attempt wrote was duplicated. The orders table has no unique key, so nothing rejected the second copies. Monday's revenue was overstated by about $1.4M. The weekly exec email went out at 08:00 with the inflated figures. Finance caught the discrepancy against bank deposits, and data engineering removed the duplicates by `order_id`.\n\n## Impact\n\n- **Exec weekly email (08:00):** sent with overstated Monday revenue. Correction status not yet confirmed.\n- **Dashboard:** showed inflated Monday revenue from 02:40 until the 12:05 refresh, about 9h25m.\n- **Data:** every order from the first load attempt was duplicated in the orders table until deletion at 11:30.\n- **Magnitude:** about $1.4M, based on Marcus's comparison to expected bank deposits. Confirm against the total of the deleted rows.\n\n## Timeline (PST, Monday)\n\n| Time  | Event |\n|-------|-------|\n| 02:10 | Nightly orders load times out at step 3 of 5. |\n| 02:25 | Scheduler auto-retries the entire job from step 1. |\n| 02:40 | Retry succeeds. Rows from the first attempt are already in the table, so every order is duplicated. No alert fires. |\n| 08:00 | Weekly exec email goes out with inflated dashboard numbers. |\n| 09:15 | Marcus (finance) notices Monday revenue is about $1.4M above expected bank deposits. |\n| 11:30 | Elena (data eng) confirms duplicates and deletes them by `order_id`. |\n| 12:05 | Dashboard refreshes and shows the correct figure. |\n\n**Time from duplication to detection:** about 6h35m (02:40 to 09:15), and the exec email went out before detection.\n**Time from detection to fix:** about 2h50m (09:15 to 12:05).\n\n## Root Causes\n\n1. **Non-idempotent load.** The job appends rows and has no way to detect or skip rows already written by an earlier attempt.\n2. **No unique constraint on the orders table.** Duplicate `order_id` values were accepted silently.\n3. **Retry restarts from step 1.** The scheduler re-executes the whole job, not the failed step, so any completed insert work is repeated.\n\n## Contributing Factors\n\n- **No data validation before publication.** Nothing compared the row count or revenue total against expectations before the dashboard and exec email were generated.\n- **No alert on the timeout or the retry.** The 02:25 retry was silent to anyone outside the job.\n- **Detection depended on a downstream human.** The error was caught by a finance analyst comparing against bank deposits, not by a control.\n\n## What Went Well\n\n- Marcus's reconciliation against bank deposits caught the error before anyone acted on it further.\n- Elena identified the duplicates and removed them by `order_id` the same morning.\n\n## Open Questions\n\n- **Retry configuration:** nobody has yet reviewed whether the scheduler's retry-from-step-1 setting was deliberate or a default. This needs an owner and an answer.\n- **Exec email correction:** has a correction gone to the exec recipients?\n- **Delete verification:** confirm that the deletion removed exactly the second copies and that no legitimately repeated `order_id` values were affected.\n- **Final figure:** confirm the overstatement amount from the deleted rows.\n\n## Action Items (proposed, owners TBD)\n\n1. **Review the scheduler retry config.** Decide whether retries should resume from the failed step or be disabled for non-idempotent jobs. *Owner: TBD.*\n2. **Make the load idempotent.** Use a staging-and-swap pattern, a delete-then-insert by batch, or upserts keyed on `order_id`. *Owner: TBD.*\n3. **Add a unique constraint on `order_id`** in the orders table, so duplicates fail loudly. *Owner: TBD.*\n4. **Add a pre-publish check** that compares row counts and daily revenue against a baseline before the dashboard refresh and exec email run. Block publication on failure. *Owner: TBD.*\n5. **Alert on job timeouts and retries** to the data eng on-call channel. *Owner: TBD.*\n6. **Send a correction to exec recipients** if the 08:00 email has not already been corrected. *Owner: TBD.*"
+              },
+              {
+                "name": "convention-2",
+                "passed": false,
+                "weight": 1,
+                "explanation": "judge votes: FAIL FAIL FAIL",
+                "withOnly": false,
+                "scored": true,
+                "judgeVotes": [
+                  false,
+                  false,
+                  false
+                ],
+                "evidence": "# Incident Write-up: Duplicate Orders Inflated Monday Revenue Dashboard\n\n**Date:** Monday\n**Times:** PST\n**Status:** Resolved. Duplicates deleted and dashboard corrected at 12:05. Open items below.\n\n## Summary\n\nThe nightly orders load timed out partway through, and the scheduler retried the whole job from step 1 instead of resuming. The first attempt's rows had already been inserted, so every order that attempt wrote was duplicated. The orders table has no unique key, so nothing rejected the second copies. Monday's revenue was overstated by about $1.4M. The weekly exec email went out at 08:00 with the inflated figures. Finance caught the discrepancy against bank deposits, and data engineering removed the duplicates by `order_id`.\n\n## Impact\n\n- **Exec weekly email (08:00):** sent with overstated Monday revenue. Correction status not yet confirmed.\n- **Dashboard:** showed inflated Monday revenue from 02:40 until the 12:05 refresh, about 9h25m.\n- **Data:** every order from the first load attempt was duplicated in the orders table until deletion at 11:30.\n- **Magnitude:** about $1.4M, based on Marcus's comparison to expected bank deposits. Confirm against the total of the deleted rows.\n\n## Timeline (PST, Monday)\n\n| Time  | Event |\n|-------|-------|\n| 02:10 | Nightly orders load times out at step 3 of 5. |\n| 02:25 | Scheduler auto-retries the entire job from step 1. |\n| 02:40 | Retry succeeds. Rows from the first attempt are already in the table, so every order is duplicated. No alert fires. |\n| 08:00 | Weekly exec email goes out with inflated dashboard numbers. |\n| 09:15 | Marcus (finance) notices Monday revenue is about $1.4M above expected bank deposits. |\n| 11:30 | Elena (data eng) confirms duplicates and deletes them by `order_id`. |\n| 12:05 | Dashboard refreshes and shows the correct figure. |\n\n**Time from duplication to detection:** about 6h35m (02:40 to 09:15), and the exec email went out before detection.\n**Time from detection to fix:** about 2h50m (09:15 to 12:05).\n\n## Root Causes\n\n1. **Non-idempotent load.** The job appends rows and has no way to detect or skip rows already written by an earlier attempt.\n2. **No unique constraint on the orders table.** Duplicate `order_id` values were accepted silently.\n3. **Retry restarts from step 1.** The scheduler re-executes the whole job, not the failed step, so any completed insert work is repeated.\n\n## Contributing Factors\n\n- **No data validation before publication.** Nothing compared the row count or revenue total against expectations before the dashboard and exec email were generated.\n- **No alert on the timeout or the retry.** The 02:25 retry was silent to anyone outside the job.\n- **Detection depended on a downstream human.** The error was caught by a finance analyst comparing against bank deposits, not by a control.\n\n## What Went Well\n\n- Marcus's reconciliation against bank deposits caught the error before anyone acted on it further.\n- Elena identified the duplicates and removed them by `order_id` the same morning.\n\n## Open Questions\n\n- **Retry configuration:** nobody has yet reviewed whether the scheduler's retry-from-step-1 setting was deliberate or a default. This needs an owner and an answer.\n- **Exec email correction:** has a correction gone to the exec recipients?\n- **Delete verification:** confirm that the deletion removed exactly the second copies and that no legitimately repeated `order_id` values were affected.\n- **Final figure:** confirm the overstatement amount from the deleted rows.\n\n## Action Items (proposed, owners TBD)\n\n1. **Review the scheduler retry config.** Decide whether retries should resume from the failed step or be disabled for non-idempotent jobs. *Owner: TBD.*\n2. **Make the load idempotent.** Use a staging-and-swap pattern, a delete-then-insert by batch, or upserts keyed on `order_id`. *Owner: TBD.*\n3. **Add a unique constraint on `order_id`** in the orders table, so duplicates fail loudly. *Owner: TBD.*\n4. **Add a pre-publish check** that compares row counts and daily revenue against a baseline before the dashboard refresh and exec email run. Block publication on failure. *Owner: TBD.*\n5. **Alert on job timeouts and retries** to the data eng on-call channel. *Owner: TBD.*\n6. **Send a correction to exec recipients** if the 08:00 email has not already been corrected. *Owner: TBD.*"
+              },
+              {
+                "name": "substance-1",
+                "passed": true,
+                "weight": 1,
+                "explanation": "judge votes: PASS PASS PASS",
+                "withOnly": false,
+                "scored": true,
+                "judgeVotes": [
+                  true,
+                  true,
+                  true
+                ],
+                "evidence": "# Incident Write-up: Duplicate Orders Inflated Monday Revenue Dashboard\n\n**Date:** Monday\n**Times:** PST\n**Status:** Resolved. Duplicates deleted and dashboard corrected at 12:05. Open items below.\n\n## Summary\n\nThe nightly orders load timed out partway through, and the scheduler retried the whole job from step 1 instead of resuming. The first attempt's rows had already been inserted, so every order that attempt wrote was duplicated. The orders table has no unique key, so nothing rejected the second copies. Monday's revenue was overstated by about $1.4M. The weekly exec email went out at 08:00 with the inflated figures. Finance caught the discrepancy against bank deposits, and data engineering removed the duplicates by `order_id`.\n\n## Impact\n\n- **Exec weekly email (08:00):** sent with overstated Monday revenue. Correction status not yet confirmed.\n- **Dashboard:** showed inflated Monday revenue from 02:40 until the 12:05 refresh, about 9h25m.\n- **Data:** every order from the first load attempt was duplicated in the orders table until deletion at 11:30.\n- **Magnitude:** about $1.4M, based on Marcus's comparison to expected bank deposits. Confirm against the total of the deleted rows.\n\n## Timeline (PST, Monday)\n\n| Time  | Event |\n|-------|-------|\n| 02:10 | Nightly orders load times out at step 3 of 5. |\n| 02:25 | Scheduler auto-retries the entire job from step 1. |\n| 02:40 | Retry succeeds. Rows from the first attempt are already in the table, so every order is duplicated. No alert fires. |\n| 08:00 | Weekly exec email goes out with inflated dashboard numbers. |\n| 09:15 | Marcus (finance) notices Monday revenue is about $1.4M above expected bank deposits. |\n| 11:30 | Elena (data eng) confirms duplicates and deletes them by `order_id`. |\n| 12:05 | Dashboard refreshes and shows the correct figure. |\n\n**Time from duplication to detection:** about 6h35m (02:40 to 09:15), and the exec email went out before detection.\n**Time from detection to fix:** about 2h50m (09:15 to 12:05).\n\n## Root Causes\n\n1. **Non-idempotent load.** The job appends rows and has no way to detect or skip rows already written by an earlier attempt.\n2. **No unique constraint on the orders table.** Duplicate `order_id` values were accepted silently.\n3. **Retry restarts from step 1.** The scheduler re-executes the whole job, not the failed step, so any completed insert work is repeated.\n\n## Contributing Factors\n\n- **No data validation before publication.** Nothing compared the row count or revenue total against expectations before the dashboard and exec email were generated.\n- **No alert on the timeout or the retry.** The 02:25 retry was silent to anyone outside the job.\n- **Detection depended on a downstream human.** The error was caught by a finance analyst comparing against bank deposits, not by a control.\n\n## What Went Well\n\n- Marcus's reconciliation against bank deposits caught the error before anyone acted on it further.\n- Elena identified the duplicates and removed them by `order_id` the same morning.\n\n## Open Questions\n\n- **Retry configuration:** nobody has yet reviewed whether the scheduler's retry-from-step-1 setting was deliberate or a default. This needs an owner and an answer.\n- **Exec email correction:** has a correction gone to the exec recipients?\n- **Delete verification:** confirm that the deletion removed exactly the second copies and that no legitimately repeated `order_id` values were affected.\n- **Final figure:** confirm the overstatement amount from the deleted rows.\n\n## Action Items (proposed, owners TBD)\n\n1. **Review the scheduler retry config.** Decide whether retries should resume from the failed step or be disabled for non-idempotent jobs. *Owner: TBD.*\n2. **Make the load idempotent.** Use a staging-and-swap pattern, a delete-then-insert by batch, or upserts keyed on `order_id`. *Owner: TBD.*\n3. **Add a unique constraint on `order_id`** in the orders table, so duplicates fail loudly. *Owner: TBD.*\n4. **Add a pre-publish check** that compares row counts and daily revenue against a baseline before the dashboard refresh and exec email run. Block publication on failure. *Owner: TBD.*\n5. **Alert on job timeouts and retries** to the data eng on-call channel. *Owner: TBD.*\n6. **Send a correction to exec recipients** if the 08:00 email has not already been corrected. *Owner: TBD.*"
+              },
+              {
+                "name": "substance-2",
+                "passed": true,
+                "weight": 1,
+                "explanation": "judge votes: PASS PASS PASS",
+                "withOnly": false,
+                "scored": true,
+                "judgeVotes": [
+                  true,
+                  true,
+                  true
+                ],
+                "evidence": "# Incident Write-up: Duplicate Orders Inflated Monday Revenue Dashboard\n\n**Date:** Monday\n**Times:** PST\n**Status:** Resolved. Duplicates deleted and dashboard corrected at 12:05. Open items below.\n\n## Summary\n\nThe nightly orders load timed out partway through, and the scheduler retried the whole job from step 1 instead of resuming. The first attempt's rows had already been inserted, so every order that attempt wrote was duplicated. The orders table has no unique key, so nothing rejected the second copies. Monday's revenue was overstated by about $1.4M. The weekly exec email went out at 08:00 with the inflated figures. Finance caught the discrepancy against bank deposits, and data engineering removed the duplicates by `order_id`.\n\n## Impact\n\n- **Exec weekly email (08:00):** sent with overstated Monday revenue. Correction status not yet confirmed.\n- **Dashboard:** showed inflated Monday revenue from 02:40 until the 12:05 refresh, about 9h25m.\n- **Data:** every order from the first load attempt was duplicated in the orders table until deletion at 11:30.\n- **Magnitude:** about $1.4M, based on Marcus's comparison to expected bank deposits. Confirm against the total of the deleted rows.\n\n## Timeline (PST, Monday)\n\n| Time  | Event |\n|-------|-------|\n| 02:10 | Nightly orders load times out at step 3 of 5. |\n| 02:25 | Scheduler auto-retries the entire job from step 1. |\n| 02:40 | Retry succeeds. Rows from the first attempt are already in the table, so every order is duplicated. No alert fires. |\n| 08:00 | Weekly exec email goes out with inflated dashboard numbers. |\n| 09:15 | Marcus (finance) notices Monday revenue is about $1.4M above expected bank deposits. |\n| 11:30 | Elena (data eng) confirms duplicates and deletes them by `order_id`. |\n| 12:05 | Dashboard refreshes and shows the correct figure. |\n\n**Time from duplication to detection:** about 6h35m (02:40 to 09:15), and the exec email went out before detection.\n**Time from detection to fix:** about 2h50m (09:15 to 12:05).\n\n## Root Causes\n\n1. **Non-idempotent load.** The job appends rows and has no way to detect or skip rows already written by an earlier attempt.\n2. **No unique constraint on the orders table.** Duplicate `order_id` values were accepted silently.\n3. **Retry restarts from step 1.** The scheduler re-executes the whole job, not the failed step, so any completed insert work is repeated.\n\n## Contributing Factors\n\n- **No data validation before publication.** Nothing compared the row count or revenue total against expectations before the dashboard and exec email were generated.\n- **No alert on the timeout or the retry.** The 02:25 retry was silent to anyone outside the job.\n- **Detection depended on a downstream human.** The error was caught by a finance analyst comparing against bank deposits, not by a control.\n\n## What Went Well\n\n- Marcus's reconciliation against bank deposits caught the error before anyone acted on it further.\n- Elena identified the duplicates and removed them by `order_id` the same morning.\n\n## Open Questions\n\n- **Retry configuration:** nobody has yet reviewed whether the scheduler's retry-from-step-1 setting was deliberate or a default. This needs an owner and an answer.\n- **Exec email correction:** has a correction gone to the exec recipients?\n- **Delete verification:** confirm that the deletion removed exactly the second copies and that no legitimately repeated `order_id` values were affected.\n- **Final figure:** confirm the overstatement amount from the deleted rows.\n\n## Action Items (proposed, owners TBD)\n\n1. **Review the scheduler retry config.** Decide whether retries should resume from the failed step or be disabled for non-idempotent jobs. *Owner: TBD.*\n2. **Make the load idempotent.** Use a staging-and-swap pattern, a delete-then-insert by batch, or upserts keyed on `order_id`. *Owner: TBD.*\n3. **Add a unique constraint on `order_id`** in the orders table, so duplicates fail loudly. *Owner: TBD.*\n4. **Add a pre-publish check** that compares row counts and daily revenue against a baseline before the dashboard refresh and exec email run. Block publication on failure. *Owner: TBD.*\n5. **Alert on job timeouts and retries** to the data eng on-call channel. *Owner: TBD.*\n6. **Send a correction to exec recipients** if the 08:00 email has not already been corrected. *Owner: TBD.*"
+              }
+            ]
+          },
+          {
+            "score": 0.5,
+            "passed": false,
+            "turns": 1,
+            "costUsd": 0.18399829999999995,
+            "judgeCostUsd": 0.18136599999999994,
+            "durationSeconds": 31,
+            "startedAt": "2026-11-10T21:27:07.777Z",
+            "error": null,
+            "tracePath": "/tmp/claude-eval-gtJcXE/out/trace.jsonl",
+            "skippedPaidGraders": false,
+            "graders": [
+              {
+                "name": "convention-1",
+                "passed": false,
+                "weight": 1,
+                "explanation": "judge votes: FAIL FAIL FAIL",
+                "withOnly": false,
+                "scored": true,
+                "judgeVotes": [
+                  false,
+                  false,
+                  false
+                ],
+                "evidence": "# Incident Write-up: Duplicate Orders in Revenue Dashboard (Monday)\n\n**Status:** Resolved. Duplicates removed and dashboard corrected at 12:05 PST.\n**Times:** All times PST.\n**Owners:** Elena (data eng) resolved the incident. Marcus (finance analyst) detected it.\n\n## Summary\n\nThe nightly orders load timed out at step 3 of 5. The scheduler automatically retried the whole job from step 1. The retry succeeded, but orders from the first attempt had already been inserted. The orders table has no unique key, so every order was loaded twice. The weekly executive email went out at 08:00 with the inflated figures. Finance caught the discrepancy at 09:15 and data engineering removed the duplicates by `order_id` at 11:30.\n\n## Timeline\n\n| Time (PST) | Event |\n|---|---|\n| Mon 02:10 | Nightly orders load times out at step 3 of 5. |\n| Mon 02:25 | Scheduler auto-retries the entire job from step 1. |\n| Mon 02:40 | Retry succeeds. Orders from the first attempt are already in the table, so every order is duplicated. |\n| Mon 08:00 | Weekly executive email sends dashboard figures based on duplicated data. |\n| Mon 09:15 | Marcus notices Monday revenue is about $1.4M above expected bank deposits. |\n| Mon 11:30 | Elena confirms duplicates and deletes them by `order_id`. |\n| Mon 12:05 | Dashboard refreshes and shows the correct figure. |\n\n**Exposure window:** about 02:40 to 11:30, roughly 8h50m, during which the table held duplicated orders.\n\n## Root Causes\n\n1. **Non-idempotent load.** Re-running the job inserts rows again instead of replacing or skipping them.\n2. **No unique constraint on the orders table.** Nothing in the database prevents the same order from being stored twice.\n3. **Retry restarts from step 1, not from the failed step.** Steps 1 and 2 re-ran against a table that already held step 3's output from the first attempt (inferred from the timeline; confirm against job logs).\n\n## Contributing Factors\n\n- **No post-load validation.** Nothing compared row counts or revenue totals against the source or bank deposits before the load was marked successful.\n- **Scheduled report ran without a data-quality gate.** The 08:00 executive email went out six hours after the bad load with no check.\n- **Detection depended on a person.** Marcus caught the problem by comparing against bank deposits. No automated alert caught it.\n- **The timeout itself was not explained.** The timeout at step 3 is the trigger, and the timeline doesn't say why it happened.\n\n## Impact\n\n- Monday's revenue was overstated by about $1.4M on the dashboard and in the 08:00 executive email. (The $1.4M is Marcus's discrepancy against bank deposits; confirm it matches the sum of deleted duplicates.)\n- The executive email recipients received incorrect figures. Whether a correction was sent is not recorded in the timeline.\n- Any decisions made from the 08:00 email or the dashboard between 08:00 and 12:05 were based on wrong numbers. Scope of that is unknown.\n\n## Open Questions\n\n1. **Retry configuration.** Was the scheduler's retry setting for this job reviewed? Was whole-job retry intended, or a default that was never changed? Who owns that setting? *(Nobody has answered this yet.)*\n2. **Why did step 3 time out?** Is it a capacity issue, a lock, a query regression, or a source-side delay?\n3. **Was a correction sent to the executive email recipients?** If not, who decides, and when?\n4. **Are the deletions verified?** Confirm that deleted rows were exact duplicates (same `order_id` and matching content, not a key collision), and that the post-cleanup total reconciles with bank deposits.\n5. **Are there other jobs with the same pattern** (non-idempotent load, no unique key, retry from step 1)?\n\n## Action Items (proposed)\n\n| # | Action | Suggested owner | Priority |\n|---|---|---|---|\n| 1 | Review the scheduler retry setting for the orders job. Change to resume from the failed step or to fully idempotent re-run. | Data eng | High |\n| 2 | Add a unique constraint on `order_id` (or an equivalent upsert/merge key) to the orders table. | Data eng | High |\n| 3 | Add row-count and revenue-total checks after load; fail the job and block downstream publishing if they don't match expectations. | Data eng | High |\n| 4 | Gate the weekly executive email on a data-freshness and validation check. | Data eng + Finance | High |\n| 5 | Add an automated alert for revenue variance versus the bank-deposit or source-system baseline. | Finance + Data eng | Medium |\n| 6 | Investigate and document the cause of the step 3 timeout. | Data eng | Medium |\n| 7 | Audit other scheduled jobs for the same retry and idempotency pattern. | Data eng | Medium |\n| 8 | Document the cleanup procedure and verification steps used on Monday. | Elena | Low |\n\nOwners and priorities are suggestions for the team to confirm."
+              },
+              {
+                "name": "convention-2",
+                "passed": false,
+                "weight": 1,
+                "explanation": "judge votes: FAIL FAIL FAIL",
+                "withOnly": false,
+                "scored": true,
+                "judgeVotes": [
+                  false,
+                  false,
+                  false
+                ],
+                "evidence": "# Incident Write-up: Duplicate Orders in Revenue Dashboard (Monday)\n\n**Status:** Resolved. Duplicates removed and dashboard corrected at 12:05 PST.\n**Times:** All times PST.\n**Owners:** Elena (data eng) resolved the incident. Marcus (finance analyst) detected it.\n\n## Summary\n\nThe nightly orders load timed out at step 3 of 5. The scheduler automatically retried the whole job from step 1. The retry succeeded, but orders from the first attempt had already been inserted. The orders table has no unique key, so every order was loaded twice. The weekly executive email went out at 08:00 with the inflated figures. Finance caught the discrepancy at 09:15 and data engineering removed the duplicates by `order_id` at 11:30.\n\n## Timeline\n\n| Time (PST) | Event |\n|---|---|\n| Mon 02:10 | Nightly orders load times out at step 3 of 5. |\n| Mon 02:25 | Scheduler auto-retries the entire job from step 1. |\n| Mon 02:40 | Retry succeeds. Orders from the first attempt are already in the table, so every order is duplicated. |\n| Mon 08:00 | Weekly executive email sends dashboard figures based on duplicated data. |\n| Mon 09:15 | Marcus notices Monday revenue is about $1.4M above expected bank deposits. |\n| Mon 11:30 | Elena confirms duplicates and deletes them by `order_id`. |\n| Mon 12:05 | Dashboard refreshes and shows the correct figure. |\n\n**Exposure window:** about 02:40 to 11:30, roughly 8h50m, during which the table held duplicated orders.\n\n## Root Causes\n\n1. **Non-idempotent load.** Re-running the job inserts rows again instead of replacing or skipping them.\n2. **No unique constraint on the orders table.** Nothing in the database prevents the same order from being stored twice.\n3. **Retry restarts from step 1, not from the failed step.** Steps 1 and 2 re-ran against a table that already held step 3's output from the first attempt (inferred from the timeline; confirm against job logs).\n\n## Contributing Factors\n\n- **No post-load validation.** Nothing compared row counts or revenue totals against the source or bank deposits before the load was marked successful.\n- **Scheduled report ran without a data-quality gate.** The 08:00 executive email went out six hours after the bad load with no check.\n- **Detection depended on a person.** Marcus caught the problem by comparing against bank deposits. No automated alert caught it.\n- **The timeout itself was not explained.** The timeout at step 3 is the trigger, and the timeline doesn't say why it happened.\n\n## Impact\n\n- Monday's revenue was overstated by about $1.4M on the dashboard and in the 08:00 executive email. (The $1.4M is Marcus's discrepancy against bank deposits; confirm it matches the sum of deleted duplicates.)\n- The executive email recipients received incorrect figures. Whether a correction was sent is not recorded in the timeline.\n- Any decisions made from the 08:00 email or the dashboard between 08:00 and 12:05 were based on wrong numbers. Scope of that is unknown.\n\n## Open Questions\n\n1. **Retry configuration.** Was the scheduler's retry setting for this job reviewed? Was whole-job retry intended, or a default that was never changed? Who owns that setting? *(Nobody has answered this yet.)*\n2. **Why did step 3 time out?** Is it a capacity issue, a lock, a query regression, or a source-side delay?\n3. **Was a correction sent to the executive email recipients?** If not, who decides, and when?\n4. **Are the deletions verified?** Confirm that deleted rows were exact duplicates (same `order_id` and matching content, not a key collision), and that the post-cleanup total reconciles with bank deposits.\n5. **Are there other jobs with the same pattern** (non-idempotent load, no unique key, retry from step 1)?\n\n## Action Items (proposed)\n\n| # | Action | Suggested owner | Priority |\n|---|---|---|---|\n| 1 | Review the scheduler retry setting for the orders job. Change to resume from the failed step or to fully idempotent re-run. | Data eng | High |\n| 2 | Add a unique constraint on `order_id` (or an equivalent upsert/merge key) to the orders table. | Data eng | High |\n| 3 | Add row-count and revenue-total checks after load; fail the job and block downstream publishing if they don't match expectations. | Data eng | High |\n| 4 | Gate the weekly executive email on a data-freshness and validation check. | Data eng + Finance | High |\n| 5 | Add an automated alert for revenue variance versus the bank-deposit or source-system baseline. | Finance + Data eng | Medium |\n| 6 | Investigate and document the cause of the step 3 timeout. | Data eng | Medium |\n| 7 | Audit other scheduled jobs for the same retry and idempotency pattern. | Data eng | Medium |\n| 8 | Document the cleanup procedure and verification steps used on Monday. | Elena | Low |\n\nOwners and priorities are suggestions for the team to confirm."
+              },
+              {
+                "name": "substance-1",
+                "passed": true,
+                "weight": 1,
+                "explanation": "judge votes: PASS PASS PASS",
+                "withOnly": false,
+                "scored": true,
+                "judgeVotes": [
+                  true,
+                  true,
+                  true
+                ],
+                "evidence": "# Incident Write-up: Duplicate Orders in Revenue Dashboard (Monday)\n\n**Status:** Resolved. Duplicates removed and dashboard corrected at 12:05 PST.\n**Times:** All times PST.\n**Owners:** Elena (data eng) resolved the incident. Marcus (finance analyst) detected it.\n\n## Summary\n\nThe nightly orders load timed out at step 3 of 5. The scheduler automatically retried the whole job from step 1. The retry succeeded, but orders from the first attempt had already been inserted. The orders table has no unique key, so every order was loaded twice. The weekly executive email went out at 08:00 with the inflated figures. Finance caught the discrepancy at 09:15 and data engineering removed the duplicates by `order_id` at 11:30.\n\n## Timeline\n\n| Time (PST) | Event |\n|---|---|\n| Mon 02:10 | Nightly orders load times out at step 3 of 5. |\n| Mon 02:25 | Scheduler auto-retries the entire job from step 1. |\n| Mon 02:40 | Retry succeeds. Orders from the first attempt are already in the table, so every order is duplicated. |\n| Mon 08:00 | Weekly executive email sends dashboard figures based on duplicated data. |\n| Mon 09:15 | Marcus notices Monday revenue is about $1.4M above expected bank deposits. |\n| Mon 11:30 | Elena confirms duplicates and deletes them by `order_id`. |\n| Mon 12:05 | Dashboard refreshes and shows the correct figure. |\n\n**Exposure window:** about 02:40 to 11:30, roughly 8h50m, during which the table held duplicated orders.\n\n## Root Causes\n\n1. **Non-idempotent load.** Re-running the job inserts rows again instead of replacing or skipping them.\n2. **No unique constraint on the orders table.** Nothing in the database prevents the same order from being stored twice.\n3. **Retry restarts from step 1, not from the failed step.** Steps 1 and 2 re-ran against a table that already held step 3's output from the first attempt (inferred from the timeline; confirm against job logs).\n\n## Contributing Factors\n\n- **No post-load validation.** Nothing compared row counts or revenue totals against the source or bank deposits before the load was marked successful.\n- **Scheduled report ran without a data-quality gate.** The 08:00 executive email went out six hours after the bad load with no check.\n- **Detection depended on a person.** Marcus caught the problem by comparing against bank deposits. No automated alert caught it.\n- **The timeout itself was not explained.** The timeout at step 3 is the trigger, and the timeline doesn't say why it happened.\n\n## Impact\n\n- Monday's revenue was overstated by about $1.4M on the dashboard and in the 08:00 executive email. (The $1.4M is Marcus's discrepancy against bank deposits; confirm it matches the sum of deleted duplicates.)\n- The executive email recipients received incorrect figures. Whether a correction was sent is not recorded in the timeline.\n- Any decisions made from the 08:00 email or the dashboard between 08:00 and 12:05 were based on wrong numbers. Scope of that is unknown.\n\n## Open Questions\n\n1. **Retry configuration.** Was the scheduler's retry setting for this job reviewed? Was whole-job retry intended, or a default that was never changed? Who owns that setting? *(Nobody has answered this yet.)*\n2. **Why did step 3 time out?** Is it a capacity issue, a lock, a query regression, or a source-side delay?\n3. **Was a correction sent to the executive email recipients?** If not, who decides, and when?\n4. **Are the deletions verified?** Confirm that deleted rows were exact duplicates (same `order_id` and matching content, not a key collision), and that the post-cleanup total reconciles with bank deposits.\n5. **Are there other jobs with the same pattern** (non-idempotent load, no unique key, retry from step 1)?\n\n## Action Items (proposed)\n\n| # | Action | Suggested owner | Priority |\n|---|---|---|---|\n| 1 | Review the scheduler retry setting for the orders job. Change to resume from the failed step or to fully idempotent re-run. | Data eng | High |\n| 2 | Add a unique constraint on `order_id` (or an equivalent upsert/merge key) to the orders table. | Data eng | High |\n| 3 | Add row-count and revenue-total checks after load; fail the job and block downstream publishing if they don't match expectations. | Data eng | High |\n| 4 | Gate the weekly executive email on a data-freshness and validation check. | Data eng + Finance | High |\n| 5 | Add an automated alert for revenue variance versus the bank-deposit or source-system baseline. | Finance + Data eng | Medium |\n| 6 | Investigate and document the cause of the step 3 timeout. | Data eng | Medium |\n| 7 | Audit other scheduled jobs for the same retry and idempotency pattern. | Data eng | Medium |\n| 8 | Document the cleanup procedure and verification steps used on Monday. | Elena | Low |\n\nOwners and priorities are suggestions for the team to confirm."
+              },
+              {
+                "name": "substance-2",
+                "passed": true,
+                "weight": 1,
+                "explanation": "judge votes: PASS PASS PASS",
+                "withOnly": false,
+                "scored": true,
+                "judgeVotes": [
+                  true,
+                  true,
+                  true
+                ],
+                "evidence": "# Incident Write-up: Duplicate Orders in Revenue Dashboard (Monday)\n\n**Status:** Resolved. Duplicates removed and dashboard corrected at 12:05 PST.\n**Times:** All times PST.\n**Owners:** Elena (data eng) resolved the incident. Marcus (finance analyst) detected it.\n\n## Summary\n\nThe nightly orders load timed out at step 3 of 5. The scheduler automatically retried the whole job from step 1. The retry succeeded, but orders from the first attempt had already been inserted. The orders table has no unique key, so every order was loaded twice. The weekly executive email went out at 08:00 with the inflated figures. Finance caught the discrepancy at 09:15 and data engineering removed the duplicates by `order_id` at 11:30.\n\n## Timeline\n\n| Time (PST) | Event |\n|---|---|\n| Mon 02:10 | Nightly orders load times out at step 3 of 5. |\n| Mon 02:25 | Scheduler auto-retries the entire job from step 1. |\n| Mon 02:40 | Retry succeeds. Orders from the first attempt are already in the table, so every order is duplicated. |\n| Mon 08:00 | Weekly executive email sends dashboard figures based on duplicated data. |\n| Mon 09:15 | Marcus notices Monday revenue is about $1.4M above expected bank deposits. |\n| Mon 11:30 | Elena confirms duplicates and deletes them by `order_id`. |\n| Mon 12:05 | Dashboard refreshes and shows the correct figure. |\n\n**Exposure window:** about 02:40 to 11:30, roughly 8h50m, during which the table held duplicated orders.\n\n## Root Causes\n\n1. **Non-idempotent load.** Re-running the job inserts rows again instead of replacing or skipping them.\n2. **No unique constraint on the orders table.** Nothing in the database prevents the same order from being stored twice.\n3. **Retry restarts from step 1, not from the failed step.** Steps 1 and 2 re-ran against a table that already held step 3's output from the first attempt (inferred from the timeline; confirm against job logs).\n\n## Contributing Factors\n\n- **No post-load validation.** Nothing compared row counts or revenue totals against the source or bank deposits before the load was marked successful.\n- **Scheduled report ran without a data-quality gate.** The 08:00 executive email went out six hours after the bad load with no check.\n- **Detection depended on a person.** Marcus caught the problem by comparing against bank deposits. No automated alert caught it.\n- **The timeout itself was not explained.** The timeout at step 3 is the trigger, and the timeline doesn't say why it happened.\n\n## Impact\n\n- Monday's revenue was overstated by about $1.4M on the dashboard and in the 08:00 executive email. (The $1.4M is Marcus's discrepancy against bank deposits; confirm it matches the sum of deleted duplicates.)\n- The executive email recipients received incorrect figures. Whether a correction was sent is not recorded in the timeline.\n- Any decisions made from the 08:00 email or the dashboard between 08:00 and 12:05 were based on wrong numbers. Scope of that is unknown.\n\n## Open Questions\n\n1. **Retry configuration.** Was the scheduler's retry setting for this job reviewed? Was whole-job retry intended, or a default that was never changed? Who owns that setting? *(Nobody has answered this yet.)*\n2. **Why did step 3 time out?** Is it a capacity issue, a lock, a query regression, or a source-side delay?\n3. **Was a correction sent to the executive email recipients?** If not, who decides, and when?\n4. **Are the deletions verified?** Confirm that deleted rows were exact duplicates (same `order_id` and matching content, not a key collision), and that the post-cleanup total reconciles with bank deposits.\n5. **Are there other jobs with the same pattern** (non-idempotent load, no unique key, retry from step 1)?\n\n## Action Items (proposed)\n\n| # | Action | Suggested owner | Priority |\n|---|---|---|---|\n| 1 | Review the scheduler retry setting for the orders job. Change to resume from the failed step or to fully idempotent re-run. | Data eng | High |\n| 2 | Add a unique constraint on `order_id` (or an equivalent upsert/merge key) to the orders table. | Data eng | High |\n| 3 | Add row-count and revenue-total checks after load; fail the job and block downstream publishing if they don't match expectations. | Data eng | High |\n| 4 | Gate the weekly executive email on a data-freshness and validation check. | Data eng + Finance | High |\n| 5 | Add an automated alert for revenue variance versus the bank-deposit or source-system baseline. | Finance + Data eng | Medium |\n| 6 | Investigate and document the cause of the step 3 timeout. | Data eng | Medium |\n| 7 | Audit other scheduled jobs for the same retry and idempotency pattern. | Data eng | Medium |\n| 8 | Document the cleanup procedure and verification steps used on Monday. | Elena | Low |\n\nOwners and priorities are suggestions for the team to confirm."
+              }
+            ]
+          }
+        ]
+      },
+      "aggregates": {
+        "score": 0.5,
+        "passRate": 0
+      }
+    },
+    {
+      "name": "case-08",
+      "dir": "evals/case-08",
+      "source": "prose",
+      "promptMarkdown": "checkout 500s from the other day, rough notes from the thread, can you make this into a proper write-up\n\nRahul turned on the new-tax-calc flag for 5% of users but typed 50 instead. The flag UI just takes any number, no confirm step.\nStarted around 10:20. Sofia (support lead) was first to notice, lots of tickets, and it was only people paying with a saved card.\nAiyana (on-call) rolled the flag back to 0, don't remember when exactly.\nWhy saved cards: the new tax calc crashes when the card's billing region is null, and old saved cards have null region.\nThe checkout error rate alert did fire but its threshold was 20% so it didn't page at first.\nGood thing: rollback via the flag was fast once somebody looked.\nNobody has counted the failed orders yet.",
+      "runsPerCase": 3,
+      "timeoutSeconds": 300,
+      "maxTurns": 10,
+      "graders": [
+        {
+          "name": "convention-1",
+          "type": "llm",
+          "weight": 1,
+          "graderMarkdown": "The response has exactly these six sections in this order: Summary, Impact, Timeline, Contributing factors, What went well, Actions.",
+          "config": {
+            "criteria": "The response has exactly these six sections in this order: Summary, Impact, Timeline, Contributing factors, What went well, Actions.",
+            "focus": "last_message"
+          }
+        },
+        {
+          "name": "convention-2",
+          "type": "llm",
+          "weight": 1,
+          "graderMarkdown": "The response records the number of failed orders as `UNKNOWN - ask` followed by a role, and does not state any number for it.",
+          "config": {
+            "criteria": "The response records the number of failed orders as `UNKNOWN - ask` followed by a role, and does not state any number for it.",
+            "focus": "last_message"
+          }
+        },
+        {
+          "name": "substance-1",
+          "type": "llm",
+          "weight": 1,
+          "graderMarkdown": "The response states that errors were limited to saved-card payments because the new tax calculation crashes when the card's billing region is null and older saved cards have no billing region.",
+          "config": {
+            "criteria": "The response states that errors were limited to saved-card payments because the new tax calculation crashes when the card's billing region is null and older saved cards have no billing region.",
+            "focus": "last_message"
+          }
+        },
+        {
+          "name": "substance-2",
+          "type": "llm",
+          "weight": 1,
+          "graderMarkdown": "The response lists as a contributing factor that the checkout error rate alert had a 20% threshold, so it did not page promptly.",
+          "config": {
+            "criteria": "The response lists as a contributing factor that the checkout error rate alert had a 20% threshold, so it did not page promptly.",
+            "focus": "last_message"
+          }
+        }
+      ],
+      "arms": {
+        "with": [
+          {
+            "score": 0.5,
+            "passed": false,
+            "turns": 1,
+            "costUsd": 0.16676049999999995,
+            "judgeCostUsd": 0.16432799999999995,
+            "durationSeconds": 28,
+            "startedAt": "2026-11-10T21:27:10.925Z",
+            "error": null,
+            "tracePath": "/tmp/claude-eval-Eb5bsx/out/trace.jsonl",
+            "skippedPaidGraders": false,
+            "graders": [
+              {
+                "name": "convention-1",
+                "passed": false,
+                "weight": 1,
+                "explanation": "judge votes: FAIL FAIL FAIL",
+                "withOnly": false,
+                "scored": true,
+                "judgeVotes": [
+                  false,
+                  false,
+                  false
+                ],
+                "evidence": "# Incident write-up: checkout 500s from new tax calculation flag\n\n**Date:** [TBD]\n**Status:** Draft, based on rough notes from the incident thread\n**Severity:** [TBD]\n**Affected:** Checkout for users paying with a saved card\n\n## Summary\n\nA percentage rollout of the `new-tax-calc` flag was set to 50% instead of the intended 5%. The flag UI accepts any number and has no confirmation step. The new tax calculation crashes when a card's billing region is null, and older saved cards have null regions. Checkout returned 500s for saved-card payments until the flag was rolled back to 0. The checkout error-rate alert fired, but its 20% threshold meant it did not page on-call at first. The number of failed orders has not been counted.\n\n## Impact\n\n- Checkout failures (HTTP 500) for users paying with a saved card, at up to 10× the intended rollout exposure.\n- Support ticket volume rose sharply. Support lead Sofia noticed first.\n- Failed-order count: **not yet determined.**\n- Customer-facing impact beyond failed checkouts (abandoned carts, duplicate charges, retries): **not yet determined.**\n\n## Timeline\n\nTimes are approximate where noted. Exact timestamps should be pulled from flag audit logs, deploy records, and alert history.\n\n| Time | Event |\n|---|---|\n| [TBD] | Flag `new-tax-calc` set to 50 instead of 5 by Rahul. No confirmation step in the UI. |\n| ~10:20 | Flag takes effect. Checkout errors begin for saved-card payments. *(Start time per notes; confirm.)* |\n| [TBD] | Checkout error-rate alert fires. Threshold is 20%, so it does not page. |\n| [TBD] | Support lead Sofia notices a rise in tickets and identifies the pattern: only saved-card payments fail. |\n| [TBD] | On-call Aiyana sets flag to 0 (rollback). |\n| [TBD] | Errors stop. *(Confirm end time.)* |\n\n**Time to detect:** [TBD]. Detection came from support tickets, not from alerting.\n**Time to mitigate:** [TBD]. Rollback was quick once someone looked.\n\n## Root causes\n\n1. **Direct cause:** The rollout percentage was entered as 50 instead of 5. The flag system treats the value as a percentage, so this is a valid input and nothing rejected it.\n2. **Code defect:** The new tax calculation does not handle a null billing region. Saved cards created before the region field was populated have null regions, so every saved-card checkout that reached the new code path crashed.\n3. **Testing gap (suspected):** Tests apparently did not cover saved cards with null billing regions. *(Confirm.)*\n\n## Contributing factors\n\n- **No validation or confirmation on flag changes.** Any numeric value is accepted, including values far above the intended rollout. There is no range check, no \"are you sure\" step, and no second approver for large changes.\n- **Alert threshold too high for this failure mode.** A 20% error-rate threshold did not catch a failure affecting a subset of users. Because only saved-card users were affected, the overall error rate probably stayed below the threshold. *(Confirm with the alert's query. The overall rate may not be the right signal for a segment-specific failure.)*\n- **No segment-level monitoring.** Nothing alerted on the saved-card failure pattern specifically.\n- **Detection depended on humans.** Support noticed before engineering did.\n\n## What went well\n\n- The feature flag gave a fast rollback path. Once someone looked, the change was reverted without a code deploy.\n- Support identified the pattern quickly (saved cards only), which pointed directly at the cause.\n\n## What went poorly\n\n- The bad value reached production with no check.\n- The alert did not page, so the incident was found through support tickets.\n- The failure was not caught in testing.\n- Failed orders have not been counted, so the impact is unknown.\n\n## Action items\n\n| # | Action | Owner | Priority |\n|---|---|---|---|\n| 1 | Count failed checkouts during the window, split by saved-card and other payments. Identify any that need customer follow-up or refunds. | [TBD] | **P0** |\n| 2 | Check for duplicate charges or partially completed orders from the failed checkouts. | [TBD] | **P0** |\n| 3 | Fix the tax calculation to handle null billing regions. Add a test for saved cards with null regions. | [TBD] | **P0** |\n| 4 | Add validation to the flag UI: reject or warn on values outside 0–100, and require a confirmation step for changes above a set size. | [TBD] | P1 |\n| 5 | Add a segment-aware alert for checkout errors by payment type, or lower the threshold for saved-card checkouts. | [TBD] | P1 |\n| 6 | Review whether the 20% threshold is appropriate for paging on checkout, and document it. | [TBD] | P2 |\n| 7 | Review backfill of billing region data for old saved cards, so the null-region case is less common. | [TBD] | P2 |\n| 8 | Add a runbook entry: flag rollback steps and who can perform them. | [TBD] | P2 |\n\n## Open questions\n\n- What were the exact start, detection, rollback, and recovery times?\n- How many checkouts failed, and how many were recovered on retry?\n- Did any customers get charged without an order completing?\n- Why did the change go out at 50 with no review? Was the flag UI the only path, or was there a review step that was skipped?\n- Do other flags use the same UI with the same missing validation?\n\n---\n\nI left owners and dates as [TBD] because the notes don't say who owns each item. If you tell me the timestamps and the failed-order count once you have them, I can fill in the timeline and impact sections."
+              },
+              {
+                "name": "convention-2",
+                "passed": false,
+                "weight": 1,
+                "explanation": "judge votes: FAIL FAIL FAIL",
+                "withOnly": false,
+                "scored": true,
+                "judgeVotes": [
+                  false,
+                  false,
+                  false
+                ],
+                "evidence": "# Incident write-up: checkout 500s from new tax calculation flag\n\n**Date:** [TBD]\n**Status:** Draft, based on rough notes from the incident thread\n**Severity:** [TBD]\n**Affected:** Checkout for users paying with a saved card\n\n## Summary\n\nA percentage rollout of the `new-tax-calc` flag was set to 50% instead of the intended 5%. The flag UI accepts any number and has no confirmation step. The new tax calculation crashes when a card's billing region is null, and older saved cards have null regions. Checkout returned 500s for saved-card payments until the flag was rolled back to 0. The checkout error-rate alert fired, but its 20% threshold meant it did not page on-call at first. The number of failed orders has not been counted.\n\n## Impact\n\n- Checkout failures (HTTP 500) for users paying with a saved card, at up to 10× the intended rollout exposure.\n- Support ticket volume rose sharply. Support lead Sofia noticed first.\n- Failed-order count: **not yet determined.**\n- Customer-facing impact beyond failed checkouts (abandoned carts, duplicate charges, retries): **not yet determined.**\n\n## Timeline\n\nTimes are approximate where noted. Exact timestamps should be pulled from flag audit logs, deploy records, and alert history.\n\n| Time | Event |\n|---|---|\n| [TBD] | Flag `new-tax-calc` set to 50 instead of 5 by Rahul. No confirmation step in the UI. |\n| ~10:20 | Flag takes effect. Checkout errors begin for saved-card payments. *(Start time per notes; confirm.)* |\n| [TBD] | Checkout error-rate alert fires. Threshold is 20%, so it does not page. |\n| [TBD] | Support lead Sofia notices a rise in tickets and identifies the pattern: only saved-card payments fail. |\n| [TBD] | On-call Aiyana sets flag to 0 (rollback). |\n| [TBD] | Errors stop. *(Confirm end time.)* |\n\n**Time to detect:** [TBD]. Detection came from support tickets, not from alerting.\n**Time to mitigate:** [TBD]. Rollback was quick once someone looked.\n\n## Root causes\n\n1. **Direct cause:** The rollout percentage was entered as 50 instead of 5. The flag system treats the value as a percentage, so this is a valid input and nothing rejected it.\n2. **Code defect:** The new tax calculation does not handle a null billing region. Saved cards created before the region field was populated have null regions, so every saved-card checkout that reached the new code path crashed.\n3. **Testing gap (suspected):** Tests apparently did not cover saved cards with null billing regions. *(Confirm.)*\n\n## Contributing factors\n\n- **No validation or confirmation on flag changes.** Any numeric value is accepted, including values far above the intended rollout. There is no range check, no \"are you sure\" step, and no second approver for large changes.\n- **Alert threshold too high for this failure mode.** A 20% error-rate threshold did not catch a failure affecting a subset of users. Because only saved-card users were affected, the overall error rate probably stayed below the threshold. *(Confirm with the alert's query. The overall rate may not be the right signal for a segment-specific failure.)*\n- **No segment-level monitoring.** Nothing alerted on the saved-card failure pattern specifically.\n- **Detection depended on humans.** Support noticed before engineering did.\n\n## What went well\n\n- The feature flag gave a fast rollback path. Once someone looked, the change was reverted without a code deploy.\n- Support identified the pattern quickly (saved cards only), which pointed directly at the cause.\n\n## What went poorly\n\n- The bad value reached production with no check.\n- The alert did not page, so the incident was found through support tickets.\n- The failure was not caught in testing.\n- Failed orders have not been counted, so the impact is unknown.\n\n## Action items\n\n| # | Action | Owner | Priority |\n|---|---|---|---|\n| 1 | Count failed checkouts during the window, split by saved-card and other payments. Identify any that need customer follow-up or refunds. | [TBD] | **P0** |\n| 2 | Check for duplicate charges or partially completed orders from the failed checkouts. | [TBD] | **P0** |\n| 3 | Fix the tax calculation to handle null billing regions. Add a test for saved cards with null regions. | [TBD] | **P0** |\n| 4 | Add validation to the flag UI: reject or warn on values outside 0–100, and require a confirmation step for changes above a set size. | [TBD] | P1 |\n| 5 | Add a segment-aware alert for checkout errors by payment type, or lower the threshold for saved-card checkouts. | [TBD] | P1 |\n| 6 | Review whether the 20% threshold is appropriate for paging on checkout, and document it. | [TBD] | P2 |\n| 7 | Review backfill of billing region data for old saved cards, so the null-region case is less common. | [TBD] | P2 |\n| 8 | Add a runbook entry: flag rollback steps and who can perform them. | [TBD] | P2 |\n\n## Open questions\n\n- What were the exact start, detection, rollback, and recovery times?\n- How many checkouts failed, and how many were recovered on retry?\n- Did any customers get charged without an order completing?\n- Why did the change go out at 50 with no review? Was the flag UI the only path, or was there a review step that was skipped?\n- Do other flags use the same UI with the same missing validation?\n\n---\n\nI left owners and dates as [TBD] because the notes don't say who owns each item. If you tell me the timestamps and the failed-order count once you have them, I can fill in the timeline and impact sections."
+              },
+              {
+                "name": "substance-1",
+                "passed": true,
+                "weight": 1,
+                "explanation": "judge votes: PASS PASS PASS",
+                "withOnly": false,
+                "scored": true,
+                "judgeVotes": [
+                  true,
+                  true,
+                  true
+                ],
+                "evidence": "# Incident write-up: checkout 500s from new tax calculation flag\n\n**Date:** [TBD]\n**Status:** Draft, based on rough notes from the incident thread\n**Severity:** [TBD]\n**Affected:** Checkout for users paying with a saved card\n\n## Summary\n\nA percentage rollout of the `new-tax-calc` flag was set to 50% instead of the intended 5%. The flag UI accepts any number and has no confirmation step. The new tax calculation crashes when a card's billing region is null, and older saved cards have null regions. Checkout returned 500s for saved-card payments until the flag was rolled back to 0. The checkout error-rate alert fired, but its 20% threshold meant it did not page on-call at first. The number of failed orders has not been counted.\n\n## Impact\n\n- Checkout failures (HTTP 500) for users paying with a saved card, at up to 10× the intended rollout exposure.\n- Support ticket volume rose sharply. Support lead Sofia noticed first.\n- Failed-order count: **not yet determined.**\n- Customer-facing impact beyond failed checkouts (abandoned carts, duplicate charges, retries): **not yet determined.**\n\n## Timeline\n\nTimes are approximate where noted. Exact timestamps should be pulled from flag audit logs, deploy records, and alert history.\n\n| Time | Event |\n|---|---|\n| [TBD] | Flag `new-tax-calc` set to 50 instead of 5 by Rahul. No confirmation step in the UI. |\n| ~10:20 | Flag takes effect. Checkout errors begin for saved-card payments. *(Start time per notes; confirm.)* |\n| [TBD] | Checkout error-rate alert fires. Threshold is 20%, so it does not page. |\n| [TBD] | Support lead Sofia notices a rise in tickets and identifies the pattern: only saved-card payments fail. |\n| [TBD] | On-call Aiyana sets flag to 0 (rollback). |\n| [TBD] | Errors stop. *(Confirm end time.)* |\n\n**Time to detect:** [TBD]. Detection came from support tickets, not from alerting.\n**Time to mitigate:** [TBD]. Rollback was quick once someone looked.\n\n## Root causes\n\n1. **Direct cause:** The rollout percentage was entered as 50 instead of 5. The flag system treats the value as a percentage, so this is a valid input and nothing rejected it.\n2. **Code defect:** The new tax calculation does not handle a null billing region. Saved cards created before the region field was populated have null regions, so every saved-card checkout that reached the new code path crashed.\n3. **Testing gap (suspected):** Tests apparently did not cover saved cards with null billing regions. *(Confirm.)*\n\n## Contributing factors\n\n- **No validation or confirmation on flag changes.** Any numeric value is accepted, including values far above the intended rollout. There is no range check, no \"are you sure\" step, and no second approver for large changes.\n- **Alert threshold too high for this failure mode.** A 20% error-rate threshold did not catch a failure affecting a subset of users. Because only saved-card users were affected, the overall error rate probably stayed below the threshold. *(Confirm with the alert's query. The overall rate may not be the right signal for a segment-specific failure.)*\n- **No segment-level monitoring.** Nothing alerted on the saved-card failure pattern specifically.\n- **Detection depended on humans.** Support noticed before engineering did.\n\n## What went well\n\n- The feature flag gave a fast rollback path. Once someone looked, the change was reverted without a code deploy.\n- Support identified the pattern quickly (saved cards only), which pointed directly at the cause.\n\n## What went poorly\n\n- The bad value reached production with no check.\n- The alert did not page, so the incident was found through support tickets.\n- The failure was not caught in testing.\n- Failed orders have not been counted, so the impact is unknown.\n\n## Action items\n\n| # | Action | Owner | Priority |\n|---|---|---|---|\n| 1 | Count failed checkouts during the window, split by saved-card and other payments. Identify any that need customer follow-up or refunds. | [TBD] | **P0** |\n| 2 | Check for duplicate charges or partially completed orders from the failed checkouts. | [TBD] | **P0** |\n| 3 | Fix the tax calculation to handle null billing regions. Add a test for saved cards with null regions. | [TBD] | **P0** |\n| 4 | Add validation to the flag UI: reject or warn on values outside 0–100, and require a confirmation step for changes above a set size. | [TBD] | P1 |\n| 5 | Add a segment-aware alert for checkout errors by payment type, or lower the threshold for saved-card checkouts. | [TBD] | P1 |\n| 6 | Review whether the 20% threshold is appropriate for paging on checkout, and document it. | [TBD] | P2 |\n| 7 | Review backfill of billing region data for old saved cards, so the null-region case is less common. | [TBD] | P2 |\n| 8 | Add a runbook entry: flag rollback steps and who can perform them. | [TBD] | P2 |\n\n## Open questions\n\n- What were the exact start, detection, rollback, and recovery times?\n- How many checkouts failed, and how many were recovered on retry?\n- Did any customers get charged without an order completing?\n- Why did the change go out at 50 with no review? Was the flag UI the only path, or was there a review step that was skipped?\n- Do other flags use the same UI with the same missing validation?\n\n---\n\nI left owners and dates as [TBD] because the notes don't say who owns each item. If you tell me the timestamps and the failed-order count once you have them, I can fill in the timeline and impact sections."
+              },
+              {
+                "name": "substance-2",
+                "passed": true,
+                "weight": 1,
+                "explanation": "judge votes: PASS PASS PASS",
+                "withOnly": false,
+                "scored": true,
+                "judgeVotes": [
+                  true,
+                  true,
+                  true
+                ],
+                "evidence": "# Incident write-up: checkout 500s from new tax calculation flag\n\n**Date:** [TBD]\n**Status:** Draft, based on rough notes from the incident thread\n**Severity:** [TBD]\n**Affected:** Checkout for users paying with a saved card\n\n## Summary\n\nA percentage rollout of the `new-tax-calc` flag was set to 50% instead of the intended 5%. The flag UI accepts any number and has no confirmation step. The new tax calculation crashes when a card's billing region is null, and older saved cards have null regions. Checkout returned 500s for saved-card payments until the flag was rolled back to 0. The checkout error-rate alert fired, but its 20% threshold meant it did not page on-call at first. The number of failed orders has not been counted.\n\n## Impact\n\n- Checkout failures (HTTP 500) for users paying with a saved card, at up to 10× the intended rollout exposure.\n- Support ticket volume rose sharply. Support lead Sofia noticed first.\n- Failed-order count: **not yet determined.**\n- Customer-facing impact beyond failed checkouts (abandoned carts, duplicate charges, retries): **not yet determined.**\n\n## Timeline\n\nTimes are approximate where noted. Exact timestamps should be pulled from flag audit logs, deploy records, and alert history.\n\n| Time | Event |\n|---|---|\n| [TBD] | Flag `new-tax-calc` set to 50 instead of 5 by Rahul. No confirmation step in the UI. |\n| ~10:20 | Flag takes effect. Checkout errors begin for saved-card payments. *(Start time per notes; confirm.)* |\n| [TBD] | Checkout error-rate alert fires. Threshold is 20%, so it does not page. |\n| [TBD] | Support lead Sofia notices a rise in tickets and identifies the pattern: only saved-card payments fail. |\n| [TBD] | On-call Aiyana sets flag to 0 (rollback). |\n| [TBD] | Errors stop. *(Confirm end time.)* |\n\n**Time to detect:** [TBD]. Detection came from support tickets, not from alerting.\n**Time to mitigate:** [TBD]. Rollback was quick once someone looked.\n\n## Root causes\n\n1. **Direct cause:** The rollout percentage was entered as 50 instead of 5. The flag system treats the value as a percentage, so this is a valid input and nothing rejected it.\n2. **Code defect:** The new tax calculation does not handle a null billing region. Saved cards created before the region field was populated have null regions, so every saved-card checkout that reached the new code path crashed.\n3. **Testing gap (suspected):** Tests apparently did not cover saved cards with null billing regions. *(Confirm.)*\n\n## Contributing factors\n\n- **No validation or confirmation on flag changes.** Any numeric value is accepted, including values far above the intended rollout. There is no range check, no \"are you sure\" step, and no second approver for large changes.\n- **Alert threshold too high for this failure mode.** A 20% error-rate threshold did not catch a failure affecting a subset of users. Because only saved-card users were affected, the overall error rate probably stayed below the threshold. *(Confirm with the alert's query. The overall rate may not be the right signal for a segment-specific failure.)*\n- **No segment-level monitoring.** Nothing alerted on the saved-card failure pattern specifically.\n- **Detection depended on humans.** Support noticed before engineering did.\n\n## What went well\n\n- The feature flag gave a fast rollback path. Once someone looked, the change was reverted without a code deploy.\n- Support identified the pattern quickly (saved cards only), which pointed directly at the cause.\n\n## What went poorly\n\n- The bad value reached production with no check.\n- The alert did not page, so the incident was found through support tickets.\n- The failure was not caught in testing.\n- Failed orders have not been counted, so the impact is unknown.\n\n## Action items\n\n| # | Action | Owner | Priority |\n|---|---|---|---|\n| 1 | Count failed checkouts during the window, split by saved-card and other payments. Identify any that need customer follow-up or refunds. | [TBD] | **P0** |\n| 2 | Check for duplicate charges or partially completed orders from the failed checkouts. | [TBD] | **P0** |\n| 3 | Fix the tax calculation to handle null billing regions. Add a test for saved cards with null regions. | [TBD] | **P0** |\n| 4 | Add validation to the flag UI: reject or warn on values outside 0–100, and require a confirmation step for changes above a set size. | [TBD] | P1 |\n| 5 | Add a segment-aware alert for checkout errors by payment type, or lower the threshold for saved-card checkouts. | [TBD] | P1 |\n| 6 | Review whether the 20% threshold is appropriate for paging on checkout, and document it. | [TBD] | P2 |\n| 7 | Review backfill of billing region data for old saved cards, so the null-region case is less common. | [TBD] | P2 |\n| 8 | Add a runbook entry: flag rollback steps and who can perform them. | [TBD] | P2 |\n\n## Open questions\n\n- What were the exact start, detection, rollback, and recovery times?\n- How many checkouts failed, and how many were recovered on retry?\n- Did any customers get charged without an order completing?\n- Why did the change go out at 50 with no review? Was the flag UI the only path, or was there a review step that was skipped?\n- Do other flags use the same UI with the same missing validation?\n\n---\n\nI left owners and dates as [TBD] because the notes don't say who owns each item. If you tell me the timestamps and the failed-order count once you have them, I can fill in the timeline and impact sections."
+              }
+            ]
+          },
+          {
+            "score": 0.5,
+            "passed": false,
+            "turns": 1,
+            "costUsd": 0.16933730000000002,
+            "judgeCostUsd": 0.16701400000000002,
+            "durationSeconds": 29,
+            "startedAt": "2026-11-10T21:27:13.281Z",
+            "error": null,
+            "tracePath": "/tmp/claude-eval-YYefGk/out/trace.jsonl",
+            "skippedPaidGraders": false,
+            "graders": [
+              {
+                "name": "convention-1",
+                "passed": false,
+                "weight": 1,
+                "explanation": "judge votes: FAIL FAIL FAIL",
+                "withOnly": false,
+                "scored": true,
+                "judgeVotes": [
+                  false,
+                  false,
+                  false
+                ],
+                "evidence": "# Incident write-up: checkout 500s after new-tax-calc flag change\n\n**Status:** Draft. Items marked **TBD** are not yet known and need to be filled in.\n**Date:** TBD (the incident was \"the other day\"; exact date needed)\n**Severity:** TBD\n**Owner:** TBD\n\n## Summary\n\nA feature flag for the new tax calculation was set to 50% of users instead of the intended 5%, because the flag UI accepts any number and has no confirmation step. The new tax calculation crashes when a saved card's billing region is null, and older saved cards have null regions. Checkout failed with 500 errors for users paying with a saved card. Support noticed first. On-call rolled the flag back to 0, which stopped the errors.\n\n## Impact\n\n- Checkout returned 500 errors for users paying with saved cards, for the period between the flag change and the rollback.\n- Scope was limited to saved-card payments. Users paying with a new card were not reported as affected.\n- Support received a large number of tickets.\n- **Failed order count: not yet measured.** Nobody has counted the failed orders. This is the main open item for customer impact.\n- Revenue impact, affected user count, and any refunds or manual recovery for failed orders: TBD.\n\n## Timeline\n\n| Time | Event |\n|---|---|\n| TBD | Rahul enables new-tax-calc flag at 50% instead of 5% |\n| ~10:20 | Errors begin (start time from thread) |\n| TBD | Sofia (support lead) notices a spike in tickets |\n| TBD | Checkout error-rate alert fires. Threshold is 20%, so it does not page |\n| TBD | Aiyana (on-call) rolls flag back to 0 |\n| TBD | Errors stop |\n\nThe rollback time is not recorded. Pulling it from the flag change log and the error-rate graph would fill the gaps.\n\n## Root cause\n\n1. **Input error:** The flag was set to 50 when 5 was intended. The flag UI accepts any numeric value and does not validate the range or ask for confirmation.\n2. **Latent bug:** The new tax calculation does not handle a null billing region. Saved cards created before the change have null regions, so any saved-card checkout crashes once the flag reaches them.\n\nThe input error exposed the bug. Either alone would not have caused the incident. Had the flag been at 5%, the crash would still have affected roughly 5% of saved-card checkouts.\n\n## Contributing factors\n\n- **No guardrails on the flag UI:** No maximum value, no percentage-specific validation, and no confirmation for a large rollout change.\n- **Alert threshold too high:** The checkout error-rate alert uses a 20% threshold. A 500 rate affecting a subset of users (saved cards only) did not cross it, so no page was sent. Detection depended on support tickets.\n- **Test coverage gap:** The new tax calculation was apparently not tested against saved cards with null billing regions, even though such cards exist in production.\n- **No segment-level monitoring:** The error rate was measured across all checkouts, so an error concentrated in one payment type was diluted.\n\n## What went well\n\n- Support noticed the problem and escalated it.\n- The flag provided a fast rollback path. Once someone looked at the problem, the rollback was quick.\n\n## What could be better\n\n- Detection came from support, not monitoring.\n- A single flag-value typo reached production traffic with no check.\n- The null-region case was not caught before rollout.\n- Failed orders have not been counted, so customer impact is not yet known.\n\n## Action items (proposed)\n\n| # | Action | Owner | Priority |\n|---|---|---|---|\n| 1 | Count failed orders and affected users from the incident window; decide on recovery or outreach | TBD | High |\n| 2 | Fix the null billing region handling in the new tax calculation; add a test for null-region saved cards | TBD | High |\n| 3 | Add validation to the flag UI: percentage range 0–100, and a confirmation step for changes above a set threshold (for example, above 10%) | TBD | High |\n| 4 | Lower the checkout error-rate alert threshold, or add a segmented alert for saved-card checkouts, so a subset-of-users failure pages | TBD | High |\n| 5 | Record the flag change and rollback times in the incident log | TBD | Medium |\n| 6 | Add a checklist step before enabling tax-calc rollouts: confirm the test covers saved cards with null region | TBD | Medium |\n| 7 | Review other flags for the same unvalidated-input pattern | TBD | Low |\n\n## Open questions\n\n1. What is the exact date, duration, and severity?\n2. How many orders failed, and how many users were affected?\n3. What was the exact rollback time?\n4. Were any failed payments partially charged, or left in a state that needs reconciliation?\n5. Have the saved cards with null billing regions been counted, and how many are there?\n\nIf you give me the rollback time, the failed-order count, and the exact date, I can fill in the TBDs and turn this into a file in the repo."
+              },
+              {
+                "name": "convention-2",
+                "passed": false,
+                "weight": 1,
+                "explanation": "judge votes: FAIL FAIL FAIL",
+                "withOnly": false,
+                "scored": true,
+                "judgeVotes": [
+                  false,
+                  false,
+                  false
+                ],
+                "evidence": "# Incident write-up: checkout 500s after new-tax-calc flag change\n\n**Status:** Draft. Items marked **TBD** are not yet known and need to be filled in.\n**Date:** TBD (the incident was \"the other day\"; exact date needed)\n**Severity:** TBD\n**Owner:** TBD\n\n## Summary\n\nA feature flag for the new tax calculation was set to 50% of users instead of the intended 5%, because the flag UI accepts any number and has no confirmation step. The new tax calculation crashes when a saved card's billing region is null, and older saved cards have null regions. Checkout failed with 500 errors for users paying with a saved card. Support noticed first. On-call rolled the flag back to 0, which stopped the errors.\n\n## Impact\n\n- Checkout returned 500 errors for users paying with saved cards, for the period between the flag change and the rollback.\n- Scope was limited to saved-card payments. Users paying with a new card were not reported as affected.\n- Support received a large number of tickets.\n- **Failed order count: not yet measured.** Nobody has counted the failed orders. This is the main open item for customer impact.\n- Revenue impact, affected user count, and any refunds or manual recovery for failed orders: TBD.\n\n## Timeline\n\n| Time | Event |\n|---|---|\n| TBD | Rahul enables new-tax-calc flag at 50% instead of 5% |\n| ~10:20 | Errors begin (start time from thread) |\n| TBD | Sofia (support lead) notices a spike in tickets |\n| TBD | Checkout error-rate alert fires. Threshold is 20%, so it does not page |\n| TBD | Aiyana (on-call) rolls flag back to 0 |\n| TBD | Errors stop |\n\nThe rollback time is not recorded. Pulling it from the flag change log and the error-rate graph would fill the gaps.\n\n## Root cause\n\n1. **Input error:** The flag was set to 50 when 5 was intended. The flag UI accepts any numeric value and does not validate the range or ask for confirmation.\n2. **Latent bug:** The new tax calculation does not handle a null billing region. Saved cards created before the change have null regions, so any saved-card checkout crashes once the flag reaches them.\n\nThe input error exposed the bug. Either alone would not have caused the incident. Had the flag been at 5%, the crash would still have affected roughly 5% of saved-card checkouts.\n\n## Contributing factors\n\n- **No guardrails on the flag UI:** No maximum value, no percentage-specific validation, and no confirmation for a large rollout change.\n- **Alert threshold too high:** The checkout error-rate alert uses a 20% threshold. A 500 rate affecting a subset of users (saved cards only) did not cross it, so no page was sent. Detection depended on support tickets.\n- **Test coverage gap:** The new tax calculation was apparently not tested against saved cards with null billing regions, even though such cards exist in production.\n- **No segment-level monitoring:** The error rate was measured across all checkouts, so an error concentrated in one payment type was diluted.\n\n## What went well\n\n- Support noticed the problem and escalated it.\n- The flag provided a fast rollback path. Once someone looked at the problem, the rollback was quick.\n\n## What could be better\n\n- Detection came from support, not monitoring.\n- A single flag-value typo reached production traffic with no check.\n- The null-region case was not caught before rollout.\n- Failed orders have not been counted, so customer impact is not yet known.\n\n## Action items (proposed)\n\n| # | Action | Owner | Priority |\n|---|---|---|---|\n| 1 | Count failed orders and affected users from the incident window; decide on recovery or outreach | TBD | High |\n| 2 | Fix the null billing region handling in the new tax calculation; add a test for null-region saved cards | TBD | High |\n| 3 | Add validation to the flag UI: percentage range 0–100, and a confirmation step for changes above a set threshold (for example, above 10%) | TBD | High |\n| 4 | Lower the checkout error-rate alert threshold, or add a segmented alert for saved-card checkouts, so a subset-of-users failure pages | TBD | High |\n| 5 | Record the flag change and rollback times in the incident log | TBD | Medium |\n| 6 | Add a checklist step before enabling tax-calc rollouts: confirm the test covers saved cards with null region | TBD | Medium |\n| 7 | Review other flags for the same unvalidated-input pattern | TBD | Low |\n\n## Open questions\n\n1. What is the exact date, duration, and severity?\n2. How many orders failed, and how many users were affected?\n3. What was the exact rollback time?\n4. Were any failed payments partially charged, or left in a state that needs reconciliation?\n5. Have the saved cards with null billing regions been counted, and how many are there?\n\nIf you give me the rollback time, the failed-order count, and the exact date, I can fill in the TBDs and turn this into a file in the repo."
+              },
+              {
+                "name": "substance-1",
+                "passed": true,
+                "weight": 1,
+                "explanation": "judge votes: PASS PASS PASS",
+                "withOnly": false,
+                "scored": true,
+                "judgeVotes": [
+                  true,
+                  true,
+                  true
+                ],
+                "evidence": "# Incident write-up: checkout 500s after new-tax-calc flag change\n\n**Status:** Draft. Items marked **TBD** are not yet known and need to be filled in.\n**Date:** TBD (the incident was \"the other day\"; exact date needed)\n**Severity:** TBD\n**Owner:** TBD\n\n## Summary\n\nA feature flag for the new tax calculation was set to 50% of users instead of the intended 5%, because the flag UI accepts any number and has no confirmation step. The new tax calculation crashes when a saved card's billing region is null, and older saved cards have null regions. Checkout failed with 500 errors for users paying with a saved card. Support noticed first. On-call rolled the flag back to 0, which stopped the errors.\n\n## Impact\n\n- Checkout returned 500 errors for users paying with saved cards, for the period between the flag change and the rollback.\n- Scope was limited to saved-card payments. Users paying with a new card were not reported as affected.\n- Support received a large number of tickets.\n- **Failed order count: not yet measured.** Nobody has counted the failed orders. This is the main open item for customer impact.\n- Revenue impact, affected user count, and any refunds or manual recovery for failed orders: TBD.\n\n## Timeline\n\n| Time | Event |\n|---|---|\n| TBD | Rahul enables new-tax-calc flag at 50% instead of 5% |\n| ~10:20 | Errors begin (start time from thread) |\n| TBD | Sofia (support lead) notices a spike in tickets |\n| TBD | Checkout error-rate alert fires. Threshold is 20%, so it does not page |\n| TBD | Aiyana (on-call) rolls flag back to 0 |\n| TBD | Errors stop |\n\nThe rollback time is not recorded. Pulling it from the flag change log and the error-rate graph would fill the gaps.\n\n## Root cause\n\n1. **Input error:** The flag was set to 50 when 5 was intended. The flag UI accepts any numeric value and does not validate the range or ask for confirmation.\n2. **Latent bug:** The new tax calculation does not handle a null billing region. Saved cards created before the change have null regions, so any saved-card checkout crashes once the flag reaches them.\n\nThe input error exposed the bug. Either alone would not have caused the incident. Had the flag been at 5%, the crash would still have affected roughly 5% of saved-card checkouts.\n\n## Contributing factors\n\n- **No guardrails on the flag UI:** No maximum value, no percentage-specific validation, and no confirmation for a large rollout change.\n- **Alert threshold too high:** The checkout error-rate alert uses a 20% threshold. A 500 rate affecting a subset of users (saved cards only) did not cross it, so no page was sent. Detection depended on support tickets.\n- **Test coverage gap:** The new tax calculation was apparently not tested against saved cards with null billing regions, even though such cards exist in production.\n- **No segment-level monitoring:** The error rate was measured across all checkouts, so an error concentrated in one payment type was diluted.\n\n## What went well\n\n- Support noticed the problem and escalated it.\n- The flag provided a fast rollback path. Once someone looked at the problem, the rollback was quick.\n\n## What could be better\n\n- Detection came from support, not monitoring.\n- A single flag-value typo reached production traffic with no check.\n- The null-region case was not caught before rollout.\n- Failed orders have not been counted, so customer impact is not yet known.\n\n## Action items (proposed)\n\n| # | Action | Owner | Priority |\n|---|---|---|---|\n| 1 | Count failed orders and affected users from the incident window; decide on recovery or outreach | TBD | High |\n| 2 | Fix the null billing region handling in the new tax calculation; add a test for null-region saved cards | TBD | High |\n| 3 | Add validation to the flag UI: percentage range 0–100, and a confirmation step for changes above a set threshold (for example, above 10%) | TBD | High |\n| 4 | Lower the checkout error-rate alert threshold, or add a segmented alert for saved-card checkouts, so a subset-of-users failure pages | TBD | High |\n| 5 | Record the flag change and rollback times in the incident log | TBD | Medium |\n| 6 | Add a checklist step before enabling tax-calc rollouts: confirm the test covers saved cards with null region | TBD | Medium |\n| 7 | Review other flags for the same unvalidated-input pattern | TBD | Low |\n\n## Open questions\n\n1. What is the exact date, duration, and severity?\n2. How many orders failed, and how many users were affected?\n3. What was the exact rollback time?\n4. Were any failed payments partially charged, or left in a state that needs reconciliation?\n5. Have the saved cards with null billing regions been counted, and how many are there?\n\nIf you give me the rollback time, the failed-order count, and the exact date, I can fill in the TBDs and turn this into a file in the repo."
+              },
+              {
+                "name": "substance-2",
+                "passed": true,
+                "weight": 1,
+                "explanation": "judge votes: PASS PASS PASS",
+                "withOnly": false,
+                "scored": true,
+                "judgeVotes": [
+                  true,
+                  true,
+                  true
+                ],
+                "evidence": "# Incident write-up: checkout 500s after new-tax-calc flag change\n\n**Status:** Draft. Items marked **TBD** are not yet known and need to be filled in.\n**Date:** TBD (the incident was \"the other day\"; exact date needed)\n**Severity:** TBD\n**Owner:** TBD\n\n## Summary\n\nA feature flag for the new tax calculation was set to 50% of users instead of the intended 5%, because the flag UI accepts any number and has no confirmation step. The new tax calculation crashes when a saved card's billing region is null, and older saved cards have null regions. Checkout failed with 500 errors for users paying with a saved card. Support noticed first. On-call rolled the flag back to 0, which stopped the errors.\n\n## Impact\n\n- Checkout returned 500 errors for users paying with saved cards, for the period between the flag change and the rollback.\n- Scope was limited to saved-card payments. Users paying with a new card were not reported as affected.\n- Support received a large number of tickets.\n- **Failed order count: not yet measured.** Nobody has counted the failed orders. This is the main open item for customer impact.\n- Revenue impact, affected user count, and any refunds or manual recovery for failed orders: TBD.\n\n## Timeline\n\n| Time | Event |\n|---|---|\n| TBD | Rahul enables new-tax-calc flag at 50% instead of 5% |\n| ~10:20 | Errors begin (start time from thread) |\n| TBD | Sofia (support lead) notices a spike in tickets |\n| TBD | Checkout error-rate alert fires. Threshold is 20%, so it does not page |\n| TBD | Aiyana (on-call) rolls flag back to 0 |\n| TBD | Errors stop |\n\nThe rollback time is not recorded. Pulling it from the flag change log and the error-rate graph would fill the gaps.\n\n## Root cause\n\n1. **Input error:** The flag was set to 50 when 5 was intended. The flag UI accepts any numeric value and does not validate the range or ask for confirmation.\n2. **Latent bug:** The new tax calculation does not handle a null billing region. Saved cards created before the change have null regions, so any saved-card checkout crashes once the flag reaches them.\n\nThe input error exposed the bug. Either alone would not have caused the incident. Had the flag been at 5%, the crash would still have affected roughly 5% of saved-card checkouts.\n\n## Contributing factors\n\n- **No guardrails on the flag UI:** No maximum value, no percentage-specific validation, and no confirmation for a large rollout change.\n- **Alert threshold too high:** The checkout error-rate alert uses a 20% threshold. A 500 rate affecting a subset of users (saved cards only) did not cross it, so no page was sent. Detection depended on support tickets.\n- **Test coverage gap:** The new tax calculation was apparently not tested against saved cards with null billing regions, even though such cards exist in production.\n- **No segment-level monitoring:** The error rate was measured across all checkouts, so an error concentrated in one payment type was diluted.\n\n## What went well\n\n- Support noticed the problem and escalated it.\n- The flag provided a fast rollback path. Once someone looked at the problem, the rollback was quick.\n\n## What could be better\n\n- Detection came from support, not monitoring.\n- A single flag-value typo reached production traffic with no check.\n- The null-region case was not caught before rollout.\n- Failed orders have not been counted, so customer impact is not yet known.\n\n## Action items (proposed)\n\n| # | Action | Owner | Priority |\n|---|---|---|---|\n| 1 | Count failed orders and affected users from the incident window; decide on recovery or outreach | TBD | High |\n| 2 | Fix the null billing region handling in the new tax calculation; add a test for null-region saved cards | TBD | High |\n| 3 | Add validation to the flag UI: percentage range 0–100, and a confirmation step for changes above a set threshold (for example, above 10%) | TBD | High |\n| 4 | Lower the checkout error-rate alert threshold, or add a segmented alert for saved-card checkouts, so a subset-of-users failure pages | TBD | High |\n| 5 | Record the flag change and rollback times in the incident log | TBD | Medium |\n| 6 | Add a checklist step before enabling tax-calc rollouts: confirm the test covers saved cards with null region | TBD | Medium |\n| 7 | Review other flags for the same unvalidated-input pattern | TBD | Low |\n\n## Open questions\n\n1. What is the exact date, duration, and severity?\n2. How many orders failed, and how many users were affected?\n3. What was the exact rollback time?\n4. Were any failed payments partially charged, or left in a state that needs reconciliation?\n5. Have the saved cards with null billing regions been counted, and how many are there?\n\nIf you give me the rollback time, the failed-order count, and the exact date, I can fill in the TBDs and turn this into a file in the repo."
+              }
+            ]
+          },
+          {
+            "score": 0.5,
+            "passed": false,
+            "turns": 1,
+            "costUsd": 0.04344319999999987,
+            "judgeCostUsd": 0.04116599999999987,
+            "durationSeconds": 27,
+            "startedAt": "2026-11-10T21:27:35.955Z",
+            "error": null,
+            "tracePath": "/tmp/claude-eval-wogImK/out/trace.jsonl",
+            "skippedPaidGraders": false,
+            "graders": [
+              {
+                "name": "convention-1",
+                "passed": false,
+                "weight": 1,
+                "explanation": "judge votes: FAIL FAIL FAIL",
+                "withOnly": false,
+                "scored": true,
+                "judgeVotes": [
+                  false,
+                  false,
+                  false
+                ],
+                "evidence": "# Incident write-up: checkout 500s after new-tax-calc flag change\n\n**Status:** Draft from rough notes. Items marked **TBD** need confirmation before this is final.\n**Date:** TBD (reported \"the other day\")\n**Severity:** TBD\n**Owner:** TBD\n\n## Summary\n\nA misconfigured feature flag sent the new tax calculation to far more users than intended, and checkout returned 500 errors for users paying with saved cards. The tax calculation crashes when the card's billing region is null, and older saved cards have null regions. Rahul meant to enable the flag for 5% of users but entered 50. The flag UI accepts any number and has no confirmation step. Aiyana (on-call) rolled the flag back to 0. Rollback through the flag was fast once someone looked.\n\n## Impact\n\n- Checkout failed with 500s for users paying with a saved card. Users paying with other methods were not affected, based on support reports.\n- Support received a high volume of tickets. Sofia (support lead) was the first to notice.\n- **Number of failed orders: unknown.** No one has counted them yet. This is the most important open item.\n- Duration of customer impact: from about 10:20 until the rollback. The rollback time is TBD.\n\n## Timeline\n\n| Time | Event |\n|---|---|\n| TBD | Rahul enables new-tax-calc flag at 50% instead of 5% |\n| ~10:20 | Checkout 500s begin for saved-card users |\n| TBD | Support (Sofia) notices a spike in tickets and escalates |\n| TBD | Checkout error rate alert fires but does not page (threshold is 20%) |\n| TBD | On-call (Aiyana) sets flag to 0 |\n| TBD | Error rate returns to normal |\n\n## Root cause\n\n1. **Input error:** The flag was set to 50 instead of 5.\n2. **Missing guardrail:** The flag UI accepts any numeric value with no range check, no confirmation, and no display of the resulting percentage.\n3. **Code defect:** The new tax calculation does not handle a null billing region. Saved cards created before the region field was populated have null regions, so the calculation crashes for those cards.\n\nThe defect in (3) would have been caught by a test or a staged rollout using realistic saved-card data. It only surfaced because the exposure was much larger than planned.\n\n## Detection\n\n- The checkout error-rate alert fired, but its threshold of 20% was too high to page anyone. Support noticed the problem first.\n\n## Response\n\n- Support escalated the ticket volume.\n- On-call rolled the flag back to 0 once investigating. Using the flag made the rollback fast.\n\n## What went well\n\n- The feature flag gave a fast, low-risk rollback path.\n- Support spotted the pattern (saved-card users only) quickly, which narrowed the investigation.\n\n## What went poorly\n\n- The flag UI allowed an out-of-range value to be saved without a check.\n- The alert threshold was too high to catch a failure affecting a large share of checkouts.\n- The null-region case was not covered by tests or by the rollout plan.\n- No one tracked the number of failed orders during or after the incident.\n\n## Action items\n\n| # | Action | Owner | Due |\n|---|---|---|---|\n| 1 | Count failed orders and affected users for the incident window; decide on any remediation or customer outreach | TBD | TBD |\n| 2 | Fix the tax calculation to handle null billing regions, with a test using a saved card with a null region | TBD | TBD |\n| 3 | Add validation to the flag UI: reject values outside 0–100, and show the resulting percentage with a confirm step for changes above a set threshold | TBD | TBD |\n| 4 | Lower the checkout error-rate alert threshold, or add a lower-threshold alert that pages, and review paging rules | TBD | TBD |\n| 5 | Require a staged rollout (for example 1% then 5%) for tax-related flags, and check saved-card data in pre-rollout tests | TBD | TBD |\n| 6 | Record the exact time of the flag change and rollback in the incident log | Aiyana | TBD |\n\n## Open questions\n\n- How many orders failed, and how many customers were affected?\n- Were any payments taken without an order being completed, or charged twice?\n- What were the exact times of the flag change, the rollback, and the alert?\n- What is the correct value and unit for the flag (percent or fraction)?\n- Who owns the alert threshold and the flag UI?\n\nIf you give me the exact times and the failed-order count (or the query for it), I can fill in the TBD fields. I can also turn the action items into tickets if you tell me where they should go."
+              },
+              {
+                "name": "convention-2",
+                "passed": false,
+                "weight": 1,
+                "explanation": "judge votes: FAIL FAIL FAIL",
+                "withOnly": false,
+                "scored": true,
+                "judgeVotes": [
+                  false,
+                  false,
+                  false
+                ],
+                "evidence": "# Incident write-up: checkout 500s after new-tax-calc flag change\n\n**Status:** Draft from rough notes. Items marked **TBD** need confirmation before this is final.\n**Date:** TBD (reported \"the other day\")\n**Severity:** TBD\n**Owner:** TBD\n\n## Summary\n\nA misconfigured feature flag sent the new tax calculation to far more users than intended, and checkout returned 500 errors for users paying with saved cards. The tax calculation crashes when the card's billing region is null, and older saved cards have null regions. Rahul meant to enable the flag for 5% of users but entered 50. The flag UI accepts any number and has no confirmation step. Aiyana (on-call) rolled the flag back to 0. Rollback through the flag was fast once someone looked.\n\n## Impact\n\n- Checkout failed with 500s for users paying with a saved card. Users paying with other methods were not affected, based on support reports.\n- Support received a high volume of tickets. Sofia (support lead) was the first to notice.\n- **Number of failed orders: unknown.** No one has counted them yet. This is the most important open item.\n- Duration of customer impact: from about 10:20 until the rollback. The rollback time is TBD.\n\n## Timeline\n\n| Time | Event |\n|---|---|\n| TBD | Rahul enables new-tax-calc flag at 50% instead of 5% |\n| ~10:20 | Checkout 500s begin for saved-card users |\n| TBD | Support (Sofia) notices a spike in tickets and escalates |\n| TBD | Checkout error rate alert fires but does not page (threshold is 20%) |\n| TBD | On-call (Aiyana) sets flag to 0 |\n| TBD | Error rate returns to normal |\n\n## Root cause\n\n1. **Input error:** The flag was set to 50 instead of 5.\n2. **Missing guardrail:** The flag UI accepts any numeric value with no range check, no confirmation, and no display of the resulting percentage.\n3. **Code defect:** The new tax calculation does not handle a null billing region. Saved cards created before the region field was populated have null regions, so the calculation crashes for those cards.\n\nThe defect in (3) would have been caught by a test or a staged rollout using realistic saved-card data. It only surfaced because the exposure was much larger than planned.\n\n## Detection\n\n- The checkout error-rate alert fired, but its threshold of 20% was too high to page anyone. Support noticed the problem first.\n\n## Response\n\n- Support escalated the ticket volume.\n- On-call rolled the flag back to 0 once investigating. Using the flag made the rollback fast.\n\n## What went well\n\n- The feature flag gave a fast, low-risk rollback path.\n- Support spotted the pattern (saved-card users only) quickly, which narrowed the investigation.\n\n## What went poorly\n\n- The flag UI allowed an out-of-range value to be saved without a check.\n- The alert threshold was too high to catch a failure affecting a large share of checkouts.\n- The null-region case was not covered by tests or by the rollout plan.\n- No one tracked the number of failed orders during or after the incident.\n\n## Action items\n\n| # | Action | Owner | Due |\n|---|---|---|---|\n| 1 | Count failed orders and affected users for the incident window; decide on any remediation or customer outreach | TBD | TBD |\n| 2 | Fix the tax calculation to handle null billing regions, with a test using a saved card with a null region | TBD | TBD |\n| 3 | Add validation to the flag UI: reject values outside 0–100, and show the resulting percentage with a confirm step for changes above a set threshold | TBD | TBD |\n| 4 | Lower the checkout error-rate alert threshold, or add a lower-threshold alert that pages, and review paging rules | TBD | TBD |\n| 5 | Require a staged rollout (for example 1% then 5%) for tax-related flags, and check saved-card data in pre-rollout tests | TBD | TBD |\n| 6 | Record the exact time of the flag change and rollback in the incident log | Aiyana | TBD |\n\n## Open questions\n\n- How many orders failed, and how many customers were affected?\n- Were any payments taken without an order being completed, or charged twice?\n- What were the exact times of the flag change, the rollback, and the alert?\n- What is the correct value and unit for the flag (percent or fraction)?\n- Who owns the alert threshold and the flag UI?\n\nIf you give me the exact times and the failed-order count (or the query for it), I can fill in the TBD fields. I can also turn the action items into tickets if you tell me where they should go."
+              },
+              {
+                "name": "substance-1",
+                "passed": true,
+                "weight": 1,
+                "explanation": "judge votes: PASS PASS PASS",
+                "withOnly": false,
+                "scored": true,
+                "judgeVotes": [
+                  true,
+                  true,
+                  true
+                ],
+                "evidence": "# Incident write-up: checkout 500s after new-tax-calc flag change\n\n**Status:** Draft from rough notes. Items marked **TBD** need confirmation before this is final.\n**Date:** TBD (reported \"the other day\")\n**Severity:** TBD\n**Owner:** TBD\n\n## Summary\n\nA misconfigured feature flag sent the new tax calculation to far more users than intended, and checkout returned 500 errors for users paying with saved cards. The tax calculation crashes when the card's billing region is null, and older saved cards have null regions. Rahul meant to enable the flag for 5% of users but entered 50. The flag UI accepts any number and has no confirmation step. Aiyana (on-call) rolled the flag back to 0. Rollback through the flag was fast once someone looked.\n\n## Impact\n\n- Checkout failed with 500s for users paying with a saved card. Users paying with other methods were not affected, based on support reports.\n- Support received a high volume of tickets. Sofia (support lead) was the first to notice.\n- **Number of failed orders: unknown.** No one has counted them yet. This is the most important open item.\n- Duration of customer impact: from about 10:20 until the rollback. The rollback time is TBD.\n\n## Timeline\n\n| Time | Event |\n|---|---|\n| TBD | Rahul enables new-tax-calc flag at 50% instead of 5% |\n| ~10:20 | Checkout 500s begin for saved-card users |\n| TBD | Support (Sofia) notices a spike in tickets and escalates |\n| TBD | Checkout error rate alert fires but does not page (threshold is 20%) |\n| TBD | On-call (Aiyana) sets flag to 0 |\n| TBD | Error rate returns to normal |\n\n## Root cause\n\n1. **Input error:** The flag was set to 50 instead of 5.\n2. **Missing guardrail:** The flag UI accepts any numeric value with no range check, no confirmation, and no display of the resulting percentage.\n3. **Code defect:** The new tax calculation does not handle a null billing region. Saved cards created before the region field was populated have null regions, so the calculation crashes for those cards.\n\nThe defect in (3) would have been caught by a test or a staged rollout using realistic saved-card data. It only surfaced because the exposure was much larger than planned.\n\n## Detection\n\n- The checkout error-rate alert fired, but its threshold of 20% was too high to page anyone. Support noticed the problem first.\n\n## Response\n\n- Support escalated the ticket volume.\n- On-call rolled the flag back to 0 once investigating. Using the flag made the rollback fast.\n\n## What went well\n\n- The feature flag gave a fast, low-risk rollback path.\n- Support spotted the pattern (saved-card users only) quickly, which narrowed the investigation.\n\n## What went poorly\n\n- The flag UI allowed an out-of-range value to be saved without a check.\n- The alert threshold was too high to catch a failure affecting a large share of checkouts.\n- The null-region case was not covered by tests or by the rollout plan.\n- No one tracked the number of failed orders during or after the incident.\n\n## Action items\n\n| # | Action | Owner | Due |\n|---|---|---|---|\n| 1 | Count failed orders and affected users for the incident window; decide on any remediation or customer outreach | TBD | TBD |\n| 2 | Fix the tax calculation to handle null billing regions, with a test using a saved card with a null region | TBD | TBD |\n| 3 | Add validation to the flag UI: reject values outside 0–100, and show the resulting percentage with a confirm step for changes above a set threshold | TBD | TBD |\n| 4 | Lower the checkout error-rate alert threshold, or add a lower-threshold alert that pages, and review paging rules | TBD | TBD |\n| 5 | Require a staged rollout (for example 1% then 5%) for tax-related flags, and check saved-card data in pre-rollout tests | TBD | TBD |\n| 6 | Record the exact time of the flag change and rollback in the incident log | Aiyana | TBD |\n\n## Open questions\n\n- How many orders failed, and how many customers were affected?\n- Were any payments taken without an order being completed, or charged twice?\n- What were the exact times of the flag change, the rollback, and the alert?\n- What is the correct value and unit for the flag (percent or fraction)?\n- Who owns the alert threshold and the flag UI?\n\nIf you give me the exact times and the failed-order count (or the query for it), I can fill in the TBD fields. I can also turn the action items into tickets if you tell me where they should go."
+              },
+              {
+                "name": "substance-2",
+                "passed": true,
+                "weight": 1,
+                "explanation": "judge votes: PASS PASS PASS",
+                "withOnly": false,
+                "scored": true,
+                "judgeVotes": [
+                  true,
+                  true,
+                  true
+                ],
+                "evidence": "# Incident write-up: checkout 500s after new-tax-calc flag change\n\n**Status:** Draft from rough notes. Items marked **TBD** need confirmation before this is final.\n**Date:** TBD (reported \"the other day\")\n**Severity:** TBD\n**Owner:** TBD\n\n## Summary\n\nA misconfigured feature flag sent the new tax calculation to far more users than intended, and checkout returned 500 errors for users paying with saved cards. The tax calculation crashes when the card's billing region is null, and older saved cards have null regions. Rahul meant to enable the flag for 5% of users but entered 50. The flag UI accepts any number and has no confirmation step. Aiyana (on-call) rolled the flag back to 0. Rollback through the flag was fast once someone looked.\n\n## Impact\n\n- Checkout failed with 500s for users paying with a saved card. Users paying with other methods were not affected, based on support reports.\n- Support received a high volume of tickets. Sofia (support lead) was the first to notice.\n- **Number of failed orders: unknown.** No one has counted them yet. This is the most important open item.\n- Duration of customer impact: from about 10:20 until the rollback. The rollback time is TBD.\n\n## Timeline\n\n| Time | Event |\n|---|---|\n| TBD | Rahul enables new-tax-calc flag at 50% instead of 5% |\n| ~10:20 | Checkout 500s begin for saved-card users |\n| TBD | Support (Sofia) notices a spike in tickets and escalates |\n| TBD | Checkout error rate alert fires but does not page (threshold is 20%) |\n| TBD | On-call (Aiyana) sets flag to 0 |\n| TBD | Error rate returns to normal |\n\n## Root cause\n\n1. **Input error:** The flag was set to 50 instead of 5.\n2. **Missing guardrail:** The flag UI accepts any numeric value with no range check, no confirmation, and no display of the resulting percentage.\n3. **Code defect:** The new tax calculation does not handle a null billing region. Saved cards created before the region field was populated have null regions, so the calculation crashes for those cards.\n\nThe defect in (3) would have been caught by a test or a staged rollout using realistic saved-card data. It only surfaced because the exposure was much larger than planned.\n\n## Detection\n\n- The checkout error-rate alert fired, but its threshold of 20% was too high to page anyone. Support noticed the problem first.\n\n## Response\n\n- Support escalated the ticket volume.\n- On-call rolled the flag back to 0 once investigating. Using the flag made the rollback fast.\n\n## What went well\n\n- The feature flag gave a fast, low-risk rollback path.\n- Support spotted the pattern (saved-card users only) quickly, which narrowed the investigation.\n\n## What went poorly\n\n- The flag UI allowed an out-of-range value to be saved without a check.\n- The alert threshold was too high to catch a failure affecting a large share of checkouts.\n- The null-region case was not covered by tests or by the rollout plan.\n- No one tracked the number of failed orders during or after the incident.\n\n## Action items\n\n| # | Action | Owner | Due |\n|---|---|---|---|\n| 1 | Count failed orders and affected users for the incident window; decide on any remediation or customer outreach | TBD | TBD |\n| 2 | Fix the tax calculation to handle null billing regions, with a test using a saved card with a null region | TBD | TBD |\n| 3 | Add validation to the flag UI: reject values outside 0–100, and show the resulting percentage with a confirm step for changes above a set threshold | TBD | TBD |\n| 4 | Lower the checkout error-rate alert threshold, or add a lower-threshold alert that pages, and review paging rules | TBD | TBD |\n| 5 | Require a staged rollout (for example 1% then 5%) for tax-related flags, and check saved-card data in pre-rollout tests | TBD | TBD |\n| 6 | Record the exact time of the flag change and rollback in the incident log | Aiyana | TBD |\n\n## Open questions\n\n- How many orders failed, and how many customers were affected?\n- Were any payments taken without an order being completed, or charged twice?\n- What were the exact times of the flag change, the rollback, and the alert?\n- What is the correct value and unit for the flag (percent or fraction)?\n- Who owns the alert threshold and the flag UI?\n\nIf you give me the exact times and the failed-order count (or the query for it), I can fill in the TBD fields. I can also turn the action items into tickets if you tell me where they should go."
+              }
+            ]
+          }
+        ]
+      },
+      "aggregates": {
+        "score": 0.5,
+        "passRate": 0
+      }
+    }
+  ],
+  "aggregates": {
+    "casesTotal": 3,
+    "casesPassed": 3,
+    "overallScore": 0.5,
+    "overallPassRate": 0
+  }
+}

@@ -53,6 +53,11 @@ brief, the same model and the same effort budget?
 the skill and tunes the description for triggering. If the toolkit adds nothing over that loop, the
 pilot will show it. That is the point.
 
+**Annotated 2026-11-05.** The full design is now drafted in
+[`prereg_experiment-b-c1-pilot-20261105.md`](../../eval-runs/prereg_experiment-b-c1-pilot-20261105.md).
+Where it differs from the sketch below, that file governs, and it names each difference. The maintainer
+gave the go for pre-registration, then on 2026-11-12 for the real run. This plan stays Proposed, and experiment A is not started.
+
 **Design, to be committed under `docs/internal/eval-runs/` before anything runs.**
 
 - **Skills.** Three new skills, briefs chosen before either arm builds. At least one brief must be a kind
