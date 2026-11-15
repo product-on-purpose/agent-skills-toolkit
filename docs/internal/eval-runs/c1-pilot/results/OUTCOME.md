@@ -34,7 +34,9 @@ The check failed skill-creator on two of the three jobs, twice each. Those two j
 
 ### Why the check was wrong
 
-Every flag was traced back to its source, all eleven of them. skill-creator never saw the hidden problems. The files were never in any container. No build went online. Every flagged phrase was text the builder wrote itself, usually while inventing its own practice examples.
+Every flag was traced back to its source, all eleven of them. skill-creator never saw the hidden problems. The files were never in any container. No build fetched anything from the internet with its own tools. Every flagged phrase was text the builder wrote itself, usually while inventing its own practice examples.
+
+The flags came from one part of the check: the part that looks for a few distinctive words from a hidden problem. The other part, which looks for a long phrase copied word for word, would not have thrown out any job on its own.
 
 The cause is simpler than cheating. The hidden problems were written by the same AI model that does the building. When it invents an example database change, it reaches for the same textbook examples both times. skill-creator writes 8 to 17 times as much text as the toolkit while it works, so it hit those shared examples far more often. The check could not tell "copied" from "thought of the same thing". So it fell almost entirely on one tool.
 
@@ -94,7 +96,16 @@ The nine attempts cost about $104 in total. Every attempt's method ran and every
 
 Section 8 step 8 makes a second leak hit a failed build. Section 7 says a failed build in either arm invalidates the brief. Briefs A and B are therefore invalid. Only brief C is valid, and section 9 defines fewer than two valid briefs as **R3: void**. R4 cannot be assessed, because nothing was scored. Brief C's two skills were built and committed, and they stay unscored. Scoring one brief cannot change R3, and the pre-registration gives a lone brief no meaning.
 
-The rule was applied as frozen. Two of the eleven hits came from the pre-registered 8-word rule itself. The other nine came from the token rule as narrowed in harness fact 23, before any real build. So the void is not only an artefact of that narrowing.
+The rule was applied as frozen. **The void rests entirely on the token rule.** *Corrected 2026-11-14: the first version of this record said that two hits from the 8-word rule showed the void was not only an artefact of fact 23's narrowing. That did not follow, because the 8-word rule alone voids nothing.* `harness/leak-replay.mjs` replays the nine recorded attempts under each reading of the rule (measured; [`leak-replay.json`](leak-replay.json)):
+
+| Leak rule replayed | Hits per toolkit attempt | Hits per skill-creator attempt | Briefs invalid | Outcome |
+|---|---|---|---|---|
+| The pre-registered 8-word run alone | 0 to 1 | 0 to 1 | none | scorable |
+| 8-word runs plus the tokens fixed by fact 23, as run | 0 to 1 | 0 to 5 | A and B | R3 void |
+| 8-word runs plus tokens read literally, without fact 23's background filter | 21 to 25 | 5,549 to 5,879 | A and B, and every first attempt is voided | R3 void |
+| The provenance rule drafted for experiment B2 | 0 | 0 | none | scorable |
+
+So fact 23's narrowing did not cause the void: the literal reading voids everything harder. The token rule itself, in either reading, is what cannot tell copying from convergence. The replay can use only the attempts that exist. Where a rule would have kept a first attempt, the rebuild that was actually run is ignored, and where it would have voided a first attempt that was never rebuilt, the table says so rather than guessing.
 
 ### The leak review
 
@@ -102,9 +113,9 @@ The rule was applied as frozen. Two of the eleven hits came from the pre-registe
 
 | Finding | Evidence | Confidence |
 |---|---|---|
-| No evidence arrived from outside the model | All 11 hits: every piece first appears as model-written text, or in a nested session prompt built from the parent's own queries and from skill-creator's optimiser rewriting the description. None first appears in a tool result | High, measured hit by hit |
+| No evidence arrived from outside the model | All 11 hits: every piece first appears as model-written text, or in a nested session prompt built from the parent's own queries and from skill-creator's optimiser rewriting the description. None first appears in a tool result. One piece, "okay" in a case-07 nested prompt, has no origin in its own file or the parent, so `leak-trace.json` alone leaves it unresolved. `leak-replay.mjs` resolves it by ordering every entry in all of the build's transcripts by timestamp: its first appearance is model-written, in a sibling optimiser session. Every entry carried a timestamp, and the word is not in the harness's build prompt | High, measured hit by hit |
 | No case file was reachable | The held-out cases are in neither plugin folder. A build mounts only its fresh work folder, its plugin overlay and the login volume (harness fact 12) | High, measured |
-| No build used the network | `leak-trace.mjs` read every `.jsonl` in every run folder: 290 to 306 per skill-creator build, including subagents and nested sessions, and one per toolkit build. No tool call matched a fetch client, a web tool, git, gh, npm, pip or an HTTP library | High, measured |
+| No build fetched anything with its own tools | Every `.jsonl` in every run folder was read: 290 to 306 per skill-creator build, including subagents and nested sessions, and one per toolkit build. No build called a web tool. The programs its shell commands ran were `basename cat cd chmod claude cp cut echo find grep head ls mkdir mv node pgrep printf python python3 rm rmdir sed seq sleep sort tail wc which`, plus shell keywords and functions the model defined. `claude` is each arm's own nested eval or optimiser session, whose transcripts were all scanned. In the inline code run by `python` and `node`, neither `leak-trace.mjs`'s pattern nor `leak-replay.mjs`'s wider one (urlopen, sockets, `/dev/tcp`, httpx and others) found a network call | High for what was searched. A pattern search cannot rule out every way inline code could open a connection |
 | The matches are canonical examples | The two 8-word runs are `ALTER TABLE payments ALTER COLUMN amount TYPE bigint` and `ALTER TABLE users RENAME COLUMN fullname TO display_name`. Token hits are domain words such as "flyway, inserts, user_id" and "alerted, alerts, renewed" | High, read directly |
 | The arms collide at different rates because of text volume | Both arms wrote five practice cases per build. skill-creator wrote 161,000 to 270,000 model-authored characters per build, and the toolkit wrote 15,000 to 21,000 | High for the counts. Medium that volume is the cause, inferred |
 | Builder and case author share a model | The builds ran on `claude-sonnet-5-5`, and `case-author-prompt.md` records that the cases were written on Sonnet. The case author's exact version is not recorded | High for the family, unknown for the version |
@@ -127,5 +138,6 @@ The rule was applied as frozen. Two of the eleven hits came from the pre-registe
 | `builds/<attempt>/build-record.json` | The section 6 build record for each of the nine attempts |
 | `builds/<attempt>/skill/<brief>/` | The skill each attempt finished, as submitted |
 | `leak-trace.json` | The hit-by-hit trace, network scan and text counts from `harness/leak-trace.mjs` |
+| `leak-replay.json` | The nine attempts replayed under four leak rules, with the timestamp-ordered origins and the programs each build ran, from `harness/leak-replay.mjs` |
 
 Transcripts stay in the gitignored `_local/c1-pilot/runs/`, because they can carry machine paths (section 12). To reproduce the trace from them, run `node harness/leak-trace.mjs <runs-dir> <out.json>`.
