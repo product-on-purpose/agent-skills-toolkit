@@ -8,7 +8,7 @@ Experiment B was the first measurement of C1 under [ADR 0066 (the goal is the bu
 
 Section 9 of [experiment B's pre-registration](prereg_experiment-b-c1-pilot-20261105.md) forbids re-running with a modified instrument. It also says a new pilot needs a new pre-registration, new briefs and the maintainer's ruling. This design is the first step of that.
 
-The goal of experiment B2 is the same question, measured by an instrument that cannot fail the way experiment B's did. **The design changes only what experiment B's instrument finding justifies.** Every other rule carries over unchanged, so that a reader can compare the two and see that nothing was tuned toward a result.
+The goal of experiment B2 is the same question, measured by an instrument built so that it does not fail the way experiment B's did. One piece of evidence for that exists already: replayed on experiment B's nine recorded build attempts, the leak rule drafted in 3.3 gives no hits, where experiment B's rule voided two briefs (measured; see [the outcome record](c1-pilot/results/OUTCOME.md)). That shows the rule is quiet on these builds, not that it is quiet on every build, which is why 3.4 still requires an on-topic dry run. **The design changes only what experiment B's instrument finding justifies.** Every other rule carries over unchanged, so that a reader can compare the two and see that nothing was tuned toward a result.
 
 ## 2. What stays identical to experiment B
 
@@ -60,7 +60,7 @@ Text the model wrote first, including nested prompts built from it, is convergen
 - A scripted build that runs a network command must be caught.
 - The on-topic dry run in 3.4 must give no hits in either arm.
 
-`harness/leak-trace.mjs` from experiment B already does the origin trace and the network scan. B2 makes it the rule and adds the planted tests.
+Experiment B's `harness/leak-replay.mjs` already implements this rule as its "provenance" replay. It orders every entry across all of a build's transcripts by timestamp, and it counts unresolved evidence as a hit, as above. It has tests that plant a model-written copy and a read copy. Experiment B's `harness/leak-trace.mjs` is descriptive only: it reports unresolved evidence as "no access", so it must not be used as the rule. B2 makes the replay's provenance rule the leak check, adds the planted network call, and widens the network pattern, which a pattern search cannot make complete.
 
 ### 3.4 An on-topic dry run with decoy cases
 
