@@ -1,0 +1,81 @@
+{
+ "skill_name": "migration-risk-review",
+ "evals": [
+  {
+   "id": 1,
+   "name": "rename-column-no-size",
+   "prompt": "can you check this before we ship it tomorrow?\n\nALTER TABLE orders RENAME COLUMN customer_ref TO customer_id;\nCREATE INDEX idx_orders_customer_id ON orders (customer_id);",
+   "expected_output": "Not SAFE (no size/traffic), Assumptions section, expand-and-contract with named deploy steps, concurrent index, rollback.",
+   "assertions": [
+    "The first line of the response is exactly one of 'Verdict: SAFE', 'Verdict: SAFE WITH CHANGES', 'Verdict: UNSAFE'",
+    "Contains exactly one markdown table with columns Statement, Lock taken, Risk, Fix",
+    "Has a section headed 'Rollback' giving a rollback statement per change or 'No rollback' with a reason",
+    "Has a section headed 'Assumptions'",
+    "Verdict is not 'Verdict: SAFE'",
+    "Recommends expand-and-contract and names separate deploy steps",
+    "Table has one row per statement (2 rows)"
+   ]
+  },
+  {
+   "id": 2,
+   "name": "size-known-traffic-missing",
+   "prompt": "events table is about 400M rows, pg 14. we want to change payload_size from int to bigint with a single ALTER TABLE events ALTER COLUMN payload_size TYPE bigint. ok to ship?",
+   "expected_output": "Row count alone is incomplete: Assumptions required about traffic, not SAFE, expand-and-contract.",
+   "assertions": [
+    "The first line of the response is exactly one of 'Verdict: SAFE', 'Verdict: SAFE WITH CHANGES', 'Verdict: UNSAFE'",
+    "Contains exactly one markdown table with columns Statement, Lock taken, Risk, Fix",
+    "Has a section headed 'Rollback' giving a rollback statement per change or 'No rollback' with a reason",
+    "Has a section headed 'Assumptions'",
+    "Verdict is not SAFE",
+    "Names separate deploy steps",
+    "Identifies ACCESS EXCLUSIVE lock / table rewrite"
+   ]
+  },
+  {
+   "id": 3,
+   "name": "django-migration-file",
+   "prompt": "my teammate wrote this django migration, the accounts table has about 50k rows and gets maybe 20 writes a minute. anything scary before we deploy?\n\nclass Migration(migrations.Migration):\n    dependencies = [('app', '0041_prev')]\n    operations = [\n        migrations.AddField('account', 'tier', models.CharField(max_length=20, default='free')),\n        migrations.AddIndex('account', models.Index(fields=['tier'], name='acct_tier_idx')),\n    ]",
+   "expected_output": "Translates to SQL, notes index not concurrent (small table so mild), no Assumptions section, 2 rows, verdict can be SAFE or SAFE WITH CHANGES.",
+   "assertions": [
+    "The first line of the response is exactly one of 'Verdict: SAFE', 'Verdict: SAFE WITH CHANGES', 'Verdict: UNSAFE'",
+    "Contains exactly one markdown table with columns Statement, Lock taken, Risk, Fix",
+    "Has a section headed 'Rollback' giving a rollback statement per change or 'No rollback' with a reason",
+    "No 'Assumptions' section, since size and traffic were given",
+    "Table has exactly 2 rows",
+    "Verdict is SAFE or SAFE WITH CHANGES"
+   ]
+  },
+  {
+   "id": 4,
+   "name": "drop-column-prose",
+   "prompt": "we're cleaning up and want to drop the legacy_status column from users and make email NOT NULL. users is our biggest table, busy all day. fine to just do in one migration right?",
+   "expected_output": "UNSAFE; drop column No rollback with reason; NOT NULL via check constraint pattern; multi-deploy contract sequence; Verdict first line.",
+   "assertions": [
+    "The first line of the response is exactly one of 'Verdict: SAFE', 'Verdict: SAFE WITH CHANGES', 'Verdict: UNSAFE'",
+    "Contains exactly one markdown table with columns Statement, Lock taken, Risk, Fix",
+    "Has a section headed 'Rollback' giving a rollback statement per change or 'No rollback' with a reason",
+    "Has an 'Assumptions' section (size not given)",
+    "Verdict is not SAFE",
+    "Says 'No rollback' for the drop column with a reason",
+    "Names separate deploy steps",
+    "Avoids a direct SET NOT NULL scan: uses CHECK NOT VALID/VALIDATE pattern"
+   ]
+  },
+  {
+   "id": 5,
+   "name": "fk-and-unique-multi",
+   "prompt": "Review this migration please (no idea how big the tables are):\n\nBEGIN;\nALTER TABLE invoices ADD CONSTRAINT fk_cust FOREIGN KEY (customer_id) REFERENCES customers(id);\nALTER TABLE invoices ADD CONSTRAINT uq_num UNIQUE (invoice_number);\nUPDATE invoices SET status = 'open' WHERE status IS NULL;\nCOMMIT;",
+   "expected_output": "One row per statement (3 rows), NOT VALID / concurrent unique index, batch update, Assumptions section, not SAFE.",
+   "assertions": [
+    "The first line of the response is exactly one of 'Verdict: SAFE', 'Verdict: SAFE WITH CHANGES', 'Verdict: UNSAFE'",
+    "Contains exactly one markdown table with columns Statement, Lock taken, Risk, Fix",
+    "Has a section headed 'Rollback' giving a rollback statement per change or 'No rollback' with a reason",
+    "Has an 'Assumptions' section",
+    "Verdict is not SAFE",
+    "Table has one row per statement (3 data statements; BEGIN/COMMIT optional)",
+    "Recommends NOT VALID/VALIDATE for FK and a concurrent unique index",
+    "Recommends batching the UPDATE outside the transaction"
+   ]
+  }
+ ]
+}

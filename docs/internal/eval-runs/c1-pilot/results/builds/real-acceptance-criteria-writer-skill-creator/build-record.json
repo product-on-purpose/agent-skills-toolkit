@@ -1,0 +1,68 @@
+{
+  "arm": "skill-creator",
+  "skillFinished": true,
+  "final": {
+    "subtype": "success",
+    "isError": false,
+    "costUsd": 3.1332109,
+    "turns": 1,
+    "durationMs": 4237
+  },
+  "skillInvocations": [
+    {
+      "skill": "skill-creator-wrapper:skill-creator",
+      "args": null
+    }
+  ],
+  "nestedEvalSpendUsd": 0,
+  "toolCounts": {
+    "Skill": 1,
+    "Bash": 62,
+    "Agent": 30,
+    "Read": 15,
+    "Write": 3,
+    "TaskStop": 1,
+    "Monitor": 2
+  },
+  "nestedEvalCommands": 0,
+  "nestedEvalSpendFromTranscriptUsd": 0,
+  "nestedEvalSpendBestUsd": 0,
+  "builderInvoked": true,
+  "benchmarkFinished": 3,
+  "optimiserCommands": 4,
+  "optimiserResultFiles": 0,
+  "optimiser": {
+    "scoreLines": 20,
+    "queryRuns": 570,
+    "failures": 0,
+    "measured": true
+  },
+  "methodRan": true,
+  "brief": "acceptance-criteria-writer",
+  "exit": 0,
+  "stoppedBy": null,
+  "wallClockMinutes": 126.05643333333333,
+  "childSessions": {
+    "messages": 4,
+    "unansweredSessions": 285,
+    "dollars": 12.78284925,
+    "tokens": {
+      "input": 8,
+      "cacheWrite": 56459,
+      "cacheRead": 52480,
+      "output": 1024
+    }
+  },
+  "parentTokens": {
+    "messages": 119,
+    "unansweredSessions": 0,
+    "dollars": 4.0683237,
+    "tokens": {
+      "input": 238,
+      "cacheWrite": 634692,
+      "cacheRead": 4787749,
+      "output": 16746
+    }
+  },
+  "totalEstimateUsd": 16.85117295
+}

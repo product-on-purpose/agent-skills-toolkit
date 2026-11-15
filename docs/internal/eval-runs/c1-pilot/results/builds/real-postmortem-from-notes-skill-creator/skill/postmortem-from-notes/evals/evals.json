@@ -1,0 +1,20 @@
+{
+  "skill_name": "postmortem-from-notes",
+  "evals": [
+    {"id": 0, "eval_name": "chat-paste-with-tz-and-blame",
+     "prompt": "here's the slack thread from last night's checkout outage, can you write it up for the team?\n\n[14:02 PST] mike.chen: seeing 500s on checkout, pagerduty fired\n[14:05 PST] priya: i'm on call, looking. dashboards show db connections maxed\n[14:20 PST] priya: found it, dave pushed a config change at 13:55 that dropped the pool size from 200 to 20. dave should have tested that\n[14:31 PST] priya: rolled back config, connections recovering\n[14:40 PST] mike.chen: checkout error rate back to normal. ~35 min of errors total\n[14:45 PST] lena (eng mgr): we need a config linter and a pool saturation alert. priya owns the alert, due Dec 5. linter owner TBD",
+     "expected_output": "Six sections, roles only, PST timezone, no blame on Dave, actions table with Due Dec 5 for alert and UNKNOWN otherwise."},
+    {"id": 1, "eval_name": "thin-bullets-no-timezone",
+     "prompt": "need an incident review from these events:\n- search was slow for a while\n- Tom restarted the elasticsearch nodes\n- it got better after that\n- 10:15 first customer complaint came in\n- 09:40 latency alerts started\n- 11:05 Tom confirmed search normal",
+     "expected_output": "Timezone: UNKNOWN, timeline sorted 09:40, 10:15, restart with unknown time, 11:05; impact unknown; cause UNKNOWN; no invented facts."},
+    {"id": 2, "eval_name": "one-liner-minimal",
+     "prompt": "Can you do a postmortem? Our payments API went down for like an hour on Tuesday, Sarah fixed it.",
+     "expected_output": "All six sections mostly UNKNOWN markers, no invented cause or times, Sarah not named, Timezone: UNKNOWN."},
+    {"id": 3, "eval_name": "contradictions-and-dates",
+     "prompt": "write up what happened with the s3 bucket permission thing. notes from the call (all times UTC):\n\n- 03:10 Raj's deploy changed bucket policy to public-read by mistake (Raj was tired, honestly careless)\n- 03:50 security scanner flagged the bucket\n- 04:30 policy reverted by Ana\n- someone said it was exposed for 80 minutes, someone else said 100 minutes\n- no evidence of data access yet, logs review pending\n- Follow ups: add policy-as-code check in CI (Raj, by 2026-12-01), enable account-level block public access (security lead Omar, no date), alert on bucket policy changes (Ana, 2026-11-20)",
+     "expected_output": "UTC timezone, roles only, no blame on Raj, both durations reported or flagged, actions with given dates and Types Prevent/Prevent/Detect."},
+    {"id": 4, "eval_name": "unordered-events-incident-retro",
+     "prompt": "Please put together a retro doc for the kafka lag incident. Here's what I remember, sorry it's messy:\n\nresolved around 5pm after we scaled the consumers to 12. Before that, around 3:30pm our on-call (Jun) noticed consumer lag on the orders topic growing. The lag alert never fired, I think the threshold was set too high. Orders were delayed for customers, maybe thousands? Jun paged the platform team at 3:45pm. Good thing the runbook for scaling consumers existed and was up to date. Nobody knows yet why the producer rate doubled.",
+     "expected_output": "Timezone UNKNOWN; sorted timeline 3:30pm, 3:45pm, 5pm; customer count UNKNOWN (not 'thousands' as fact); cause of producer doubling UNKNOWN; what went well lists runbook; actions Detect for alert threshold."}
+  ]
+}

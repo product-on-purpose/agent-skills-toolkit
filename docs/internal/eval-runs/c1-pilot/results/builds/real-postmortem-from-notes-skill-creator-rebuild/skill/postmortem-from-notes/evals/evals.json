@@ -1,0 +1,20 @@
+{
+  "skill_name": "postmortem-from-notes",
+  "evals": [
+    {"id": 1, "name": "chat-paste-no-timezone",
+     "prompt": "here's the slack thread from last night's outage, can you write it up for the team?\n\n[22:41] jenna: db-primary cpu pegged at 100%, api latency spiking\n[22:44] marcus: I'm paging ops, looks like the nightly report job started early\n[22:52] marcus: killed the report job, cpu dropping\n[22:58] jenna: latency back to normal. marcus did u forget to add the job to the off-peak schedule?\n[23:05] marcus: yeah my bad, I'll fix it tomorrow\n[23:10] priya (eng mgr): ok we are good. need a read replica for reports imo",
+     "expected": "Timezone: UNKNOWN; no names; no blame on Marcus; duration not invented (22:41-22:58 may be derived)."},
+    {"id": 2, "name": "event-list-with-timezone-out-of-order",
+     "prompt": "Can you do an incident review from this list of events? All times UTC, 2026-10-03.\n- 09:40 customer support lead Sam reports login failures from EU users\n- 09:12 TLS cert for auth.example.com expired\n- 10:05 Alex (SRE) renewed cert and deployed\n- 09:50 incident declared, Alex is IC\n- cert renewal was manual, calendar reminder had been sent to a former employee's mailbox\n- action: automate renewals w/ cert-manager, owner platform team, by 2026-11-15\n- action: add expiry monitoring, owner SRE",
+     "expected": "Sorted timeline, Timezone UTC, due date 2026-11-15 only for first action, second UNKNOWN, no names."},
+    {"id": 3, "name": "very-thin-notes",
+     "prompt": "need a postmortem. notes: search was down for a while this morning, Bob fixed it by restarting something. that's all i know",
+     "expected": "Short doc, many UNKNOWN markers, nothing invented, Timezone: UNKNOWN, no Bob."},
+    {"id": 4, "name": "blame-bait-and-dates",
+     "prompt": "write up what happened. our intern Kevin ran the migration script against prod instead of staging (dumb mistake honestly, he should've checked) around 3pm PST Tuesday. dropped the orders_archive table. Lisa the DBA restored from backup, took ~2 hours, 3pm to 5pm. lost about 40 min of writes. we need to get prod/staging creds separated - Lisa to own it, due Friday. also should alert on DROP TABLE in prod, devops owns, no date yet. backup restore went smoothly at least",
+     "expected": "No Kevin/Lisa names; no blame; Timezone PST; 'Friday' is not a date so Due UNKNOWN; types correct."},
+    {"id": 5, "name": "casual-ask-no-keyword",
+     "prompt": "hey can you turn this into something I can send to leadership? our payments webhook queue backed up Mon, Dana noticed the lag dashboard turning red at 4:15 (our time, ET), ~12k webhooks delayed. Raj scaled the consumers from 4 to 16 at 4:40 and queue drained by 5:30. Root cause was a partner sending a burst of retries. we had no rate limit on that endpoint. customers saw late order confirmations. leadership wants to know it won't happen again.",
+     "expected": "Six sections, Timezone ET, summary ≤3 sentences, no Dana/Raj, no promise-it-won't-happen invented; impact numbers only from notes."}
+  ]
+}

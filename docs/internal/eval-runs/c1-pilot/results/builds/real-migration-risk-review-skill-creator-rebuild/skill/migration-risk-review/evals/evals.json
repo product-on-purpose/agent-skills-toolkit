@@ -1,0 +1,84 @@
+{
+ "skill_name": "migration-risk-review",
+ "evals": [
+  {
+   "id": 1,
+   "prompt": "we're shipping this tomorrow, is it ok?\n\nCREATE INDEX idx_orders_customer_id ON orders (customer_id);",
+   "expected_output": "First line is exactly one of the three Verdict lines; Verdict is not SAFE (size/traffic not given); Has an Assumptions section; Recommends CREATE INDEX CONCURRENTLY; Table has columns Statement, Lock taken, Risk, Fix; Has a Rollback section with DROP INDEX",
+   "files": [],
+   "expectations": [
+    "First line is exactly one of the three Verdict lines",
+    "Verdict is not SAFE (size/traffic not given)",
+    "Has an Assumptions section",
+    "Recommends CREATE INDEX CONCURRENTLY",
+    "Table has columns Statement, Lock taken, Risk, Fix",
+    "Has a Rollback section with DROP INDEX",
+    "Nothing but blank lines between the Verdict line and the table",
+    "Assumptions heading present only when size or traffic is missing"
+   ]
+  },
+  {
+   "id": 2,
+   "prompt": "Our users table has ~80M rows and takes about 2k writes/sec. I want to rename users.fullname to users.display_name in a Rails migration. Can I just do rename_column? What could go wrong?",
+   "expected_output": "First line is a Verdict line; Recommends expand-and-contract and names separate deploy steps (e.g. Deploy 1, Deploy 2); Table has columns Statement, Lock taken, Risk, Fix; Has a Rollback section; No Assumptions section required since size and traffic are given (verdict may be any); Notes rename breaks running app code",
+   "files": [],
+   "expectations": [
+    "First line is a Verdict line",
+    "Recommends expand-and-contract and names separate deploy steps (e.g. Deploy 1, Deploy 2)",
+    "Table has columns Statement, Lock taken, Risk, Fix",
+    "Has a Rollback section",
+    "No Assumptions section required since size and traffic are given (verdict may be any)",
+    "Notes rename breaks running app code",
+    "Nothing but blank lines between the Verdict line and the table",
+    "Assumptions heading present only when size or traffic is missing"
+   ]
+  },
+  {
+   "id": 3,
+   "prompt": "Postgres 14. Pasting a migration, what could go wrong?\n\nALTER TABLE payments ADD COLUMN account_id bigint;\nUPDATE payments SET account_id = legacy_account_id;\nALTER TABLE payments ALTER COLUMN account_id SET NOT NULL;\nALTER TABLE payments ADD CONSTRAINT fk_pay_acct FOREIGN KEY (account_id) REFERENCES accounts(id);",
+   "expected_output": "First line is a Verdict line, not SAFE; One table with at least 4 rows; Flags UPDATE as unbatched long transaction; Recommends NOT VALID then VALIDATE CONSTRAINT for the FK; Has Assumptions section; Has Rollback section",
+   "files": [],
+   "expectations": [
+    "First line is a Verdict line, not SAFE",
+    "One table with at least 4 rows",
+    "Flags UPDATE as unbatched long transaction",
+    "Recommends NOT VALID then VALIDATE CONSTRAINT for the FK",
+    "Has Assumptions section",
+    "Has Rollback section",
+    "Nothing but blank lines between the Verdict line and the table",
+    "Assumptions heading present only when size or traffic is missing"
+   ]
+  },
+  {
+   "id": 4,
+   "prompt": "Small internal tool, table `audit_events` has 5k rows and maybe 10 requests a minute. Migration: ALTER TABLE audit_events DROP COLUMN legacy_source; Safe to run?",
+   "expected_output": "First line is a Verdict line; Rollback section says No rollback with data-loss reason (or restores column without data); Recommends stopping app use first then dropping in a later deploy, naming deploy steps; Table has columns Statement, Lock taken, Risk, Fix; Lock named as ACCESS EXCLUSIVE",
+   "files": [],
+   "expectations": [
+    "First line is a Verdict line",
+    "Rollback section says No rollback with data-loss reason (or restores column without data)",
+    "Recommends stopping app use first then dropping in a later deploy, naming deploy steps",
+    "Table has columns Statement, Lock taken, Risk, Fix",
+    "Lock named as ACCESS EXCLUSIVE",
+    "Nothing but blank lines between the Verdict line and the table",
+    "Assumptions heading present only when size or traffic is missing"
+   ]
+  },
+  {
+   "id": 5,
+   "prompt": "Is this safe to ship? orders has 400M rows, heavy traffic 24/7, PG 15.\n\nALTER TABLE orders ALTER COLUMN total_cents TYPE bigint;",
+   "expected_output": "Verdict is UNSAFE; Identifies full table rewrite under ACCESS EXCLUSIVE; Recommends expand-and-contract with named deploy steps (new column, dual write, backfill in batches, switch reads, drop old); Has Rollback section; No Assumptions section needed since size and traffic given; Table has columns Statement, Lock taken, Risk, Fix",
+   "files": [],
+   "expectations": [
+    "Verdict is UNSAFE",
+    "Identifies full table rewrite under ACCESS EXCLUSIVE",
+    "Recommends expand-and-contract with named deploy steps (new column, dual write, backfill in batches, switch reads, drop old)",
+    "Has Rollback section",
+    "No Assumptions section needed since size and traffic given",
+    "Table has columns Statement, Lock taken, Risk, Fix",
+    "Nothing but blank lines between the Verdict line and the table",
+    "Assumptions heading present only when size or traffic is missing"
+   ]
+  }
+ ]
+}

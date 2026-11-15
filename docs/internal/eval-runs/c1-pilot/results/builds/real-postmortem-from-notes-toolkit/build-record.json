@@ -1,0 +1,57 @@
+{
+  "arm": "toolkit",
+  "skillFinished": true,
+  "final": {
+    "subtype": "success",
+    "isError": false,
+    "costUsd": 0.36138590000000004,
+    "turns": 17,
+    "durationMs": 2528616
+  },
+  "skillInvocations": [
+    {
+      "skill": "agent-skills-toolkit:askit-build-skill",
+      "args": "create postmortem-from-notes"
+    }
+  ],
+  "nestedEvalSpendUsd": 4.342851100000001,
+  "toolCounts": {
+    "Skill": 1,
+    "Bash": 14
+  },
+  "nestedEvalCommands": 3,
+  "nestedEvalSpendFromTranscriptUsd": 0,
+  "nestedEvalSpendBestUsd": 4.342851100000001,
+  "builderInvoked": true,
+  "nestedEvalFinished": 3,
+  "improveModeCount": 0,
+  "createOnly": true,
+  "methodRan": true,
+  "brief": "postmortem-from-notes",
+  "exit": 0,
+  "stoppedBy": null,
+  "wallClockMinutes": 42.24093333333333,
+  "childSessions": {
+    "messages": 0,
+    "unansweredSessions": 0,
+    "dollars": 0,
+    "tokens": {
+      "input": 0,
+      "cacheWrite": 0,
+      "cacheRead": 0,
+      "output": 0
+    }
+  },
+  "parentTokens": {
+    "messages": 15,
+    "unansweredSessions": 0,
+    "dollars": 0.37933770000000006,
+    "tokens": {
+      "input": 30,
+      "cacheWrite": 48360,
+      "cacheRead": 648259,
+      "output": 228
+    }
+  },
+  "totalEstimateUsd": 4.7221888000000005
+}
