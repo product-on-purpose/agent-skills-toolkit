@@ -10,5 +10,4 @@ This folder holds the fixed inputs for experiment B, the pilot that measures cri
 | `calibration/` | The no-skill baseline of every case, and the replacements. See [its README](calibration/README.md) |
 | `threshold-simulation.mjs` | The toy simulation behind the 0.25 threshold. Its probabilities are assumed, and it reads no real data |
 | `harness/` | The container image, the run driver, the scorer and the setup record. See [its README](harness/README.md) |
-
-The pre-registration adds two folders when their steps run: `calibration/` and `results/`.
+| `results/` | The real run's build artifacts and its outcome, R3 (void). Start at [`OUTCOME.md`](results/OUTCOME.md) |

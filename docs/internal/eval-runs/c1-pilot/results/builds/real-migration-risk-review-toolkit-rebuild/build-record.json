@@ -1,0 +1,57 @@
+{
+  "arm": "toolkit",
+  "skillFinished": true,
+  "final": {
+    "subtype": "success",
+    "isError": false,
+    "costUsd": 0.34892560000000006,
+    "turns": 22,
+    "durationMs": 1757877
+  },
+  "skillInvocations": [
+    {
+      "skill": "agent-skills-toolkit:askit-build-skill",
+      "args": "create mode: migration-risk-review"
+    }
+  ],
+  "nestedEvalSpendUsd": 4.5501101,
+  "toolCounts": {
+    "Skill": 1,
+    "Bash": 19
+  },
+  "nestedEvalCommands": 3,
+  "nestedEvalSpendFromTranscriptUsd": 4.55,
+  "nestedEvalSpendBestUsd": 4.5501101,
+  "builderInvoked": true,
+  "nestedEvalFinished": 3,
+  "improveModeCount": 0,
+  "createOnly": true,
+  "methodRan": true,
+  "brief": "migration-risk-review",
+  "exit": 0,
+  "stoppedBy": null,
+  "wallClockMinutes": 29.37525,
+  "childSessions": {
+    "messages": 0,
+    "unansweredSessions": 0,
+    "dollars": 0,
+    "tokens": {
+      "input": 0,
+      "cacheWrite": 0,
+      "cacheRead": 0,
+      "output": 0
+    }
+  },
+  "parentTokens": {
+    "messages": 20,
+    "unansweredSessions": 0,
+    "dollars": 0.44161980000000006,
+    "tokens": {
+      "input": 40,
+      "cacheWrite": 36736,
+      "cacheRead": 963516,
+      "output": 979
+    }
+  },
+  "totalEstimateUsd": 4.9917299
+}

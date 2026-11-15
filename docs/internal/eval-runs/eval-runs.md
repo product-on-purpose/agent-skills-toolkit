@@ -2,6 +2,17 @@
 
 > One row per model-assisted evaluation run. Conventions (what tokens/effort mean, where raw artifacts live) are in [README.md](README.md). Newest batch first. How quality is judged and how readings become calibrations: [METHODOLOGY.md](METHODOLOGY.md).
 
+## Experiment B (the C1 pilot), 2026-11-14: void, C1 not measured
+
+This is a pre-registered experiment, not an advisory run, so it has no sensor readings. It compared skills built by `askit-build-skill` with skills built by Anthropic's skill-creator, on three briefs, under [its pre-registration](prereg_experiment-b-c1-pilot-20261105.md), frozen when PR #400 (experiment B pre-registration) merged.
+
+- **Outcome: R3 (void).** The leak check failed skill-creator's builds on briefs A (`migration-risk-review`) and B (`postmortem-from-notes`) twice each. That invalidates both briefs, and one valid brief is fewer than the two R3 requires. No suite ran and no score exists.
+- **The hits were not leaks.** All 11 traced to text the model wrote itself. No case file was reachable, and no build used the network (high confidence, measured).
+- **The cause is convergent invention.** The case author and the builders are both Sonnet, so they reach for the same textbook examples. skill-creator writes 8 to 17 times as much text per build, so it collided far more often.
+- **Build spend:** about $104 in API-equivalent estimates for nine build attempts.
+
+Full record, in plain English and technically: [`c1-pilot/results/OUTCOME.md`](c1-pilot/results/OUTCOME.md).
+
 ## Batch 2026-08-04 (runs 12-14): the defect-rich model triple, and the key that was scoring thoroughness as noise
 
 **Context:** backlog E13, deferred from v1.8.0 and the last open P1 after the 2026-07-28 roadmap reconciliation. Three real dispatches at three model tiers against the seeded-defect fixture, effort held at `high` so the model tier is the only variable. Toolkit at v1.9.0 (`main` `f5f20d0`), spine 30 / Standard 0.12. Raw advisories now tracked at [`tests/fixtures/anti/seeded-defects/recorded-runs/2026-08-04/`](../../../tests/fixtures/anti/seeded-defects/recorded-runs/2026-08-04/) (moved off the gitignored `_local/` tree so the ADR 0065 regression tests do not depend on a path a clean checkout does not have; see `docs/internal/eval-runs/seeded-defects.md`).

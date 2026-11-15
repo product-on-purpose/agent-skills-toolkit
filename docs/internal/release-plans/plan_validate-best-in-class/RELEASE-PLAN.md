@@ -58,6 +58,11 @@ pilot will show it. That is the point.
 Where it differs from the sketch below, that file governs, and it names each difference. The maintainer
 gave the go for pre-registration, then on 2026-11-12 for the real run. This plan stays Proposed, and experiment A is not started.
 
+**Annotated 2026-11-14.** Experiment B ran and is void (outcome R3), so C1 is not measured; see
+[the outcome record](../../eval-runs/c1-pilot/results/OUTCOME.md). The decision table below has rows for "passes"
+and "fails" only. What a void means for the behaviour-loop cut is the maintainer's ruling. A second pilot, with
+new briefs, is being drafted as R3 requires.
+
 **Design, to be committed under `docs/internal/eval-runs/` before anything runs.**
 
 - **Skills.** Three new skills, briefs chosen before either arm builds. At least one brief must be a kind

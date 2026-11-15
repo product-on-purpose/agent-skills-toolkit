@@ -1,0 +1,10 @@
+{
+  "skill_name": "acceptance-criteria-writer",
+  "evals": [
+    {"id": 1, "name": "csv-export-explicit", "prompt": "Write acceptance criteria for this feature: users can export their order history as a CSV file from the account page.", "expected_output": "AC-n Given/When/Then, <=8, failure path, open questions for unstated limits (date range, row cap), out of scope", "files": []},
+    {"id": 2, "name": "what-does-done-mean", "prompt": "We're adding a 'save for later' button on the cart page. What does done mean for this one? Our QA keeps asking.", "expected_output": "Criteria even without the phrase acceptance criteria", "files": []},
+    {"id": 3, "name": "tester-would-know", "prompt": "Ticket: 'Make the search box fast and easy to use, with autocomplete suggestions.' How would a tester know when this is finished?", "expected_output": "No banned words, no invented latency numbers, open questions naming ACs", "files": []},
+    {"id": 4, "name": "request-with-stated-numbers", "prompt": "Feature request: lock an account for 15 minutes after 5 failed login attempts, and email the owner when it happens. Give me testable criteria.", "expected_output": "Uses 15 and 5 as stated; does not invent other numbers; open questions for unstated rules (e.g. reset on success, email wording)", "files": []},
+    {"id": 5, "name": "large-sprawling-request", "prompt": "turn this into acceptance criteria pls: admins can invite team members, assign roles, remove members, see an audit log of changes, bulk import from CSV, and set up SSO", "expected_output": "Capped at eight criteria, rest in out of scope", "files": []}
+  ]
+}

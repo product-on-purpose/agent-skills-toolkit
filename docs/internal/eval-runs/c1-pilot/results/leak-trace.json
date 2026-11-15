@@ -1,0 +1,508 @@
+{
+  "real-acceptance-criteria-writer-skill-creator": {
+    "transcripts": 290,
+    "toolCalls": {
+      "Skill": 1,
+      "Bash": 62,
+      "Agent": 30,
+      "Read": 15,
+      "Write": 3,
+      "TaskStop": 1,
+      "Monitor": 2
+    },
+    "networkCalls": [],
+    "authoredChars": 214488,
+    "practice": {
+      "files": 1,
+      "evalCases": 5,
+      "triggerQueries": 0
+    },
+    "hits": []
+  },
+  "real-acceptance-criteria-writer-toolkit": {
+    "transcripts": 1,
+    "toolCalls": {
+      "Skill": 1,
+      "Bash": 16
+    },
+    "networkCalls": [],
+    "authoredChars": 15205,
+    "practice": {
+      "files": 5,
+      "evalCases": 5,
+      "triggerQueries": 0
+    },
+    "hits": []
+  },
+  "real-migration-risk-review-skill-creator": {
+    "transcripts": 305,
+    "toolCalls": {
+      "Skill": 1,
+      "Bash": 72,
+      "Agent": 30,
+      "Read": 15,
+      "Monitor": 1,
+      "ToolSearch": 1
+    },
+    "networkCalls": [],
+    "authoredChars": 269614,
+    "practice": {
+      "files": 1,
+      "evalCases": 5,
+      "triggerQueries": 0
+    },
+    "hits": [
+      {
+        "kind": "tokens",
+        "case": "migration-risk-review/case-06",
+        "file": "stream.jsonl",
+        "evidence": "flyway, inserts, user_id",
+        "origins": [
+          {
+            "piece": "flyway",
+            "inFile": {
+              "line": 94,
+              "kind": "authored"
+            },
+            "inParent": null
+          },
+          {
+            "piece": "inserts",
+            "inFile": {
+              "line": 81,
+              "kind": "authored"
+            },
+            "inParent": null
+          },
+          {
+            "piece": "user_id",
+            "inFile": {
+              "line": 554,
+              "kind": "authored"
+            },
+            "inParent": null
+          }
+        ],
+        "access": false
+      }
+    ]
+  },
+  "real-migration-risk-review-skill-creator-rebuild": {
+    "transcripts": 306,
+    "toolCalls": {
+      "Skill": 1,
+      "Bash": 41,
+      "Agent": 20,
+      "Read": 10,
+      "Glob": 2,
+      "Monitor": 1
+    },
+    "networkCalls": [],
+    "authoredChars": 171960,
+    "practice": {
+      "files": 1,
+      "evalCases": 5,
+      "triggerQueries": 0
+    },
+    "hits": [
+      {
+        "kind": "tokens",
+        "case": "migration-risk-review/case-06",
+        "file": "stream.jsonl",
+        "evidence": "flyway, inserts, user_id",
+        "origins": [
+          {
+            "piece": "flyway",
+            "inFile": {
+              "line": 80,
+              "kind": "authored"
+            },
+            "inParent": null
+          },
+          {
+            "piece": "inserts",
+            "inFile": {
+              "line": 83,
+              "kind": "authored"
+            },
+            "inParent": null
+          },
+          {
+            "piece": "user_id",
+            "inFile": {
+              "line": 356,
+              "kind": "authored"
+            },
+            "inParent": null
+          }
+        ],
+        "access": false
+      },
+      {
+        "kind": "verbatim-run",
+        "case": "migration-risk-review/case-08",
+        "file": "stream.jsonl",
+        "evidence": "alter table users rename column fullname to display_name",
+        "origins": [
+          {
+            "piece": "alter table users rename column fullname to display_name",
+            "inFile": {
+              "line": 97,
+              "kind": "authored"
+            },
+            "inParent": null
+          }
+        ],
+        "access": false
+      },
+      {
+        "kind": "tokens",
+        "case": "migration-risk-review/case-08",
+        "file": "stream.jsonl",
+        "evidence": "display_name, fullname, nickname",
+        "origins": [
+          {
+            "piece": "display_name",
+            "inFile": {
+              "line": 14,
+              "kind": "authored"
+            },
+            "inParent": null
+          },
+          {
+            "piece": "fullname",
+            "inFile": {
+              "line": 14,
+              "kind": "authored"
+            },
+            "inParent": null
+          },
+          {
+            "piece": "nickname",
+            "inFile": {
+              "line": 356,
+              "kind": "authored"
+            },
+            "inParent": null
+          }
+        ],
+        "access": false
+      },
+      {
+        "kind": "tokens",
+        "case": "migration-risk-review/case-07",
+        "file": "claude-home/projects/-plugin-skills-skill-creator/894b6a30-6b94-4f58-b1dc-c7317dde5a79.jsonl",
+        "evidence": "alembic, okay, transaction",
+        "origins": [
+          {
+            "piece": "alembic",
+            "inFile": {
+              "line": 3,
+              "kind": "prompt"
+            },
+            "inParent": {
+              "line": 80,
+              "kind": "authored"
+            }
+          },
+          {
+            "piece": "okay",
+            "inFile": {
+              "line": 3,
+              "kind": "prompt"
+            },
+            "inParent": null
+          },
+          {
+            "piece": "transaction",
+            "inFile": {
+              "line": 3,
+              "kind": "prompt"
+            },
+            "inParent": {
+              "line": 10,
+              "kind": "authored"
+            }
+          }
+        ],
+        "access": false
+      },
+      {
+        "kind": "tokens",
+        "case": "migration-risk-review/case-07",
+        "file": "claude-home/projects/-plugin-skills-skill-creator/b52a7a64-3599-494f-9b80-23b16c0b26a5.jsonl",
+        "evidence": "alembic, okay, transaction",
+        "origins": [
+          {
+            "piece": "alembic",
+            "inFile": {
+              "line": 3,
+              "kind": "prompt"
+            },
+            "inParent": {
+              "line": 80,
+              "kind": "authored"
+            }
+          },
+          {
+            "piece": "okay",
+            "inFile": {
+              "line": 22,
+              "kind": "authored"
+            },
+            "inParent": null
+          },
+          {
+            "piece": "transaction",
+            "inFile": {
+              "line": 3,
+              "kind": "prompt"
+            },
+            "inParent": {
+              "line": 10,
+              "kind": "authored"
+            }
+          }
+        ],
+        "access": false
+      }
+    ]
+  },
+  "real-migration-risk-review-toolkit": {
+    "transcripts": 1,
+    "toolCalls": {
+      "Skill": 1,
+      "Bash": 17,
+      "Edit": 2
+    },
+    "networkCalls": [],
+    "authoredChars": 21268,
+    "practice": {
+      "files": 5,
+      "evalCases": 5,
+      "triggerQueries": 0
+    },
+    "hits": [
+      {
+        "kind": "verbatim-run",
+        "case": "migration-risk-review/case-05",
+        "file": "stream.jsonl",
+        "evidence": "alter table payments alter column amount type bigint",
+        "origins": [
+          {
+            "piece": "alter table payments alter column amount type bigint",
+            "inFile": {
+              "line": 35,
+              "kind": "authored"
+            },
+            "inParent": null
+          }
+        ],
+        "access": false
+      }
+    ]
+  },
+  "real-migration-risk-review-toolkit-rebuild": {
+    "transcripts": 1,
+    "toolCalls": {
+      "Skill": 1,
+      "Bash": 19
+    },
+    "networkCalls": [],
+    "authoredChars": 19244,
+    "practice": {
+      "files": 5,
+      "evalCases": 5,
+      "triggerQueries": 0
+    },
+    "hits": []
+  },
+  "real-postmortem-from-notes-skill-creator": {
+    "transcripts": 305,
+    "toolCalls": {
+      "Skill": 1,
+      "Bash": 45,
+      "Agent": 22,
+      "Read": 11,
+      "Write": 13,
+      "Monitor": 10,
+      "Edit": 2,
+      "ScheduleWakeup": 3
+    },
+    "networkCalls": [],
+    "authoredChars": 161604,
+    "practice": {
+      "files": 2,
+      "evalCases": 5,
+      "triggerQueries": 20
+    },
+    "hits": [
+      {
+        "kind": "tokens",
+        "case": "postmortem-from-notes/case-01",
+        "file": "stream.jsonl",
+        "evidence": "alerted, alerts, renewed",
+        "origins": [
+          {
+            "piece": "alerted",
+            "inFile": {
+              "line": 85,
+              "kind": "authored"
+            },
+            "inParent": null
+          },
+          {
+            "piece": "alerts",
+            "inFile": {
+              "line": 15,
+              "kind": "authored"
+            },
+            "inParent": null
+          },
+          {
+            "piece": "renewed",
+            "inFile": {
+              "line": 438,
+              "kind": "authored"
+            },
+            "inParent": null
+          }
+        ],
+        "access": false
+      },
+      {
+        "kind": "tokens",
+        "case": "postmortem-from-notes/case-03",
+        "file": "stream.jsonl",
+        "evidence": "paging, recovering, rollout",
+        "origins": [
+          {
+            "piece": "paging",
+            "inFile": {
+              "line": 95,
+              "kind": "authored"
+            },
+            "inParent": null
+          },
+          {
+            "piece": "recovering",
+            "inFile": {
+              "line": 15,
+              "kind": "authored"
+            },
+            "inParent": null
+          },
+          {
+            "piece": "rollout",
+            "inFile": {
+              "line": 85,
+              "kind": "authored"
+            },
+            "inParent": null
+          }
+        ],
+        "access": false
+      }
+    ]
+  },
+  "real-postmortem-from-notes-skill-creator-rebuild": {
+    "transcripts": 291,
+    "toolCalls": {
+      "Skill": 1,
+      "Bash": 59,
+      "Agent": 30,
+      "Read": 45,
+      "ScheduleWakeup": 2
+    },
+    "networkCalls": [],
+    "authoredChars": 180622,
+    "practice": {
+      "files": 1,
+      "evalCases": 5,
+      "triggerQueries": 0
+    },
+    "hits": [
+      {
+        "kind": "tokens",
+        "case": "postmortem-from-notes/case-01",
+        "file": "stream.jsonl",
+        "evidence": "alerted, alerts, renewed",
+        "origins": [
+          {
+            "piece": "alerted",
+            "inFile": {
+              "line": 131,
+              "kind": "authored"
+            },
+            "inParent": null
+          },
+          {
+            "piece": "alerts",
+            "inFile": {
+              "line": 183,
+              "kind": "authored"
+            },
+            "inParent": null
+          },
+          {
+            "piece": "renewed",
+            "inFile": {
+              "line": 17,
+              "kind": "authored"
+            },
+            "inParent": null
+          }
+        ],
+        "access": false
+      },
+      {
+        "kind": "tokens",
+        "case": "postmortem-from-notes/case-03",
+        "file": "stream.jsonl",
+        "evidence": "paging, rollout, spiking",
+        "origins": [
+          {
+            "piece": "paging",
+            "inFile": {
+              "line": 17,
+              "kind": "authored"
+            },
+            "inParent": null
+          },
+          {
+            "piece": "rollout",
+            "inFile": {
+              "line": 14,
+              "kind": "authored"
+            },
+            "inParent": null
+          },
+          {
+            "piece": "spiking",
+            "inFile": {
+              "line": 17,
+              "kind": "authored"
+            },
+            "inParent": null
+          }
+        ],
+        "access": false
+      }
+    ]
+  },
+  "real-postmortem-from-notes-toolkit": {
+    "transcripts": 1,
+    "toolCalls": {
+      "Skill": 1,
+      "Bash": 14
+    },
+    "networkCalls": [],
+    "authoredChars": 20060,
+    "practice": {
+      "files": 5,
+      "evalCases": 5,
+      "triggerQueries": 0
+    },
+    "hits": []
+  }
+}

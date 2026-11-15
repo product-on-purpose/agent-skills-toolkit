@@ -1,0 +1,182 @@
+{
+  "builds": [
+    {
+      "brief": "migration-risk-review",
+      "arm": "toolkit",
+      "final": "real-migration-risk-review-toolkit-rebuild",
+      "attempts": [
+        {
+          "id": "real-migration-risk-review-toolkit",
+          "brief": "migration-risk-review",
+          "arm": "toolkit",
+          "started": "2026-11-14T07:03:13.657Z",
+          "exit": 0,
+          "ok": false,
+          "reasons": [
+            "leak: verbatim-run migration-risk-review/case-05"
+          ],
+          "stderrTail": null,
+          "cost": 4.740259450000001,
+          "minutes": 25.82825,
+          "createOnly": true,
+          "stoppedBy": null
+        },
+        {
+          "id": "real-migration-risk-review-toolkit-rebuild",
+          "brief": "migration-risk-review",
+          "arm": "toolkit",
+          "started": "2026-11-14T07:29:06.924Z",
+          "exit": 0,
+          "ok": true,
+          "reasons": [],
+          "stderrTail": null,
+          "cost": 4.9917299,
+          "minutes": 29.37525,
+          "createOnly": true,
+          "stoppedBy": null
+        }
+      ]
+    },
+    {
+      "brief": "migration-risk-review",
+      "arm": "skill-creator",
+      "final": "failed",
+      "attempts": [
+        {
+          "id": "real-migration-risk-review-skill-creator",
+          "brief": "migration-risk-review",
+          "arm": "skill-creator",
+          "started": "2026-11-14T07:58:31.199Z",
+          "exit": 0,
+          "ok": false,
+          "reasons": [
+            "leak: tokens migration-risk-review/case-06"
+          ],
+          "stderrTail": null,
+          "cost": 18.133239,
+          "minutes": 64.79863333333333,
+          "createOnly": null,
+          "stoppedBy": null
+        },
+        {
+          "id": "real-migration-risk-review-skill-creator-rebuild",
+          "brief": "migration-risk-review",
+          "arm": "skill-creator",
+          "started": "2026-11-14T09:03:25.934Z",
+          "exit": 0,
+          "ok": false,
+          "reasons": [
+            "leak: tokens migration-risk-review/case-06; verbatim-run migration-risk-review/case-08; tokens migration-risk-review/case-08; tokens migration-risk-review/case-07; tokens migration-risk-review/case-07"
+          ],
+          "stderrTail": null,
+          "cost": 16.489981349999997,
+          "minutes": 119.33528333333334,
+          "createOnly": null,
+          "stoppedBy": null
+        }
+      ]
+    },
+    {
+      "brief": "postmortem-from-notes",
+      "arm": "skill-creator",
+      "final": "failed",
+      "attempts": [
+        {
+          "id": "real-postmortem-from-notes-skill-creator",
+          "brief": "postmortem-from-notes",
+          "arm": "skill-creator",
+          "started": "2026-11-14T11:02:53.391Z",
+          "exit": 0,
+          "ok": false,
+          "reasons": [
+            "leak: tokens postmortem-from-notes/case-01; tokens postmortem-from-notes/case-03"
+          ],
+          "stderrTail": null,
+          "cost": 16.908056249999998,
+          "minutes": 17.238533333333333,
+          "createOnly": null,
+          "stoppedBy": null
+        },
+        {
+          "id": "real-postmortem-from-notes-skill-creator-rebuild",
+          "brief": "postmortem-from-notes",
+          "arm": "skill-creator",
+          "started": "2026-11-14T11:20:15.297Z",
+          "exit": 0,
+          "ok": false,
+          "reasons": [
+            "leak: tokens postmortem-from-notes/case-01; tokens postmortem-from-notes/case-03"
+          ],
+          "stderrTail": null,
+          "cost": 16.920773849999996,
+          "minutes": 55.834,
+          "createOnly": null,
+          "stoppedBy": null
+        }
+      ]
+    },
+    {
+      "brief": "postmortem-from-notes",
+      "arm": "toolkit",
+      "final": "real-postmortem-from-notes-toolkit",
+      "attempts": [
+        {
+          "id": "real-postmortem-from-notes-toolkit",
+          "brief": "postmortem-from-notes",
+          "arm": "toolkit",
+          "started": "2026-11-14T12:16:11.967Z",
+          "exit": 0,
+          "ok": true,
+          "reasons": [],
+          "stderrTail": null,
+          "cost": 4.7221888000000005,
+          "minutes": 42.24093333333333,
+          "createOnly": true,
+          "stoppedBy": null
+        }
+      ]
+    },
+    {
+      "brief": "acceptance-criteria-writer",
+      "arm": "toolkit",
+      "final": "real-acceptance-criteria-writer-toolkit",
+      "attempts": [
+        {
+          "id": "real-acceptance-criteria-writer-toolkit",
+          "brief": "acceptance-criteria-writer",
+          "arm": "toolkit",
+          "started": "2026-11-14T12:58:28.632Z",
+          "exit": 0,
+          "ok": true,
+          "reasons": [],
+          "stderrTail": null,
+          "cost": 4.3639107,
+          "minutes": 36.20738333333333,
+          "createOnly": true,
+          "stoppedBy": null
+        }
+      ]
+    },
+    {
+      "brief": "acceptance-criteria-writer",
+      "arm": "skill-creator",
+      "final": "real-acceptance-criteria-writer-skill-creator",
+      "attempts": [
+        {
+          "id": "real-acceptance-criteria-writer-skill-creator",
+          "brief": "acceptance-criteria-writer",
+          "arm": "skill-creator",
+          "started": "2026-11-14T13:34:42.886Z",
+          "exit": 0,
+          "ok": true,
+          "reasons": [],
+          "stderrTail": null,
+          "cost": 16.85117295,
+          "minutes": 126.05643333333333,
+          "createOnly": null,
+          "stoppedBy": null
+        }
+      ]
+    }
+  ]
+}
