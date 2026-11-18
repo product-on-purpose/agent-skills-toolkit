@@ -1,6 +1,6 @@
 # Experiment B2 (the second C1 pilot): draft design
 
-**Status: PROPOSED DRAFT, 2026-11-14. Not pre-registered, and nothing in it has run.** This file plans a replacement for experiment B, whose outcome was R3 (void): see [the experiment B outcome](c1-pilot/results/OUTCOME.md). It is not the pre-registration. Experiment B2 freezes only when a separate pre-registration file, written from this design after the maintainer rules on it, merges. Merging this file freezes nothing, and its pull request stays a draft until the maintainer rules.
+**Status: PROPOSED DRAFT, 2026-11-14. Not pre-registered, and nothing in it has run.** On 2026-11-17 the maintainer ruled D1 and D2 as recommended, and D3 as (b). The design as a whole is still open (section 4). This file plans a replacement for experiment B, whose outcome was R3 (void): see [the experiment B outcome](c1-pilot/results/OUTCOME.md). It is not the pre-registration. Experiment B2 freezes only when a separate pre-registration file, written from this design after the maintainer rules on it, merges. Merging this file freezes nothing, and its pull request stays a draft until the maintainer rules.
 
 ## 1. Why a second pilot
 
@@ -8,9 +8,11 @@ Experiment B was the first measurement of C1 under [ADR 0066 (the goal is the bu
 
 Section 9 of [experiment B's pre-registration](prereg_experiment-b-c1-pilot-20261105.md) forbids re-running with a modified instrument. It also says a new pilot needs a new pre-registration, new briefs and the maintainer's ruling. This design is the first step of that.
 
-The goal of experiment B2 is the same question, measured by an instrument built so that it does not fail the way experiment B's did. One piece of evidence for that exists already: replayed on experiment B's nine recorded build attempts, the leak rule drafted in 3.3 gives no hits, where experiment B's rule voided two briefs (measured; see [the outcome record](c1-pilot/results/OUTCOME.md)). That shows the rule is quiet on these builds, not that it is quiet on every build, which is why 3.4 still requires an on-topic dry run. **The design changes only what experiment B's instrument finding justifies.** Every other rule carries over unchanged, so that a reader can compare the two and see that nothing was tuned toward a result.
+The goal of experiment B2 is the same question, measured by an instrument built so that it does not fail the way experiment B's did. One piece of evidence for that exists already: replayed on experiment B's nine recorded build attempts, the leak rule drafted in 3.3 gives no hits, where experiment B's rule voided two briefs (measured; see [the outcome record](c1-pilot/results/OUTCOME.md)). That shows the rule is quiet on these builds, not that it is quiet on every build, which is why 3.4 still requires an on-topic dry run. **The design changes only what experiment B's findings justify.** Sections 3.1 to 3.6 answer its instrument finding. Section 3.7 answers one method finding: no toolkit build used improve mode. Every other rule carries over unchanged, so that a reader can compare the two and see that nothing was tuned toward a result.
 
 ## 2. What stays identical to experiment B
+
+Two rows below change in one respect, which section 3.7 sets out: the toolkit arm's build instruction, and what counts as the toolkit's method under the rebuild rule. Everything else in the table is kept exactly.
 
 | Element | Experiment B's setting, kept as it was |
 |---|---|
@@ -86,9 +88,26 @@ Experiment B's `harness/leak-replay.mjs` already implements this rule as its "pr
 
 **How:** the case author's instructions ask for situated material: invented but specific systems, names, numbers and constraints, never the first example a textbook would give. The case author runs on Opus, not Sonnet, to put some distance between author and builders. Sharing a model family still allows convergence, so the screen in 3.5 is what enforces this, not the instruction.
 
+### 3.7 The toolkit arm must use improve mode (ruled D1 (b), 2026-11-17)
+
+**Why:** all four toolkit builds in experiment B used `askit-build-skill` in create mode only. So the toolkit arm measured create mode plus hand edits, not the eval-and-improve loop that ADR 0066's leading claim is about. skill-creator's arm already had to run its full loop, including the optimiser.
+
+**How:** the toolkit arm's build instruction requires at least one `askit-build-skill` improve-mode call after the first nested `claude plugin eval`. A build without one has not run its method. Under the rebuild rule in section 2, it is rebuilt once, and a second miss is a failed build. The "create-only" label from experiment B is retired, because no valid toolkit build can be create-only.
+
 ## 4. Decisions for the maintainer
 
-These are open. The pre-registration cannot be written until they are ruled.
+**Rulings, 2026-11-17.**
+
+- **D1: (b).** The toolkit arm must use improve mode. Section 3.7 carries it.
+- **D2: (a), carried out in part.** The stored login's podman volume, `c1-pilot-login`, was removed on 2026-11-17. The sign-ins themselves stay valid until the maintainer revokes them on claude.ai. A fresh sign-in is needed when experiment B2 runs.
+- **D3: (b).** The maintainer left this one to the agent's judgment, and the agent recommended (b). The behaviour-loop cut proceeds now as regression tooling, and experiment B2 decides whether it becomes the headline. The reasons:
+  - The kill criterion in `plan_validate-best-in-class` demotes the cut to regression tooling if C1 fails. So regression tooling is the cut's floor in every outcome, and building it now wastes no work.
+  - Experiment B2 is weeks from a run, and criteria C2 to C4 do not depend on C1.
+  - **Condition:** if any behaviour-loop code ships before experiment B2 freezes, the pre-registration pins the exact toolkit commit that the toolkit arm builds with. The arm then tests shipped code, not a method run by hand.
+  - **Claim discipline:** until experiment B2 records R1, nothing says the toolkit builds better skills than skill-creator. The cut ships as regression tooling only.
+- **The design as a whole: not yet ruled.** Step 1 of section 5 needs that ruling as well as D1 to D3.
+
+The table below keeps the options as they were offered.
 
 | Decision | Options | Recommendation |
 |---|---|---|
@@ -98,7 +117,7 @@ These are open. The pre-registration cannot be written until they are ruled.
 
 ## 5. The path to a run
 
-1. **The maintainer rules on this design** and on D1 to D3.
+1. **The maintainer rules on this design** and on D1 to D3. D1 to D3 were ruled on 2026-11-17 (section 4). The design itself is still open.
 2. **Write the briefs:** three real briefs and one dry-run brief, by a fresh subagent (3.1, 3.4).
 3. **Write the cases** on Opus: ten per real brief, plus ten decoys for the dry-run brief. They are stored locally only (3.2, 3.6).
 4. **Run the convergence screen** and the replacements (3.5).
