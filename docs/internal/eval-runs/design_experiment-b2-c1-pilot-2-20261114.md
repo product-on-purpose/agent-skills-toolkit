@@ -80,7 +80,32 @@ Experiment B's `harness/leak-replay.mjs` already implements this rule as its "pr
 2. Any held-out case whose 8-word runs or distinctive tokens recur in that output is replaced by the replacement-author process from experiment B.
 3. The replacements are then screened again before calibration.
 
-**How, during the run (a covariate):** every build's model-authored text is matched against the cases in the same way. The record reports, per build, how many cases it converged on. This never voids a build. The primary result uses all valid cases. A secondary result drops every case that any build converged on, and it is reported beside the primary, never instead of it. If the two disagree on any brief's winner, the outcome says so plainly.
+**Amended 2026-11-22, after the first screen and before any replacement or build.** Word matching could not separate a reinvented case from ordinary vocabulary or boilerplate, so the screen's rule changed. The new rule was chosen on closed material, meaning experiment B's builds and cases, whose outcome can no longer move, and then applied unchanged to experiment B2.
+
+- **The unit is one practice prompt,** compared only with its own brief's cases. The first match compared a whole session of 20 prompts, so three words from three different prompts could add up to a hit.
+- **What word matching measured.** On experiment B's 65 practice prompts against its 30 cases, four pairs were labelled near-copies by reading.
+  - An 8-word run caught 1 of the 4.
+  - A 5-word run caught all 4, with 15 false alarms, mostly phrases taken from the brief's own examples.
+  - A 6-word run caught 3 of the 4, with 1 false alarm.
+  - On experiment B2's screen, distinctive tokens flagged 22 of 40 cases, mostly with ordinary domain words. Phrase runs flagged legal boilerplate.
+  - Some convergence was real: one case's invented reference number recurred in two of the five sessions for its brief.
+- **A judge decides a near-copy.** `harness/judge.mjs` sends a Sonnet judge each case's prompt and substance graders, beside each candidate practice prompt.
+  - The candidates are the three closest prompts by shared content words, plus every prompt that shares a 5-word run with the case.
+  - A near-copy is the same specific situation, so that the case's substance graders would apply to it nearly unchanged. A prompt about a different table, system, person or set of figures is different. A prompt that contains the case's situation inside a larger one is a near-copy.
+  - Each pair is judged three times, and the majority decides.
+- **The judge was proven before use.** It judged 100 of experiment B's pairs.
+  - It called none of the 96 pairs labelled different a near-copy.
+  - It caught both clear near-copies.
+  - It called the two borderline labels different, with reasons that hold up. One drops the same column from a different table, and the other shares one of three statements.
+  - No pair's three votes split.
+  - The definition was sharpened twice on this material. Tuning stopped at that point, because four labels cannot support more.
+- **A stopping rule.** There is one round of replacement. Replacements are judged once, against the same 400 screen prompts. A replacement still judged a near-copy stays, and the pre-registration reports it.
+- **What the replacement author sees.** It gets experiment B's replacement instructions and the reason for the replacement. It also gets that brief's screen prompts, as examples already invented and to be avoided. The screen prompts were written without seeing any case.
+- **Decoys are judged but never replaced.** The on-topic dry run in 3.4 needs material where the covariate is known to fire.
+- **Replaced cases are kept** in the local area. They are never used.
+- **Nothing from a held-out case goes in a tracked file,** a commit message or PR text before section 3.2 allows it. Records give counts only.
+
+**How, during the run (a covariate):** every build's practice prompts are judged against the cases in the same way, with `harness/judge.mjs`. The record reports, per build, how many cases it converged on. This never voids a build. The primary result uses all valid cases. A secondary result drops every case that any build converged on, and it is reported beside the primary, never instead of it. If the two disagree on any brief's winner, the outcome says so plainly.
 
 ### 3.6 Cases written to resist invention
 
