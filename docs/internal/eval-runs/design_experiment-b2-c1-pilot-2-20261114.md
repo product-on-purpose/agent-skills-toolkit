@@ -1,6 +1,6 @@
 # Experiment B2 (the second C1 pilot): draft design
 
-**Status: PROPOSED DRAFT, 2026-11-14. Not pre-registered, and nothing in it has run.** On 2026-11-17 the maintainer ruled D1 and D2 as recommended, and D3 as (b). The design as a whole is still open (section 4). This file plans a replacement for experiment B, whose outcome was R3 (void): see [the experiment B outcome](c1-pilot/results/OUTCOME.md). It is not the pre-registration. Experiment B2 freezes only when a separate pre-registration file, written from this design after the maintainer rules on it, merges. Merging this file freezes nothing, and its pull request stays a draft until the maintainer rules.
+**Status: APPROVED DESIGN, 2026-11-22. Not pre-registered, and nothing in it has run.** On 2026-11-17 the maintainer ruled D1 and D2 as recommended, and D3 as (b). On 2026-11-22 the maintainer approved the design as a whole, so section 5 step 2 can start. This file plans a replacement for experiment B, whose outcome was R3 (void): see [the experiment B outcome](c1-pilot/results/OUTCOME.md). It is not the pre-registration. Experiment B2 freezes only when a separate pre-registration file, written from this design after the maintainer rules on it, merges. Merging this file freezes nothing, and its pull request stays a draft until the maintainer rules.
 
 ## 1. Why a second pilot
 
@@ -105,7 +105,7 @@ Experiment B's `harness/leak-replay.mjs` already implements this rule as its "pr
   - Experiment B2 is weeks from a run, and criteria C2 to C4 do not depend on C1.
   - **Condition:** if any behaviour-loop code ships before experiment B2 freezes, the pre-registration pins the exact toolkit commit that the toolkit arm builds with. The arm then tests shipped code, not a method run by hand.
   - **Claim discipline:** until experiment B2 records R1, nothing says the toolkit builds better skills than skill-creator. The cut ships as regression tooling only.
-- **The design as a whole: not yet ruled.** Step 1 of section 5 needs that ruling as well as D1 to D3.
+- **The design as a whole: approved 2026-11-22.** The maintainer said "Yes continue" to approving it and starting the briefs and cases.
 
 The table below keeps the options as they were offered.
 
@@ -117,7 +117,7 @@ The table below keeps the options as they were offered.
 
 ## 5. The path to a run
 
-1. **The maintainer rules on this design** and on D1 to D3. D1 to D3 were ruled on 2026-11-17 (section 4). The design itself is still open.
+1. **The maintainer rules on this design** and on D1 to D3. Done: D1 to D3 on 2026-11-17, and the design on 2026-11-22 (section 4).
 2. **Write the briefs:** three real briefs and one dry-run brief, by a fresh subagent (3.1, 3.4).
 3. **Write the cases** on Opus: ten per real brief, plus ten decoys for the dry-run brief. They are stored locally only (3.2, 3.6).
 4. **Run the convergence screen** and the replacements (3.5).
