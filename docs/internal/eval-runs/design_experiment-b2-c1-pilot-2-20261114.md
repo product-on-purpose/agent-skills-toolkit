@@ -147,6 +147,8 @@ The table below keeps the options as they were offered.
 3. **Write the cases** on Opus: ten per real brief, plus ten decoys for the dry-run brief. They are stored locally only (3.2, 3.6).
 4. **Run the convergence screen** and the replacements (3.5).
 5. **Run the calibration**, followed by its replacements, which are screened again.
+
+   **Steps 2 to 5 done, 2026-11-22.** No case was a near-copy, three cases were replaced after calibration, and all 30 real cases now score below 0.75 with no skill. See [the preparation record](c1-pilot-2/PREPARATION.md).
 6. **Build the leak rule** from 3.3, with tests, including the planted read and the planted network call.
 7. **Run the on-topic dry run** in both arms, against the decoys (3.4).
 8. **Write the pre-registration** from this design, with the hashes. It goes to the maintainer for review, and adversarial review as experiment B had.

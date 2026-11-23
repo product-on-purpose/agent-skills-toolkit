@@ -1,0 +1,200 @@
+{
+  "lease-clause-review": {
+    "costUsd": 4.1022760000000025,
+    "partial": false,
+    "cases": [
+      {
+        "name": "case-01",
+        "score": 0.5,
+        "errors": 0,
+        "saturated": false
+      },
+      {
+        "name": "case-02",
+        "score": 0.5,
+        "errors": 0,
+        "saturated": false
+      },
+      {
+        "name": "case-03",
+        "score": 0.5833333333333334,
+        "errors": 0,
+        "saturated": false
+      },
+      {
+        "name": "case-04",
+        "score": 0.5,
+        "errors": 0,
+        "saturated": false
+      },
+      {
+        "name": "case-05",
+        "score": 0.5,
+        "errors": 0,
+        "saturated": false
+      },
+      {
+        "name": "case-06",
+        "score": 0.5,
+        "errors": 0,
+        "saturated": false
+      },
+      {
+        "name": "case-07",
+        "score": 0.5,
+        "errors": 0,
+        "saturated": false
+      },
+      {
+        "name": "case-08",
+        "score": 0.5,
+        "errors": 0,
+        "saturated": false
+      },
+      {
+        "name": "case-09",
+        "score": 0.6666666666666666,
+        "errors": 0,
+        "saturated": false
+      },
+      {
+        "name": "case-10",
+        "score": 0.5,
+        "errors": 0,
+        "saturated": false
+      }
+    ]
+  },
+  "shift-handover-note": {
+    "costUsd": 2.0386319000000026,
+    "partial": false,
+    "cases": [
+      {
+        "name": "case-01",
+        "score": 0.5,
+        "errors": 0,
+        "saturated": false
+      },
+      {
+        "name": "case-02",
+        "score": 0.5,
+        "errors": 0,
+        "saturated": false
+      },
+      {
+        "name": "case-03",
+        "score": 0.5,
+        "errors": 0,
+        "saturated": false
+      },
+      {
+        "name": "case-04",
+        "score": 0.5,
+        "errors": 0,
+        "saturated": false
+      },
+      {
+        "name": "case-05",
+        "score": 0.75,
+        "errors": 0,
+        "saturated": true
+      },
+      {
+        "name": "case-06",
+        "score": 0.5,
+        "errors": 0,
+        "saturated": false
+      },
+      {
+        "name": "case-07",
+        "score": 0.5,
+        "errors": 0,
+        "saturated": false
+      },
+      {
+        "name": "case-08",
+        "score": 0.5,
+        "errors": 0,
+        "saturated": false
+      },
+      {
+        "name": "case-09",
+        "score": 0.5,
+        "errors": 0,
+        "saturated": false
+      },
+      {
+        "name": "case-10",
+        "score": 0.5,
+        "errors": 0,
+        "saturated": false
+      }
+    ]
+  },
+  "customer-release-notes": {
+    "costUsd": 2.5494000000000003,
+    "partial": false,
+    "cases": [
+      {
+        "name": "case-01",
+        "score": 0.5,
+        "errors": 0,
+        "saturated": false
+      },
+      {
+        "name": "case-02",
+        "score": 0.25,
+        "errors": 0,
+        "saturated": false
+      },
+      {
+        "name": "case-03",
+        "score": 0.5833333333333334,
+        "errors": 0,
+        "saturated": false
+      },
+      {
+        "name": "case-04",
+        "score": 0.75,
+        "errors": 0,
+        "saturated": true
+      },
+      {
+        "name": "case-05",
+        "score": 0.6666666666666666,
+        "errors": 0,
+        "saturated": false
+      },
+      {
+        "name": "case-06",
+        "score": 0.5,
+        "errors": 0,
+        "saturated": false
+      },
+      {
+        "name": "case-07",
+        "score": 0.5,
+        "errors": 0,
+        "saturated": false
+      },
+      {
+        "name": "case-08",
+        "score": 0.5833333333333334,
+        "errors": 0,
+        "saturated": false
+      },
+      {
+        "name": "case-09",
+        "score": 0.5,
+        "errors": 0,
+        "saturated": false
+      },
+      {
+        "name": "case-10",
+        "score": 0.75,
+        "errors": 0,
+        "saturated": true
+      }
+    ]
+  }
+}

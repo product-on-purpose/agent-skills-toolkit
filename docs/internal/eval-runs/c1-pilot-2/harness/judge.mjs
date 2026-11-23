@@ -165,8 +165,9 @@ async function testbed(outPath) {
   console.log(`cost about $${rows.reduce((n, r) => n + (r.costUsd ?? 0), 0).toFixed(2)}`);
 }
 
-async function screen(outPath) {
-  const cases = loadCases(join(LOCAL2, 'cases'));
+/** `only`: case ids such as `brief/case-05`, to judge just those (the replacements, judged once). */
+async function screen(outPath, only = null) {
+  const cases = loadCases(join(LOCAL2, 'cases')).filter((c) => !only || only.includes(c.id));
   const screenPrompts = [];
   for (const b of loadBriefs()) {
     const dir = join(LOCAL2, 'screen', b.name);
@@ -191,8 +192,9 @@ async function screen(outPath) {
 
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
   if (!existsSync(TOKEN_FILE)) throw new Error(`No token file at ${TOKEN_FILE}`);
-  const [cmd, out] = process.argv.slice(2);
+  const [cmd, out, ...rest] = process.argv.slice(2);
+  const only = rest.includes('--case') ? rest[rest.indexOf('--case') + 1].split(',') : null;
   if (cmd === 'testbed') await testbed(out);
-  else if (cmd === 'screen') await screen(out);
-  else { console.error('usage: node judge.mjs testbed|screen <out.json>'); process.exitCode = 2; }
+  else if (cmd === 'screen') await screen(out, only);
+  else { console.error('usage: node judge.mjs testbed|screen <out.json> [--case brief/case-NN,...]'); process.exitCode = 2; }
 }
