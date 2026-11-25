@@ -62,6 +62,57 @@ test("renderCodexNativeManifest honors explicit displayName/category overrides",
   assert.equal(m.interface.category, "Productivity");
 });
 
+// --- codex.interface: library.json's home for the Codex marketplace fields the renderer never computes ---
+
+const CODEX_INTERFACE = {
+  shortDescription: "A short marketing line",
+  longDescription: "A longer paragraph for the plugin page.",
+  developerName: "Demo Author",
+  capabilities: ["Interactive", "Read", "Write"],
+  websiteURL: "https://example.com/demo-plugin",
+  defaultPrompt: ["Do the demo thing."],
+};
+
+test("renderCodexNativeManifest passes every codex.interface key through, beside the computed displayName/category", () => {
+  const ctx = { library: { data: { name: "x-y", version: "1.0.0", category: "Developer Tools", codex: { interface: CODEX_INTERFACE } } } };
+  const m = JSON.parse(renderCodexNativeManifest(ctx));
+  assert.equal(m.interface.displayName, "X Y", "the computed displayName still applies when codex.interface does not set one");
+  assert.equal(m.interface.category, "Developer Tools", "top-level category still applies when codex.interface does not set one");
+  for (const [k, v] of Object.entries(CODEX_INTERFACE)) assert.deepEqual(m.interface[k], v, `interface.${k} is passed through`);
+  assert.equal(m.codex, undefined, "the library.json codex key itself is never emitted");
+});
+
+test("renderCodexNativeManifest lets codex.interface override the top-level displayName/category, because it is the more specific home", () => {
+  const ctx = { library: { data: { name: "x-y", version: "1.0.0", displayName: "Top", category: "Engineering", codex: { interface: { displayName: "Nested", category: "Productivity" } } } } };
+  const m = JSON.parse(renderCodexNativeManifest(ctx));
+  assert.equal(m.interface.displayName, "Nested");
+  assert.equal(m.interface.category, "Productivity");
+});
+
+test("renderCodexNativeManifest ignores a codex.interface that is not a plain object", () => {
+  for (const bad of ["a string", ["an", "array"], null, 42]) {
+    const ctx = { library: { data: { name: "x-y", version: "1.0.0", codex: { interface: bad } } } };
+    const m = JSON.parse(renderCodexNativeManifest(ctx));
+    assert.deepEqual(Object.keys(m.interface).sort(), ["category", "displayName"], `codex.interface = ${JSON.stringify(bad)} adds nothing`);
+  }
+});
+
+test("renderClaudeNativeManifest never emits codex.interface fields", () => {
+  const ctx = { library: { data: { name: "x-y", version: "1.0.0", codex: { interface: CODEX_INTERFACE } } } };
+  const m = JSON.parse(renderClaudeNativeManifest(ctx));
+  assert.equal(m.interface, undefined);
+  assert.equal(m.codex, undefined);
+  assert.equal(m.websiteURL, undefined);
+});
+
+test("fieldLosses treats a Codex interface field that codex.interface supplies as a regeneration, not a loss", () => {
+  const existing = { interface: { displayName: "Demo", category: "Productivity", websiteURL: "https://old.example.com", brandColor: "#2563EB" } };
+  const rendered = { interface: { displayName: "Demo", category: "Productivity", websiteURL: "https://new.example.com" } };
+  const lib = { displayName: "Demo", category: "Productivity", codex: { interface: { websiteURL: "https://new.example.com" } } };
+  const lost = fieldLosses(existing, rendered, lib);
+  assert.deepEqual(lost.map((l) => l.field), ["interface.brandColor"], "websiteURL is supplied with a new value; only brandColor is unsupplied");
+});
+
 test("renderManifest indexes commands with name + maps-to", () => {
   const ctx = loadPlugin(path.join(FIXTURES, "golden/command-fixture"));
   const obj = JSON.parse(renderManifest(ctx));
@@ -115,9 +166,11 @@ test("fieldLosses flags every Codex interface field library.json does not supply
   assert.deepEqual(
     lost.map((l) => l.field).sort(),
     ["interface.brandColor", "interface.developerName", "interface.shortDescription"],
-    "displayName/category are supplied by library.json (regeneration); the rest have no library.json home at all"
+    "displayName/category are supplied by library.json (regeneration); the rest are not supplied"
   );
-  for (const l of lost) assert.equal(l.libKey, null, "an interface field the renderer never emits has no libKey mapping");
+  // Since codex.interface exists, every interface field has a library.json home: the libKey names it,
+  // so the refusal can say which key to set instead of calling --allow-field-loss the only way through.
+  for (const l of lost) assert.equal(l.libKey, `codex.${l.field}`, "an unsupplied interface field names its codex.interface home");
 });
 
 test("fieldLosses flags a Codex interface field that library.json does not supply, even though neither side is empty", () => {
@@ -351,8 +404,22 @@ test("CLI gen-manifest --write names the library.json key that differs from the 
   assert.equal(r.code, 1);
   assert.doesNotMatch(r.stderr, /- interface\.displayName/, "library.json supplies displayName: a regeneration, not a loss");
   assert.doesNotMatch(r.stderr, /- interface\.category/, "library.json supplies category: a regeneration, not a loss");
-  assert.match(r.stderr, /- interface\.shortDescription \(existing: .*no library\.json field carries this; --allow-field-loss is the only way through\)/);
-  assert.match(r.stderr, /- interface\.brandColor \(existing: .*no library\.json field carries this; --allow-field-loss is the only way through\)/);
+  assert.match(r.stderr, /- interface\.shortDescription \(existing: .*\(set library\.json "codex\.interface\.shortDescription"\)/);
+  assert.match(r.stderr, /- interface\.brandColor \(existing: .*\(set library\.json "codex\.interface\.brandColor"\)/);
+  assert.doesNotMatch(r.stderr, /only way through/, "codex.interface is a library.json home for these, so the refusal must not say there is none");
+});
+
+test("CLI gen-manifest --write regenerates a rich Codex interface with no refusal once library.json carries it under codex.interface", () => {
+  const root = mkdtempSync(path.join(tmpdir(), "askit-gen-manifest-codex-interface-"));
+  const lib = { ...THIN_LIB, displayName: "Demo Plugin", category: "Productivity", codex: { interface: { ...CODEX_INTERFACE, brandColor: "#2563EB" } } };
+  const existingInterface = { displayName: "Demo Plugin", category: "Productivity", ...CODEX_INTERFACE, brandColor: "#2563EB" };
+  seedPlugin(root, { lib, codexManifest: { name: "demo-plugin", version: "0.1.0", description: THIN_LIB.description, skills: "./skills/", interface: existingInterface } });
+
+  const r = runGen([root, "--write", "--target=codex"]);
+
+  assert.equal(r.code, 0, r.stderr);
+  const after = JSON.parse(readFileSync(path.join(root, ".codex-plugin/plugin.json"), "utf8"));
+  assert.deepEqual(after.interface, existingInterface, "every interface field survives the regeneration");
 });
 
 test("CLI gen-manifest --write refuses on a non-empty existing description that library.json omits", () => {
@@ -431,7 +498,7 @@ test("CLI gen-manifest --write still refuses a hand-written Codex interface key 
 
   assert.equal(r.code, 1);
   assert.doesNotMatch(r.stderr, /- skills/, 'the "skills" pointer formatting fix must never be reported');
-  assert.match(r.stderr, /- interface\.brandColor \(existing: .*no library\.json field carries this; --allow-field-loss is the only way through\)/);
+  assert.match(r.stderr, /- interface\.brandColor \(existing: .*\(set library\.json "codex\.interface\.brandColor"\)/);
 });
 
 test("CLI gen-manifest --write still refuses a Claude top-level key the renderer never emits (icon), alongside the fixed skills-pointer behavior", () => {

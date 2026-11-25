@@ -11,6 +11,8 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- **`library.json` gains a `codex.interface` object, and `gen-manifest` copies it into the Codex manifest's `interface` block as written.** The Codex app builds a plugin's page from that block: the Website row is `websiteURL`, and the developer, short and long descriptions, suggested prompts and legal links each have their own key. Until now `gen-manifest` emitted only `displayName` and `category`, so a plugin generated from `library.json` showed "Website: Unavailable", and the E72 (adopting a plugin can wipe its hand-written manifest fields) refusal told an author with those fields that `--allow-field-loss` was the only way through. The object is passed through without an allowlist, so a field Codex adds later needs no generator change; it is merged last, so it also overrides the top-level `displayName` and `category`. A field it supplies is a regeneration, never a loss, and the refusal for an unsupplied Codex field now names `codex.interface.<field>` as the key to set. `askit-migrate` (0.2.1) tells adopters to copy those fields there. Claude's manifest is unchanged.
+
 - **[ADR 0066 (the goal is the builder whose libraries are proven to work, and "best" is measured, not claimed)](docs/internal/decisions/0066-the-goal-is-the-builder-whose-libraries-are-proven-and-best-is-measured.md) records a ruling ([#399](https://github.com/product-on-purpose/agent-skills-toolkit/pull/399)).** The maintainer accepted it on 2026-11-05. The goal is now the builder that produces a whole cross-agent plugin library and proves it works, with four measured criteria. This changes no shipped behaviour, and no grade moves. The behaviour-loop cut that implements it has not started.
 
 ### Fixed

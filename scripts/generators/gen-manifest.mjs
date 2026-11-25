@@ -68,12 +68,23 @@ function displayNameFor(lib) {
     .join(" ");
 }
 
+/** library.json's `codex.interface` when it is a plain object, else null (a malformed value adds nothing). */
+function codexInterfaceOf(lib) {
+  const ci = lib?.codex?.interface;
+  return ci && typeof ci === "object" && !Array.isArray(ci) ? ci : null;
+}
+
 /**
  * .codex-plugin/plugin.json (Codex native manifest), generated from library.json.
  * Codex format (CLI v0.135, Standard sec 3.2/10.1): shared spine + a "skills"
- * pointer + an "interface" marketplace block. Minimal accepted interface is
- * { displayName, category }; no commands field, no URL fields. displayName/category
- * derive from library.json unless explicitly declared.
+ * pointer + an "interface" marketplace block. The minimum Codex accepts is
+ * { displayName, category }, which derive from library.json's top-level keys. Every other
+ * marketplace field Codex shows on a plugin page (shortDescription, longDescription,
+ * developerName, capabilities, websiteURL, privacyPolicyURL, termsOfServiceURL, defaultPrompt,
+ * brandColor, logo, screenshots, and any field Codex adds later) comes from library.json's
+ * `codex.interface` object, passed through as written rather than through an allowlist, so a new
+ * vendor field needs no generator change. `codex.interface` is merged last, so it also overrides
+ * the top-level displayName/category when it sets them.
  */
 export function renderCodexNativeManifest(ctx) {
   const lib = ctx.library.data ?? {};
@@ -83,6 +94,7 @@ export function renderCodexNativeManifest(ctx) {
     interface: {
       displayName: displayNameFor(lib),
       category: typeof lib.category === "string" && lib.category ? lib.category : "Engineering",
+      ...(codexInterfaceOf(lib) ?? {}),
     },
   };
   if (ctx.mcpPath) obj.mcpServers = "./.mcp.json";
@@ -108,8 +120,9 @@ const RENDERERS = {
  * interface key neither renderer has ever heard of (shortDescription, brandColor, and the rest
  * of the Codex marketplace block) is still caught, not just the two keys the renderer happens
  * to emit. This table is only the libKey MAP: which library.json key, if any, can justify a
- * change at a given field path. A field with no entry here has no library.json home at all, so
- * any loss there can only be waved through with `--allow-field-loss`.
+ * change at a given field path. A Codex `interface.<key>` field with no entry here still has
+ * `codex.interface.<key>` as its home (see `fieldLosses`). Any other field with no entry has no
+ * library.json home at all, so any loss there can only be waved through with `--allow-field-loss`.
  *
  * Decision (E72, rounds 2 and 3 of the PR #368 review): a field with no entry in this map is a
  * loss whenever the render would change it, with one exception. When the existing value and the
@@ -175,9 +188,11 @@ function samePathSpelling(a, b) {
  * The fields it checks are not a fixed list: it walks every non-empty top-level key the
  * EXISTING object carries, plus (one level deep only) every key inside an existing `interface`
  * block, so a vendor field neither renderer has ever heard of is still caught. `libKeyMap`
- * supplies the library.json key, if any, that can justify a change at a given field path; a
- * field with no entry has no library.json home, so `lost[].libKey` comes back null and only
- * `--allow-field-loss` is a way through. The one exception is a pure path-spelling difference
+ * supplies the library.json key, if any, that can justify a change at a given field path. Every
+ * `interface.<key>` field also has `codex.interface.<key>` as a home, and either one supplying a
+ * value is a regeneration; `lost[].libKey` names the mapped key where there is one, else the
+ * nested one. Any other field with no map entry has no library.json home, so `lost[].libKey`
+ * comes back null and only `--allow-field-loss` is a way through. The one exception is a pure path-spelling difference
  * ("./skills" on disk, "./skills/" rendered), which is a regeneration (E72, round 3). An existing
  * `interface` that is not a plain object (a string, an array) is checked as one field, since the
  * render would replace it whole. Pure and side-effect-free, so directly unit-testable.
@@ -193,9 +208,13 @@ export function fieldLosses(existingObj, newObj, lib, libKeyMap = NATIVE_LIB_KEY
     if (isEmptyValue(oldVal)) return;
     const newVal = getAtPath(newObj, field);
     if (valuesEqual(oldVal, newVal)) return;
-    const libKey = libKeyMap[field] ?? null;
-    const libVal = libKey ? lib?.[libKey] : undefined;
-    if (!isEmptyValue(libVal)) return; // library.json supplies a (possibly different) value: deliberate regeneration
+    // A Codex interface field can also be supplied by library.json's codex.interface object, which
+    // is every interface field's home; the map's top-level key, where there is one, is the other.
+    const nestedKey = field.startsWith("interface.") ? `codex.${field}` : null;
+    const mappedKey = libKeyMap[field] ?? null;
+    const libKey = mappedKey ?? nestedKey;
+    const supplied = [mappedKey, nestedKey].some((k) => k && !isEmptyValue(getAtPath(lib, k)));
+    if (supplied) return; // library.json supplies a (possibly different) value: deliberate regeneration
     if (!libKey && samePathSpelling(oldVal, newVal)) return; // no library.json home, and the only difference is how one relative path is spelled: a regeneration, not a loss (E72, round 3)
     lost.push({ field, existing: oldVal, libKey });
   };
