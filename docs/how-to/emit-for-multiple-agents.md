@@ -28,8 +28,26 @@ npx agent-skills-toolkit gen-manifest . --write --target=all
 
 `.claude-plugin/plugin.json` carries the shared spine (name, version, description,
 author, homepage, repository, keywords). `.codex-plugin/plugin.json` adds a
-`"skills": "./skills/"` pointer and an `interface` marketplace block (displayName,
-category) for the Codex plugin system.
+`"skills": "./skills/"` pointer and an `interface` marketplace block for the
+Codex plugin system. The block always carries `displayName` and `category`,
+from `library.json`'s top-level keys of those names. Every other field Codex
+shows on a plugin page, such as `shortDescription`, `developerName`,
+`websiteURL` or `defaultPrompt`, comes from a `codex.interface` object in
+`library.json`, copied as written:
+
+```json
+"codex": {
+  "interface": {
+    "shortDescription": "One line under the plugin name",
+    "developerName": "Your Name",
+    "websiteURL": "https://github.com/you/your-plugin",
+    "capabilities": ["Interactive", "Read", "Write"]
+  }
+}
+```
+
+A key in `codex.interface` wins over the top-level `displayName` or
+`category` when both are set. Claude's manifest never carries these fields.
 
 An existing native manifest may already carry one of those fields with a
 non-empty value that `library.json` does not supply. `gen-manifest --write`
@@ -77,10 +95,12 @@ field is resolved.
 
 The check is not limited to the fields `library.json` can supply. It walks
 every field the existing manifest carries, including a Codex interface key
-neither renderer emits, such as `shortDescription` or `brandColor`. Those
-have no `library.json` home at all, so their refusal line says so, and
-`--allow-field-loss` is the only way through for them. The same applies to
-a hand-written inline `mcpServers` object or a custom `skills` directory.
+neither renderer computes, such as `shortDescription` or `brandColor`. Their
+`library.json` home is the `codex.interface` object, and their refusal line
+names the key to set, such as `codex.interface.brandColor`. A hand-written
+inline `mcpServers` object or a custom `skills` directory has no
+`library.json` home at all, so its refusal line says so, and
+`--allow-field-loss` is the only way through for it.
 The one change the check forgives is a path spelled two ways, such as
 `./skills` on disk where the renderer writes `./skills/`.
 
@@ -90,7 +110,8 @@ Two ways through:
    possible). Read the existing native manifest(s), add the missing
    `homepage`, `repository`, `license`, `author`, `keywords`, and the Codex
    display name and category to `library.json`'s top-level `displayName` and
-   `category` keys (not a nested `interface` object), then rerun
+   `category` keys (not a nested `interface` object). Copy every other Codex
+   `interface` field into `library.json`'s `codex.interface` object. Then rerun
    `gen-manifest --write`. `library.json` becomes the single source of truth
    those fields were always supposed to have. When the refusal names a field
    whose `library.json` key differs from its own name, such as
