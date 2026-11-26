@@ -148,6 +148,9 @@ Changing the accepted goal itself would take a new ADR.
 
 - **It builds no product feature.** Experiment B is run by hand. The behaviour-loop cut no longer waits for D-09, which
   was accepted 2026-11-05. Whether it waits for experiment B is the maintainer's choice when this plan is ruled.
+  Experiment B was void, and on 2026-11-17 the maintainer ruled D3 (b) in the
+  [experiment B2 design](../../eval-runs/design_experiment-b2-c1-pilot-2-20261114.md), section 4: the cut does not wait.
+  It proceeds as regression tooling, and experiment B2 decides whether it becomes the headline.
 - **It publishes nothing about anyone else's catalogue** without consent.
 - **It sets no numeric adoption target.** ADR 0066 refuses targets before a first measurement, and this
   plan follows that.

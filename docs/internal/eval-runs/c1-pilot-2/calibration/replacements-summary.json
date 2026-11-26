@@ -1,0 +1,50 @@
+{
+  "shift-handover-note": {
+    "costUsd": 0.4417593999999998,
+    "partial": false,
+    "cases": [
+      {
+        "name": "case-04",
+        "score": 0.5,
+        "errors": 0,
+        "saturated": false
+      },
+      {
+        "name": "case-05",
+        "score": 0.5,
+        "errors": 0,
+        "saturated": false
+      },
+      {
+        "name": "case-10",
+        "score": 0.4166666666666667,
+        "errors": 0,
+        "saturated": false
+      }
+    ]
+  },
+  "customer-release-notes": {
+    "costUsd": 0.848552,
+    "partial": false,
+    "cases": [
+      {
+        "name": "case-04",
+        "score": 0.5,
+        "errors": 0,
+        "saturated": false
+      },
+      {
+        "name": "case-05",
+        "score": 0.6666666666666666,
+        "errors": 0,
+        "saturated": false
+      },
+      {
+        "name": "case-10",
+        "score": 0.5,
+        "errors": 0,
+        "saturated": false
+      }
+    ]
+  }
+}
